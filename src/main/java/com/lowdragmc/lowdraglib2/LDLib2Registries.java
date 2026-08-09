@@ -13,6 +13,7 @@ import com.lowdragmc.lowdraglib2.registry.LDLRegistry;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.test.ui.IMenuTest;
 import com.lowdragmc.lowdraglib2.test.ui.IScreenTest;
+import com.lowdragmc.lowdraglib2.uitest.UIScenario;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
@@ -39,6 +40,15 @@ public class LDLib2Registries {
     @OnlyIn(Dist.CLIENT)
     public static AutoRegistry.LDLibRegisterClient<IScreenTest, Supplier<IScreenTest>> SCREEN_TESTS;
 
+    /**
+     * Automated UI test scenarios. Populated by an annotation scan over every loaded mod, so a mod
+     * depending on LDLib2 registers its own scenarios with no changes here.
+     *
+     * @see com.lowdragmc.lowdraglib2.uitest.UIScenario
+     */
+    @OnlyIn(Dist.CLIENT)
+    public static AutoRegistry.LDLibRegisterClient<UIScenario, Supplier<UIScenario>> UI_SCENARIOS;
+
     static {
         if (LDLib2.isClient()) {
             CONFIGURATOR_ACCESSORS = AutoRegistry.LDLibRegisterClient
@@ -50,6 +60,7 @@ public class LDLib2Registries {
                     .create(LDLib2.id("renderer"), IRenderer.class, AutoRegistry::noArgsCreator);
             if (Platform.isDevEnv()) {
                 SCREEN_TESTS = AutoRegistry.LDLibRegisterClient.create(LDLib2.id("screen_test"), IScreenTest.class, AutoRegistry::noArgsCreator);
+                UI_SCENARIOS = AutoRegistry.LDLibRegisterClient.create(LDLib2.id("ui_scenario"), UIScenario.class, AutoRegistry::noArgsCreator);
             }
         }
         if (Platform.isDevEnv()) {

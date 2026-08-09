@@ -6,6 +6,8 @@ import com.lowdragmc.lowdraglib2.client.font.LDFontStatsOverlay;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import com.lowdragmc.lowdraglib2.client.shader.management.ShaderManager;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
+import com.lowdragmc.lowdraglib2.uitest.UITestRunner;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandSourceStack;
@@ -44,7 +46,47 @@ public class ClientCommands {
         if (LDLib2Registries.SCREEN_TESTS != null && !LDLib2Registries.SCREEN_TESTS.values().isEmpty()) {
             commands.add(createScreenTestCommands());
         }
+        if (LDLib2Registries.UI_SCENARIOS != null && !LDLib2Registries.UI_SCENARIOS.values().isEmpty()) {
+            commands.add(createUiTestCommands());
+        }
         return commands;
+    }
+
+    /**
+     * Runs a UI test scenario inside the running game.
+     *
+     * <p>A command-line run pays for Gradle, mod loading and world creation before the first step,
+     * and none of that changes between attempts. While iterating on a scenario, launch once with
+     * {@code -PldTestKeepOpen} and re-run from here instead.
+     */
+    private static LiteralArgumentBuilder<CommandSourceStack> createUiTestCommands() {
+        return createLiteral("ldlib2_uitest")
+                .then(createLiteral("list")
+                        .executes(context -> {
+                            var names = UITestRunner.registeredScenarioNames();
+                            context.getSource().sendSuccess(() -> Component.literal(
+                                    names.size() + " scenario(s): " + String.join(", ", names)), false);
+                            return names.size();
+                        }))
+                .then(createLiteral("run")
+                        .then(Commands.argument("selection", StringArgumentType.greedyString())
+                                .suggests((context, builder) -> {
+                                    builder.suggest("all");
+                                    UITestRunner.registeredScenarioNames().forEach(builder::suggest);
+                                    return builder.buildFuture();
+                                })
+                                .executes(context -> {
+                                    var selection = StringArgumentType.getString(context, "selection");
+                                    var error = UITestRunner.runInteractive(selection);
+                                    if (error != null) {
+                                        context.getSource().sendFailure(Component.literal(error));
+                                        return 0;
+                                    }
+                                    context.getSource().sendSuccess(() -> Component.literal(
+                                            "Running UI scenarios: " + selection
+                                                    + " (results go to the log and report.json)"), false);
+                                    return 1;
+                                })));
     }
 
     /**

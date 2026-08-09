@@ -49,6 +49,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.appliedenergistics.yoga.YogaConstants;
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 
 import org.jetbrains.annotations.Nullable;
@@ -666,6 +667,98 @@ public class ModularUI {
     }
 
     /**
+     * Finds the {@link ModularUI} behind a screen, however it got there — a screen that is itself a
+     * holder, a menu-backed {@code AbstractContainerScreen}, or a widget attached to some other
+     * screen.
+     *
+     * <p>Lives here because "is there an LDLib2 UI on screen right now" is a question any mod can
+     * need to ask, and answering it means knowing all three attachment routes.
+     */
+    @OnlyIn(Dist.CLIENT)
+    @Nullable
+    public static ModularUI of(@Nullable Screen screen) {
+        if (screen == null) return null;
+        if (screen instanceof IModularUIHolder holder && holder.hasModularUI()) {
+            return holder.getModularUI();
+        }
+        if (screen instanceof AbstractContainerScreen<?> container
+                && container.getMenu() instanceof IModularUIHolder holder && holder.hasModularUI()) {
+            return holder.getModularUI();
+        }
+        for (var child : screen.children()) {
+            if (child instanceof IModularUIHolder holder && holder.hasModularUI()) {
+                return holder.getModularUI();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Hit-tests at a GUI-scaled screen position without touching any state.
+     *
+     * <p>The counterpart to {@link #refreshHoveredElementAtScreen}, which is a mutator: it moves the
+     * cached hover and rewrites the {@code __hovered__} class chain. Anything that only wants to
+     * <em>ask</em> what is at a point — "can this be clicked?" — must not have to disturb the hover
+     * to find out, or its own later assertions end up observing the probe rather than the UI.
+     */
+    @OnlyIn(Dist.CLIENT)
+    @Nullable
+    public UIElement hitTestAtScreen(float screenX, float screenY) {
+        var local = new Matrix4f(lastDrawPose).invert().transformPosition(new Vector3f(screenX, screenY, 0));
+        var hit = ui.rootElement.hitTest(local.x, local.y);
+        return hit == null ? null : hit.getA();
+    }
+
+    /**
+     * Hit-tests at the given position and updates the cached hover element plus the {@code __hovered__}
+     * class chain. Called once per frame from {@code ModularUIWidget#render}.
+     *
+     * <p>Exposed because every mouse method on {@code ModularUIWidget} routes to
+     * {@link #getLastHoveredElement()} rather than hit-testing itself. Anything that synthesises input
+     * outside the normal cursor pipeline — a test harness, a scripted tutorial, a remote driver — has to
+     * move the logical cursor here first, or the event resolves against whatever was hovered last frame.
+     *
+     * @param localMouseX mouse x in root-element local space, i.e. screen space run back through the
+     *                    inverse of {@link #getLastDrawPose()} (see {@code GUIContext#refreshLocalMouse})
+     * @param localMouseY mouse y in the same space
+     */
+    @OnlyIn(Dist.CLIENT)
+    public void refreshHoveredElement(float localMouseX, float localMouseY) {
+        lastMouseX = localMouseX;
+        lastMouseY = localMouseY;
+
+        var hoverElement = ui.rootElement.hitTest(lastMouseX, lastMouseY);
+        var newHoveredElement = hoverElement == null ? null : hoverElement.getA();
+        if (lastHoveredElements.isEmpty() ||
+                newHoveredElement != null && !newHoveredElement.getStructurePath().equals(lastHoveredElements)) {
+            for (var element : lastHoveredElements) {
+                element.removeClass("__hovered__");
+            }
+
+            lastHoveredElements.clear();
+
+            if (newHoveredElement != null) {
+                lastHoveredElements.addAll(newHoveredElement.getStructurePath());
+                for (var element : lastHoveredElements) {
+                    element.addClass("__hovered__");
+                }
+            }
+        }
+
+        lastHoveredElement = newHoveredElement;
+    }
+
+    /**
+     * Maps a GUI-scaled screen position into the root element's local space and refreshes the hover
+     * from it. This is the inverse of the transform {@code GUIContext} applies each frame.
+     */
+    @OnlyIn(Dist.CLIENT)
+    public void refreshHoveredElementAtScreen(float screenX, float screenY) {
+        var local = new Matrix4f(lastDrawPose).invert().transformPosition(new Vector3f(screenX, screenY, 0));
+        refreshHoveredElement(local.x, local.y);
+    }
+
+    /**
      * Routes files dropped onto the window from outside the game to the element under the cursor, as a
      * {@link UIEvents#FILE_DROP} event that bubbles up from it.
      * <p>
@@ -1145,28 +1238,7 @@ public class ModularUI {
             lastDrawPose = new Matrix4f(guiGraphics.pose().last().pose());
             var guiContext = GUIContext.of(ModularUI.this, guiGraphics, mouseX, mouseY, partialTick);
 
-            lastMouseX = guiContext.localMouseX;
-            lastMouseY = guiContext.localMouseY;
-
-            var hoverElement = ui.rootElement.hitTest(lastMouseX, lastMouseY);
-            var newHoveredElement = hoverElement == null ? null : hoverElement.getA();
-            if (lastHoveredElements.isEmpty() ||
-                    newHoveredElement != null && !newHoveredElement.getStructurePath().equals(lastHoveredElements)) {
-                for (var element : lastHoveredElements) {
-                    element.removeClass("__hovered__");
-                }
-
-                lastHoveredElements.clear();
-
-                if (newHoveredElement != null) {
-                    lastHoveredElements.addAll(newHoveredElement.getStructurePath());
-                    for (var element : lastHoveredElements) {
-                        element.addClass("__hovered__");
-                    }
-                }
-            }
-
-            lastHoveredElement = newHoveredElement;
+            refreshHoveredElement(guiContext.localMouseX, guiContext.localMouseY);
             ui.rootElement.drawInBackground(guiContext);
 
             if (lastHoveredElement != null && tooltipTexts == null) {
