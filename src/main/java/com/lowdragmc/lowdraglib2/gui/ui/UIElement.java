@@ -1876,6 +1876,14 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
 
     /**
      * Renders the contents of the GUI element. includes additional background and children
+     *
+     * <p>Prefer overriding {@link #shouldDrawChildren()} or {@link #drawChildren(GUIContext)}:
+     * this method owns two lifecycles a subclass would otherwise have to reproduce by hand — the
+     * {@code overflow: hidden} scissor and the element-colour save/restore — and getting either
+     * wrong strands GL state for everything drawn afterwards.
+     *
+     * <p>Deliberately not {@code final}, despite that: it is public API on a published library and
+     * downstream elements already override it.
      */
     public void drawContents(GUIContext guiContext) {
         // not need to use scissoring if overflow cip defined
@@ -1888,7 +1896,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         if(!isCulled) {
             drawBackgroundAdditional(guiContext);
         }
-        if (!children.isEmpty()) {
+        if (!children.isEmpty() && shouldDrawChildren()) {
             var currentColor = guiContext.elementColor;
             var hasColor = currentColor != -1;
             // we roll back first
@@ -1897,10 +1905,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
                 guiContext.resetElementColor();
             }
 
-            var sortedChildren = getSafeSortedChildren();
-            for (int i = sortedChildren.length - 1; i >= 0; i--) {
-                sortedChildren[i].drawInBackground(guiContext);
-            }
+            drawChildren(guiContext);
 
             if (hasColor) {
                 guiContext.graphics.flush();
@@ -1910,6 +1915,26 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         if (hidden) {
             guiContext.graphics.flush();
             guiContext.disableScissor();
+        }
+    }
+
+    /**
+     * Whether to descend into children at all this frame.
+     *
+     * <p>The seam for elements that stand in for their own subtree — a level-of-detail proxy, a
+     * collapsed container. Returning {@code false} skips the whole subtree, which is where the cost
+     * of a deep tree actually lives: each child would otherwise transform its corners and test the
+     * scissor just to discover it has nothing to draw.
+     */
+    protected boolean shouldDrawChildren() {
+        return true;
+    }
+
+    /** Draws the children, back to front by z-index. */
+    protected void drawChildren(GUIContext guiContext) {
+        var sortedChildren = getSafeSortedChildren();
+        for (int i = sortedChildren.length - 1; i >= 0; i--) {
+            sortedChildren[i].drawInBackground(guiContext);
         }
     }
 

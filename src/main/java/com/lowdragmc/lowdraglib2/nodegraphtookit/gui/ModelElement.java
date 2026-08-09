@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.GraphViewLod;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.DependencyTypes;
@@ -182,6 +183,18 @@ public abstract class ModelElement extends UIElement {
 
     public String getLayerName() {
         return "";
+    }
+
+    /**
+     * The level of detail this element should draw itself at, taken from the graph canvas' current
+     * zoom. Returns {@link GraphViewLod#FULL} when the element is not attached to a graph view.
+     *
+     * <p>Elements that honour this must do so purely in their draw methods — collapsing to flat
+     * rects and skipping child recursion. Do not toggle {@code display}/{@code isVisible}: those go
+     * through the style pipeline and dirty the layout tree every frame the zoom changes.
+     */
+    protected GraphViewLod lod() {
+        return graphView == null ? GraphViewLod.FULL : graphView.graphView.getLod();
     }
 
     /**

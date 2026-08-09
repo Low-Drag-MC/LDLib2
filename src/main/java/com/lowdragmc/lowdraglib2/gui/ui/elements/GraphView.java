@@ -1,8 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
-import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
@@ -11,15 +10,22 @@ import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.utils.ColorUtils;
+import com.mojang.blaze3d.systems.RenderSystem;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.util.Mth;
 import org.appliedenergistics.yoga.YogaOverflow;
 
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 
 @ParametersAreNonnullByDefault
@@ -36,14 +42,19 @@ public class GraphView extends UIElement {
                 PropertyRegistry.ALLOW_PAN,
                 PropertyRegistry.MIN_SCALE,
                 PropertyRegistry.MAX_SCALE,
-                PropertyRegistry.GRID_BACKGROUND,
                 PropertyRegistry.GRID_SIZE,
+                PropertyRegistry.GRID_MIN_PIXELS,
+                PropertyRegistry.GRID_SUBDIVISIONS,
+                PropertyRegistry.GRID_LINE_WIDTH,
+                PropertyRegistry.GRID_LINE_COLOR,
+                PropertyRegistry.GRID_ACCENT_COLOR,
+                PropertyRegistry.LOD_ENABLED,
+                PropertyRegistry.LOD_SIMPLIFIED_PIXEL_SCALE,
+                PropertyRegistry.LOD_BLOCK_PIXEL_SCALE,
         };
 
         public GraphViewStyle() {
             super(GraphView.this);
-            setDefault(PropertyRegistry.GRID_BACKGROUND, SpriteTexture.of("ldlib2:textures/gui/grid_bg.png")
-                    .setWrapMode(SpriteTexture.WrapMode.REPEAT));
         }
 
         @Override
@@ -87,13 +98,34 @@ public class GraphView extends UIElement {
             return getValueSave(PropertyRegistry.MAX_SCALE);
         }
 
-        public GraphViewStyle gridTexture(IGuiTexture gridTexture) {
-            set(PropertyRegistry.GRID_BACKGROUND, gridTexture);
+        /** Width of a grid line, in UI units. */
+        public GraphViewStyle gridLineWidth(float gridLineWidth) {
+            set(PropertyRegistry.GRID_LINE_WIDTH, gridLineWidth);
             return this;
         }
 
-        public IGuiTexture gridTexture() {
-            return getValueSave(PropertyRegistry.GRID_BACKGROUND);
+        public float gridLineWidth() {
+            return getValueSave(PropertyRegistry.GRID_LINE_WIDTH);
+        }
+
+        /** Colour of the subdivision lines — the ones that fade in and out as you zoom. */
+        public GraphViewStyle gridLineColor(int gridLineColor) {
+            set(PropertyRegistry.GRID_LINE_COLOR, gridLineColor);
+            return this;
+        }
+
+        public int gridLineColor() {
+            return getValueSave(PropertyRegistry.GRID_LINE_COLOR);
+        }
+
+        /** Colour of the major lines — always fully drawn, one every {@link #gridSubdivisions()}. */
+        public GraphViewStyle gridAccentColor(int gridAccentColor) {
+            set(PropertyRegistry.GRID_ACCENT_COLOR, gridAccentColor);
+            return this;
+        }
+
+        public int gridAccentColor() {
+            return getValueSave(PropertyRegistry.GRID_ACCENT_COLOR);
         }
 
         public GraphViewStyle gridSize(float gridSize) {
@@ -103,6 +135,67 @@ public class GraphView extends UIElement {
 
         public float gridSize() {
             return getValueSave(PropertyRegistry.GRID_SIZE);
+        }
+
+        /** Whether {@link #getLod()} may return anything other than {@link GraphViewLod#FULL}. */
+        public GraphViewStyle lodEnabled(boolean lodEnabled) {
+            set(PropertyRegistry.LOD_ENABLED, lodEnabled);
+            return this;
+        }
+
+        public boolean lodEnabled() {
+            return getValueSave(PropertyRegistry.LOD_ENABLED);
+        }
+
+        /**
+         * Below this many <b>physical screen pixels per UI unit</b> the view reports
+         * {@link GraphViewLod#SIMPLIFIED}. See {@link #getPixelScale()}.
+         */
+        public GraphViewStyle lodSimplifiedPixelScale(float pixelScale) {
+            set(PropertyRegistry.LOD_SIMPLIFIED_PIXEL_SCALE, pixelScale);
+            return this;
+        }
+
+        public float lodSimplifiedPixelScale() {
+            return getValueSave(PropertyRegistry.LOD_SIMPLIFIED_PIXEL_SCALE);
+        }
+
+        /** Below this many physical screen pixels per UI unit the view reports {@link GraphViewLod#BLOCK}. */
+        public GraphViewStyle lodBlockPixelScale(float pixelScale) {
+            set(PropertyRegistry.LOD_BLOCK_PIXEL_SCALE, pixelScale);
+            return this;
+        }
+
+        public float lodBlockPixelScale() {
+            return getValueSave(PropertyRegistry.LOD_BLOCK_PIXEL_SCALE);
+        }
+
+        /**
+         * Smallest on-screen spacing, in UI units, the grid is allowed to reach before it drops to a
+         * coarser level. Keeps the grid readable at every zoom instead of collapsing into noise.
+         */
+        public GraphViewStyle gridMinPixels(float gridMinPixels) {
+            set(PropertyRegistry.GRID_MIN_PIXELS, gridMinPixels);
+            return this;
+        }
+
+        public float gridMinPixels() {
+            return getValueSave(PropertyRegistry.GRID_MIN_PIXELS);
+        }
+
+        /**
+         * Ratio between adjacent grid levels. 4 means each coarse cell holds 4x4 fine cells.
+         *
+         * <p>Integral by type, not by convention: the levels only nest — and the whole
+         * skip-every-n-th scheme only works — if each lattice is a subset of the one below it.
+         */
+        public GraphViewStyle gridSubdivisions(int gridSubdivisions) {
+            set(PropertyRegistry.GRID_SUBDIVISIONS, Math.max(2, gridSubdivisions));
+            return this;
+        }
+
+        public int gridSubdivisions() {
+            return Math.max(2, getValueSave(PropertyRegistry.GRID_SUBDIVISIONS));
         }
     }
 
@@ -115,6 +208,11 @@ public class GraphView extends UIElement {
     private float offsetX = 0f, offsetY = 0f;  // world offset
     @Getter
     private float scale = 1f;
+    // Intra-frame LOD memo; see getLod(). Expires every frame and is additionally keyed on the pixel
+    // scale, so a zoom mid-frame is still picked up.
+    private GraphViewLod cachedLod = GraphViewLod.FULL;
+    private float cachedLodPixelScale = Float.NaN;
+    private boolean lodDirty = true;
 
     public GraphView() {
         setOverflowVisible(false);
@@ -160,6 +258,94 @@ public class GraphView extends UIElement {
     protected void onLayoutChanged() {
         super.onLayoutChanged();
         refreshContentTransform();
+    }
+
+    /**
+     * Sets the zoom, clamped to the style's min/max, and refreshes the content transform.
+     *
+     * <p>Unlike {@link #setOffsetX(float)}/{@link #setOffsetY(float)} this cannot be a plain field
+     * setter: zoom outside {@code [minScale, maxScale]} breaks the pan maths in
+     * {@code onDragSourceUpdate}, and a scale change that does not refresh the transform leaves the
+     * view rendering at the old zoom until the next pan or relayout.
+     */
+    public void setScale(float scale) {
+        var newScale = Mth.clamp(scale, graphViewStyle.minScale(), graphViewStyle.maxScale());
+        if (newScale == this.scale) return;
+        this.scale = newScale;
+        refreshContentTransform();
+    }
+
+    /**
+     * The level of detail content should render itself at, derived from the current {@link #scale}.
+     *
+     * <p>Computed on demand rather than cached on zoom: it is two float comparisons, and computing
+     * it lazily means a stylesheet that changes the thresholds at runtime takes effect immediately.
+     *
+     * @see GraphViewLod
+     */
+    /**
+     * The level of detail content inside this canvas should draw itself at.
+     *
+     * <p>Memoised, because every node and every wire asks on every frame and the answer cannot change
+     * between them. Recomputing meant three style-map lookups per element per frame for an answer
+     * that is identical across the whole tree — several hundred thousand lookups a second on a large
+     * graph, spent by the very machinery that exists to make large graphs cheap.
+     */
+    public GraphViewLod getLod() {
+        float pixelScale = getPixelScale();
+        if (!lodDirty && pixelScale == cachedLodPixelScale) {
+            return cachedLod;
+        }
+        cachedLodPixelScale = pixelScale;
+        cachedLod = resolveLod(pixelScale, graphViewStyle.lodEnabled(),
+                graphViewStyle.lodSimplifiedPixelScale(), graphViewStyle.lodBlockPixelScale());
+        lodDirty = false;
+        return cachedLod;
+    }
+
+    /**
+     * How many <b>physical screen pixels</b> one content unit currently occupies — the canvas zoom
+     * multiplied by the window's GUI scale.
+     *
+     * <p>This, not the raw zoom, is what LOD keys off. Zoom alone says nothing about whether anything
+     * is still legible: at GUI scale 4 a node at 0.3 zoom is physically twice the size of the same
+     * node at GUI scale 2, so a fixed zoom threshold either strips detail that was perfectly readable
+     * or keeps drawing text that has become a smear, depending purely on a setting the canvas never
+     * looked at.
+     *
+     * <p>Ancestor transforms are not folded in: a graph view nested inside a scaled container is
+     * rare, and reading the pose here would make the result depend on whether a frame has been
+     * rendered yet.
+     */
+    public float getPixelScale() {
+        return scale * (float) currentGuiScale();
+    }
+
+    /**
+     * The LOD policy itself, split out from {@link #getLod()} so it can be exercised without a live
+     * style engine, and so content that renders a graph outside a {@link GraphView} (a minimap, a
+     * thumbnail) can apply the same rule.
+     *
+     * <p>Both thresholds are exclusive lower bounds: a view sitting exactly on
+     * {@code simplifiedPixelScale} still draws in full.
+     *
+     * @param pixelScale physical screen pixels per UI unit, see {@link #getPixelScale()}
+     */
+    public static GraphViewLod resolveLod(float pixelScale, boolean enabled,
+                                          float simplifiedPixelScale, float blockPixelScale) {
+        if (!enabled) return GraphViewLod.FULL;
+        if (pixelScale < blockPixelScale) return GraphViewLod.BLOCK;
+        if (pixelScale < simplifiedPixelScale) return GraphViewLod.SIMPLIFIED;
+        return GraphViewLod.FULL;
+    }
+
+    /** 1.0 off-client or before the window exists, so this is safe to call from a game test. */
+    private static double currentGuiScale() {
+        if (!LDLib2.isClient()) return 1d;
+        var minecraft = Minecraft.getInstance();
+        if (minecraft == null) return 1d;
+        var window = minecraft.getWindow();
+        return window == null ? 1d : window.getGuiScale();
     }
 
     protected void refreshContentTransform() {
@@ -251,54 +437,169 @@ public class GraphView extends UIElement {
         }
     }
 
+    /**
+     * Draws the background grid at an adaptive density.
+     *
+     * <p>A grid pinned to a single world-space size is only right at one zoom: zoom out and it packs
+     * into an unreadable moire, zoom in and it becomes a handful of lines miles apart. Instead the
+     * spacing snaps to whichever power of {@link GraphViewStyle#gridSubdivisions()} keeps on-screen
+     * spacing at or above {@link GraphViewStyle#gridMinPixels()}, so the grid reads the same at every
+     * zoom.
+     *
+     * <p>The levels are crossfaded rather than swapped, so zooming never pops. See
+     * {@link #resolveGridLevels} for why that takes three levels and not two.
+     */
     @Override
     public void drawBackgroundAdditional(GUIContext guiContext) {
         super.drawBackgroundAdditional(guiContext);
-        var x = getContentX();
-        var y = getContentY();
-        var w = getContentWidth();
-        var h = getContentHeight();
+        // Runs once per frame, before any content is drawn, so this is where the per-frame memo is
+        // dropped. Keying only on the pixel scale would miss a style change that leaves the zoom
+        // alone; expiring every frame keeps the memo purely an intra-frame optimisation.
+        lodDirty = true;
 
+        float x = getContentX();
+        float y = getContentY();
+        float w = getContentWidth();
+        float h = getContentHeight();
+        if (w <= 0 || h <= 0 || scale <= 0) return;
 
-        var imageWidth = graphViewStyle.gridSize();
-        var imageHeight = graphViewStyle.gridSize();
-        var gridSize = graphViewStyle.gridSize();
+        int subdivisions = graphViewStyle.gridSubdivisions();
+        float base = Math.max(0.001f, graphViewStyle.gridSize());
+        float minSpacing = Math.max(1f, graphViewStyle.gridMinPixels());
+        float lineWidth = Math.max(0.5f, graphViewStyle.gridLineWidth());
 
-        if (graphViewStyle.gridTexture() instanceof SpriteTexture spriteTexture) {
-            imageWidth = spriteTexture.getImageSize().width;
-            imageHeight = spriteTexture.getImageSize().height;
+        var fine = resolveGridFineLevel(scale, base, minSpacing, subdivisions);
+
+        for (var level : resolveGridLevels(fine.size(), fine.fade(), subdivisions,
+                graphViewStyle.gridLineColor(), graphViewStyle.gridAccentColor())) {
+            drawGridLines(guiContext, level, x, y, w, h, lineWidth);
+        }
+    }
+
+    /**
+     * One drawn level of the grid.
+     *
+     * @param cellSize  spacing in content units
+     * @param color     ARGB the level's lines are drawn in
+     * @param skipEvery omit every n-th line because a coarser level owns it; 0 draws all of them
+     */
+    public record GridLevel(float cellSize, int color, int skipEvery) {
+    }
+
+    /**
+     * Picks the levels to draw and the colour of each.
+     *
+     * <p><b>Three levels, because two cannot be continuous once the grid has a visual hierarchy.</b>
+     * Every level change promotes a lattice one step coarser. Its <em>position</em> never moves — the
+     * coarse lattices are subsets of the fine one — so the only thing that can jump is how it is
+     * drawn. With two levels the promoted lattice goes straight from subdivision colour to accent
+     * colour, and that colour step is a visible pop even though nothing moved. A middle level lets
+     * the promotion be interpolated instead: by the time a lattice is promoted it is already drawn
+     * exactly the way the level above draws it.
+     *
+     * <pre>
+     *   level k     subdivision colour, fading up from nothing   (densest, spacing >= minPixels)
+     *   level k+1   interpolating from subdivision toward accent
+     *   level k+2   accent colour, fully drawn
+     * </pre>
+     *
+     * <p>Each level skips every n-th line, which the level above owns, so no line is composited
+     * twice. Overlapping layers would make the shared lines drift brighter as the fade rises and then
+     * snap back at the change — the same pop by another route.
+     *
+     * <p>Levels finer than {@code k} are not drawn, and levels coarser than {@code k+2} do not need
+     * to be: their positions are a subset of {@code k+2}'s, which draws all of its lines.
+     *
+     * @param fineSize spacing of the densest level, in content units
+     * @param fade     0 when that level is at its densest, approaching 1 as it is about to be promoted
+     */
+    public static List<GridLevel> resolveGridLevels(float fineSize, float fade, int subdivisions,
+                                                    int lineColor, int accentColor) {
+        float coarseSize = fineSize * subdivisions;
+        var levels = new ArrayList<GridLevel>(3);
+        if (fade > 0.004f) {
+            levels.add(new GridLevel(fineSize, withAlphaFactor(lineColor, fade), subdivisions));
+        }
+        levels.add(new GridLevel(coarseSize, ColorUtils.blendRGBColor(lineColor, accentColor, fade), subdivisions));
+        levels.add(new GridLevel(coarseSize * subdivisions, accentColor, 0));
+        return levels;
+    }
+
+    /** The densest grid level at a given zoom: its spacing in content units, and how far it has faded in. */
+    public record GridFineLevel(float size, float fade) {
+    }
+
+    public static GridFineLevel resolveGridFineLevel(float scale, float base, float minPixels, int subdivisions) {
+        double level = Math.ceil(Math.log(minPixels / (base * scale)) / Math.log(subdivisions));
+        float size = base * (float) Math.pow(subdivisions, level);
+        float fade = Mth.clamp((size * scale - minPixels) / (minPixels * (subdivisions - 1f)), 0f, 1f);
+        return new GridFineLevel(size, fade);
+    }
+
+    /**
+     * Hard ceiling on lines per level.
+     *
+     * <p>{@code grid-min-pixels} bounds the density in normal use, but it is a style property a
+     * stylesheet may legally set to 1 — at which point a 4K viewport would ask for thousands of quads
+     * per level. This keeps a misconfiguration from turning into a frame-rate cliff.
+     */
+    private static final int MAX_GRID_LINES_PER_LEVEL = 512;
+
+    /**
+     * Draws one level of the grid.
+     *
+     * <p>Real lines rather than a repeated tile: a bitmap grid cell has to be minified to whatever the
+     * current spacing is, and a hairline inside it disintegrates into a dotted shimmer long before the
+     * spacing gets tight.
+     *
+     * <p>The vertex buffer is resolved once here rather than per line. {@code DrawerHelper#drawSolidRect}
+     * re-resolves the render type and re-asserts the render thread on every call, which across a
+     * hundred one-quad lines is pure loop overhead. It stays a local rather than a parameter because a
+     * client-only type in the <em>signature</em> would make this whole class fail to load on a
+     * dedicated server — method bodies resolve lazily, signatures do not.
+     */
+    private void drawGridLines(GUIContext guiContext, GridLevel level,
+                               float x, float y, float w, float h, float lineWidth) {
+        int color = level.color();
+        if ((color >>> 24) == 0) return;
+        float cellSize = level.cellSize();
+        if (cellSize * scale < 1f) return;
+
+        int skipEvery = level.skipEvery();
+        long firstX = (long) Math.floor(offsetX / cellSize);
+        long lastX = (long) Math.ceil((offsetX + w / scale) / cellSize);
+        long firstY = (long) Math.floor(offsetY / cellSize);
+        long lastY = (long) Math.ceil((offsetY + h / scale) / cellSize);
+        if (lastX - firstX > MAX_GRID_LINES_PER_LEVEL || lastY - firstY > MAX_GRID_LINES_PER_LEVEL) {
+            return;
         }
 
-        guiContext.pose.pushPose();
+        var buffer = guiContext.graphics.bufferSource().getBuffer(RenderType.guiOverlay());
+        var pose = guiContext.graphics.pose().last().pose();
+        RenderSystem.disableDepthTest();
 
-        float worldLeft = offsetX;
-        float worldTop = offsetY;
-        float worldRight = offsetX + w / scale;
-        float worldBottom = offsetY + h / scale;
+        for (long i = firstX; i <= lastX; i++) {
+            if (skipEvery > 0 && Math.floorMod(i, skipEvery) == 0) continue;
+            float screenX = x + (i * cellSize - offsetX) * scale;
+            buffer.addVertex(pose, screenX, y, 0).setColor(color);
+            buffer.addVertex(pose, screenX, y + h, 0).setColor(color);
+            buffer.addVertex(pose, screenX + lineWidth, y + h, 0).setColor(color);
+            buffer.addVertex(pose, screenX + lineWidth, y, 0).setColor(color);
+        }
+        for (long i = firstY; i <= lastY; i++) {
+            if (skipEvery > 0 && Math.floorMod(i, skipEvery) == 0) continue;
+            float screenY = y + (i * cellSize - offsetY) * scale;
+            buffer.addVertex(pose, x, screenY, 0).setColor(color);
+            buffer.addVertex(pose, x, screenY + lineWidth, 0).setColor(color);
+            buffer.addVertex(pose, x + w, screenY + lineWidth, 0).setColor(color);
+            buffer.addVertex(pose, x + w, screenY, 0).setColor(color);
+        }
+    }
 
-        float gridStartX = (float) Math.floor(worldLeft / gridSize) * gridSize;
-        float gridStartY = (float) Math.floor(worldTop / gridSize) * gridSize;
-
-        float gridEndX = (float) Math.ceil(worldRight / gridSize) * gridSize;
-        float gridEndY = (float) Math.ceil(worldBottom / gridSize) * gridSize;
-
-        guiContext.pose.translate(x, y, 0);
-        guiContext.pose.scale(scale, scale, 1f);
-        guiContext.pose.translate(-offsetX, -offsetY, 0);
-
-        float textureScaleX = gridSize / imageWidth;
-        float textureScaleY = gridSize / imageHeight;
-
-        guiContext.pose.scale(textureScaleX, textureScaleY, 1f);
-
-        float drawX = gridStartX / textureScaleX;
-        float drawY = gridStartY / textureScaleY;
-        float drawW = (gridEndX - gridStartX) / textureScaleX;
-        float drawH = (gridEndY - gridStartY) / textureScaleY;
-
-        guiContext.drawTexture(graphViewStyle.gridTexture(), drawX, drawY, drawW, drawH);
-
-        guiContext.pose.popPose();
+    /** Scales a colour's alpha, leaving RGB alone. */
+    private static int withAlphaFactor(int color, float factor) {
+        int alpha = Math.round(((color >>> 24) & 0xFF) * Mth.clamp(factor, 0f, 1f));
+        return (alpha << 24) | (color & 0x00FFFFFF);
     }
 
     /// Editor
