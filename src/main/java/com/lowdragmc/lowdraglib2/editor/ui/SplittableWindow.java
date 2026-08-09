@@ -25,6 +25,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 @Accessors(chain = true)
 @ParametersAreNonnullByDefault
@@ -99,6 +100,18 @@ public class SplittableWindow extends UIElement {
      */
     @Nullable @Getter @Setter
     protected String anchorId;
+    /**
+     * Optional gate deciding which views may be docked into this window. {@code null} accepts
+     * everything — the default, and what every existing caller keeps getting.
+     *
+     * <p>Set it on a root window <em>before</em> splitting and it covers the whole subtree:
+     * {@link #acceptsView} walks up {@link #parentWindow}, so windows created later by
+     * {@link #splitNew} inherit it automatically. That is what lets a window tree nested inside
+     * another editor (a document editor with its own docked panes) refuse panes owned by the
+     * outer editor, which would otherwise be torn out of it and orphaned when the document closes.
+     */
+    @Nullable @Setter
+    protected Predicate<View> viewFilter;
 
     // runtime
     @Nullable
@@ -434,10 +447,20 @@ public class SplittableWindow extends UIElement {
         }
     }
 
+    /**
+     * Whether {@code view} may be docked here. Honors this window's own {@link #viewFilter} and
+     * then defers to the parent window, so a filter set on a root covers every window split out
+     * of it. Default (no filter anywhere) accepts everything.
+     */
+    public boolean acceptsView(View view) {
+        if (viewFilter != null && !viewFilter.test(view)) return false;
+        return parentWindow == null || parentWindow.acceptsView(view);
+    }
+
     protected void onDragEnter(UIEvent event) {
         if (isSplit()) return;
         // check if a view is being dragged into the view
-        if (event.dragHandler.draggingObject instanceof View) {
+        if (event.dragHandler.draggingObject instanceof View view && acceptsView(view)) {
             style(style -> style.overlayTexture(this::drawOverlay));
         }
     }
@@ -452,7 +475,7 @@ public class SplittableWindow extends UIElement {
     protected void onDragPerform(UIEvent event) {
         if (isSplit()) return;
         style(style -> style.overlayTexture(IGuiTexture.EMPTY));
-        if (event.dragHandler.draggingObject instanceof View view) {
+        if (event.dragHandler.draggingObject instanceof View view && acceptsView(view)) {
             if (isBorderHovering(YogaEdge.TOP, event.x, event.y)) {
                 tryMoveToNewWindow(view, YogaEdge.TOP);
             } else if (isBorderHovering(YogaEdge.BOTTOM, event.x, event.y)) {
@@ -471,7 +494,14 @@ public class SplittableWindow extends UIElement {
                     targetContainer.addView(view);
                     targetContainer.selectView(view);
                 }
+            } else {
+                return; // nothing here consumed it — let an ancestor window try
             }
+            // A drop is consumed exactly once. Windows nest (a document editor can host its own
+            // window tree), and this handler runs on bubble, i.e. innermost first — without this
+            // the next unsplit ancestor window would handle the very same drop and pull the view
+            // back out of wherever it was just docked.
+            event.stopPropagation();
         }
     }
 
