@@ -11,6 +11,7 @@
 * Moved the asset browser grid onto the single-pass directory listing
 * Rendered scenes into the surface being drawn on rather than the game window
 * Added capturing a floating window's own framebuffer in the UI test harness
+* Added project icon
 
 ## v2.2.33
 * Refactored resource file paths to a game relative form
