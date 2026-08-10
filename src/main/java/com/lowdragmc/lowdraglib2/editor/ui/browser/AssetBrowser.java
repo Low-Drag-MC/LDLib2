@@ -667,7 +667,8 @@ public class AssetBrowser extends UIElement {
         } else {
             var projectType = projectTypeOf(file);
             if (projectType != null) {
-                icon = projectType.icon;
+                // resolved per file, so a type that brands its projects individually can say so
+                icon = projectType.getIcon(file);
             } else {
                 var name = file.getName();
                 var dot = name.lastIndexOf('.');

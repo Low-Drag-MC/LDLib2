@@ -4,14 +4,14 @@ import com.lowdragmc.lowdraglib2.editor.project.IProject;
 import com.lowdragmc.lowdraglib2.editor.resource.*;
 import com.lowdragmc.lowdraglib2.editor.project.ProjectType;
 import com.lowdragmc.lowdraglib2.test.noddegraphtoolkit.TestGraphResource;
-import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import lombok.Getter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import org.jetbrains.annotations.NotNull;
 
 public class TestProject implements IProject {
-    public static final ProjectType TYPE = ProjectType.of(IGuiTexture.EMPTY, "project.test", ".test.nbt", TestProject::new);
+    // no icon of its own, so it is shown with ProjectType#getDefaultIcon()
+    public static final ProjectType TYPE = ProjectType.of("project.test", ".test.nbt", TestProject::new);
 
     @Getter
     private final Resources resources;
