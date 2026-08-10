@@ -62,7 +62,8 @@ public class EditorPaneMaximizeScenario implements UIScenario {
                 .screenshot("01_docked")
 
                 .group("double click a tab to maximize its pane", g -> g
-                        .doubleClick("#centre_tab")
+                        .hover("#centre_tab")
+                        .step("double click the tab", EditorPaneMaximizeScenario::doubleClickCentreTab)
                         .settleMs(120)
                         .check("the centre pane reports maximized",
                                 ctx -> editor(ctx).centerWindow.isMaximized())
@@ -81,7 +82,8 @@ public class EditorPaneMaximizeScenario implements UIScenario {
                 .group("double click again to restore", g -> g
                         .step("maximize once more", ctx -> editor(ctx).centerWindow.maximize())
                         .settleMs(120)
-                        .doubleClick("#centre_tab")
+                        .hover("#centre_tab")
+                        .step("double click the tab", EditorPaneMaximizeScenario::doubleClickCentreTab)
                         .settleMs(120)
                         .check("nothing is maximized", ctx -> editor(ctx).rootWindow.getMaximizedWindow() == null)
                         .check("the right pane is visible again", ctx -> rightPaneSlot(ctx).isDisplayed())
@@ -110,6 +112,22 @@ public class EditorPaneMaximizeScenario implements UIScenario {
                         .screenshot("04_tab_menu"))
 
                 .closeScreen();
+    }
+
+    /**
+     * Both clicks in a single step.
+     *
+     * <p>{@code ScenarioBuilder#doubleClick} spreads its two clicks over several frames, and
+     * {@code ModularUI} only pairs them when they land within 300ms of each other — so on a busy
+     * machine the gesture silently degrades into two single clicks and the test fails for a reason
+     * that has nothing to do with what it is testing.
+     */
+    private static void doubleClickCentreTab(TestContext ctx) {
+        var bounds = ctx.el("#centre_tab").bounds();
+        for (int i = 0; i < 2; i++) {
+            ctx.input().mouseDown(bounds.centerX(), bounds.centerY(), 0);
+            ctx.input().mouseUp(bounds.centerX(), bounds.centerY(), 0);
+        }
     }
 
     static Editor editor(TestContext ctx) {

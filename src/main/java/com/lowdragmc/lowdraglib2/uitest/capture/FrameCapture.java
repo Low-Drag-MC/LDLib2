@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.uitest.capture;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.uitest.ElementBounds;
+import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
@@ -38,7 +39,20 @@ public final class FrameCapture {
      * @return the image, which the caller owns and must close
      */
     public static NativeImage grab() {
-        var target = Minecraft.getInstance().getMainRenderTarget();
+        return grab(Minecraft.getInstance().getMainRenderTarget());
+    }
+
+    /**
+     * Grabs any render target, not just the game's own.
+     *
+     * <p>A UI hosted in its own operating-system window is drawn into an off-screen target and only
+     * ever blitted into that window, so it never appears in a capture of the main frame. Without
+     * this, the one thing a floating-window test most needs to look at is the one thing it cannot
+     * see.
+     *
+     * @return the image, which the caller owns and must close
+     */
+    public static NativeImage grab(RenderTarget target) {
         var image = new NativeImage(target.width, target.height, false);
         RenderSystem.bindTexture(target.getColorTextureId());
         image.downloadTexture(0, true);

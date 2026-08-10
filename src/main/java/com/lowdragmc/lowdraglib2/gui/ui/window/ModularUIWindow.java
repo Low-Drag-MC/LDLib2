@@ -219,6 +219,16 @@ public class ModularUIWindow implements OsWindowHost {
         return window;
     }
 
+    /**
+     * The off-screen target this window's UI is drawn into, or {@code null} before it opens. Reading
+     * it back is how a test can look at what the window actually shows — nothing else can, since its
+     * pixels never appear in the game's frame.
+     */
+    @Nullable
+    public OffscreenSurface surface() {
+        return surface;
+    }
+
     @Override
     public void onAttached(OsWindow window) {
         this.window = window;
