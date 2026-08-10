@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigColor;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.gui.LDLibFonts;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
@@ -20,6 +21,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.Style;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector4f;
 
 import java.util.Collections;
@@ -227,6 +229,28 @@ public class TextTexture extends TransformTexture {
         RenderSystem.setShaderColor(1, 1, 1, 1);
     }
 
+    /**
+     * The context of the draw in progress, when there is one.
+     *
+     * <p>{@code drawInternal(GuiGraphics, ...)} is the abstract method this class has to implement,
+     * so the context cannot be a parameter. It is only read by {@link #drawRollTextLine}, which needs
+     * a clip rectangle and would otherwise have to guess which surface it is drawing into.
+     */
+    @Nullable
+    @OnlyIn(Dist.CLIENT)
+    private transient GUIContext context;
+
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    protected void drawInternal(GUIContext context, float x, float y, float width, float height) {
+        this.context = context;
+        try {
+            super.drawInternal(context, x, y, width, height);
+        } finally {
+            this.context = null;
+        }
+    }
+
     @OnlyIn(Dist.CLIENT)
     private void drawRollTextLine(GuiGraphics graphics, float x, float y, float width, float height, Font fontRenderer, int textH, String line) {
         float _y = y + (height - textH) / 2f;
@@ -236,10 +260,22 @@ public class TextTexture extends TransformTexture {
         var trans = graphics.pose().last().pose();
         var realPos = trans.transform(new Vector4f(x, y, 0, 1));
         var realPos2 = trans.transform(new Vector4f(x + width, y + height, 0, 1));
-        graphics.enableScissor((int) realPos.x, (int) realPos.y, (int) realPos2.x, (int) realPos2.y);
+        // Prefer the context: it clips against the surface actually being drawn into, and intersects
+        // with the enclosing clip. GuiGraphics' own scissor flips against the *game window*, so it is
+        // only correct when that is where this is going — which is the fallback case below.
+        var context = this.context;
+        if (context != null) {
+            context.enableScissor(x, y, width, height);
+        } else {
+            graphics.enableScissor((int) realPos.x, (int) realPos.y, (int) realPos2.x, (int) realPos2.y);
+        }
         var t = rollSpeed > 0 ? ((((rollSpeed * Math.abs((int)(System.currentTimeMillis() % 1000000)) / 10) % (totalW))) / (totalW)) : 0.5;
         graphics.drawString(fontRenderer, line, (int) (from - t * totalW), (int) _y, color, dropShadow);
-        graphics.disableScissor();
+        if (context != null) {
+            context.disableScissor();
+        } else {
+            graphics.disableScissor();
+        }
     }
 
     @OnlyIn(Dist.CLIENT)

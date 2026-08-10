@@ -32,6 +32,7 @@ import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.KeyState;
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
@@ -492,17 +493,17 @@ public class TextField extends BindableUIElement<String> {
                 }
             }
             default -> {
-                if (Screen.isSelectAll(event.keyCode)) {
+                if (KeyState.isSelectAll(event.keyCode)) {
                     setCursor(rawText.length());
                     setSelection(0, rawText.length());
-                } else if (Screen.isCopy(event.keyCode)) {
+                } else if (KeyState.isCopy(event.keyCode)) {
                     ClipboardManager.INSTANCE.copyDirect(this.getHighlighted());
-                } else if (Screen.isPaste(event.keyCode)) {
+                } else if (KeyState.isPaste(event.keyCode)) {
                     if (this.isEditable()) {
                         this.insertText(Minecraft.getInstance().keyboardHandler.getClipboard());
                     }
                 } else {
-                    if (Screen.isCut(event.keyCode)) {
+                    if (KeyState.isCut(event.keyCode)) {
                         ClipboardManager.INSTANCE.copyDirect(this.getHighlighted());
                         if (this.isEditable()) {
                             this.insertText("");
@@ -790,7 +791,7 @@ public class TextField extends BindableUIElement<String> {
             return;
         }
         historyStack.record(getRawText());
-        if (Screen.hasControlDown()) {
+        if (KeyState.isCtrlDown()) {
             this.deleteWords(count);
         } else {
             this.deleteChars(count);

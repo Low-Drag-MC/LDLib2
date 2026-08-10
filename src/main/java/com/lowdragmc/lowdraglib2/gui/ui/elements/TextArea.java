@@ -26,6 +26,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.KeyState;
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyDisplay;
@@ -832,14 +833,14 @@ public class TextArea extends BindableUIElement<String[]> {
                 updateSelectionAfterMove();
             }
             default -> {
-                if (Screen.isSelectAll(event.keyCode)) {
+                if (KeyState.isSelectAll(event.keyCode)) {
                     selectAll();
-                } else if (Screen.isCopy(event.keyCode)) {
+                } else if (KeyState.isCopy(event.keyCode)) {
                     ClipboardManager.INSTANCE.copyDirect(getHighlightedText());
-                } else if (Screen.isPaste(event.keyCode)) {
+                } else if (KeyState.isPaste(event.keyCode)) {
                     if (!isEditable()) return;
                     insertText(Minecraft.getInstance().keyboardHandler.getClipboard());
-                } else if (Screen.isCut(event.keyCode)) {
+                } else if (KeyState.isCut(event.keyCode)) {
                     if (!isEditable()) return;
                     ClipboardManager.INSTANCE.copyDirect(getHighlightedText());
                     insertText(""); // replace selection with empty

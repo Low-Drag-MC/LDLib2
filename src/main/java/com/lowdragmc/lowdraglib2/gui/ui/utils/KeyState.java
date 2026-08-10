@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui.utils;
 
+import com.lowdragmc.lowdraglib2.utils.Scope;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -90,5 +91,48 @@ public final class KeyState {
 
     public static boolean isAltDown() {
         return isKeyDown(GLFW.GLFW_KEY_LEFT_ALT) || isKeyDown(GLFW.GLFW_KEY_RIGHT_ALT);
+    }
+
+    /**
+     * Installs {@code source} until the returned scope is closed, restoring whatever was installed
+     * before rather than clearing.
+     *
+     * <p>{@link #setSource(Source)} is for an override that lives for a whole run — a scripted
+     * playback. This is for one that lives for a single dispatch, such as a UI hosted in its own OS
+     * window reading that window's keyboard while it handles its own events. The two nest: outside
+     * the scope the long-lived override is still in force.
+     */
+    public static Scope scoped(Source source) {
+        var previous = KeyState.source;
+        KeyState.source = source;
+        return () -> KeyState.source = previous;
+    }
+
+    // Clipboard and selection chords. Screen#isCopy and friends read the *main* window handle
+    // directly, so with any other window focused they all quietly return false and every shortcut in
+    // the library stops working. These are the same chords, resolved through this class instead.
+
+    public static boolean isCut(int keyCode) {
+        return keyCode == GLFW.GLFW_KEY_X && isCommandChord();
+    }
+
+    public static boolean isPaste(int keyCode) {
+        return keyCode == GLFW.GLFW_KEY_V && isCommandChord();
+    }
+
+    public static boolean isCopy(int keyCode) {
+        return keyCode == GLFW.GLFW_KEY_C && isCommandChord();
+    }
+
+    public static boolean isSelectAll(int keyCode) {
+        return keyCode == GLFW.GLFW_KEY_A && isCommandChord();
+    }
+
+    /**
+     * Control (command on macOS) held, with neither shift nor alt — the modifier state every
+     * single-key editor command requires.
+     */
+    public static boolean isCommandChord() {
+        return isCtrlDown() && !isShiftDown() && !isAltDown();
     }
 }

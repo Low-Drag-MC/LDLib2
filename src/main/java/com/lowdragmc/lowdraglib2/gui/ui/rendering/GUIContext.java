@@ -33,6 +33,13 @@ public class GUIContext {
     public EnhancedPoseStack pose;
     @OnlyIn(Dist.CLIENT)
     public Minecraft mc;
+    /**
+     * Where this frame is being drawn. Defaults to the game window; a UI rendered into an off-screen
+     * target sets its own, which is what keeps the scissor box and {@link UIVisualLayer} sizing
+     * honest.
+     */
+    @OnlyIn(Dist.CLIENT)
+    public UISurface surface = UISurface.main();
 
     // runtime
     @OnlyIn(Dist.CLIENT)
@@ -56,6 +63,12 @@ public class GUIContext {
     
     @OnlyIn(Dist.CLIENT)
     public static GUIContext of(ModularUI modularUI, GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        return of(modularUI, graphics, mouseX, mouseY, partialTick, UISurface.main());
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    public static GUIContext of(ModularUI modularUI, GuiGraphics graphics, int mouseX, int mouseY, float partialTick,
+                                UISurface surface) {
         var context = new GUIContext();
         context.modularUI = modularUI;
         context.graphics = graphics;
@@ -64,6 +77,7 @@ public class GUIContext {
         context.partialTick = partialTick;
         context.pose = new EnhancedPoseStack(graphics.pose()).setOnTransform(context::refreshLocalMouse);
         context.mc = Minecraft.getInstance();
+        context.surface = surface;
         context.refreshLocalMouse();
         return context;
     }
@@ -84,14 +98,20 @@ public class GUIContext {
         var realPos2 = trans.transform(new Vector4f(x + width, y + height, 0, 1));
         var rect = Rect.of(Mth.floor(realPos.x), Mth.floor(realPos.y), Mth.ceil(realPos2.x), Mth.ceil(realPos2.y));
         var peek = scissorStack.isEmpty() ? null : scissorStack.top();
-        scissorStack.push(peek == null ? rect : peek.intersects(rect));
+        var applied = peek == null ? rect : peek.intersects(rect);
+        scissorStack.push(applied);
+        // GuiGraphics keeps owning the stack, so a nested vanilla scissor still intersects with ours
+        // — but it flips the box against the game window, so an off-screen surface has to redo the
+        // pixel math. No-op on the main window.
         graphics.enableScissor(rect.left, rect.up, rect.right, rect.down);
+        UIScissor.reapply(surface, applied);
     }
 
     @OnlyIn(Dist.CLIENT)
     public void disableScissor() {
         graphics.disableScissor();
         scissorStack.pop();
+        UIScissor.reapply(surface, scissorStack.isEmpty() ? null : scissorStack.top());
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -120,10 +140,9 @@ public class GUIContext {
         if (popped != null) {
             graphics.flush();
             popped.unbind();
-            var mainTarget = Minecraft.getInstance().getMainRenderTarget();
             if (visualLayers.isEmpty()) {
                 if (lastFBO == -1) {
-                    mainTarget.bindWrite(false);
+                    surface.target().bindWrite(false);
                 } else {
                     GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, lastFBO);
                 }

@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.mojang.blaze3d.pipeline.MainTarget;
+import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -53,7 +54,8 @@ public class UIVisualLayer {
 
     private void ensureTargetValid(int width, int height) {
         if (target == null) {
-            target = TARGET_POOL.isEmpty() ? new MainTarget(width, height) : TARGET_POOL.remove(TARGET_POOL.size() - 1);
+            var pooled = takeFromPool(TARGET_POOL, width, height);
+            target = pooled == null ? new MainTarget(width, height) : pooled;
         }
         if (target.width != width || target.height != height) {
             target.resize(width, height, Minecraft.ON_OSX);
@@ -62,11 +64,32 @@ public class UIVisualLayer {
 
     private void ensureMaskValid(int width, int height) {
         if (mask == null) {
-            mask = MASK_POOL.isEmpty() ? new TextureTarget(width, height, false, Minecraft.ON_OSX) : MASK_POOL.remove(MASK_POOL.size() - 1);
+            var pooled = takeFromPool(MASK_POOL, width, height);
+            mask = pooled == null ? new TextureTarget(width, height, false, Minecraft.ON_OSX) : pooled;
         }
         if (mask.width != width || mask.height != height) {
             mask.resize(width, height, Minecraft.ON_OSX);
         }
+    }
+
+    /**
+     * Takes a pooled target, preferring one that is already the right size.
+     *
+     * <p>Resizing destroys and recreates the attachments, so with two surfaces of different sizes
+     * alive at once — a floating window alongside the game window — a plain LIFO pool would hand the
+     * same target back and forth and reallocate it twice every frame.
+     *
+     * @return a pooled target, or {@code null} if the pool is empty
+     */
+    @Nullable
+    private static <T extends RenderTarget> T takeFromPool(ObjectArrayList<T> pool, int width, int height) {
+        for (int i = pool.size() - 1; i >= 0; i--) {
+            var candidate = pool.get(i);
+            if (candidate.width == width && candidate.height == height) {
+                return pool.remove(i);
+            }
+        }
+        return pool.isEmpty() ? null : pool.remove(pool.size() - 1);
     }
 
 //    private TextureTarget ensureResolvedValid(int width, int height) {
@@ -92,7 +115,7 @@ public class UIVisualLayer {
     }
 
     public void bind(GUIContext guiContext) {
-        ensureTargetValid(guiContext.mc.getMainRenderTarget().width, guiContext.mc.getMainRenderTarget().height);
+        ensureTargetValid(guiContext.surface.framebufferWidth(), guiContext.surface.framebufferHeight());
         assert target != null;
 
         var overflowClip = element.getStyle().overflowClip();
