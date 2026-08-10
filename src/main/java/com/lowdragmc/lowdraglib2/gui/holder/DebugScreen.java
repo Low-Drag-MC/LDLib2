@@ -5,6 +5,10 @@ import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.debugger.UIDebugger;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.gui.ui.window.ModularUIWindow;
+import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.gui.LDLibFonts;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
@@ -15,18 +19,34 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2i;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL11;
 
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.LinkedHashMap;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class DebugScreen extends ModularUIScreen {
     public final static Vector2i REAL_MOUSE_POS = new Vector2i();
-    public final ModularUI targetUI;
-    public final UIDebugger uiDebugger;
+    public ModularUI targetUI;
+    public UIDebugger uiDebugger;
+
+    /**
+     * Lets the user pick which UI to inspect when more than one is on screen at once — the game
+     * window's, or any UI living in its own OS window. Absolutely positioned over the debugger rather
+     * than laid out beside it, so the debugger's own layout is untouched.
+     */
+    private final UIElement targetPicker = new UIElement();
+
+    /**
+     * The UI drawn in the game window, remembered at construction so the picker can always offer a
+     * way back to it. Null when the debugger was opened straight from a floating window.
+     */
+    @Nullable
+    private final ModularUI localUI;
 
     public DebugScreen(UIDebugger debugger) {
         super(ModularUI.of(UI.of(new UIElement().layout(layout -> layout.widthPercent(100).heightPercent(100)),
@@ -34,8 +54,68 @@ public class DebugScreen extends ModularUIScreen {
                 Component.literal("Debug Screen"));
         this.uiDebugger = debugger;
         this.targetUI = debugger.modularUI;
+        this.localUI = ModularUIWindow.windowOf(targetUI) == null ? targetUI : null;
+
+        this.targetPicker.layout(layout -> {
+            layout.positionType(TaffyPosition.ABSOLUTE);
+            layout.top(0);
+            layout.left(0);
+            layout.flexDirection(FlexDirection.ROW);
+            layout.gapAll(2);
+            layout.paddingAll(2);
+        }).getStyle().zIndex(500);
 
         this.modularUI.ui.rootElement.addChild(uiDebugger);
+        this.modularUI.ui.rootElement.addChild(targetPicker);
+        rebuildTargetPicker();
+    }
+
+    /**
+     * Points the debugger at another UI. The previous one stops reporting itself as debugged, and the
+     * new one hands over its debugger without opening a second screen.
+     */
+    public void setTarget(ModularUI target) {
+        if (target == targetUI) return;
+        targetUI.enableDebugger(false);
+        uiDebugger.removeSelf();
+        targetUI = target;
+        uiDebugger = target.acquireDebugger();
+        modularUI.ui.rootElement.addChildAt(uiDebugger, 0);
+        rebuildTargetPicker();
+    }
+
+    /**
+     * Whether the inspected UI is drawn in this same window.
+     *
+     * <p>A UI in its own OS window is laid out against that window's size and presented somewhere
+     * else entirely, so forwarding this screen's mouse coordinates into it, or drawing its element
+     * outlines here, would point at the wrong place. Inspection of the tree still works — that is
+     * what the picker is for — but the pointer-driven parts are limited to a local target.
+     */
+    public boolean isTargetLocal() {
+        return targetUI == localUI;
+    }
+
+    private void rebuildTargetPicker() {
+        targetPicker.clearAllChildren();
+        var candidates = new LinkedHashMap<String, ModularUI>();
+        if (localUI != null) {
+            candidates.put("Game Window", localUI);
+        }
+        for (var window : ModularUIWindow.openWindows()) {
+            candidates.put(window.getTitle(), window.getModularUI());
+        }
+        // One candidate means there is nothing to choose between; do not spend screen space on it.
+        targetPicker.setDisplay(candidates.size() > 1);
+        if (candidates.size() <= 1) return;
+        candidates.forEach((label, ui) -> {
+            if (ui == null) return;
+            var selected = ui == targetUI;
+            targetPicker.addChild(new Button()
+                    .setText(Component.literal(selected ? "[" + label + "]" : label))
+                    .setOnClick(e -> setTarget(ui))
+                    .layout(layout -> layout.height(14)));
+        });
     }
 
     @Override
@@ -57,7 +137,7 @@ public class DebugScreen extends ModularUIScreen {
             uiDebugger.setRenderUIShaping(!uiDebugger.isRenderUIShaping());
         }
         if (!super.keyPressed(keyCode, scanCode, modifiers)) {
-            return targetUI.getWidget().keyPressed(keyCode, scanCode, modifiers);
+            return isTargetLocal() && targetUI.getWidget().keyPressed(keyCode, scanCode, modifiers);
         }
         return true;
     }
@@ -65,7 +145,7 @@ public class DebugScreen extends ModularUIScreen {
     @Override
     public boolean charTyped(char codePoint, int modifiers) {
         if (!super.charTyped(codePoint, modifiers)) {
-            return targetUI.getWidget().charTyped(codePoint, modifiers);
+            return isTargetLocal() && targetUI.getWidget().charTyped(codePoint, modifiers);
         }
         return true;
     }
@@ -73,7 +153,7 @@ public class DebugScreen extends ModularUIScreen {
     @Override
     public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
         if (!super.keyReleased(keyCode, scanCode, modifiers)) {
-            return targetUI.getWidget().keyReleased(keyCode, scanCode, modifiers);
+            return isTargetLocal() && targetUI.getWidget().keyReleased(keyCode, scanCode, modifiers);
         }
         return true;
     }
@@ -81,7 +161,7 @@ public class DebugScreen extends ModularUIScreen {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         if (!super.mouseScrolled(mouseX, mouseY, scrollX, scrollY)) {
-            return targetUI.getWidget().mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+            return isTargetLocal() && targetUI.getWidget().mouseScrolled(mouseX, mouseY, scrollX, scrollY);
         }
         return true;
     }
@@ -89,7 +169,7 @@ public class DebugScreen extends ModularUIScreen {
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         if (!super.mouseDragged(mouseX, mouseY, button, dragX, dragY)) {
-            return targetUI.getWidget().mouseDragged(mouseX, mouseY, button, dragX, dragY);
+            return isTargetLocal() && targetUI.getWidget().mouseDragged(mouseX, mouseY, button, dragX, dragY);
         }
         return true;
     }
@@ -97,7 +177,7 @@ public class DebugScreen extends ModularUIScreen {
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         if (!super.mouseReleased(mouseX, mouseY, button)) {
-            return targetUI.getWidget().mouseReleased(mouseX, mouseY, button);
+            return isTargetLocal() && targetUI.getWidget().mouseReleased(mouseX, mouseY, button);
         }
         return true;
     }
@@ -113,7 +193,7 @@ public class DebugScreen extends ModularUIScreen {
                 }
                 return false;
             }
-            return targetUI.getWidget().mouseClicked(mouseX, mouseY, button);
+            return isTargetLocal() && targetUI.getWidget().mouseClicked(mouseX, mouseY, button);
         }
         return true;
     }
@@ -121,7 +201,9 @@ public class DebugScreen extends ModularUIScreen {
     @Override
     public void mouseMoved(double mouseX, double mouseY) {
         super.mouseMoved(mouseX, mouseY);
-        targetUI.getWidget().mouseMoved(mouseX, mouseY);
+        if (isTargetLocal()) {
+            targetUI.getWidget().mouseMoved(mouseX, mouseY);
+        }
     }
 
     @Override
@@ -137,7 +219,9 @@ public class DebugScreen extends ModularUIScreen {
         if (shapingUI == null && uiDebugger.isRenderUIShaping() && uiDebugger.hierarchy.treeList.getHoveredNode() != null) {
             shapingUI = uiDebugger.hierarchy.treeList.getHoveredNode().key;
         }
-        if (shapingUI != null) {
+        // Outlines are drawn in this window's coordinate space, which only matches the target when
+        // the target is drawn here too.
+        if (shapingUI != null && isTargetLocal()) {
             targetUI.getWidget().renderUISpacing(shapingUI, graphics);
         }
 
@@ -169,6 +253,10 @@ public class DebugScreen extends ModularUIScreen {
     @Override
     public void tick() {
         super.tick();
-        targetUI.tick();
+        // A UI in its own window already ticks itself from its render loop; ticking it here too
+        // would run every animation and timer at double speed.
+        if (isTargetLocal()) {
+            targetUI.tick();
+        }
     }
 }

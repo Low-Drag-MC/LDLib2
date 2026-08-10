@@ -8,8 +8,10 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.mojang.datafixers.util.Pair;
 import lombok.Getter;
@@ -123,6 +125,11 @@ public class SplittableWindow extends UIElement {
     @Nullable
     @Getter
     private SplittableWindow first, second;
+    /**
+     * Live maximize state, only ever non-null on the root window of a tree — see {@link #maximize()}.
+     */
+    @Nullable
+    private MaximizeState maximizeState;
 
     public SplittableWindow() {
         this(null);
@@ -192,6 +199,8 @@ public class SplittableWindow extends UIElement {
      *                       updated in place to reflect the rebuilt tree (only ids present in config survive)
      */
     public void rebuildFromLayoutConfig(@Nullable LayoutConfig config, Map<String, SplittableWindow> anchorRegistry) {
+        // The rebuild discards the elements a maximize hid, so drop the state before it goes stale.
+        restoreMaximized();
         Map<String, SplittableWindow> survivors = new HashMap<>();
         rebuildInternal(config, anchorRegistry, survivors);
         anchorRegistry.clear();
@@ -274,6 +283,18 @@ public class SplittableWindow extends UIElement {
         return views;
     }
 
+    /**
+     * Whether any leaf under this window holds a view.
+     *
+     * <p>Separate from {@link #getAllViews()} because a floating window asks this every frame, and
+     * building a list per node of the tree just to test emptiness is pure garbage.
+     */
+    public boolean hasAnyView() {
+        if (viewContainer != null && !viewContainer.isEmptyWindow()) return true;
+        if (first != null && first.hasAnyView()) return true;
+        return second != null && second.hasAnyView();
+    }
+
     public SplittableWindow setViewContainer(@Nonnull ViewContainer viewContainer) {
         if (this.viewContainer != null) {
             this.viewContainer.removeSelf();
@@ -342,6 +363,122 @@ public class SplittableWindow extends UIElement {
 
     public boolean isSplit() {
         return splitView != null;
+    }
+
+    /**
+     * The topmost window reachable through {@link #getParentWindow()}. A tree nested inside another
+     * editor (a document editor hosting its own panes) has its own root, so a maximize inside it
+     * stays inside it.
+     */
+    public SplittableWindow getRootWindow() {
+        var window = this;
+        while (window.parentWindow != null) {
+            window = window.parentWindow;
+        }
+        return window;
+    }
+
+    /**
+     * The window currently filling this tree, or {@code null} if the tree shows its normal layout.
+     * Answerable from any node — the state lives on the root.
+     */
+    @Nullable
+    public SplittableWindow getMaximizedWindow() {
+        var state = getRootWindow().maximizeState;
+        return state == null ? null : state.window;
+    }
+
+    public boolean isMaximized() {
+        return getMaximizedWindow() == this;
+    }
+
+    /**
+     * Make this window fill its whole tree, hiding every sibling pane on the way up to the root.
+     * Restoring puts the splitters back exactly where they were.
+     *
+     * <p>Nothing is reparented. Pulling this window out of its {@link SplitView} slot would leave
+     * the tree torn while {@link #trimEmptySplits()}, {@link #removeSplitWindow} or a drag-drop dock
+     * could run; hiding siblings instead keeps every structural operation working while maximized.
+     * The mechanism is the one {@link ViewContainer#collapse()} already uses: {@code setDisplay}
+     * plus {@link Style#importantPipeline} overrides, undone by dropping the IMPORTANT candidates.
+     */
+    public void maximize() {
+        var root = getRootWindow();
+        if (root == this) return; // already fills the tree
+        if (isMaximized()) return;
+        root.restoreMaximized();
+
+        var state = new MaximizeState(this);
+        for (var node = this; node.parentWindow != null; node = node.parentWindow) {
+            var parent = node.parentWindow;
+            var splitView = parent.splitView;
+            if (splitView == null) continue;
+            var isFirst = parent.first == node;
+            var offPath = isFirst ? splitView.second : splitView.first;
+            offPath.setDisplay(false);
+            state.hiddenSlots.add(offPath);
+            if (isFirst) {
+                // The `second` slot is flex(1) and fills on its own once `first` is hidden, but
+                // `first` carries the split percentage as an explicit width/height, so on this side
+                // it has to be told to fill.
+                var vertical = splitView instanceof SplitView.Vertical;
+                splitView.first.layout(layout -> Style.importantPipeline(layout, style -> {
+                    if (vertical) {
+                        style.heightPercent(100);
+                    } else {
+                        style.widthPercent(100);
+                    }
+                }));
+                state.grownSlots.add(new GrownSlot(splitView.first, vertical));
+            }
+        }
+        root.maximizeState = state;
+    }
+
+    /**
+     * Undo a {@link #maximize()} anywhere in this tree. Safe to call when nothing is maximized.
+     */
+    public void restoreMaximized() {
+        var root = getRootWindow();
+        var state = root.maximizeState;
+        if (state == null) return;
+        root.maximizeState = null;
+        // The tree may have been reshaped while maximized, so some of these elements can already be
+        // detached. Both calls are no-ops on a detached element, which is exactly what we want.
+        for (var slot : state.hiddenSlots) {
+            slot.setDisplay(true);
+        }
+        for (var grown : state.grownSlots) {
+            grown.slot().getStyleBag().removeCandidates(
+                    grown.vertical() ? LayoutProperties.HEIGHT : LayoutProperties.WIDTH,
+                    candidate -> candidate.origin() == StyleOrigin.IMPORTANT);
+        }
+    }
+
+    public void toggleMaximize() {
+        if (isMaximized()) {
+            restoreMaximized();
+        } else {
+            maximize();
+        }
+    }
+
+    private record GrownSlot(UIElement slot, boolean vertical) {
+    }
+
+    /**
+     * The elements a maximize touched, remembered rather than re-derived on restore: the tree can be
+     * reshaped while a window is maximized (a drop, a tab close), and walking the path a second time
+     * would then miss slots or un-hide the wrong ones.
+     */
+    private static final class MaximizeState {
+        private final SplittableWindow window;
+        private final List<UIElement> hiddenSlots = new ArrayList<>();
+        private final List<GrownSlot> grownSlots = new ArrayList<>();
+
+        private MaximizeState(SplittableWindow window) {
+            this.window = window;
+        }
     }
 
     /**
@@ -506,6 +643,11 @@ public class SplittableWindow extends UIElement {
     }
 
     protected void onWindowsEmpty() {
+        // Closing the last tab of the maximized pane leaves nothing to focus on — come back to the
+        // normal layout rather than showing an empty full-screen pane.
+        if (isMaximized()) {
+            restoreMaximized();
+        }
         if (immortal) return;
         if (parentWindow != null) {
             parentWindow.removeSplitWindow(this);
@@ -515,6 +657,9 @@ public class SplittableWindow extends UIElement {
     public void removeSplitWindow(SplittableWindow window) {
         var target = window == this.first ? this.second : window == this.second ? this.first : null;
         if (target == null) return;
+        // A collapse re-slots subtrees, which can move the maximized window or reuse a slot we hid.
+        // Dropping the focus mode first keeps restore honest, and matches what an IDE does.
+        getRootWindow().restoreMaximized();
         if (shouldKeepIdentityWhenChildCollapses()) {
             replaceContentWith(target);
             return;
@@ -532,11 +677,18 @@ public class SplittableWindow extends UIElement {
     }
 
     public boolean trimEmptySplits() {
+        // Once at the entry point: the recursion below would otherwise walk to the root from every
+        // node only to find the state already cleared.
+        getRootWindow().restoreMaximized();
+        return trimEmptySplitsInternal();
+    }
+
+    private boolean trimEmptySplitsInternal() {
         if (viewContainer != null) {
             return !viewContainer.isEmptyWindow() || shouldKeepIdentityWhenChildCollapses();
         }
-        var firstUseful = first != null && first.trimEmptySplits();
-        var secondUseful = second != null && second.trimEmptySplits();
+        var firstUseful = first != null && first.trimEmptySplitsInternal();
+        var secondUseful = second != null && second.trimEmptySplitsInternal();
         if (firstUseful && secondUseful) {
             return true;
         }
