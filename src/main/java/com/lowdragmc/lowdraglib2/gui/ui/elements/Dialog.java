@@ -640,19 +640,19 @@ public class Dialog extends UIElement {
             var first = selected.stream().findFirst().get();
             if (isSelector) {
                 textField.setText(first.getKey().toString(), false);
-            } else if (first.getKey().isFile()) {
+            } else if (first.isFile()) {
                 textField.setText(first.getKey().getName(), false);
             } else {
                 textField.setText("", false);
             }
         }).setOnDoubleClickNode(node -> {
             var file = node.getKey();
-            if (isSelector && file.isFile()) {
+            if (isSelector && node.isFile()) {
                 dialog.close();
                 if (result != null) result.accept(file);
             }
         }).setNodeUISupplier(TreeList.iconTextTemplate(
-                node -> node.getKey().isDirectory() ?
+                node -> node.isDirectory() ?
                         Icons.FOLDER :
                         Icons.getIcon(node.getKey().getName()
                                 .substring(node.getKey().getName().lastIndexOf('.') + 1)),
@@ -739,7 +739,8 @@ public class Dialog extends UIElement {
     public static Predicate<FileNode> suffixFilter(String... suffixes) {
         return node -> {
             for (String suffix : suffixes) {
-                if (!node.getKey().isFile() || node.getKey().getName().toLowerCase().endsWith(suffix.toLowerCase())) {
+                // isFile() over getKey().isFile(): same answer, from the listing instead of a fresh stat
+                if (!node.isFile() || node.getKey().getName().toLowerCase().endsWith(suffix.toLowerCase())) {
                     return true;
                 }
             }

@@ -138,8 +138,8 @@ public class ShaderTexture extends TransformTexture implements AutoCloseable {
         // button to select image
         father.addConfigurator(configurator.addInlineChild(new Button().setText("ldlib.gui.editor.tips.select_shader").setOnClick(e -> {
             Dialog.showFileDialog("ldlib.gui.editor.tips.select_shader", LDLib2.getAssetsDir(), true, node -> {
-                if (!node.getKey().isFile() || node.getKey().getName().toLowerCase().endsWith(".json".toLowerCase())) {
-                    if (node.getKey().isFile()) {
+                if (!node.isFile() || node.getKey().getName().toLowerCase().endsWith(".json".toLowerCase())) {
+                    if (node.isFile()) {
                             return getShaderFromFile(node.getKey()) != null;
                         }
                         return true; // allow directories

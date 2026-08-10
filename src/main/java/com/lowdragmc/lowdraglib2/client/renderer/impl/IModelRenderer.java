@@ -300,8 +300,8 @@ public class IModelRenderer implements IRenderer {
         reloadButton.setActive(isTopLevelModelMissing());
         Button selectButton = new Button().setText("ldlib.gui.editor.tips.select_model").setOnClick(e -> {
             Dialog.showFileDialog("ldlib.gui.editor.tips.select_model", LDLib2.getAssetsDir(), true, node -> {
-                if (!node.getKey().isFile() || node.getKey().getName().toLowerCase().endsWith(".json".toLowerCase())) {
-                    if (node.getKey().isFile()) {
+                if (!node.isFile() || node.getKey().getName().toLowerCase().endsWith(".json".toLowerCase())) {
+                    if (node.isFile()) {
                         return getModelFromFile(node.getKey()) != null;
                     }
                     return true; // allow directories

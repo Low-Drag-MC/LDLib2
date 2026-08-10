@@ -63,6 +63,9 @@ public interface ITreeNode<KEY, CONTENT> {
      * The returned list contains all the immediate child nodes of this node.
      * If the node does not have any children, an empty list is returned.
      * This method guarantees that the returned list is non-null.
+     * <p>
+     * Treat the result as read-only: it is polled, so an implementation is free to hand back the same
+     * list on every call rather than building a fresh one, and may make it unmodifiable to say so.
      *
      * @return a non-null list of child nodes, potentially empty.
      */
