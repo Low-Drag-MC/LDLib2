@@ -30,6 +30,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.util.FileNode;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
+import com.lowdragmc.lowdraglib2.utils.FileUtility;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
@@ -43,12 +44,14 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -316,7 +319,7 @@ public class AssetBrowser extends UIElement {
         button.setOnClick(e -> {
             e.stopPropagation();
             if (editor != null) {
-                editor.openMenu(button.getPositionX(), button.getPositionY() + button.getSizeHeight(),
+                editor.openMenu(button, button.getPositionX(), button.getPositionY() + button.getSizeHeight(),
                         menu.get(), closeOnClick);
             }
         });
@@ -382,7 +385,7 @@ public class AssetBrowser extends UIElement {
         if (!root.exists()) {
             root.mkdirs();
         }
-        tree.setRoot(new FileNode(root).setValid(node -> node.getKey().isDirectory()));
+        tree.setRoot(new FileNode(root).setValid(FileNode::isDirectory));
         openDirectory(root);
         return this;
     }
@@ -507,8 +510,14 @@ public class AssetBrowser extends UIElement {
         gridDirty = true;
     }
 
-    /** An entry that survived filtering, with its resource type already resolved. */
-    private record GridEntry(File file, @Nullable ResourceBehaviorCache.Behavior<?> behavior) {}
+    /**
+     * An entry that survived filtering, with its resource type resolved and the attributes the listing
+     * already carried. Holding the attributes is what keeps {@link #sortEntries} off the file system:
+     * a comparator's key extractor runs once per comparison, so an {@code isDirectory()} in there is
+     * tens of thousands of stat syscalls on a directory of any size.
+     */
+    private record GridEntry(File file, @Nullable ResourceBehaviorCache.Behavior<?> behavior,
+                             boolean directory, long size, long lastModified) {}
 
     protected void rebuildGrid() {
         gridScroller.clearAllScrollViewChildren();
@@ -516,23 +525,23 @@ public class AssetBrowser extends UIElement {
         hovered = null;
         var directory = currentDirectory;
         if (directory == null) return;
-        var files = directory.listFiles();
-        if (files == null) return;
 
         var entries = new ArrayList<GridEntry>();
-        for (var file : files) {
-            var isDirectory = file.isDirectory();
+        for (var listed : FileUtility.listDirectory(directory)) {
+            var file = listed.file();
+            var isDirectory = listed.directory();
             // resolved once per entry: every lookup scans all loaded resource types
-            var behavior = isDirectory ? null : behaviors.forFile(file);
+            var behavior = isDirectory ? null : behaviors.forNonDirectory(file);
             if (!isDirectory && !accepts(file, behavior)) continue;
-            entries.add(new GridEntry(file, behavior));
+            entries.add(new GridEntry(file, behavior, isDirectory, listed.size(), listed.lastModified()));
         }
-        entries.sort(entryComparator());
+        sortEntries(entries);
 
         var liveThumbnails = 0;
         for (var entry : entries) {
             var behavior = entry.behavior();
-            var ui = createEntryUI(entry.file(), behavior, behavior != null && liveThumbnails < LIVE_THUMBNAIL_LIMIT);
+            var ui = createEntryUI(entry.file(), behavior, entry.directory(),
+                    behavior != null && liveThumbnails < LIVE_THUMBNAIL_LIMIT);
             if (behavior != null) liveThumbnails++;
             entryUIs.put(entry.file(), ui);
             gridScroller.addScrollViewChild(ui);
@@ -570,19 +579,32 @@ public class AssetBrowser extends UIElement {
     }
 
     /** Folders always come first, whichever way the rest is sorted. */
-    private Comparator<GridEntry> entryComparator() {
+    private void sortEntries(List<GridEntry> entries) {
         Comparator<GridEntry> comparator = switch (sortMode) {
             case NAME -> Comparator.comparing(this::displayNameOf, String.CASE_INSENSITIVE_ORDER);
-            case TYPE -> Comparator.comparing(this::typeNameOf, String.CASE_INSENSITIVE_ORDER)
+            case TYPE -> byResolvedKey(entries, this::typeNameOf)
                     .thenComparing(this::displayNameOf, String.CASE_INSENSITIVE_ORDER);
-            case SIZE -> Comparator.comparingLong(entry -> entry.file().length());
-            case MODIFIED -> Comparator.comparingLong(entry -> entry.file().lastModified());
+            case SIZE -> Comparator.comparingLong(GridEntry::size);
+            case MODIFIED -> Comparator.comparingLong(GridEntry::lastModified);
         };
         if (!sortAscending) {
             comparator = comparator.reversed();
         }
-        return Comparator.<GridEntry, Boolean>comparing(entry -> !entry.file().isDirectory())
-                .thenComparing(comparator);
+        entries.sort(Comparator.<GridEntry, Boolean>comparing(entry -> !entry.directory())
+                .thenComparing(comparator));
+    }
+
+    /**
+     * Orders by a string key resolved once per entry instead of once per comparison — worth the map for
+     * {@link #typeNameOf}, which reaches for the project type and so touches the file system.
+     * {@link #displayNameOf} is string arithmetic and does not need it.
+     */
+    private Comparator<GridEntry> byResolvedKey(List<GridEntry> entries, Function<GridEntry, String> key) {
+        var resolved = new IdentityHashMap<GridEntry, String>(entries.size());
+        for (var entry : entries) {
+            resolved.put(entry, key.apply(entry));
+        }
+        return Comparator.comparing(resolved::get, String.CASE_INSENSITIVE_ORDER);
     }
 
     private String displayNameOf(GridEntry entry) {
@@ -600,10 +622,10 @@ public class AssetBrowser extends UIElement {
     }
 
     protected UIElement createEntryUI(File file, @Nullable ResourceBehaviorCache.Behavior<?> behavior,
-                                      boolean liveThumbnail) {
+                                      boolean isDirectory, boolean liveThumbnail) {
         // the same cell the resource panel builds, so both stay in step
         var entry = ResourceProviderContainer.createResourceCell(displayMode, uiWidth,
-                createThumbnail(file, behavior, liveThumbnail), displayNameOf(file, behavior));
+                createThumbnail(file, behavior, isDirectory, liveThumbnail), displayNameOf(file, behavior));
 
         entry.addEventListener(UIEvents.MOUSE_ENTER, e -> hovered = file, true);
         entry.addEventListener(UIEvents.MOUSE_LEAVE, e -> {
@@ -612,7 +634,7 @@ public class AssetBrowser extends UIElement {
         entry.addEventListener(UIEvents.MOUSE_DOWN, e -> selectEntry(file));
         entry.addEventListener(UIEvents.DOUBLE_CLICK, e -> activate(file));
         attachDragSource(entry, file, behavior);
-        if (file.isDirectory()) {
+        if (isDirectory) {
             attachDropTarget(entry, file);
             entry.addClass("__asset-browser_entry-directory__");
         } else {
@@ -627,9 +649,9 @@ public class AssetBrowser extends UIElement {
      * the resource panel, so a texture/renderer/... looks the same in both places.
      */
     protected UIElement createThumbnail(File file, @Nullable ResourceBehaviorCache.Behavior<?> behavior,
-                                        boolean liveThumbnail) {
+                                        boolean isDirectory, boolean liveThumbnail) {
         IGuiTexture icon;
-        if (file.isDirectory()) {
+        if (isDirectory) {
             icon = Icons.FOLDER;
         } else if (behavior != null) {
             var path = behaviors.pathOf(file);
@@ -840,7 +862,7 @@ public class AssetBrowser extends UIElement {
             copyFilesInto(files, target);
             return;
         }
-        editor.openMenu(event.x, event.y, createDropMenu(files, target));
+        editor.openMenu(this, event.x, event.y, createDropMenu(files, target));
     }
 
     /** The folder a drop landed on: the folder cell under the cursor, else the open directory. */
@@ -894,7 +916,7 @@ public class AssetBrowser extends UIElement {
     protected void openMenu(UIEvent event, @Nullable File target, boolean directoryContext) {
         if (editor == null) return;
         var menu = directoryContext ? createDirectoryMenu(target) : createFileMenu(target);
-        editor.openMenu(event.x, event.y, menu);
+        editor.openMenu(this, event.x, event.y, menu);
     }
 
     /** Menu of the empty grid area, or of a folder: creating things and pasting into them. */
@@ -1107,8 +1129,8 @@ public class AssetBrowser extends UIElement {
     /**
      * The browser follows the file system on its own, so there is no refresh button:
      * <ul>
-     *     <li>the tree diffs its children every tick, because {@link FileNode} re-reads the directory
-     *     on each {@code getChildren()} call — the same mechanism the file dialog relies on;</li>
+     *     <li>the tree diffs the children of its expanded nodes every tick, and {@link FileNode} keeps
+     *     those in step with the directory — the same mechanism the file dialog relies on;</li>
      *     <li>the grid polls the open directory for added/removed/touched entries (below);</li>
      *     <li>edits to a resource's <em>content</em> arrive through the borrowed behavior containers,
      *     whose {@code checkAndUpdateResourceProvider} watches file modification times.</li>
@@ -1135,15 +1157,19 @@ public class AssetBrowser extends UIElement {
         }
     }
 
-    /** A cheap fingerprint of a directory: entry count mixed with the newest modification time. */
+    /**
+     * A cheap fingerprint of a directory: its own modification time mixed with its entry count.
+     * <p>
+     * The count moves when an entry is added or removed, the timestamp on top of that when one is
+     * renamed — which is all the grid polls for. An edit to a resource's <em>contents</em> reaches it
+     * through the behavior containers instead, as {@link #screenTick()} describes. Reading each entry's
+     * own timestamp would catch those too, but at one stat syscall per entry it is the poll itself that
+     * would then cost the most in a large folder.
+     */
     private static long stampOf(File directory) {
-        var files = directory.listFiles();
-        if (files == null) return -1;
-        var newest = directory.lastModified();
-        for (var file : files) {
-            newest = Math.max(newest, file.lastModified());
-        }
-        return newest * 31 + files.length;
+        var names = directory.list();
+        if (names == null) return -1;
+        return directory.lastModified() * 31 + names.length;
     }
 
     @Nullable
