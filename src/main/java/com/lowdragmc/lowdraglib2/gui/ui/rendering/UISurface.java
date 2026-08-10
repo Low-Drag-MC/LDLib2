@@ -95,6 +95,23 @@ public interface UISurface {
     }
 
     /**
+     * The render target currently being drawn into.
+     *
+     * <p>The replacement for {@code Minecraft.getInstance().getMainRenderTarget()} in any code that
+     * means "the destination I am compositing into" — reading its size, copying its colour or depth,
+     * writing a result back into it. Outside a UI pass, and for a UI in the game window, this
+     * <em>is</em> the main render target, so substituting it changes nothing there; inside a UI drawn
+     * into an off-screen target it is that target instead, which is the whole point.
+     *
+     * <p>Code that genuinely means the game's own frame regardless of where UI is being drawn — a
+     * shader-pack integration reading the world's depth buffer, say — should keep asking Minecraft
+     * directly.
+     */
+    static RenderTarget currentTarget() {
+        return current().target();
+    }
+
+    /**
      * Install {@code surface} as {@link #current()} until the returned scope is closed. Renders
      * happen on the render thread one at a time, so a plain stack is enough.
      */

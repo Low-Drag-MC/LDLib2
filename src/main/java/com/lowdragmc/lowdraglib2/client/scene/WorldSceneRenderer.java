@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.client.scene;
 
+import com.lowdragmc.lowdraglib2.client.RenderTargetScope;
 import com.lowdragmc.lowdraglib2.client.shader.management.ShaderManager;
 import com.lowdragmc.lowdraglib2.client.utils.glu.Project;
 import com.lowdragmc.lowdraglib2.math.Position;
@@ -65,6 +66,13 @@ public abstract class WorldSceneRenderer {
     protected static final IntBuffer VIEWPORT_BUFFER = ByteBuffer.allocateDirect(16 * 4).order(ByteOrder.nativeOrder()).asIntBuffer();
     protected static final FloatBuffer PIXEL_DEPTH_BUFFER = ByteBuffer.allocateDirect(4).order(ByteOrder.nativeOrder()).asFloatBuffer();
     protected static final FloatBuffer OBJECT_POS_BUFFER = ByteBuffer.allocateDirect(3 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer();
+
+    /**
+     * Where drawing was going when {@link #setupCamera} took over, so {@link #resetCamera} can put it
+     * back. Null outside a camera pass.
+     */
+    @Nullable
+    private RenderTargetScope cameraScope;
 
     enum CacheState {
         UNCREATED,
@@ -430,6 +438,10 @@ public abstract class WorldSceneRenderer {
     }
 
     protected void setupCamera(PositionedRect viewport) {
+        // Captured before the viewport is replaced, so resetCamera can put back what was actually
+        // there. The scene may be nested inside a UI visual layer, or inside a UI hosted in another
+        // window; in neither case is the game's main frame the right thing to return to.
+        cameraScope = RenderTargetScope.capture();
         int x = viewport.getPosition().x;
         int y = viewport.getPosition().y;
         int width = viewport.getSize().width;
@@ -478,8 +490,10 @@ public abstract class WorldSceneRenderer {
 
     protected void resetCamera() {
         //reset viewport
-        Minecraft minecraft = Minecraft.getInstance();
-        RenderSystem.viewport(0, 0, minecraft.getWindow().getWidth(), minecraft.getWindow().getHeight());
+        if (cameraScope != null) {
+            cameraScope.close();
+            cameraScope = null;
+        }
 
         //reset projection matrix
         RenderSystem.restoreProjectionMatrix();

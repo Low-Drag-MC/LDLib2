@@ -20,6 +20,7 @@ import org.lwjgl.opengl.GL11;
 
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;
+import com.lowdragmc.lowdraglib2.client.RenderTargetScope;
 
 /**
  * Created with IntelliJ IDEA.
@@ -88,16 +89,16 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
     }
 
     public BlockHitResult screenPos2BlockPosFace(int mouseX, int mouseY) {
-        int lastID = bindFBO();
+        var scope = bindFBO();
         BlockHitResult looking = super.screenPos2BlockPosFace(mouseX, mouseY, 0, 0, this.resolutionWidth, this.resolutionHeight);
-        unbindFBO(lastID);
+        unbindFBO(scope);
         return looking;
     }
 
     public Vector3f blockPos2ScreenPos(BlockPos pos, boolean depth){
-        int lastID = bindFBO();
+        var scope = bindFBO();
         Vector3f winPos = super.blockPos2ScreenPos(pos, depth, 0, 0, this.resolutionWidth, this.resolutionHeight);
-        unbindFBO(lastID);
+        unbindFBO(scope);
         return winPos;
     }
 
@@ -128,10 +129,10 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
         // before the FBO is bound, otherwise the GUI geometry this drains would be drawn into it
         flushPendingGuiBatches();
         // bind to FBO
-        int lastID = bindFBO();
+        var scope = bindFBO();
         super.render(new PoseStack(), 0, 0, this.resolutionWidth, this.resolutionHeight, (int) (this.resolutionWidth * (mouseX - x) / width), (int) (this.resolutionHeight * (1 - (mouseY - y) / height)));
         // unbind FBO
-        unbindFBO(lastID);
+        unbindFBO(scope);
     }
 
     public void render(@Nonnull PoseStack poseStack, float x, float y, float width, float height, float mouseX, float mouseY) {
@@ -154,23 +155,24 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
         render(poseStack, x, y, width, height, (float) mouseX, (float) mouseY);
     }
 
-    private int bindFBO(){
+    private RenderTargetScope bindFBO(){
         if (!checkFBOValid()) {
             createFBO();
         }
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
-        int lastID = GL11.glGetInteger(EXTFramebufferObject.GL_FRAMEBUFFER_BINDING_EXT);
+        var scope = RenderTargetScope.capture();
         fbo.setClearColor(clearRed, clearGreen, clearBlue, clearAlpha);
         fbo.clear(Minecraft.ON_OSX);
         fbo.bindWrite(true);
-        return lastID;
+        return scope;
     }
 
-    private void unbindFBO(int lastID){
+    private void unbindFBO(RenderTargetScope scope){
         fbo.unbindRead();
-        GlStateManager._glBindFramebuffer(36160, lastID);
-        var mainBuffer = Minecraft.getInstance().getMainRenderTarget();
-        GlStateManager._viewport(0, 0, mainBuffer.viewWidth, mainBuffer.viewHeight);
+        // Back to whatever was bound, not to the main render target: this scene may be nested inside
+        // a UI visual layer, or inside a UI hosted in another window, and neither of those is the
+        // game's own frame.
+        scope.close();
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
     }
 
