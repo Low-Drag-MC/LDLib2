@@ -77,7 +77,7 @@ public class ResourceContainer<T> extends UIElement {
 
     protected void onProviderListMouseDown(UIEvent event) {
         if (event.button == 1) {
-            editor.openMenu(event.x, event.y, createMenu());
+            editor.openMenu(this, event.x, event.y, createMenu());
         }
     }
 

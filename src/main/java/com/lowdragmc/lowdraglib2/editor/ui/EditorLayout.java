@@ -68,6 +68,42 @@ public record EditorLayout(SplittableWindow.LayoutConfig layoutConfig, List<Slot
     }
 
     /**
+     * Walks a window tree and records what is in each leaf, in tab order, with the selected one.
+     *
+     * <p>Shared by the editor's own dock tree and by each floating window's, so the {@code 'f'}/{@code 's'}
+     * path encoding has exactly one writer to match {@code Editor}'s single reader.
+     */
+    public static List<SlotEntry> captureSlots(SplittableWindow root) {
+        var slots = new ArrayList<SlotEntry>();
+        collectSlots(root, "", slots);
+        return slots;
+    }
+
+    private static void collectSlots(SplittableWindow window, String path, List<SlotEntry> out) {
+        var container = window.getViewContainer();
+        if (container != null) {
+            var names = new ArrayList<String>();
+            String selected = null;
+            for (var view : container.getAllViews()) {
+                names.add(view.getName());
+                if (container.isViewSelected(view)) {
+                    selected = view.getName();
+                }
+            }
+            if (!names.isEmpty()) {
+                out.add(new SlotEntry(path, names, selected));
+            }
+            return;
+        }
+        if (window.getFirst() != null) {
+            collectSlots(window.getFirst(), path + "f", out);
+        }
+        if (window.getSecond() != null) {
+            collectSlots(window.getSecond(), path + "s", out);
+        }
+    }
+
+    /**
      * Returns the saved {@link SlotEntry} containing a view with the given name, or null if absent.
      */
     @Nullable

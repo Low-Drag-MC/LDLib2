@@ -31,7 +31,7 @@ public class FileMenu extends MenuTab {
         var menu = TreeBuilder.Menu.start();
         menu.branch("ldlib.gui.editor.menu.new", newMenu -> {
             for (var type : projectTypes) {
-                newMenu.leaf(type.icon, type.name, () -> {
+                newMenu.leaf(type.getIcon(), type.name, () -> {
                     // open a new project
                     editor.loadProject(type.newEmptyProject(), null);
                 });
@@ -102,7 +102,7 @@ public class FileMenu extends MenuTab {
                     label.append(Component.literal(" (" + parent.getName() + ")")
                             .withColor(ColorPattern.GRAY.color));
                 }
-                branch.leaf(type == null ? Icons.FILE : type.icon, label, () -> openProject(file));
+                branch.leaf(type == null ? Icons.FILE : type.getIcon(file), label, () -> openProject(file));
             }
             branch.crossLine();
             branch.leaf(Icons.REMOVE, "ldlib.gui.editor.menu.recent_projects.clear",

@@ -53,6 +53,12 @@ import static net.minecraft.world.level.block.RenderShape.MODEL;
 @Accessors(chain = true)
 public abstract class WorldSceneRenderer {
 
+    /**
+     * Where drawing was going when {@link #setupCamera} took over, so {@link #resetCamera} can put it
+     * back. Null outside a camera pass.
+     */
+    @Nullable
+
     enum CacheState {
         UNCREATED,
         NEED,

@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElementRendererRegistry;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.GraphViewLod;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
@@ -12,9 +13,11 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphInspector;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.util.NodeColors;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.util.RenameColorConfigurableHelper;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHint;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.Model;
@@ -65,8 +68,15 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
     @Getter
     protected @Nullable GraphElement<?> nodePreviewElement;
 
+    private static final int HIGHLIGHT_TINT = 0xddffaf00;
+    private static final int HOVER_TINT = 0xaaffffff;
+
     @Getter
     private final NodeStyle nodeStyle = new NodeStyle();
+    /** Source the cached tints were built from; see {@link #tintedOverlay}. */
+    @Nullable
+    private IGuiTexture tintedOverlaySource;
+    private final IGuiTexture[] tintedOverlays = new IGuiTexture[2];
 
     public NodeElement(AbstractNodeModel nodeModel) {
         super(nodeModel);
@@ -182,17 +192,82 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
         inspector.inspect(RenameColorConfigurableHelper.build(getModel(), graphView));
     }
 
+    // region LOD
+
+    /**
+     * Body colour of the flat stand-in rect drawn at {@link GraphViewLod#SIMPLIFIED}. Defaults to
+     * the node background shared by the {@code mc}/{@code modern}/{@code ore} stylesheets, so the
+     * silhouette keeps reading as a node rather than as a coloured blob.
+     */
+    protected int getLodBodyColor() {
+        return 0xFF_383838;
+    }
+
+    /**
+     * Accent colour — the title bar at {@link GraphViewLod#SIMPLIFIED} and the whole node at
+     * {@link GraphViewLod#BLOCK}. This is what makes node <em>types</em> distinguishable when
+     * zoomed out, so it uses the same resolution the minimap does.
+     */
+    protected int getLodAccentColor() {
+        return NodeColors.resolve(getModel());
+    }
+
+    /**
+     * At reduced LOD the node's SDF background — its own rounded-rect pipeline and draw state, per
+     * node, per frame — is replaced by a single flat rect that batches with every other one.
+     */
+    @Override
+    protected void drawBackgroundTexture(@NotNull IGUIContext context) {
+        var lod = lod();
+        if (lod == GraphViewLod.FULL || !(context instanceof GUIContext guiContext)) {
+            super.drawBackgroundTexture(context);
+            return;
+        }
+        DrawerHelperClient.drawSolidRect(guiContext,
+                getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight(),
+                lod == GraphViewLod.BLOCK ? getLodAccentColor() : getLodBodyColor());
+    }
+
+    /**
+     * Where the subtree traversal is actually cut. A node is 15-60 elements deep; below
+     * {@link GraphViewLod#FULL} none of them are legible, so none of them are visited.
+     *
+     * <p>Skipping when culled is a correctness fix as much as a performance one:
+     * {@link com.lowdragmc.lowdraglib2.gui.ui.UIElement#drawInBackgroundInternal} already skips a
+     * culled element's background and overlay but still recurses its children, so an off-screen node
+     * used to draw its port icons with no body behind them.
+     */
+    @Override
+    protected boolean shouldDrawChildren() {
+        return !isCulled() && lod() == GraphViewLod.FULL;
+    }
+
+    /** The silhouette that replaces the subtree: a title colour bar over the body rect. */
+    @Override
+    protected void drawBackgroundAdditional(@NotNull IGUIContext context) {
+        super.drawBackgroundAdditional(context);
+        if (lod() == GraphViewLod.SIMPLIFIED && nodeTittle != null && context instanceof GUIContext guiContext) {
+            DrawerHelperClient.drawSolidRect(guiContext,
+                    nodeTittle.getPositionX(), nodeTittle.getPositionY(),
+                    nodeTittle.getSizeWidth(), nodeTittle.getSizeHeight(), getLodAccentColor());
+        }
+    }
+
+    // endregion
+
     public void drawBackgroundOverlay(@NotNull GUIContext context) {
         UIElementRendererRegistry.defaultRenderer().drawBackgroundOverlay(this, context);
+        var overlay = getNodeStyle().focusOverlay();
+        IGuiTexture drawn = null;
         if (isSelected()) {
-            context.drawTexture(getNodeStyle().focusOverlay(),
-                    getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
+            drawn = overlay;
         } else if (shouldBeHighlighted()) {
-            context.drawTexture(getNodeStyle().focusOverlay().copy().setColor(0xddffaf00),
-                    getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
+            drawn = tintedOverlay(overlay, HIGHLIGHT_TINT, 0);
         } else if (showHoverHighlight()) {
-            context.drawTexture(getNodeStyle().focusOverlay().copy().setColor(0xaaffffff),
-                    getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
+            drawn = tintedOverlay(overlay, HOVER_TINT, 1);
+        }
+        if (drawn != null) {
+            context.drawTexture(drawn, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         }
     }
 
@@ -211,5 +286,24 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
             }
             element.drawBackgroundOverlay(guiContext);
         }
+    }
+
+    /**
+     * Caches the tinted variants of the focus overlay, rebuilding only when the style swaps the
+     * source texture.
+     *
+     * <p>{@link IGuiTexture#copy()} round-trips the texture through its codec — an NBT encode plus a
+     * decode, and two registry serialization contexts. Doing that per frame per node was affordable
+     * when only a hovered node paid it, but {@link #showHoverHighlight()} is also true for every node
+     * under a rubber-band selection, so dragging a box over a large graph was paying it hundreds of
+     * times a frame.
+     */
+    private IGuiTexture tintedOverlay(IGuiTexture source, int tint, int slot) {
+        if (tintedOverlaySource != source) {
+            tintedOverlaySource = source;
+            tintedOverlays[0] = source.copy().setColor(HIGHLIGHT_TINT);
+            tintedOverlays[1] = source.copy().setColor(HOVER_TINT);
+        }
+        return tintedOverlays[slot];
     }
 }

@@ -8,14 +8,13 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.NodeElement;
-import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.util.NodeColors;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 
 public class GraphPreview extends UIElement implements IGraphTool {
     private static final float PADDING = 20f;
     private static final int HIGHLIGHT_COLOR = 0xFF_4488FF;
-    private static final int DEFAULT_NODE_COLOR = 0xFF_555555;
     private static final int VIEWPORT_BORDER_COLOR = 0x88_FFFFFF;
 
     public final GraphView graphView;
@@ -159,7 +158,7 @@ public class GraphPreview extends UIElement implements IGraphTool {
                     float rw = nodeW * minimapScale;
                     float rh = nodeH * minimapScale;
 
-                    int color = getNodeColor(model);
+                    int color = NodeColors.resolve(model);
                     DrawerHelperClient.drawSolidRect(guiContext, rx, ry, rw, rh, color);
 
                     if (graphView.isSelected(model)) {
@@ -184,22 +183,6 @@ public class GraphPreview extends UIElement implements IGraphTool {
         DrawerHelperClient.drawBorder(guiContext, vrx, vry, vrw, vrh, VIEWPORT_BORDER_COLOR, 1);
 
         guiContext.disableScissor();
-    }
-
-    private int getNodeColor(AbstractNodeModel model) {
-        int color;
-        if (model.hasUserColor()) {
-            color = model.getElementColor();
-        } else {
-            color = model.getDefaultColor();
-        }
-        // Ensure fully opaque and not transparent/zero
-        if ((color & 0xFF000000) == 0) {
-            color = DEFAULT_NODE_COLOR;
-        } else if ((color & 0xFF000000) != 0xFF000000) {
-            color = (color & 0x00FFFFFF) | 0xFF000000;
-        }
-        return color;
     }
 
     private record Bounds(float minX, float minY, float maxX, float maxY) {}

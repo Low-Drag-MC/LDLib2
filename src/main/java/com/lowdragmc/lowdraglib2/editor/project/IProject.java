@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.editor.project;
 
 import com.lowdragmc.lowdraglib2.editor.resource.Resources;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
@@ -53,6 +54,14 @@ public interface IProject extends ValueIOSerializable {
      */
     default Component getDisplayName() {
         return Component.translatable(getName());
+    }
+
+    /**
+     * Get the icon of this project. Defaults to the icon of its {@link ProjectType}, which itself falls
+     * back to {@link ProjectType#getDefaultIcon()} when the type does not set one.
+     */
+    default IGuiTexture getIcon() {
+        return getProjectType().getIcon();
     }
 
     /**

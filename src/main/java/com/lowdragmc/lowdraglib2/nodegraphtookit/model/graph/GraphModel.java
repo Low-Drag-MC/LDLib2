@@ -621,6 +621,8 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
             }
         }
 
+        onElementsDeleting(elementsByType);
+
         deleteVariableDeclarations(elementsByType.variableDeclarationsModels, false);
         deleteGroups(elementsByType.groupModels);
         deleteStickyNotes(elementsByType.stickyNoteModels);
@@ -647,6 +649,21 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
 //        {
 //            statePortModel.UpdateAllOffsets();
 //        }
+    }
+
+    /**
+     * Called by {@link #deleteElements} once the deletion set has been fully expanded (wires
+     * pulled in by their nodes, nodes pulled in by their variable declarations, …) and just
+     * <em>before</em> anything is actually removed — so the models passed in are still fully
+     * wired and can be inspected.
+     *
+     * <p>Override to release resources a subclass keeps alongside an element, e.g. a nested
+     * subgraph owned by a particular wire. Safe with respect to undo: commands snapshot the
+     * model before executing, so whatever is released here is restored by the snapshot.
+     *
+     * @param elementsByType the expanded set about to be deleted
+     */
+    protected void onElementsDeleting(ElementsByType elementsByType) {
     }
 
     /**

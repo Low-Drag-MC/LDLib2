@@ -5,7 +5,6 @@ import com.mojang.blaze3d.textures.GpuTexture;
 import com.mojang.blaze3d.textures.GpuTextureView;
 import com.mojang.blaze3d.textures.TextureFormat;
 import com.mojang.blaze3d.vertex.*;
-import com.mojang.blaze3d.opengl.GlStateManager;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
@@ -15,6 +14,7 @@ import org.joml.Vector3f;
 
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;
+import com.lowdragmc.lowdraglib2.client.RenderTargetScope;
 
 /**
  * @Author: KilaBash
@@ -54,16 +54,18 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
     }
 
     public BlockHitResult screenPos2BlockPosFace(int mouseX, int mouseY) {
-        setupFBORendering();
-        BlockHitResult looking = super.screenPos2BlockPosFace(mouseX, mouseY, 0, 0, this.resolutionWidth, this.resolutionHeight);
-        teardownFBORendering();
+        BlockHitResult looking;
+        try (var ignored = redirectToFBO()) {
+            looking = super.screenPos2BlockPosFace(mouseX, mouseY, 0, 0, this.resolutionWidth, this.resolutionHeight);
+        }
         return looking;
     }
 
     public Vector3f blockPos2ScreenPos(BlockPos pos, boolean depth) {
-        setupFBORendering();
-        Vector3f winPos = super.blockPos2ScreenPos(pos, 0, 0, this.resolutionWidth, this.resolutionHeight);
-        teardownFBORendering();
+        Vector3f winPos;
+        try (var ignored = redirectToFBO()) {
+            winPos = super.blockPos2ScreenPos(pos, 0, 0, this.resolutionWidth, this.resolutionHeight);
+        }
         return winPos;
     }
 
@@ -78,11 +80,11 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
         encoder.clearColorAndDepthTextures(colorTexture, 0, depthTexture, 1.0);
 
         // Redirect rendering to our FBO textures
-        setupFBORendering();
-        renderDirect(this.resolutionWidth, this.resolutionHeight,
-                (int) (this.resolutionWidth * (mouseX - x) / width),
-                (int) (this.resolutionHeight * (1 - (mouseY - y) / height)));
-        teardownFBORendering();
+        try (var ignored = redirectToFBO()) {
+            renderDirect(this.resolutionWidth, this.resolutionHeight,
+                    (int) (this.resolutionWidth * (mouseX - x) / width),
+                    (int) (this.resolutionHeight * (1 - (mouseY - y) / height)));
+        }
     }
 
     /**
@@ -97,19 +99,18 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
         render(poseStack, x, y, width, height, (float) mouseX, (float) mouseY);
     }
 
-    private void setupFBORendering() {
+    /**
+     * Redirects drawing into this renderer's own textures until the returned scope is closed.
+     *
+     * <p>A scope rather than a matched {@code setup}/{@code teardown} pair because closing restores
+     * <em>whatever was redirected before</em> instead of clearing to the game's own frame. That
+     * matters as soon as a scene is not being drawn straight into the game window: nested inside a
+     * visual-layer picture-in-picture pass, or inside a UI hosted in another OS window, clearing the
+     * override would send everything drawn afterwards to the wrong place.
+     */
+    private RenderTargetScope redirectToFBO() {
         ensureFBOCreated();
-//        GL11.glDisable(GL11.GL_SCISSOR_TEST);
-        RenderSystem.outputColorTextureOverride = this.colorTextureView;
-        RenderSystem.outputDepthTextureOverride = this.depthTextureView;
-    }
-
-    private void teardownFBORendering() {
-        RenderSystem.outputColorTextureOverride = null;
-        RenderSystem.outputDepthTextureOverride = null;
-        var mainTarget = Minecraft.getInstance().getMainRenderTarget();
-        GlStateManager._viewport(0, 0, mainTarget.width, mainTarget.height);
-//        GL11.glEnable(GL11.GL_SCISSOR_TEST);
+        return RenderTargetScope.redirect(this.colorTextureView, this.depthTextureView);
     }
 
     private void ensureFBOCreated() {

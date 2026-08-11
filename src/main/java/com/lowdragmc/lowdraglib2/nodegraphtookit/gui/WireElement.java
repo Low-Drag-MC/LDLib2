@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.gui;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderPipelines;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.GraphViewLod;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
@@ -42,6 +43,13 @@ public class WireElement extends GraphElement<WireModel> {
     protected ModelElement lastUsedFromPort;
     protected ModelElement lastUsedToPort;
     protected WireModel lastWireModel;
+    /**
+     * LOD the current {@link #drawPoints} were built for. Changing level changes the point list
+     * (rounded vs. straight), and {@link GraphViewLod#BLOCK} skips {@link #updatePortPosition()}
+     * altogether — so geometry has to be forced stale whenever the level moves.
+     */
+    protected GraphViewLod lastLod = GraphViewLod.FULL;
+    protected boolean geometryDirty = true;
 
     public WireElement(WireModel wireModel) {
         super(wireModel);
@@ -204,7 +212,7 @@ public class WireElement extends GraphElement<WireModel> {
         var model = getModel();
         var fromPort = model.getFromPort();
         var toPort = model.getToPort();
-        var dirty = rawPoints.isEmpty();
+        var dirty = rawPoints.isEmpty() || geometryDirty;
 
         Vector2f fromWorldPos = new Vector2f();
         if (fromPort == null) {
@@ -275,7 +283,10 @@ public class WireElement extends GraphElement<WireModel> {
             fromPoint2 = fromPoint2.add(offset);
             toPoint2 = toPoint2.add(offset);
             rawPoints = List.of(realFrom, fromPoint2, toPoint2, realTo);
-            drawPoints = roundCorners(rawPoints, 6, 8);
+            // Rounding a corner costs 8 extra points each; at reduced LOD the fillet is smaller
+            // than a pixel, so the raw 4-point polyline is used verbatim.
+            drawPoints = effectiveLod() == GraphViewLod.SIMPLIFIED ? rawPoints : roundCorners(rawPoints, 6, 8);
+            geometryDirty = false;
         }
     }
 
@@ -368,10 +379,29 @@ public class WireElement extends GraphElement<WireModel> {
         if (mui == null) return;
     }
 
+    /**
+     * The level this wire draws at.
+     *
+     * <p>Ghost wires ignore it entirely: one is live feedback for a drag the user is performing right
+     * now, and dropping it at low zoom would make the interaction look broken. There is at most a
+     * handful of them, so the cost is irrelevant.
+     */
+    protected GraphViewLod effectiveLod() {
+        return getModel() instanceof IGhostWireModel ? GraphViewLod.FULL : lod();
+    }
+
     @Override
     protected void drawBackgroundAdditional(@NotNull IGUIContext guiContext) {
         if (!(guiContext instanceof GUIContext context)) return;
         super.drawBackgroundAdditional(context);
+        var lod = effectiveLod();
+        if (lod != lastLod) {
+            lastLod = lod;
+            geometryDirty = true;
+        }
+        // BLOCK returns before updatePortPosition(): resolving both endpoints costs ~4 matrix ops
+        // per wire per frame, which is the real cost of a large graph, not the draw call.
+        if (lod == GraphViewLod.BLOCK) return;
         updatePortPosition();
         if (drawPoints.isEmpty()) return;
         // couldn't be clicking state
@@ -399,19 +429,27 @@ public class WireElement extends GraphElement<WireModel> {
             fromColor &= 0x77FFFFFF;
             toColor &= 0x77FFFFFF;
         }
-        DrawerHelperClient.drawTexLines(context,
-                LDLibRenderPipelines.GRAPH_WIRE,
-                TextureSetup.noTexture(),
-                drawPoints,
-                fromColor,
-                toColor,
-                (isHover ? 1.1f : 0.7f) * 7);
+        if (lod == GraphViewLod.SIMPLIFIED) {
+            // Flat strip, no beam shader: the per-fragment falloff is invisible at this zoom.
+            DrawerHelperClient.drawLines(context, drawPoints, fromColor, toColor, 3f);
+        } else {
+            DrawerHelperClient.drawTexLines(context,
+                    LDLibRenderPipelines.GRAPH_WIRE,
+                    TextureSetup.noTexture(),
+                    drawPoints,
+                    fromColor,
+                    toColor,
+                    (isHover ? 1.1f : 0.7f) * 7);
+        }
     }
 
     @Override
     public boolean isIntersectWithPoint(double localX, double localY) {
         // check element rect first
         if (!super.isIntersectWithPoint(localX, localY)) return false;
+        // No geometry yet: the wire has never been drawn (culled since creation, or the graph is
+        // zoomed out far enough that BLOCK LOD skips the endpoint resolve). Nothing to hit.
+        if (rawPoints.size() < 4) return false;
         var localMouse = new Vector2f((float) localX, (float) localY);
         // line1
         if (isMouseOverLine(localMouse, rawPoints.get(0), rawPoints.get(1), 2)) return true;
@@ -424,6 +462,7 @@ public class WireElement extends GraphElement<WireModel> {
     @Override
     public boolean isOverlapping(float localX, float localY, float localWidth, float localHeight) {
         if (!super.isOverlapping(localX, localY, localWidth, localHeight)) return false;
+        if (rawPoints.size() < 4) return false;
         var localRect = new Vector4f(localX, localY, localWidth, localHeight);
         // line1
         if (isRectOverlapping(localRect, rawPoints.get(0), rawPoints.get(1), 2)) return true;

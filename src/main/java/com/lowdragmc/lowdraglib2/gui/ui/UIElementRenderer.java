@@ -15,7 +15,7 @@ public interface UIElementRenderer<T extends UIElement> {
         if (!element.isCulled()) {
             drawBackgroundAdditional(element, context);
         }
-        if (!element.getChildren().isEmpty()) {
+        if (!element.getChildren().isEmpty() && element.shouldDrawChildren()) {
             var currentColor = context.getElementColor();
             var hasColor = currentColor != -1;
             if (hasColor) {

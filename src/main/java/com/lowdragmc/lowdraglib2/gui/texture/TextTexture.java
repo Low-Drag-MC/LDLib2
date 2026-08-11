@@ -19,7 +19,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.Style;
-import org.joml.Vector2f;
 
 import java.util.Collections;
 import java.util.List;
@@ -268,10 +267,11 @@ public class TextTexture extends TransformTexture {
             float textW = fontRenderer.width(line);
             float totalW = width + textW + 10;
             float from = x + width;
-            var trans = context.pose.pose;
-            var realPos = trans.transformPosition(new Vector2f(x, y));
-            var realPos2 = trans.transformPosition(new Vector2f(x + width, y + height));
-            context.enableScissor((int) realPos.x, (int) realPos.y, (int) realPos2.x, (int) realPos2.y);
+            // Local coordinates, untransformed: GUIContext#enableScissor takes (x, y, width, height)
+            // and GuiGraphicsExtractor applies the current pose to the rect itself. Passing
+            // pose-transformed corners here both double-transformed the box and fed a corner in where
+            // a size was expected, so the clip landed nowhere near the text.
+            context.enableScissor(x, y, width, height);
             var t = texture.rollSpeed > 0 ? ((((texture.rollSpeed * Math.abs((int) (System.currentTimeMillis() % 1000000)) / 10) % (totalW))) / totalW) : 0.5;
             LDFonts.drawText(context, fontRenderer, line, (int) (from - t * totalW), (int) drawY, texture.color, texture.dropShadow);
             context.disableScissor();

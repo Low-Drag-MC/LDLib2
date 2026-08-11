@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements
 
-import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture
 import com.lowdragmc.lowdraglib2.gui.ui.ElementSpec
 import com.lowdragmc.lowdraglib2.gui.ui.UIBuilder
 import com.lowdragmc.lowdraglib2.gui.ui.UIContainer
@@ -144,10 +143,22 @@ fun <T : GraphView> GraphViewElement<T>.scaleRange(min: Float, max: Float): Grap
 
 /**
  * Extension: Set grid
+ *
+ * The grid is drawn as lines rather than a tiled texture, and its spacing adapts to the zoom, so
+ * [size] is the base cell it subdivides from rather than a fixed on-screen size.
  */
-fun <T : GraphView> GraphViewElement<T>.withGrid(texture: IGuiTexture, size: Float): GraphViewElement<T> = apply {
-    element.graphViewStyle.gridTexture(texture)
+fun <T : GraphView> GraphViewElement<T>.withGrid(
+    size: Float,
+    lineColor: Int? = null,
+    accentColor: Int? = null,
+    minPixels: Float? = null,
+    subdivisions: Int? = null,
+): GraphViewElement<T> = apply {
     element.graphViewStyle.gridSize(size)
+    lineColor?.let { element.graphViewStyle.gridLineColor(it) }
+    accentColor?.let { element.graphViewStyle.gridAccentColor(it) }
+    minPixels?.let { element.graphViewStyle.gridMinPixels(it) }
+    subdivisions?.let { element.graphViewStyle.gridSubdivisions(it) }
 }
 
 /**

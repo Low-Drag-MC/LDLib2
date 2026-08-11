@@ -203,6 +203,9 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
         addEventListener(UIEvents.DRAG_LEAVE, this::onDragLeave, true);
         addEventListener(UIEvents.DRAG_PERFORM, this::onDragPerform);
         addEventListener(UIEvents.DRAG_END, e -> clearDragState(), true);
+        // one listener for the whole tree rather than one per row: only expanded nodes can have gained
+        // or lost children, so the poll costs what the tree shows, not what it holds
+        addEventListener(UIEvents.TICK, e -> checkExpandedChildrenValid());
     }
 
     public TreeList(NODE root) {
@@ -484,8 +487,17 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
                 addNodeUI(childNode, index + 1);
             }
         }
-        if (!staticTree) {
-            ui.addEventListener(UIEvents.TICK, e -> checkNodeChildrenValid(node));
+    }
+
+    /**
+     * Re-diffs every expanded node against its current children, so the tree follows changes made to the
+     * model (or, for a file tree, to disk) without anyone having to tell it. Runs once per tick.
+     */
+    protected void checkExpandedChildrenValid() {
+        if (staticTree) return;
+        // copied: a node that lost its children collapses, which mutates the set being iterated
+        for (var node : List.copyOf(expandedNodes)) {
+            checkNodeChildrenValid(node);
         }
     }
 

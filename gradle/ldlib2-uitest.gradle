@@ -1,0 +1,91 @@
+// LDLib2 in-client UI test harness - Gradle wiring.
+//
+// Copy this file into your mod and add, after your `runs { }` block:
+//
+//     apply from: rootProject.file('gradle/ldlib2-uitest.gradle')
+//
+// Then:  gradlew runClient -PldTest=all
+// Docs:  https://github.com/Low-Drag-MC/LDLib2 -> docs/uitest.md
+//
+// Inert unless -PldTest is given, so an ordinary runClient is completely unaffected.
+
+// A captured local, not an ext property: inside a run/task closure `ext` resolves to the closure's
+// delegate rather than the project, so ldTestOutDir would not be visible where it is needed.
+def ldTestOutDir = layout.buildDirectory.dir('ldlib2-uitest').get().asFile.absolutePath
+
+if (project.hasProperty('ldTest')) {
+    // System properties rather than program arguments: Minecraft's own argument parser owns the
+    // command line and rejects what it does not recognise.
+    //
+    // neoForge.runs, not a bare `runs`: under the ModDev plugin the run container lives on the
+    // neoForge extension, and a top-level `runs` does not resolve at all.
+    //
+    // matching{}.configureEach{} rather than runs { client { } }: from a separate script the latter
+    // *creates* a run called client instead of configuring the existing one, which is then rejected
+    // for having no run type.
+    neoForge.runs.matching { it.name == 'client' }.configureEach { run ->
+        run.systemProperty 'ldlib2.uitest.run', project.property('ldTest')
+        run.systemProperty 'ldlib2.uitest.out', ldTestOutDir
+        run.systemProperty 'ldlib2.uitest.exclude', project.findProperty('ldTestExclude') ?: ''
+        // Run-wide default; individual scenarios override it via ScenarioOptions#guiScale.
+        run.systemProperty 'ldlib2.uitest.guiScale', project.findProperty('ldTestGuiScale') ?: '2'
+        // Empty = maximise. Pass e.g. -PldTestWindow=1280x720 to pin a size for comparable captures.
+        run.systemProperty 'ldlib2.uitest.window', project.findProperty('ldTestWindow') ?: ''
+        run.systemProperty 'ldlib2.uitest.inputMode', project.findProperty('ldTestInputMode') ?: 'SYNTHETIC'
+        run.systemProperty 'ldlib2.uitest.watchdogSec', project.findProperty('ldTestWatchdogSec') ?: '90'
+        if (project.hasProperty('ldTestKeepOpen')) {
+            run.systemProperty 'ldlib2.uitest.keepOpen', 'true'
+        }
+    }
+}
+
+// Turns report.json into a build failure.
+//
+// Attached with finalizedBy so it runs even when runClient itself fails - a crash before the report
+// is written is exactly the case that must not pass silently, so a missing report is a failure too.
+// Captured outside the task closures: with the configuration cache on, a doLast/onlyIf body may
+// not reach back into `project` at execution time, and both `file(...)` and `hasProperty` do.
+def ldTestOutFile = file(ldTestOutDir)
+def ldTestRequested = project.hasProperty('ldTest')
+
+tasks.register('verifyUiTest') {
+    group = 'verification'
+    description = 'Fails the build if the LDLib2 in-client UI test report contains failures.'
+    onlyIf { ldTestRequested }
+    doLast {
+        def dir = ldTestOutFile
+        def reportFile = new File(dir, 'report.json')
+        if (!reportFile.exists()) {
+            throw new GradleException("LDLib2 UI test: no report at ${reportFile}.\n" +
+                    "The client crashed, never reached the runner, or -PldTest matched no scenarios.")
+        }
+        def report = new groovy.json.JsonSlurper().parse(reportFile)
+        logger.lifecycle("LDLib2 UI test: ${report.totals.passed}/${report.totals.scenarios} scenarios passed, " +
+                "${report.totals.checks - report.totals.checksFailed}/${report.totals.checks} checks passed " +
+                "in ${report.durationMs} ms")
+        report.scenarios.findAll { it.status != 'PASS' }.each { scenario ->
+            logger.error("FAILED scenario '${scenario.name}' (${scenario.className})")
+            if (scenario.error) logger.error("  ${scenario.error.type}: ${scenario.error.message}")
+            scenario.steps.findAll { it.status != 'PASS' }.each { step ->
+                logger.error("  step ${step.index} [${step.kind}] ${step.name} -> ${step.status}")
+                if (step.error) logger.error("    error: ${step.error.message}")
+                step.checks.findAll { !it.passed }.each { check ->
+                    logger.error("    check '${check.desc}'" +
+                            (check.expected != null ? " expected=${check.expected} actual=${check.actual}" : ""))
+                }
+                step.captures.each { logger.error("    shot: ${new File(dir, it.path)}") }
+            }
+        }
+        if (report.status != 'PASS') {
+            throw new GradleException("LDLib2 UI test ${report.status} - full report: ${reportFile}")
+        }
+    }
+}
+
+// The run tasks are created after this script is evaluated, so runClient cannot be looked up by
+// name here - match it lazily instead.
+tasks.configureEach { task ->
+    if (task.name == 'runClient') {
+        task.finalizedBy 'verifyUiTest'
+    }
+}

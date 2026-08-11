@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.RegisteredUIElementRenderer;
 import com.lowdragmc.lowdraglib2.registry.AutoRegistry;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.test.ui.IScreenTest;
+import com.lowdragmc.lowdraglib2.uitest.UIScenario;
 
 import javax.annotation.Nullable;
 import java.util.function.Supplier;
@@ -54,10 +55,20 @@ public class LDLib2ClientRegistries {
     @Nullable
     public static AutoRegistry.LDLibRegisterClient<IScreenTest, Supplier<IScreenTest>> SCREEN_TESTS;
 
+    /**
+     * Automated UI test scenarios. Populated by an annotation scan over every loaded mod, so a mod
+     * depending on LDLib2 registers its own scenarios with no changes here.
+     *
+     * @see com.lowdragmc.lowdraglib2.uitest.UIScenario
+     */
+    @Nullable
+    public static AutoRegistry.LDLibRegisterClient<UIScenario, Supplier<UIScenario>> UI_SCENARIOS;
+
     static {
         GUI_TEXTURES.setMissingKey("missing");
         if (Platform.isDevEnv()) {
             SCREEN_TESTS = AutoRegistry.LDLibRegisterClient.create(LDLib2.id("screen_test"), IScreenTest.class, AutoRegistry::noArgsCreator);
+            UI_SCENARIOS = AutoRegistry.LDLibRegisterClient.create(LDLib2.id("ui_scenario"), UIScenario.class, AutoRegistry::noArgsCreator);
         }
     }
 

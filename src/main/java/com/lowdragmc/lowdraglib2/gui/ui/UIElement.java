@@ -31,6 +31,7 @@ import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.PersistedParser;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.KeyState;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import dev.vfyjxf.taffy.style.*;
@@ -1661,23 +1662,23 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     public static boolean isShiftDown() {
-        return UIElementInputAccess.isShiftDown();
+        return KeyState.isShiftDown();
     }
 
     public static boolean isControlDown() {
-        return UIElementInputAccess.isCtrlDown();
+        return KeyState.isCtrlDown();
     }
 
     public static boolean isCtrlOrCmdDown() {
-        return UIElementInputAccess.isCtrlOrCmdDown();
+        return KeyState.isCtrlOrCmdDown();
     }
 
     public static boolean isAltDown() {
-        return UIElementInputAccess.isAltDown();
+        return KeyState.isAltDown();
     }
 
     public static boolean isKeyDown(int keyCode) {
-        return UIElementInputAccess.isKeyDown(keyCode);
+        return KeyState.isKeyDown(keyCode);
     }
 
     public boolean isMouseDown(int button) {
@@ -1790,6 +1791,20 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         if (background != null && background != IGuiTexture.EMPTY) {
             context.drawTexture(background, getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
         }
+    }
+
+    /**
+     * Whether to descend into children at all this frame.
+     *
+     * <p>The seam for elements that stand in for their own subtree — a level-of-detail proxy, a
+     * collapsed container. Returning {@code false} skips the whole subtree, which is where the cost
+     * of a deep tree actually lives: each child would otherwise transform its corners and test the
+     * scissor just to discover it has nothing to draw.
+     *
+     * <p>Consulted by {@link UIElementRenderer#drawContents}, which owns the child loop.
+     */
+    protected boolean shouldDrawChildren() {
+        return true;
     }
 
     /**
