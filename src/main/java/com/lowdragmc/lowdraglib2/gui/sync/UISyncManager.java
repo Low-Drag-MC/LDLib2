@@ -74,11 +74,26 @@ public class UISyncManager {
         }
     }
 
+    /**
+     * Writes the opening snapshot, which rides the open-screen packet.
+     *
+     * <p>Only values this side is allowed to send are included, and the filter is load-bearing. A
+     * value the receiver refuses — a C2S-only binding, on the way out to the client — is not merely
+     * ignored on arrival: {@link SyncValue#readSyncData} throws <i>before</i> consuming the payload,
+     * {@link #handlePack} swallows that and reads the next entry from the wrong offset, and the rest
+     * of the pack is lost. Both sides derive the flag from the same pair of strategies, so filtering
+     * here keeps their entry sets equal by construction. {@link #tick()} gets this for free, since
+     * {@code hasChanged()} is already false whenever {@code toSync} is.
+     */
     public void writeInitialData(RegistryFriendlyByteBuf buffer) {
+        var toSync = new ArrayList<SyncValue<?>>();
         for (SyncValue<?> value : syncValues.values()) {
             value.update();
+            if (value.isToSync()) {
+                toSync.add(value);
+            }
         }
-        writePack(buffer, syncValues.values());
+        writePack(buffer, toSync);
     }
 
     public void readInitialData(RegistryFriendlyByteBuf data) {

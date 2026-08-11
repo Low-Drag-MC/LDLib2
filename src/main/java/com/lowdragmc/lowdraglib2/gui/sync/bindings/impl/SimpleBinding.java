@@ -53,8 +53,30 @@ public class SimpleBinding<T> implements IBinding<T> {
         }
     }
 
+    /**
+     * Registers a listener invoked on the <b>receiving</b> side, after the incoming value has been pushed
+     * into the local data source.
+     */
     public ISubscription registerListener(Consumer<T> listener) {
         return this.syncValue.addListener(listener);
+    }
+
+    /**
+     * Registers a listener invoked on the <b>sending</b> side, right before the value is written to the buffer.
+     *
+     * @see SyncValue#addPreSyncListener(Consumer)
+     */
+    public ISubscription registerPreSyncListener(Consumer<T> listener) {
+        return this.syncValue.addPreSyncListener(listener);
+    }
+
+    /**
+     * Registers a listener invoked on the <b>sending</b> side, right after the value has been written to the buffer.
+     *
+     * @see SyncValue#addPostSyncListener(Consumer)
+     */
+    public ISubscription registerPostSyncListener(Consumer<T> listener) {
+        return this.syncValue.addPostSyncListener(listener);
     }
 
     public void setValueProvider(Supplier<T> dataValueProvider) {
