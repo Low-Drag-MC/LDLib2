@@ -111,13 +111,14 @@ public class FloatingSceneScenario implements UIScenario {
                                         "screenshots", "floating_scene", "02_float_window_contents.png");
                                 FrameCapture.write(image, out);
                                 ctx.attach("float_window_capture", out.toString());
-                                // Deliberately NOT "is the whole image uniform": the window's title
-                                // bar and the scene editor's own toolbar draw regardless, so that
-                                // question passes even when the 3D scene is missing entirely — which
-                                // is exactly how the first version of this test went green on a
-                                // window whose viewport was blank.
+                                // Scoped to the 3D viewport, not to the SceneEditor around it. The
+                                // editor's rectangle contains the gizmo toolbar and the projection
+                                // dropdown, and those draw whether or not the world does — which is
+                                // how this check stayed green through a floating window that showed
+                                // its chrome and nothing else.
+                                var scene = ((SceneEditor) ctx.get(SCENE_EDITOR)).scene;
                                 ctx.check("the scene itself rendered in the floating window",
-                                        !isRegionUniform(image, ctx.get(SCENE_EDITOR), surface.guiScale()));
+                                        !isRegionUniform(image, scene, surface.guiScale()));
                             } catch (java.io.IOException e) {
                                 throw new IllegalStateException("could not write the float window capture", e);
                             } finally {

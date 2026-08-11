@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.client.window.OsWindowHost;
 import com.lowdragmc.lowdraglib2.client.window.OsWindowManager;
 import com.lowdragmc.lowdraglib2.client.RenderTargetScope;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.GameRendererAccessor;
+import com.lowdragmc.lowdraglib2.core.mixins.accessor.PictureInPictureRendererPoolAccessor;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -25,11 +26,16 @@ import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.MouseButtonInfo;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.state.gui.GuiRenderState;
+import net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState;
+import net.neoforged.neoforge.client.gui.PictureInPictureRendererPool;
+import net.neoforged.neoforge.client.gui.PictureInPictureRendererRegistration;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -618,27 +624,40 @@ public class ModularUIWindow implements OsWindowHost {
         // belongs to the frame Minecraft is midway through building.
         var state = new GuiRenderState();
         var graphics = new GuiGraphicsExtractor(minecraft, state, (int) mouseX, (int) mouseY);
+
+        // Both passes run inside the surface scope, not just the first. The flush is where
+        // picture-in-picture content is actually rendered — a world scene among it — and
+        // ImmediateWorldSceneRenderer sizes its viewport from UISurface#current(). Scoping only the
+        // extraction left that resolving to the game window, so a scene in this window was laid out
+        // against the wrong size and drew where nothing could see it: the view's chrome appeared and
+        // the scene itself came out empty.
         try (var ignoredSurface = UISurface.push(currentSurface);
              var ignoredActive = ModularUI.scopedActive(modularUI)) {
             renderContents(graphics, partialTick);
-        }
 
-        // Pass two: flush it into our target. Three overrides, because the gui renderer otherwise
-        // resolves all three from the game window: where pixels land (target), what coordinate space
-        // they land in (ortho), and which textures the render passes attach (output override).
-        var device = RenderSystem.getDevice();
-        device.createCommandEncoder().clearColorAndDepthTextures(colorTexture, 0, target.getDepthTexture(), 1.0);
+            // Pass two: flush it into our target. Three overrides, because the gui renderer otherwise
+            // resolves all three from the game window: where pixels land (target), what coordinate
+            // space they land in (ortho), and which textures the render passes attach (output
+            // override).
+            var device = RenderSystem.getDevice();
+            device.createCommandEncoder().clearColorAndDepthTextures(colorTexture, 0, target.getDepthTexture(), 1.0);
 
-        var guiRenderer = ensureRenderer();
-        ((IGuiRendererExt) (Object) guiRenderer).ldlib2$setRenderState(state);
-        try (var ignoredOutput = RenderTargetScope.redirect(colorView, target.getDepthTextureView())) {
-            IGuiRendererExt.ldlib2$pushTargetOverride(target);
-            IGuiRendererExt.ldlib2$pushOrthoOverride(currentSurface.guiScaledWidth(), currentSurface.guiScaledHeight());
-            try {
-                guiRenderer.render(IGuiRendererExt.ldlib2$getLastFogBuffer());
-            } finally {
-                IGuiRendererExt.ldlib2$popOrthoOverride();
-                IGuiRendererExt.ldlib2$popTargetOverride();
+            var guiRenderer = ensureRenderer();
+            ((IGuiRendererExt) (Object) guiRenderer).ldlib2$setRenderState(state);
+            try (var ignoredOutput = RenderTargetScope.redirect(colorView, target.getDepthTextureView())) {
+                IGuiRendererExt.ldlib2$pushTargetOverride(target);
+                IGuiRendererExt.ldlib2$pushOrthoOverride(
+                        currentSurface.guiScaledWidth(), currentSurface.guiScaledHeight(),
+                        target.height, (int) currentSurface.guiScale());
+                try {
+                    guiRenderer.render(IGuiRendererExt.ldlib2$getLastFogBuffer());
+                } finally {
+                    IGuiRendererExt.ldlib2$popOrthoOverride();
+                    IGuiRendererExt.ldlib2$popTargetOverride();
+                    // Our own renderer, so our own frame to end: this returns the item atlas it built
+                    // and lets its picture-in-picture pools reuse renderers next frame.
+                    guiRenderer.endFrame();
+                }
             }
         }
     }
@@ -660,17 +679,31 @@ public class ModularUIWindow implements OsWindowHost {
                     mainExt.ldlib2$getSubmitNodeCollector(),
                     mainExt.ldlib2$getFeatureRenderDispatcher(),
                     List.of());
-            // Inherit the game renderer's picture-in-picture renderers rather than declaring a list
-            // here. Anything drawn through one — an entity, a sign, and in this library a world
-            // scene — has no renderer at all in a sub-renderer that did not list it, and simply does
-            // not appear: the window drew a scene view's chrome with an empty hole where the scene
-            // should be. Sharing the pools themselves is safe because this runs after the game's own
-            // frame is finished, so none of them is checked out.
-            ((IGuiRendererExt) (Object) created).ldlib2$setPictureInPictureRendererPools(
-                    mainExt.ldlib2$getPictureInPictureRendererPools());
+            // Take the game renderer's set of picture-in-picture renderers, but as pools of our
+            // own. Two things go wrong otherwise:
+            //
+            //  - declaring a hand-written list here means anything drawn through a kind we forgot —
+            //    an entity, a sign, and in this library a world scene — has no renderer at all and
+            //    silently does not appear;
+            //  - sharing the game's pool objects means sharing their bookkeeping, which keys reuse
+            //    on "the renderers used this frame" and assumes one gui renderer per frame. With two,
+            //    this window's scene can be handed the renderer the game window just rendered its own
+            //    scene into, and the blit then samples a texture drawn for somewhere else.
+            var pools = new HashMap<Class<? extends PictureInPictureRenderState>, PictureInPictureRendererPool<?>>();
+            mainExt.ldlib2$getPictureInPictureRendererPools().forEach((stateClass, pool) -> {
+                var factory = ((PictureInPictureRendererPoolAccessor) pool).ldlib2$getFactory();
+                pools.put(stateClass, newPool(factory, mainExt.ldlib2$getBufferSource()));
+            });
+            ((IGuiRendererExt) (Object) created).ldlib2$setPictureInPictureRendererPools(pools);
             renderer = created;
         }
         return renderer;
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static PictureInPictureRendererPool<?> newPool(PictureInPictureRendererRegistration<?> factory,
+                                                           MultiBufferSource.BufferSource buffers) {
+        return new PictureInPictureRendererPool(factory, buffers);
     }
 
     /**

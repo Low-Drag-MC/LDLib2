@@ -65,11 +65,6 @@ public final class KeyState {
         }
     }
 
-    @Nullable
-    public static Source getSource() {
-        return source;
-    }
-
     /**
      * Installs {@code source} until the returned scope is closed, restoring whatever was installed
      * before rather than clearing.
@@ -136,31 +131,4 @@ public final class KeyState {
         return KeyStateClientAccess.isAltDown();
     }
 
-    // Clipboard and selection chords. Screen#isCopy and friends read the *main* window handle
-    // directly, so with any other window focused they all quietly return false and every shortcut in
-    // the library stops working. These are the same chords, resolved through this class instead.
-
-    public static boolean isCut(int keyCode) {
-        return keyCode == GLFW.GLFW_KEY_X && isCommandChord();
-    }
-
-    public static boolean isPaste(int keyCode) {
-        return keyCode == GLFW.GLFW_KEY_V && isCommandChord();
-    }
-
-    public static boolean isCopy(int keyCode) {
-        return keyCode == GLFW.GLFW_KEY_C && isCommandChord();
-    }
-
-    public static boolean isSelectAll(int keyCode) {
-        return keyCode == GLFW.GLFW_KEY_A && isCommandChord();
-    }
-
-    /**
-     * The primary shortcut modifier held, with neither shift nor alt — the modifier state every
-     * single-key editor command requires.
-     */
-    public static boolean isCommandChord() {
-        return isCtrlOrCmdDown() && !isShiftDown() && !isAltDown();
-    }
 }

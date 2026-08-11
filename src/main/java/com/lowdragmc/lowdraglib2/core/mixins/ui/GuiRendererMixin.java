@@ -8,6 +8,8 @@ import net.minecraft.client.gui.render.GuiRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
+import com.mojang.blaze3d.systems.RenderPass;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.renderer.state.gui.GuiRenderState;
 import net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState;
 import net.neoforged.neoforge.client.gui.PictureInPictureRendererPool;
@@ -92,6 +94,25 @@ public abstract class GuiRendererMixin implements IGuiRendererExt {
         if (override == null) return;
         args.set(2, override.width());
         args.set(3, override.height());
+    }
+
+    /// Clip against the off-target being drawn into, when there is one.
+    ///
+    /// {@code enableScissor} takes the pixel height and gui scale from the game window and flips the
+    /// rectangle against them, unconditionally. Drawing a smaller off-target therefore puts the box
+    /// somewhere outside it and the draw disappears — silently, and only for clipped elements, so a
+    /// window kept its unclipped chrome and lost everything inside a scrolling or clipping container.
+    @Inject(method = "enableScissor", at = @At("HEAD"), cancellable = true)
+    private void ldlib2$scissorAgainstOverride(ScreenRectangle rectangle, RenderPass renderPass, CallbackInfo ci) {
+        var override = IGuiRendererExt.ldlib2$peekOrthoOverride();
+        if (override == null) return;
+        int guiScale = override.guiScale();
+        int left = rectangle.left() * guiScale;
+        int bottom = override.framebufferHeight() - rectangle.bottom() * guiScale;
+        int width = rectangle.width() * guiScale;
+        int height = rectangle.height() * guiScale;
+        renderPass.enableScissor(left, bottom, Math.max(0, width), Math.max(0, height));
+        ci.cancel();
     }
 
     /// Cache the latest fog buffer passed to {@code render()} so sub-renderers

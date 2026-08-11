@@ -24,6 +24,7 @@
     "ui.MouseHandlerMixin",
     "ui.ScreenMixin",
     "accessor.MouseHandlerAccessor",
+    "accessor.PictureInPictureRendererPoolAccessor",
     "accessor.ObjGeometryAccessor"
   ],
   "mixins": [

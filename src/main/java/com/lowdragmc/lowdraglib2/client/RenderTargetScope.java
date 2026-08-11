@@ -45,10 +45,7 @@ public final class RenderTargetScope implements Scope {
         this.depth = depth;
     }
 
-    /**
-     * Captures the current output overrides without changing them.
-     */
-    public static RenderTargetScope capture() {
+    private static RenderTargetScope capture() {
         RenderSystem.assertOnRenderThread();
         return new RenderTargetScope(RenderSystem.outputColorTextureOverride, RenderSystem.outputDepthTextureOverride);
     }

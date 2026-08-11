@@ -53,19 +53,27 @@ public interface IGuiRendererExt {
         return State.TARGET_STACK.peek();
     }
 
-    /// The gui-space extent {@code draw()} builds its orthographic projection from.
+    /// The destination metrics {@code draw()} resolves against the game window when left alone.
     ///
-    /// A visual layer never needs this: its off-target is allocated at the game window's size, so
-    /// the projection vanilla computes is already the right one. A UI hosted in its own OS window is
-    /// not — it is laid out and rendered at that window's size — and with the game window's extent
-    /// its contents come out scaled and offset by the ratio between the two.
+    /// Two things are derived from those metrics and both are wrong for a UI hosted in its own OS
+    /// window, which is laid out and rendered at that window's size:
+    ///
+    ///  - the orthographic projection, built from the window's gui-space extent. With the game
+    ///    window's, contents come out scaled and offset by the ratio between the two.
+    ///  - the scissor box, which {@code enableScissor} flips against the game window's *pixel*
+    ///    height. A clipped element in a smaller window ends up with a box entirely outside the
+    ///    target and is simply not drawn — which is why a scene view came up empty while the
+    ///    unclipped chrome around it drew perfectly.
+    ///
+    /// A visual layer needs neither: its off-target is allocated at the game window's size, so
+    /// vanilla's numbers already are the right ones.
     ///
     /// Paired with {@link #ldlib2$pushTargetOverride}: the target says where pixels land, this says
-    /// what coordinate space they land in, and an off-target of a different size needs both.
-    record OrthoExtent(float width, float height) {}
+    /// in what coordinate space and within what bounds.
+    record OrthoExtent(float width, float height, int framebufferHeight, int guiScale) {}
 
-    static void ldlib2$pushOrthoOverride(float guiWidth, float guiHeight) {
-        State.ORTHO_STACK.push(new OrthoExtent(guiWidth, guiHeight));
+    static void ldlib2$pushOrthoOverride(float guiWidth, float guiHeight, int framebufferHeight, int guiScale) {
+        State.ORTHO_STACK.push(new OrthoExtent(guiWidth, guiHeight, framebufferHeight, guiScale));
     }
 
     static void ldlib2$popOrthoOverride() {

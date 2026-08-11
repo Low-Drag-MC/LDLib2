@@ -14,19 +14,17 @@ import net.minecraft.util.Mth;
  * nothing changes for an on-screen UI; the point is that a UI can now be rendered into an off-screen
  * target of a different size and presented in a different window.
  *
- * <p>Deliberately smaller than its 1.21 counterpart. There, a surface also had to correct the
- * scissor box, because {@code GuiGraphics#applyScissor} issued a GL scissor computed against the
- * game window. Here the gui renderer is deferred: a clip rectangle rides along on each
- * {@code GuiElementRenderState} and is resolved against whatever target that draw range is flushed
- * into, so an off-screen frame clips correctly with no help. What is left is the part 26.1 cannot
- * infer — which window the cursor and keyboard belong to, and which target to composite into.
- *
- * <p>Two consumers depend on this and are easy to miss:
+ * <p>Three consumers depend on this and are easy to miss:
  * <ul>
  *   <li>file drops and cursor queries, which must go to <em>this</em> window: GLFW reports cursor
  *       position per window, and the game's would be stale or plain wrong;</li>
  *   <li>frame capture, which reads back this target rather than the game's own frame — a UI in its
- *       own window never appears in the latter.</li>
+ *       own window never appears in the latter;</li>
+ *   <li>clipping. The gui renderer is deferred, so a clip rectangle rides along on each
+ *       {@code GuiElementRenderState} — but {@code GuiRenderer#enableScissor} still resolves it
+ *       against the game window's pixel height and gui scale, unconditionally. An off-screen frame
+ *       of a different size therefore needs this surface's metrics pushed as an override, or every
+ *       clipped element lands outside the target and silently is not drawn.</li>
  * </ul>
  */
 public interface UISurface {
@@ -93,23 +91,6 @@ public interface UISurface {
      */
     static UISurface current() {
         return SurfaceStack.current();
-    }
-
-    /**
-     * The render target currently being drawn into.
-     *
-     * <p>The replacement for {@code Minecraft.getInstance().getMainRenderTarget()} in any code that
-     * means "the destination I am compositing into" — reading its size, copying its colour or depth,
-     * writing a result back into it. Outside a UI pass, and for a UI in the game window, this
-     * <em>is</em> the main render target, so substituting it changes nothing there; inside a UI drawn
-     * into an off-screen target it is that target instead, which is the whole point.
-     *
-     * <p>Code that genuinely means the game's own frame regardless of where UI is being drawn — a
-     * shader-pack integration reading the world's depth buffer, say — should keep asking Minecraft
-     * directly.
-     */
-    static RenderTarget currentTarget() {
-        return current().target();
     }
 
     /**
