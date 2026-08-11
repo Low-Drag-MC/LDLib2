@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.uitest.input;
 
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.MouseHandlerAccessor;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.CursorOverlay;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.CursorState;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.KeyState;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.RawInputGate;
@@ -92,6 +93,8 @@ public abstract class InputDriver {
             };
         }
         CursorState.setSource(cursorSource);
+        // A run that died mid-capture leaves it hidden, and the flag outlives the run.
+        CursorOverlay.setHidden(false);
         RawInputGate.block(this);
         dropMouseGrabWithoutWarping();
     }

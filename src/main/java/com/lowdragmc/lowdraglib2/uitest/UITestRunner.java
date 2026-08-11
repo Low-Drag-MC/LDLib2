@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.uitest;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.client.window.OsWindowHints;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.CursorOverlay;
 import com.lowdragmc.lowdraglib2.uitest.capture.CaptureRequest;
 import com.lowdragmc.lowdraglib2.uitest.capture.FrameCapture;
 import com.lowdragmc.lowdraglib2.uitest.input.InputDriver;
@@ -437,14 +438,21 @@ public final class UITestRunner {
 
     /** Queues a full-frame capture. Serviced next frame, so it shows the state the step produced. */
     public void requestFullCapture(ScenarioRun run, RunReport.StepReport stepReport, String label) {
-        pendingCaptures.add(new CaptureRequest(CaptureRequest.Kind.FULL, run.name, label,
+        enqueueCapture(new CaptureRequest(CaptureRequest.Kind.FULL, run.name, label,
                 stepReport.index, stepReport, null));
     }
 
     public void requestElementCapture(ScenarioRun run, RunReport.StepReport stepReport, String label,
                                       ElementRef element) {
-        pendingCaptures.add(new CaptureRequest(CaptureRequest.Kind.ELEMENT, run.name, label,
+        enqueueCapture(new CaptureRequest(CaptureRequest.Kind.ELEMENT, run.name, label,
                 stepReport.index, stepReport, element));
+    }
+
+    private void enqueueCapture(CaptureRequest request) {
+        pendingCaptures.add(request);
+        // The frame about to be rendered is the one this reads back, so the stand-in pointer has to go
+        // now: a real cursor is composited by the window manager and never lands in a framebuffer.
+        CursorOverlay.setHidden(true);
     }
 
     private void servicePendingCapture(@Nullable CaptureRequest request) {
@@ -488,6 +496,11 @@ public final class UITestRunner {
         } finally {
             FrameCapture.closeQuietly(cropped);
             FrameCapture.closeQuietly(frame);
+            // Queued captures are serviced one per frame, so the pointer stays away until the last one
+            // has been read back.
+            if (pendingCaptures.isEmpty()) {
+                CursorOverlay.setHidden(false);
+            }
         }
     }
 
