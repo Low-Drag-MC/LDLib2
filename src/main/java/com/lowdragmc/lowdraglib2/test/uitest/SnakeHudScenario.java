@@ -68,6 +68,17 @@ public class SnakeHudScenario implements UIScenario {
                 .hover("#restart_button")
                 .checkHovered("#restart_button")
                 .checkClass("#restart_button", "__hovered__")
+                // The check above already covers the synthetic cursor indirectly - the hover is
+                // recomputed from MouseHandler#xpos/ypos on every rendered frame, and a step only runs
+                // after one - but a failure there reads as "hover is broken". This says which half.
+                .step("Minecraft reads the cursor the harness drives", ctx -> {
+                    var window = ctx.mc().getWindow();
+                    var reported = ctx.mc().mouseHandler.xpos() * window.getGuiScaledWidth()
+                            / Math.max(1, window.getScreenWidth());
+                    var expected = ctx.el("#restart_button").bounds().centerX();
+                    ctx.check("xpos() reports the hovered element's centre",
+                            Math.abs(reported - expected) <= 1.0, expected, reported);
+                })
                 .screenshotElement("02_restart_hovered", "#restart_button")
 
                 // click -> TestMCP's MOUSE_DOWN listener resets the game and moves focus to the parent
@@ -99,6 +110,11 @@ public class SnakeHudScenario implements UIScenario {
                 })
 
                 .closeScreen()
-                .check("the screen closed", ctx -> ctx.screen() == null);
+                .check("the screen closed", ctx -> ctx.screen() == null)
+                // Closing back into the world is what makes Minecraft#setScreen call
+                // MouseHandler#grabMouse, which would hide and capture the pointer of whoever is at
+                // the machine. Cancelled for the duration of a run; this is the guard on that.
+                .check("closing the screen did not capture the physical pointer",
+                        ctx -> !ctx.mc().mouseHandler.isMouseGrabbed());
     }
 }

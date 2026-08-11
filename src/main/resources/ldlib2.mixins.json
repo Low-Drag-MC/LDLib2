@@ -33,6 +33,8 @@
     "shader.ShaderInstanceMixin",
     "ui.AbstractContainerScreenMixin",
     "ui.ContainerEventHandlerMixin",
+    "ui.KeyboardHandlerMixin",
+    "ui.MouseHandlerMixin",
     "ui.ScreenMixin"
   ],
   "mixins": [

@@ -26,7 +26,10 @@ public class SyntheticInputDriver extends InputDriver {
     public void placeCursor(float x, float y) {
         cursorX = x;
         cursorY = y;
-        warpOsCursor(x, y);
+        // No glfwSetCursorPos. The physical pointer belongs to whoever is using the machine, and GLFW
+        // ignores the call anyway while the window is unfocused. The CursorState override installed by
+        // install() is what makes MouseHandler#xpos/ypos - and so the mouseX/mouseY every
+        // Screen#render receives, and so ModularUI's per-frame hover - report this position instead.
         syncHover(x, y);
     }
 

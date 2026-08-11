@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.uitest;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
+import com.lowdragmc.lowdraglib2.client.window.OsWindowHints;
 import com.lowdragmc.lowdraglib2.uitest.capture.CaptureRequest;
 import com.lowdragmc.lowdraglib2.uitest.capture.FrameCapture;
 import com.lowdragmc.lowdraglib2.uitest.input.InputDriver;
@@ -139,6 +140,7 @@ public final class UITestRunner {
             return "Selection '" + selection + "' needs a loaded world; join one first";
         }
         runner.inputDriver.install();
+        runner.installBackgroundMode();
         runner.phase = Phase.NEXT_SCENARIO;
         active = runner;
         return null;
@@ -212,6 +214,7 @@ public final class UITestRunner {
                 // Here rather than after world creation: a run whose scenarios all opt out of a world
                 // skips that phase entirely, and would otherwise never get the key-state override.
                 inputDriver.install();
+                installBackgroundMode();
                 if (queue.isEmpty()) {
                     LDLib2.LOGGER.error("[uitest] selection '{}' matched no scenarios", config.selection());
                     phase = Phase.FINISH;
@@ -493,6 +496,7 @@ public final class UITestRunner {
     private void finish(Minecraft minecraft) {
         shuttingDown = true;
         inputDriver.uninstall();
+        uninstallBackgroundMode();
         report.finishedAt = System.currentTimeMillis();
         report.durationMs = elapsedMsSince(runStartedNanos);
         ReportWriter.finalise(report);
@@ -596,13 +600,21 @@ public final class UITestRunner {
      */
     private void pinOptions(Minecraft minecraft) {
         var window = minecraft.getWindow();
-        if (config.maximizeWindow()) {
+        var mayTakeFocus = mayTakeFocus();
+        if (!config.maximizeWindow()) {
+            GLFW.glfwSetWindowSize(window.getWindow(), config.windowWidth(), config.windowHeight());
+        } else if (mayTakeFocus) {
             GLFW.glfwMaximizeWindow(window.getWindow());
         } else {
-            GLFW.glfwSetWindowSize(window.getWindow(), config.windowWidth(), config.windowHeight());
+            // glfwMaximizeWindow is ShowWindow(SW_MAXIMIZE) on Win32, which *activates* the window -
+            // as much a focus theft as glfwFocusWindow, and one that fires on the default path.
+            // Filling the monitor's work area gives the same big, readable frame; glfwSetWindowPos and
+            // glfwSetWindowSize both pass SWP_NOACTIVATE.
+            fillWorkArea(window.getWindow());
         }
-        // Without focus, GLFW never delivers cursor callbacks, so real-mode input goes nowhere.
-        GLFW.glfwFocusWindow(window.getWindow());
+        if (mayTakeFocus) {
+            GLFW.glfwFocusWindow(window.getWindow());
+        }
 
         var options = minecraft.options;
         options.guiScale().set(config.guiScale());
@@ -615,8 +627,50 @@ public final class UITestRunner {
         // things that would sit in frame behind whatever the scenario is actually looking at.
         options.hideGui = true;
         minecraft.resizeDisplay();
-        LDLib2.LOGGER.info("[uitest] window {}x{}, guiScale {}",
-                window.getScreenWidth(), window.getScreenHeight(), window.getGuiScale());
+        LDLib2.LOGGER.info("[uitest] window {}x{}, guiScale {}, focus {}",
+                window.getScreenWidth(), window.getScreenHeight(), window.getGuiScale(), mayTakeFocus);
+    }
+
+    /**
+     * Whether this run may take the operating system's focus and raise its window.
+     *
+     * <p>Real input is the one mode that has to own the window: GLFW delivers cursor callbacks to
+     * nothing else and ignores {@code glfwSetCursorPos} on an unfocused one. Every other mode stays
+     * out of the way of whoever is using the machine.
+     */
+    private boolean mayTakeFocus() {
+        return config.inputMode() == InputMode.REAL;
+    }
+
+    /**
+     * The part of staying out of the user's way that is not the input driver's to own. The driver
+     * installs the virtual cursor and the raw-input gate; this is only the window system.
+     */
+    private void installBackgroundMode() {
+        OsWindowHints.setFocusOnShow(mayTakeFocus());
+    }
+
+    private void uninstallBackgroundMode() {
+        OsWindowHints.setFocusOnShow(true);
+    }
+
+    /**
+     * Sizes the window to the monitor's work area, as maximising would, but without activating it.
+     * Leaves the window alone if the platform cannot say how big that area is.
+     */
+    private static void fillWorkArea(long handle) {
+        var monitor = GLFW.glfwGetPrimaryMonitor();
+        if (monitor == 0L) return;
+        int[] areaX = new int[1], areaY = new int[1], areaWidth = new int[1], areaHeight = new int[1];
+        GLFW.glfwGetMonitorWorkarea(monitor, areaX, areaY, areaWidth, areaHeight);
+        // The frame - title bar and borders - sits outside the content area the size below applies to.
+        int[] left = new int[1], top = new int[1], right = new int[1], bottom = new int[1];
+        GLFW.glfwGetWindowFrameSize(handle, left, top, right, bottom);
+        var width = areaWidth[0] - left[0] - right[0];
+        var height = areaHeight[0] - top[0] - bottom[0];
+        if (width <= 0 || height <= 0) return;
+        GLFW.glfwSetWindowPos(handle, areaX[0] + left[0], areaY[0] + top[0]);
+        GLFW.glfwSetWindowSize(handle, width, height);
     }
 
     private void collectEnvironment(Minecraft minecraft) {

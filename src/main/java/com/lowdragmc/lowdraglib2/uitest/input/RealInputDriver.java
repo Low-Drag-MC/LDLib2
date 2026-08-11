@@ -16,9 +16,19 @@ import net.neoforged.api.distmarker.OnlyIn;
  * physical keyboard and nothing inside the process can move it. Modifier-sensitive behaviour is
  * covered by {@link com.lowdragmc.lowdraglib2.gui.ui.utils.KeyState}, which the runner overrides for
  * the duration of a run in either mode.
+ *
+ * <p><b>Foreground only.</b> This is the one mode that moves the pointer of whoever is at the
+ * machine and needs the game window focused — GLFW delivers cursor callbacks to no other window, and
+ * ignores {@code glfwSetCursorPos} on an unfocused one. Every other mode runs happily in the
+ * background; see {@link com.lowdragmc.lowdraglib2.gui.ui.utils.CursorState}.
  */
 @OnlyIn(Dist.CLIENT)
 public class RealInputDriver extends SyntheticInputDriver {
+
+    @Override
+    protected boolean usesVirtualCursor() {
+        return false;
+    }
 
     @Override
     public void placeCursor(float x, float y) {
