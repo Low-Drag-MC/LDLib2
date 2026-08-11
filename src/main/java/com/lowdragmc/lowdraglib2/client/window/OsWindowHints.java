@@ -15,7 +15,21 @@ import org.lwjgl.glfw.GLFW;
  */
 public final class OsWindowHints {
 
+    private static boolean focusOnShow = true;
+
     private OsWindowHints() {
+    }
+
+    /**
+     * Whether a child window takes the operating system's focus when it is shown.
+     *
+     * <p>Turned off for the duration of an automated run: a scenario can tear a view out into a real
+     * window halfway through, and with focus-on-show that window takes the keyboard away from
+     * whatever the person at the machine is doing. Only <em>focus</em> is governed — the window is
+     * still raised, because "show this window behind the others" has no portable spelling.
+     */
+    public static void setFocusOnShow(boolean focusOnShow) {
+        OsWindowHints.focusOnShow = focusOnShow;
     }
 
     /**
@@ -50,7 +64,7 @@ public final class OsWindowHints {
     public static void applyChildWindowHints(boolean decorated) {
         applyMinecraftContextHints();
         GLFW.glfwWindowHint(GLFW.GLFW_VISIBLE, GLFW.GLFW_FALSE);
-        GLFW.glfwWindowHint(GLFW.GLFW_FOCUS_ON_SHOW, GLFW.GLFW_TRUE);
+        GLFW.glfwWindowHint(GLFW.GLFW_FOCUS_ON_SHOW, focusOnShow ? GLFW.GLFW_TRUE : GLFW.GLFW_FALSE);
         GLFW.glfwWindowHint(GLFW.GLFW_DECORATED, decorated ? GLFW.GLFW_TRUE : GLFW.GLFW_FALSE);
         GLFW.glfwWindowHint(GLFW.GLFW_RESIZABLE, GLFW.GLFW_TRUE);
     }

@@ -20,7 +20,10 @@
     "ui.AbstractContainerScreenMixin",
     "ui.ContainerEventHandlerMixin",
     "ui.GuiRendererMixin",
+    "ui.KeyboardHandlerMixin",
+    "ui.MouseHandlerMixin",
     "ui.ScreenMixin",
+    "accessor.MouseHandlerAccessor",
     "accessor.ObjGeometryAccessor"
   ],
   "mixins": [

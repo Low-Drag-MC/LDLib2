@@ -1,4 +1,8 @@
 # ChangeLogs
+## v26.1.2.35
+* Improved Auto Tests in the background without taking focus or the physical mouse
+* Added DataBindingBuilder hooks
+
 ## v26.1.2.34
 * Improved graphview api
 * Routed UIElement modifier checks through a swappable key state source

@@ -2,6 +2,8 @@ package com.lowdragmc.lowdraglib2.uitest;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.client.LDLib2ClientRegistries;
+import com.lowdragmc.lowdraglib2.client.window.OsWindowHints;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.CursorOverlay;
 import com.lowdragmc.lowdraglib2.uitest.capture.CaptureRequest;
 import com.lowdragmc.lowdraglib2.uitest.capture.FrameCapture;
 import com.lowdragmc.lowdraglib2.uitest.input.InputDriver;
@@ -110,7 +112,7 @@ public final class UITestRunner {
     /**
      * Starts a run inside an already-running game, reusing the loaded world and leaving it loaded.
      *
-     * <p>Backs {@code /ldlib2_uitest run <name>}. A cold run spends most of its wall clock on Gradle,
+     * <p>Backs {@code /ldlib2_autotest run <name>}. A cold run spends most of its wall clock on Gradle,
      * mod loading and world creation, none of which changes between attempts — so while iterating on
      * a scenario, launch once with {@code -PldTestKeepOpen} and re-run from here.
      *
@@ -135,12 +137,13 @@ public final class UITestRunner {
             return "Selection '" + selection + "' needs a loaded world; join one first";
         }
         runner.inputDriver.install();
+        runner.installBackgroundMode();
         runner.phase = Phase.NEXT_SCENARIO;
         active = runner;
         return null;
     }
 
-    /** Registered scenario names, for command completion and {@code /ldlib2_uitest list}. */
+    /** Registered scenario names, for command completion and {@code /ldlib2_autotest list}. */
     public static List<String> registeredScenarioNames() {
         var registry = LDLib2ClientRegistries.UI_SCENARIOS;
         if (registry == null) return List.of();
@@ -211,6 +214,7 @@ public final class UITestRunner {
                 // Here rather than after world creation: a run whose scenarios all opt out of a world
                 // skips that phase entirely, and would otherwise never get the key-state override.
                 inputDriver.install();
+                installBackgroundMode();
                 if (queue.isEmpty()) {
                     LDLib2.LOGGER.error("[uitest] selection '{}' matched no scenarios", config.selection());
                     phase = Phase.FINISH;
@@ -433,14 +437,21 @@ public final class UITestRunner {
 
     /** Queues a full-frame capture. Serviced next frame, so it shows the state the step produced. */
     public void requestFullCapture(ScenarioRun run, RunReport.StepReport stepReport, String label) {
-        pendingCaptures.add(new CaptureRequest(CaptureRequest.Kind.FULL, run.name, label,
+        enqueueCapture(new CaptureRequest(CaptureRequest.Kind.FULL, run.name, label,
                 stepReport.index, stepReport, null));
     }
 
     public void requestElementCapture(ScenarioRun run, RunReport.StepReport stepReport, String label,
                                       ElementRef element) {
-        pendingCaptures.add(new CaptureRequest(CaptureRequest.Kind.ELEMENT, run.name, label,
+        enqueueCapture(new CaptureRequest(CaptureRequest.Kind.ELEMENT, run.name, label,
                 stepReport.index, stepReport, element));
+    }
+
+    private void enqueueCapture(CaptureRequest request) {
+        pendingCaptures.add(request);
+        // The frame about to be rendered is the one this reads back, so the stand-in pointer has to go
+        // now: a real cursor is composited by the window manager and never lands in a framebuffer.
+        CursorOverlay.setHidden(true);
     }
 
     private void servicePendingCapture(@Nullable CaptureRequest request) {
@@ -484,6 +495,11 @@ public final class UITestRunner {
         } finally {
             FrameCapture.closeQuietly(cropped);
             FrameCapture.closeQuietly(frame);
+            // Queued captures are serviced one per frame, so the pointer stays away until the last one
+            // has been read back.
+            if (pendingCaptures.isEmpty()) {
+                CursorOverlay.setHidden(false);
+            }
         }
     }
 
@@ -492,6 +508,7 @@ public final class UITestRunner {
     private void finish(Minecraft minecraft) {
         shuttingDown = true;
         inputDriver.uninstall();
+        uninstallBackgroundMode();
         report.finishedAt = System.currentTimeMillis();
         report.durationMs = elapsedMsSince(runStartedNanos);
         ReportWriter.finalise(report);
@@ -598,20 +615,26 @@ public final class UITestRunner {
         if (!windowResizeRequested) {
             windowResizeRequested = true;
             windowResizeDeadlineNanos = System.nanoTime() + WINDOW_RESIZE_TIMEOUT_NANOS;
-            if (config.maximizeWindow()) {
+            var mayTakeFocus = mayTakeFocus();
+            if (!config.maximizeWindow()) {
+                GLFW.glfwSetWindowSize(window.handle(), config.windowWidth(), config.windowHeight());
+            } else if (mayTakeFocus) {
                 GLFW.glfwMaximizeWindow(window.handle());
             } else {
-                GLFW.glfwSetWindowSize(window.handle(), config.windowWidth(), config.windowHeight());
+                // glfwMaximizeWindow is ShowWindow(SW_MAXIMIZE) on Win32, which *activates* the window -
+                // as much a focus theft as glfwFocusWindow, and one that fires on the default path.
+                // Filling the monitor's work area gives the same big, readable frame; glfwSetWindowPos and
+                // glfwSetWindowSize both pass SWP_NOACTIVATE.
+                fillWorkArea(window.handle());
             }
-            // Without focus, GLFW never delivers cursor callbacks, so real-mode input goes nowhere.
-            GLFW.glfwFocusWindow(window.handle());
+            if (mayTakeFocus) {
+                // Without focus, GLFW never delivers cursor callbacks, so real-mode input goes nowhere.
+                GLFW.glfwFocusWindow(window.handle());
+            }
             return false;
         }
         // The resize is asynchronous: GLFW delivers the framebuffer-size callback during
-        // glfwPollEvents, and only then does GameRenderer see isResized and resize the main render
-        // target. Measuring or drawing before that lands is what leaves a frame letterboxed inside a
-        // stale target. 1.21 got away with forcing it because Minecraft#resizeDisplay resized the
-        // target itself; 26.1's resizeGui deliberately does not.
+        // glfwPollEvents, so nothing below may measure the window on the frame that asked for it.
         if (!windowSizeSettled(window) && System.nanoTime() < windowResizeDeadlineNanos) {
             return false;
         }
@@ -645,10 +668,10 @@ public final class UITestRunner {
 
     /** Whether the window has reached the size {@link #pinOptions} asked for. */
     private boolean windowSizeSettled(com.mojang.blaze3d.platform.Window window) {
-        // Maximising has no target size to compare against, so settle on the first frame that
-        // reports a non-degenerate size instead.
+        // Maximising and filling the work area both end at a size chosen by the window manager, so
+        // there is nothing to compare against: settle on the first frame reporting a usable size.
         if (config.maximizeWindow()) {
-            return window.getWidth() > 0 && window.getHeight() > 0 && !window.isResized();
+            return window.getWidth() > 0 && window.getHeight() > 0;
         }
         return window.getScreenWidth() == config.windowWidth()
                 && window.getScreenHeight() == config.windowHeight();
@@ -674,6 +697,48 @@ public final class UITestRunner {
         return ModList.get().getModContainerById(modId)
                 .map(container -> container.getModInfo().getVersion().toString())
                 .orElse("unknown");
+    }
+
+    /**
+     * Whether this run may take the operating system's focus and raise its window.
+     *
+     * <p>Real input is the one mode that has to own the window: GLFW delivers cursor callbacks to
+     * nothing else and ignores {@code glfwSetCursorPos} on an unfocused one. Every other mode stays
+     * out of the way of whoever is using the machine.
+     */
+    private boolean mayTakeFocus() {
+        return config.inputMode() == InputMode.REAL;
+    }
+
+    /**
+     * The part of staying out of the user's way that is not the input driver's to own. The driver
+     * installs the virtual cursor and the raw-input gate; this is only the window system.
+     */
+    private void installBackgroundMode() {
+        OsWindowHints.setFocusOnShow(mayTakeFocus());
+    }
+
+    private void uninstallBackgroundMode() {
+        OsWindowHints.setFocusOnShow(true);
+    }
+
+    /**
+     * Sizes the window to the monitor's work area, as maximising would, but without activating it.
+     * Leaves the window alone if the platform cannot say how big that area is.
+     */
+    private static void fillWorkArea(long handle) {
+        var monitor = GLFW.glfwGetPrimaryMonitor();
+        if (monitor == 0L) return;
+        int[] areaX = new int[1], areaY = new int[1], areaWidth = new int[1], areaHeight = new int[1];
+        GLFW.glfwGetMonitorWorkarea(monitor, areaX, areaY, areaWidth, areaHeight);
+        // The frame - title bar and borders - sits outside the content area the size below applies to.
+        int[] left = new int[1], top = new int[1], right = new int[1], bottom = new int[1];
+        GLFW.glfwGetWindowFrameSize(handle, left, top, right, bottom);
+        var width = areaWidth[0] - left[0] - right[0];
+        var height = areaHeight[0] - top[0] - bottom[0];
+        if (width <= 0 || height <= 0) return;
+        GLFW.glfwSetWindowPos(handle, areaX[0] + left[0], areaY[0] + top[0]);
+        GLFW.glfwSetWindowSize(handle, width, height);
     }
 
     private void collectEnvironment(Minecraft minecraft) {
