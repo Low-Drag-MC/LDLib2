@@ -116,7 +116,7 @@ public final class UITestRunner {
     /**
      * Starts a run inside an already-running game, reusing the loaded world and leaving it loaded.
      *
-     * <p>Backs {@code /ldlib2_uitest run <name>}. A cold run spends most of its wall clock on Gradle,
+     * <p>Backs {@code /ldlib2_autotest run <name>}. A cold run spends most of its wall clock on Gradle,
      * mod loading and world creation, none of which changes between attempts — so while iterating on
      * a scenario, launch once with {@code -PldTestKeepOpen} and re-run from here.
      *
@@ -147,7 +147,7 @@ public final class UITestRunner {
         return null;
     }
 
-    /** Registered scenario names, for command completion and {@code /ldlib2_uitest list}. */
+    /** Registered scenario names, for command completion and {@code /ldlib2_autotest list}. */
     public static List<String> registeredScenarioNames() {
         var registry = LDLib2Registries.UI_SCENARIOS;
         if (registry == null) return List.of();

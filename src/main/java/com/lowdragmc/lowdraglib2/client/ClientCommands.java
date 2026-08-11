@@ -47,7 +47,7 @@ public class ClientCommands {
             commands.add(createScreenTestCommands());
         }
         if (LDLib2Registries.UI_SCENARIOS != null && !LDLib2Registries.UI_SCENARIOS.values().isEmpty()) {
-            commands.add(createUiTestCommands());
+            commands.add(createAutoTestCommands());
         }
         return commands;
     }
@@ -59,8 +59,8 @@ public class ClientCommands {
      * and none of that changes between attempts. While iterating on a scenario, launch once with
      * {@code -PldTestKeepOpen} and re-run from here instead.
      */
-    private static LiteralArgumentBuilder<CommandSourceStack> createUiTestCommands() {
-        return createLiteral("ldlib2_uitest")
+    private static LiteralArgumentBuilder<CommandSourceStack> createAutoTestCommands() {
+        return createLiteral("ldlib2_autotest")
                 .then(createLiteral("list")
                         .executes(context -> {
                             var names = UITestRunner.registeredScenarioNames();

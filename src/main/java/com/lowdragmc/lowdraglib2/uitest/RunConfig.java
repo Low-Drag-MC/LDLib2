@@ -33,7 +33,6 @@ public final class RunConfig {
     private final InputMode inputMode;
     private final int watchdogSeconds;
     private final boolean keepOpen;
-    private boolean interactive;
 
     private RunConfig(String selection, String exclusion, Path outDir, int guiScale,
                       int windowWidth, int windowHeight, InputMode inputMode,
@@ -101,15 +100,8 @@ public final class RunConfig {
      * the window is left alone, the loaded world is reused, and the game stays up afterwards.
      */
     public static RunConfig interactive(String selection) {
-        var config = new RunConfig(selection, "", Path.of("ldlib2-uitest").toAbsolutePath(),
+        return new RunConfig(selection, "", Path.of("ldlib2-uitest").toAbsolutePath(),
                 2, 1280, 720, InputMode.SYNTHETIC, 90, true);
-        config.interactive = true;
-        return config;
-    }
-
-    /** Whether this run was started from inside a live game rather than from the command line. */
-    public boolean isInteractive() {
-        return interactive;
     }
 
     private static int intProperty(String key, int fallback) {
