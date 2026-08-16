@@ -63,7 +63,7 @@ public abstract class MenuTab {
                 .addEventListener(UIEvents.MOUSE_LEAVE, e -> e.currentElement.style(style -> style.backgroundTexture(IGuiTexture.EMPTY)), true)
                 .addEventListener(UIEvents.MOUSE_DOWN, e -> {
                     // click to show the menu
-                    editor.openMenu(e.currentElement.getPositionX(), e.currentElement.getPositionY() + e.currentElement.getSizeHeight(), createMenu());
+                    editor.openMenu(e.currentElement, e.currentElement.getPositionX(), e.currentElement.getPositionY() + e.currentElement.getSizeHeight(), createMenu());
                 });
     }
 

@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.ui.rendering;
 
+import com.lowdragmc.lowdraglib2.client.RenderTargetScope;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderPipelines;
-import com.lowdragmc.lowdraglib2.core.mixins.accessor.GameRendererAccessor;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.PictureInPictureRendererAccessor;
 import com.mojang.blaze3d.GpuFormat;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -20,7 +20,6 @@ import net.minecraft.client.renderer.state.gui.BlitRenderState;
 import net.minecraft.client.renderer.state.gui.GuiRenderState;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
-import net.neoforged.neoforge.client.gui.PictureInPictureRendererRegistration;
 import org.joml.Matrix3x2f;
 import org.joml.Vector4f;
 
@@ -61,16 +60,15 @@ public class VisualLayerPipRenderer extends PictureInPictureRenderer<VisualLayer
         return super.canBeReusedFor(state, textureWidth, textureHeight);
     }
 
+    /**
+     * Inherits the game renderer's picture-in-picture registrations rather than declaring the one
+     * kind this renderer nests inside itself. A visual layer captures a whole subtree, so anything
+     * that subtree can contain — an item, an entity, a world scene — has to be dispatchable here
+     * too; a hand-written list silently drew nothing for every kind it left out.
+     */
     private GuiRenderer ensureSubRenderer() {
         if (subRenderer == null) {
-            var mainRenderer = ((GameRendererAccessor)(Object) Minecraft.getInstance().gameRenderer).ldlib2$getGuiRenderer();
-            var mainExt = (IGuiRendererExt)(Object) mainRenderer;
-            subRenderer = new GuiRenderer(
-                    new GuiRenderState(),
-                    mainExt.ldlib2$getFeatureRenderDispatcher(),
-                    List.of(new PictureInPictureRendererRegistration<>(
-                            VisualLayerPipState.class, VisualLayerPipRenderer::new))
-            );
+            subRenderer = IGuiRendererExt.ldlib2$createSubRenderer(new GuiRenderState());
         }
         return subRenderer;
     }
@@ -118,11 +116,9 @@ public class VisualLayerPipRenderer extends PictureInPictureRenderer<VisualLayer
             targetWrapper.bind(subColorView, subColorView.texture(), subDepthView,
                     subDepthView != null ? subDepthView.texture() : null, width, height);
             subExt.ldlib2$setRenderState(state.subState());
-            IGuiRendererExt.ldlib2$pushTargetOverride(targetWrapper);
-            try {
+            try (var ignoredTarget = IGuiRendererExt.ldlib2$targetOverride(targetWrapper)) {
                 sub.render();
             } finally {
-                IGuiRendererExt.ldlib2$popTargetOverride();
                 targetWrapper.unbind();
             }
 
@@ -154,14 +150,11 @@ public class VisualLayerPipRenderer extends PictureInPictureRenderer<VisualLayer
         maskCtx.drawTexture(state.mask(), state.maskX(), state.maskY(), state.maskW(), state.maskH());
 
         maskTargetWrapper.bind(maskColorView, maskColorTex, maskDepthView, maskDepthTex, width, height);
-        RenderSystem.outputColorTextureOverride = maskColorView;
-        RenderSystem.outputDepthTextureOverride = maskDepthView;
         subExt.ldlib2$setRenderState(maskState);
-        IGuiRendererExt.ldlib2$pushTargetOverride(maskTargetWrapper);
-        try {
+        try (var ignoredOutput = RenderTargetScope.redirect(maskColorView, maskDepthView);
+             var ignoredTarget = IGuiRendererExt.ldlib2$targetOverride(maskTargetWrapper)) {
             sub.render();
         } finally {
-            IGuiRendererExt.ldlib2$popTargetOverride();
             maskTargetWrapper.unbind();
         }
 
@@ -182,16 +175,13 @@ public class VisualLayerPipRenderer extends PictureInPictureRenderer<VisualLayer
         ));
 
         // Switch outputs back to subtree off-target
-        RenderSystem.outputColorTextureOverride = subColorView;
-        RenderSystem.outputDepthTextureOverride = subDepthView;
         subExt.ldlib2$setRenderState(compositeState);
-        IGuiRendererExt.ldlib2$pushTargetOverride(targetWrapper);
         targetWrapper.bind(subColorView, subColorView.texture(), subDepthView,
                 subDepthView != null ? subDepthView.texture() : null, width, height);
-        try {
+        try (var ignoredOutput = RenderTargetScope.redirect(subColorView, subDepthView);
+             var ignoredTarget = IGuiRendererExt.ldlib2$targetOverride(targetWrapper)) {
             sub.render();
         } finally {
-            IGuiRendererExt.ldlib2$popTargetOverride();
             targetWrapper.unbind();
         }
     }

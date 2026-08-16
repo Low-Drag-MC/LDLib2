@@ -18,6 +18,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib2.editor.ui.floating.FloatingViewManager;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
@@ -50,7 +52,35 @@ import java.util.function.Supplier;
 
 @Getter
 @ParametersAreNonnullByDefault
-public abstract class Editor extends UIElement {
+public abstract class Editor extends UIElement implements EditorHost {
+
+    @Override
+    public Editor getHostedEditor() {
+        return this;
+    }
+
+    public FloatingViewManager getFloatingViews() {
+        if (floatingViews == null) {
+            floatingViews = new FloatingViewManager(this);
+        }
+        return floatingViews;
+    }
+
+    /**
+     * Closes any floating windows when the editor leaves the element tree.
+     *
+     * <p>A native window is not part of that tree, so nothing else takes it down: an editor closed
+     * through its window's close button rather than {@link #exit()} would otherwise leave real
+     * windows on the user's desktop with nothing behind them.
+     */
+    @Override
+    protected void onRemoved() {
+        if (floatingViews != null) {
+            floatingViews.closeAll();
+        }
+        super.onRemoved();
+    }
+
     public final UIElement top;
     public final UIElement icon;
     public final UIElement menuContainer;
@@ -98,6 +128,17 @@ public abstract class Editor extends UIElement {
      * re-place views during layout restoration.
      */
     protected final Map<View, Supplier<ViewContainer>> viewFallbacks = new LinkedHashMap<>();
+    /**
+     * Views torn out of this editor into windows of their own.
+     *
+     * <p>Created on demand rather than in the constructor, and reached through a client-only getter:
+     * {@code LDMenuTypes.init} reads {@code UIEditor.WINDOW_ID} on both distributions, so this class
+     * is loaded on a dedicated server even though it is never instantiated there. Keeping the
+     * client-only type out of the field initialiser and out of any signature the server can see is
+     * what stops that load from failing.
+     */
+    @Nullable
+    private FloatingViewManager floatingViews;
     /**
      * Last loaded layout for the current project type. Consulted by {@link #placeView} so that
      * runtime additions after the initial restore also land in their saved slots when possible.
@@ -338,37 +379,34 @@ public abstract class Editor extends UIElement {
     }
 
     /**
+     * Writes the current layout — docked and floating — for the open project, then brings every
+     * floating view home.
+     *
+     * <p>Order matters: the floating windows have to be snapshotted while they are still open, and
+     * closed before the editor goes away so their views are not left orphaned in a window with
+     * nothing behind it.
+     */
+    protected void saveLayoutAndCloseFloating() {
+        if (currentProject != null) {
+            EditorLayoutStore.save(currentProject.getProjectType().getName(), captureLayout(),
+                    floatingViews == null ? List.of() : floatingViews.capture());
+        }
+        if (floatingViews != null) {
+            floatingViews.closeAll();
+        }
+    }
+
+    /**
      * Capture the current editor layout: split tree + per-leaf view contents and selection.
      */
     public EditorLayout captureLayout() {
-        var slots = new ArrayList<EditorLayout.SlotEntry>();
-        collectSlots(rootWindow, "", slots);
-        return new EditorLayout(rootWindow.getLayoutConfig(), slots);
+        // A maximize overrides the on-path splitter percentages with an IMPORTANT 100%, which is
+        // exactly what SplitView#getPercentage would read. Come back to the real layout first, or
+        // the saved one is all-or-nothing panes.
+        rootWindow.restoreMaximized();
+        return new EditorLayout(rootWindow.getLayoutConfig(), EditorLayout.captureSlots(rootWindow));
     }
 
-    private static void collectSlots(SplittableWindow window, String path, List<EditorLayout.SlotEntry> out) {
-        var container = window.getViewContainer();
-        if (container != null) {
-            var names = new ArrayList<String>();
-            String selected = null;
-            for (var v : container.getAllViews()) {
-                names.add(v.getName());
-                if (container.isViewSelected(v)) {
-                    selected = v.getName();
-                }
-            }
-            if (!names.isEmpty()) {
-                out.add(new EditorLayout.SlotEntry(path, names, selected));
-            }
-            return;
-        }
-        if (window.getFirst() != null) {
-            collectSlots(window.getFirst(), path + "f", out);
-        }
-        if (window.getSecond() != null) {
-            collectSlots(window.getSecond(), path + "s", out);
-        }
-    }
 
     /**
      * Reshape the current editor tree from a saved layout, relocating known views to their saved
@@ -377,6 +415,7 @@ public abstract class Editor extends UIElement {
      * the rebuild.
      */
     public void applyLayout(EditorLayout layout) {
+        rootWindow.restoreMaximized();
         this.savedLayout = layout;
 
         // Collect all views currently in the tree (including ones added via raw addView).
@@ -509,14 +548,47 @@ public abstract class Editor extends UIElement {
         }
     }
 
+    /**
+     * Every view belonging to this editor, docked or floating. Floating ones are still this editor's
+     * views, so anything asking "is it open?" or "list them all" has to see them.
+     */
     public List<View> getAllViews() {
-        return rootWindow.getAllViews();
+        if (floatingViews == null) return rootWindow.getAllViews();
+        var views = new ArrayList<>(rootWindow.getAllViews());
+        views.addAll(floatingViews.allViews());
+        return views;
+    }
+
+    /**
+     * Puts {@code view} back into the dock tree, at the slot it would have been placed in originally.
+     */
+    public void redockView(View view) {
+        var fallback = viewFallbacks.get(view);
+        if (fallback != null) {
+            placeView(view, fallback);
+        } else {
+            centerWindow.getLeftTop().addView(view);
+        }
     }
 
     public <T, C> Menu<T, C> openMenu(float posX, float posY, TreeNode<T, C> menuNode, UIElementProvider<T> uiProvider) {
+        return openMenu(this, posX, posY, menuNode, uiProvider);
+    }
+
+    /**
+     * Opens a menu in the UI that {@code origin} belongs to, rather than the editor's own.
+     *
+     * <p>An editor's views can be hosted by more than one {@link ModularUI} — a view torn off into
+     * its own window is rendered by a different one — and a menu has to be parented into the UI the
+     * click came from, or it is laid out against a root element that is not on screen and appears in
+     * the wrong window. Pass the element the menu is being opened for; the no-origin overloads keep
+     * resolving against the editor itself, which is what every existing caller wanted.
+     */
+    public <T, C> Menu<T, C> openMenu(UIElement origin, float posX, float posY, TreeNode<T, C> menuNode,
+                                      UIElementProvider<T> uiProvider) {
         var menu = new Menu<>(menuNode, uiProvider);
-        var mui = getModularUI();
-        if (mui == null) {
+        var host = resolveMenuHost(origin);
+        if (host == null) {
             menu.layout(layout -> {
                 layout.left(posX - getContentX());
                 layout.top(posY - getContentY());
@@ -524,16 +596,36 @@ public abstract class Editor extends UIElement {
             addChildren(menu);
         } else {
             menu.layout(layout -> {
-                layout.left(posX - mui.ui.rootElement.getContentX());
-                layout.top(posY - mui.ui.rootElement.getContentY());
+                layout.left(posX - host.getContentX());
+                layout.top(posY - host.getContentY());
             });
-            mui.ui.rootElement.addChildren(menu);
+            host.addChildren(menu);
         }
         return menu;
     }
 
+    /**
+     * The root element a popup opened from {@code origin} should be parented to, or {@code null} to
+     * fall back to the editor element itself.
+     */
+    @Nullable
+    protected UIElement resolveMenuHost(@Nullable UIElement origin) {
+        if (origin != null) {
+            var mui = origin.getModularUI();
+            if (mui != null) return mui.ui.rootElement;
+        }
+        var active = ModularUI.active();
+        if (active != null) return active.ui.rootElement;
+        var own = getModularUI();
+        return own == null ? null : own.ui.rootElement;
+    }
+
     public void openMenu(float posX, float posY, @Nullable TreeBuilder.Menu menuBuilder) {
-        openMenu(posX, posY, menuBuilder, true);
+        openMenu(this, posX, posY, menuBuilder, true);
+    }
+
+    public void openMenu(UIElement origin, float posX, float posY, @Nullable TreeBuilder.Menu menuBuilder) {
+        openMenu(origin, posX, posY, menuBuilder, true);
     }
 
     /**
@@ -544,8 +636,13 @@ public abstract class Editor extends UIElement {
      *                     built once and its icons are not rebuilt between clicks.
      */
     public void openMenu(float posX, float posY, @Nullable TreeBuilder.Menu menuBuilder, boolean closeOnClick) {
+        openMenu(this, posX, posY, menuBuilder, closeOnClick);
+    }
+
+    public void openMenu(UIElement origin, float posX, float posY, @Nullable TreeBuilder.Menu menuBuilder,
+                         boolean closeOnClick) {
         if (menuBuilder == null || menuBuilder.isEmpty()) return;
-        openMenu(posX, posY, menuBuilder.build(), TreeBuilder.Menu::uiProvider)
+        openMenu(origin, posX, posY, menuBuilder.build(), TreeBuilder.Menu::uiProvider)
                 .setHoverTextureProvider(TreeBuilder.Menu::hoverTextureProvider)
                 .setOnNodeClicked(TreeBuilder.Menu::handle)
                 .setCloseOnClick(closeOnClick);
@@ -574,8 +671,8 @@ public abstract class Editor extends UIElement {
         askToSaveProject(() -> {
             if (currentProject != null) {
                 saveAssetBrowserPath();
-                EditorLayoutStore.save(currentProject.getProjectType().getName(), captureLayout());
             }
+            saveLayoutAndCloseFloating();
             if (window != null) {
                 window.removeEditor(this);
             } else {
@@ -791,7 +888,11 @@ public abstract class Editor extends UIElement {
         // Apply saved per-project-type layout (if any) now that all project-specific views are registered.
         var behaviorSettings = BehaviorSettings.of(this);
         if (behaviorSettings.isRestoreLayoutOnProjectOpen()) {
-            EditorLayoutStore.load(project.getProjectType().getName()).ifPresent(this::applyLayout);
+            var projectTypeName = project.getProjectType().getName();
+            EditorLayoutStore.load(projectTypeName).ifPresent(this::applyLayout);
+            // After applyLayout, so the views are docked and findable by name before any of them is
+            // pulled back out into a window.
+            getFloatingViews().restore(EditorLayoutStore.loadFloating(projectTypeName));
         }
         if (projectFile != null) {
             recordRecentProject();
@@ -851,7 +952,7 @@ public abstract class Editor extends UIElement {
     protected void closeCurrentProject() {
         if (currentProject != null) {
             saveAssetBrowserPath();
-            EditorLayoutStore.save(currentProject.getProjectType().getName(), captureLayout());
+            saveLayoutAndCloseFloating();
             currentProject.onClosed(this);
             currentProject = null;
             currentProjectFile = null;

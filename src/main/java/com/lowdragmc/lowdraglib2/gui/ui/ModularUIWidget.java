@@ -441,28 +441,7 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
 
         modularUI.lastDrawPose = new Matrix3x2f(guiGraphics.pose());
         var context = GUIContext.of(guiGraphics, mouseX, mouseY, partialTick);
-        modularUI.lastMouseX = context.localMouseX;
-        modularUI.lastMouseY = context.localMouseY;
-
-        var hoverElement = modularUI.ui.rootElement.hitTest(modularUI.lastMouseX, modularUI.lastMouseY);
-        var newHoveredElement = hoverElement == null ? null : hoverElement.getA();
-        if (modularUI.getLastHoveredElements().isEmpty()
-                || newHoveredElement != null && !newHoveredElement.getStructurePath().equals(modularUI.getLastHoveredElements())) {
-            for (var element : modularUI.getLastHoveredElements()) {
-                element.removeClass("__hovered__");
-            }
-
-            modularUI.getLastHoveredElements().clear();
-
-            if (newHoveredElement != null) {
-                modularUI.getLastHoveredElements().addAll(newHoveredElement.getStructurePath());
-                for (var element : modularUI.getLastHoveredElements()) {
-                    element.addClass("__hovered__");
-                }
-            }
-        }
-
-        modularUI.lastHoveredElement = newHoveredElement;
+        modularUI.refreshHoveredElement(context.localMouseX, context.localMouseY);
         modularUI.ui.rootElement.drawInBackground(context);
 
         if (modularUI.lastHoveredElement != null && ModularUIClientAccess.getHoverTooltips(modularUI) == null) {

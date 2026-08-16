@@ -65,6 +65,7 @@ public class Icons {
     public static SpriteTexture EYE_OFF = icon("eye_off");
     public static SpriteTexture FOLDER = icon("folder");
     public static SpriteTexture FILE = icon("file");
+    public static SpriteTexture PROJECT = icon("project");
     public static SpriteTexture IMAGE = icon("image");
     public static SpriteTexture JSON = icon("json");
     public static SpriteTexture LSS = icon("css");

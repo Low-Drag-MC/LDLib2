@@ -592,6 +592,14 @@
   "ldlib.gui.file_dialog.failed": "The operation failed.",
   "ldlib.gui.file_dialog.error": "File Error",
 
+  "editor.tab.maximize": "Maximize Pane",
+  "editor.tab.restore": "Restore Pane",
+  "editor.tab.close": "Close",
+  "editor.tab.close_others": "Close Others",
+  "editor.tab.close_all": "Close All",
+  "editor.tab.float": "Float in New Window",
+  "editor.tab.dock_back": "Dock Back",
+
   "editor.view.assets": "Assets",
   "editor.assets.refresh": "Refresh",
   "editor.assets.show_all_files": "Show files that are not resources",

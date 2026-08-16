@@ -168,8 +168,22 @@ public final class PropertyRegistry {
     public static final Property<Boolean> ALLOW_PAN = create("allow-pan", true);
     public static final Property<Float> MIN_SCALE = create("min-scale", 0.1f).setMin(0.001f);
     public static final Property<Float> MAX_SCALE = create("max-scale", 10f).setMin(0.001f);
-    public static final Property<IGuiTexture> GRID_BACKGROUND = create("grid-background", IGuiTexture.EMPTY);
     public static final Property<Float> GRID_SIZE = create("grid-size", 64f).setMin(1f);
+    public static final Property<Float> GRID_MIN_PIXELS = create("grid-min-pixels", 14f).setMin(1f);
+    public static final Property<Integer> GRID_SUBDIVISIONS = create("grid-subdivisions", 4).setMin(2);
+    public static final Property<Float> GRID_LINE_WIDTH = create("grid-line-width", 1f).setMin(0f);
+    public static final Property<Integer> GRID_LINE_COLOR = create(new ColorProperty("grid-line-color", 0x1AFFFFFF));
+    public static final Property<Integer> GRID_ACCENT_COLOR = create(new ColorProperty("grid-accent-color", 0x40FFFFFF));
+    public static final Property<Boolean> LOD_ENABLED = create("lod-enabled", true);
+    /**
+     * LOD thresholds are in <b>physical screen pixels per UI unit</b>, not canvas zoom, so that a
+     * given level always means the same apparent size no matter what GUI scale the user runs at.
+     * <p>
+     * 0.65 puts a 9-unit text line at ~6px — the point where it stops being readable.
+     */
+    public static final Property<Float> LOD_SIMPLIFIED_PIXEL_SCALE = create("lod-simplified-pixel-scale", 0.65f).setMin(0f);
+    /** 0.25 puts a 12-unit title bar at ~3px — the point where a node stops having visible parts. */
+    public static final Property<Float> LOD_BLOCK_PIXEL_SCALE = create("lod-block-pixel-scale", 0.25f).setMin(0f);
 
     public static final Property<IGuiTexture> NODE_BACKGROUND = create("node-background", IGuiTexture.EMPTY);
     public static final Property<IGuiTexture> NODE_HOVER_BACKGROUND = create("node-hover-background", ColorPattern.BLUE.rectTexture());

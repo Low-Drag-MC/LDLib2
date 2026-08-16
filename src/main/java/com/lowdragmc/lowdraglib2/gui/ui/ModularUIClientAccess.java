@@ -1,13 +1,16 @@
 package com.lowdragmc.lowdraglib2.gui.ui;
 
 import com.lowdragmc.lowdraglib2.gui.holder.DebugScreen;
+import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.debugger.UIDebugger;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventDispatcher;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.UISurface;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.Rect2i;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
@@ -76,13 +79,20 @@ public final class ModularUIClientAccess {
      * @return true if any element handled the drop.
      */
     public static boolean onFilesDrop(ModularUI modularUI, List<File> files) {
+        return onFilesDrop(modularUI, files, UISurface.main());
+    }
+
+    /**
+     * As {@link #onFilesDrop(ModularUI, List)}, but against a UI that is not hosted in the game
+     * window — the cursor has to be queried from that window and scaled by its own size.
+     */
+    public static boolean onFilesDrop(ModularUI modularUI, List<File> files, UISurface surface) {
         if (files.isEmpty()) return false;
-        var window = Minecraft.getInstance().getWindow();
         var x = new double[1];
         var y = new double[1];
-        GLFW.glfwGetCursorPos(window.handle(), x, y);
-        var mouseX = x[0] * window.getGuiScaledWidth() / window.getScreenWidth();
-        var mouseY = y[0] * window.getGuiScaledHeight() / window.getScreenHeight();
+        GLFW.glfwGetCursorPos(surface.windowHandle(), x, y);
+        var mouseX = x[0] * surface.guiScaledWidth() / surface.screenWidth();
+        var mouseY = y[0] * surface.guiScaledHeight() / surface.screenHeight();
 
         var hit = modularUI.ui.rootElement.hitTest(mouseX, mouseY);
         if (hit == null) return false;
@@ -93,6 +103,48 @@ public final class ModularUIClientAccess {
         event.target = hit.getA();
         UIEventDispatcher.dispatchEvent(event);
         return event.hasHandler;
+    }
+
+    /**
+     * Finds the {@link ModularUI} behind a screen, however it got there — a screen that is itself a
+     * holder, a menu-backed {@code AbstractContainerScreen}, or a widget attached to some other
+     * screen.
+     *
+     * <p>Lives here because "is there an LDLib2 UI on screen right now" is a question any mod can
+     * need to ask, and answering it means knowing all three attachment routes.
+     */
+    @Nullable
+    public static ModularUI of(@Nullable Screen screen) {
+        if (screen == null) return null;
+        if (screen instanceof IModularUIHolder holder && holder.hasModularUI()) {
+            return holder.getModularUI();
+        }
+        if (screen instanceof AbstractContainerScreen<?> container
+                && container.getMenu() instanceof IModularUIHolder holder && holder.hasModularUI()) {
+            return holder.getModularUI();
+        }
+        for (var child : screen.children()) {
+            if (child instanceof IModularUIHolder holder && holder.hasModularUI()) {
+                return holder.getModularUI();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Marks this UI as being inspected and returns its debugger, without opening a debug screen.
+     *
+     * <p>{@link #enableDebugger} pushes a screen, which is right when the user asks for one but wrong
+     * when a screen that already exists wants to retarget itself at this UI — a floating window's UI,
+     * say. That case needs the debugger, not a second screen.
+     */
+    public static UIDebugger acquireDebugger(ModularUI modularUI) {
+        modularUI.setDebugMode(true);
+        var state = getState(modularUI);
+        if (state.uiDebuggerCache == null) {
+            state.uiDebuggerCache = new UIDebugger(modularUI);
+        }
+        return state.uiDebuggerCache;
     }
 
     public static void enableDebugger(ModularUI modularUI, boolean debugMode) {

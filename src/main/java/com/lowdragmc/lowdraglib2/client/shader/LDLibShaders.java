@@ -81,12 +81,22 @@ public class LDLibShaders {
 			.addAttribute(DefaultVertexFormat.UV2_SEMANTIC_NAME, GpuFormat.RG16_SINT)
 			.build();
 
-	@Deprecated
+	/**
+	 * @deprecated OpenGL-only, and not merely in the sense of reporting {@code false} elsewhere:
+	 *             {@code GL.getCapabilities()} throws outright when the game is running on Vulkan,
+	 *             which 26.2 allows. There is no backend-neutral equivalent — capabilities are
+	 *             expressed through {@code RenderSystem.getDevice().getDeviceInfo()} now — and the
+	 *             compute/SSBO machinery this guarded was removed, so nothing calls it.
+	 */
+	@Deprecated(since = "26.2.2.35", forRemoval = true)
 	public static boolean supportComputeShader() {
 		return GL.getCapabilities().GL_ARB_compute_shader;
 	}
 
-	@Deprecated
+	/**
+	 * @deprecated See {@link #supportComputeShader()} — same reason, same fate.
+	 */
+	@Deprecated(since = "26.2.2.35", forRemoval = true)
 	public static boolean supportSSBO() {
 		return GL.getCapabilities().GL_ARB_shader_storage_buffer_object;
 	}

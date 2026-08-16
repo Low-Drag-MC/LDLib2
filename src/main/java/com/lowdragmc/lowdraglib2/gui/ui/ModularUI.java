@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleEngine;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.math.Size;
+import com.lowdragmc.lowdraglib2.utils.Scope;
 import dev.vfyjxf.taffy.geometry.TaffySize;
 import dev.vfyjxf.taffy.style.AvailableSpace;
 import dev.vfyjxf.taffy.style.TaffyDimension;
@@ -23,6 +24,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import org.joml.Matrix3x2f;
+import org.joml.Vector2f;
 
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -36,6 +38,15 @@ import java.util.stream.Stream;
 @ParametersAreNonnullByDefault
 @KJSBindings
 public class ModularUI {
+    /**
+     * The UI currently handling input or rendering, when that is not the one a caller can reach from
+     * its own element tree.
+     *
+     * @see #active()
+     */
+    @Nullable
+    private static ModularUI activeUI;
+
     public final UI ui;
     public final UISyncManager syncManager;
     @Nullable
@@ -598,6 +609,92 @@ public class ModularUI {
 
     public void clearFocus() {
         requestFocus(null);
+    }
+
+    /**
+     * The UI currently dispatching input or rendering, or {@code null} outside of one.
+     *
+     * <p>Needed because some UI can be reached from more than one host: an {@code Editor} owns its
+     * views, but a view torn off into its own window is rendered by a different {@code ModularUI},
+     * and anything the editor spawns for it — a context menu, a dialog — has to be parented into
+     * <em>that</em> one or it appears in the wrong window. Callers that have an element in hand
+     * should prefer {@code element.getModularUI()}; this is the fallback for the ones that do not.
+     */
+    @Nullable
+    public static ModularUI active() {
+        return activeUI;
+    }
+
+    /**
+     * Marks {@code ui} as {@link #active()} until the returned scope is closed. Restores the previous
+     * value rather than clearing, so nested hosts unwind correctly.
+     */
+    public static Scope scopedActive(@Nullable ModularUI ui) {
+        var previous = activeUI;
+        activeUI = ui;
+        return () -> activeUI = previous;
+    }
+
+    /**
+     * Hit-tests at a GUI-scaled screen position without touching any state.
+     *
+     * <p>The counterpart to {@link #refreshHoveredElementAtScreen}, which is a mutator: it moves the
+     * cached hover and rewrites the {@code __hovered__} class chain. Anything that only wants to
+     * <em>ask</em> what is at a point — "can this be clicked?" — must not have to disturb the hover
+     * to find out, or its own later assertions end up observing the probe rather than the UI.
+     */
+    @Nullable
+    public UIElement hitTestAtScreen(float screenX, float screenY) {
+        var local = new Matrix3x2f(lastDrawPose).invert().transformPosition(new Vector2f(screenX, screenY));
+        var hit = ui.rootElement.hitTest(local.x, local.y);
+        return hit == null ? null : hit.getA();
+    }
+
+    /**
+     * Hit-tests at the given position and updates the cached hover element plus the {@code __hovered__}
+     * class chain. Called once per frame from {@code ModularUIWidget#render}.
+     *
+     * <p>Exposed because every mouse method on {@code ModularUIWidget} routes to
+     * {@link #getLastHoveredElement()} rather than hit-testing itself. Anything that synthesises input
+     * outside the normal cursor pipeline — a test harness, a scripted tutorial, a remote driver — has to
+     * move the logical cursor here first, or the event resolves against whatever was hovered last frame.
+     *
+     * @param localMouseX mouse x in root-element local space, i.e. screen space run back through the
+     *                    inverse of {@link #getLastDrawPose()} (see {@code GUIContext#refreshLocalMouse})
+     * @param localMouseY mouse y in the same space
+     */
+    public void refreshHoveredElement(float localMouseX, float localMouseY) {
+        lastMouseX = localMouseX;
+        lastMouseY = localMouseY;
+
+        var hoverElement = ui.rootElement.hitTest(lastMouseX, lastMouseY);
+        var newHoveredElement = hoverElement == null ? null : hoverElement.getA();
+        if (lastHoveredElements.isEmpty() ||
+                newHoveredElement != null && !newHoveredElement.getStructurePath().equals(lastHoveredElements)) {
+            for (var element : lastHoveredElements) {
+                element.removeClass("__hovered__");
+            }
+
+            lastHoveredElements.clear();
+
+            if (newHoveredElement != null) {
+                lastHoveredElements.addAll(newHoveredElement.getStructurePath());
+                for (var element : lastHoveredElements) {
+                    element.addClass("__hovered__");
+                }
+            }
+        }
+
+        lastHoveredElement = newHoveredElement;
+    }
+
+    /**
+     * Maps a GUI-scaled screen position into the root element's local space and refreshes the hover
+     * from it. This is the inverse of the transform {@code GUIContext} applies each frame.
+     */
+    public void refreshHoveredElementAtScreen(float screenX, float screenY) {
+        var local = new Matrix3x2f(lastDrawPose).invert().transformPosition(new Vector2f(screenX, screenY));
+        refreshHoveredElement(local.x, local.y);
     }
 
     // Tooltip/widget/rendering methods are in ModularUIClientAccess and ModularUIWidget (extracted from here)

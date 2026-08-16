@@ -16,9 +16,9 @@ import java.util.regex.Pattern;
  * The file management actions of {@link Dialog#showFileDialog}'s tree: new folder, rename and delete,
  * offered as a right click menu on the tree.
  *
- * <p>Nothing here refreshes the tree: {@link FileNode#getChildren()} reads the directory on every call
- * and the {@link TreeList} diffs its displayed children each tick, so the view follows the file system
- * on its own.</p>
+ * <p>Nothing here refreshes the tree: the {@link TreeList} diffs its displayed children each tick
+ * against {@link FileNode#getChildren()}, which follows the directory on its own, so the view keeps up
+ * with whatever these actions (or anything else on the machine) do to it.</p>
  */
 final class FileDialogActions {
     private FileDialogActions() {}

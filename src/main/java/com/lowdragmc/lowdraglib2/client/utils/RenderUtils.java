@@ -113,8 +113,15 @@ public class RenderUtils {
      * @param mask draw mask
      * @param renderInMask rendering in the mask
      * @param renderMaskVisible should mask be rendered too
+     *
+     * @deprecated Drives the stencil through raw {@code GL11} calls against whatever framebuffer
+     *             happens to be bound. Neither half of that survives 26.2: stencil state belongs to
+     *             the pipeline and the render pass now, and on the Vulkan backend there is no GL
+     *             context on the render thread, so LWJGL throws out of the first call rather than
+     *             quietly doing nothing. Mask a UI with a clip rectangle, and anything in the world
+     *             through a render pipeline that declares its own stencil state.
      */
-    @Deprecated
+    @Deprecated(since = "26.2.2.35", forRemoval = true)
     public static void useStencil(Runnable mask, Runnable renderInMask, boolean renderMaskVisible) {
         GL11.glStencilMask(0xFF);
         GL11.glClearStencil(0);

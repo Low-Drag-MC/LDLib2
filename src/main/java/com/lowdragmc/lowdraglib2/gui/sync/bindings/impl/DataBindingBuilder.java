@@ -19,6 +19,8 @@ import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -50,6 +52,12 @@ public class DataBindingBuilder<T> {
     private Consumer<T> remoteSetter;
     @Nullable
     private T initialValue;
+    // sync hooks, additive. do NOT turn these into @Setter fields, they must stack.
+    private final List<Consumer<T>> onSyncReceived = new ArrayList<>();
+    private final List<Consumer<T>> onRemoteSyncReceived = new ArrayList<>();
+    private final List<Consumer<T>> onServerSyncReceived = new ArrayList<>();
+    private final List<Consumer<T>> onBeforeSync = new ArrayList<>();
+    private final List<Consumer<T>> onAfterSync = new ArrayList<>();
 
     protected DataBindingBuilder(Supplier<T> getter, Consumer<T> setter) {
         this.getter = getter;
@@ -84,17 +92,70 @@ public class DataBindingBuilder<T> {
         return this;
     }
 
+    ///  Sync Hooks
+
+    /**
+     * Adds a hook invoked on the <b>receiving</b> side (whichever side that is), after the incoming value has
+     * been pushed into the local data source. Hooks stack, calling this twice registers two hooks.
+     * <p>
+     * Note: for collection / map values the accessor mutates the client's existing instance in place, so the hook
+     * receives the same instance every time. Do not diff it against a cached reference to detect changes.
+     */
+    public DataBindingBuilder<T> onSyncReceived(Consumer<T> hook) {
+        this.onSyncReceived.add(hook);
+        return this;
+    }
+
+    /**
+     * Same as {@link #onSyncReceived(Consumer)}, but only installed on the client side,
+     * i.e. it fires when S2C data arrives.
+     */
+    public DataBindingBuilder<T> onRemoteSyncReceived(Consumer<T> hook) {
+        this.onRemoteSyncReceived.add(hook);
+        return this;
+    }
+
+    /**
+     * Same as {@link #onSyncReceived(Consumer)}, but only installed on the server side,
+     * i.e. it fires when C2S data arrives.
+     */
+    public DataBindingBuilder<T> onServerSyncReceived(Consumer<T> hook) {
+        this.onServerSyncReceived.add(hook);
+        return this;
+    }
+
+    /**
+     * Adds a hook invoked on the <b>sending</b> side, right before the value is written to the sync buffer.
+     * <p>
+     * Note: this runs while {@link com.lowdragmc.lowdraglib2.gui.sync.UISyncManager#tick()} is iterating the
+     * registered sync values. Do not add / remove sync values (i.e. do not mutate the UI structure) from here;
+     * mark a flag and do it on the next tick instead.
+     */
+    public DataBindingBuilder<T> onBeforeSync(Consumer<T> hook) {
+        this.onBeforeSync.add(hook);
+        return this;
+    }
+
+    /**
+     * Adds a hook invoked on the <b>sending</b> side, right after the value has been written to the sync buffer.
+     * Same iteration caveat as {@link #onBeforeSync(Consumer)} applies.
+     */
+    public DataBindingBuilder<T> onAfterSync(Consumer<T> hook) {
+        this.onAfterSync.add(hook);
+        return this;
+    }
+
     public SimpleBinding<T> build() {
         if (LDLib2.isRemote()) return build(true);
         if (LDLib2.isServer()) return build(false);
-        throw new IllegalStateException("Cannot de");
+        throw new IllegalStateException("Cannot build the binding '%s': the current thread is neither a client nor a server thread. Use build(boolean isRemote) to pick a side explicitly.".formatted(name));
     }
 
     public SimpleBinding<T> build(boolean isRemote) {
         Objects.requireNonNull(getter);
 
         if (type == null) {
-            type = getter.get().getClass();
+            type = resolveType();
         }
 
         var binding = new SimpleBinding<>(isRemote, name, type, initialValue, c2sStrategy, s2cStrategy);
@@ -107,11 +168,28 @@ public class DataBindingBuilder<T> {
                         )
                 );
             }
+            onRemoteSyncReceived.forEach(binding::registerListener);
         } else {
             binding.setServerDataSource(IDataSource.of(setter, getter));
+            onServerSyncReceived.forEach(binding::registerListener);
         }
+        onSyncReceived.forEach(binding::registerListener);
+        onBeforeSync.forEach(binding::registerPreSyncListener);
+        onAfterSync.forEach(binding::registerPostSyncListener);
 
         return binding;
+    }
+
+    /**
+     * Best effort inference of the synced type when {@link #syncType} was not called. Note that this can never
+     * recover generic information, so generic types such as {@code List<String>} always require an explicit
+     * {@link #syncType(Type)} with a type token.
+     */
+    private Type resolveType() {
+        var value = getter.get();
+        if (value != null) return value.getClass();
+        if (initialValue != null) return initialValue.getClass();
+        throw new IllegalStateException("Cannot infer the sync type of the binding '%s': the getter returned null and no initial value was given. Call syncType(...) explicitly.".formatted(name));
     }
 
     ///  Built-in

@@ -78,7 +78,16 @@ public abstract class SplitView extends UIElement {
         return this;
     }
 
+    /**
+     * Whether the divider can be grabbed. A hidden slot has zero size, which would leave the handle
+     * sitting on the pane's own edge — a stray drag target for a splitter that is not on screen.
+     */
+    protected boolean isDividerActive() {
+        return first.isDisplayed() && second.isDisplayed();
+    }
+
     protected void onMouseDown(UIEvent event) {
+        if (!isDividerActive()) return;
         // use int mouse coordinates to avoid issues with floating point precision
         if (event.button == 0 && isHoverDragging((int) event.x, (int) event.y)){
             var icon = getDraggingIcon();
@@ -255,7 +264,8 @@ public abstract class SplitView extends UIElement {
         }
 
         static void drawBackgroundAdditional(SplitView splitView, GUIContext context) {
-            if (splitView.isHoverDragging(context.mouseX, context.mouseY)) {
+            // A splitter whose divider cannot be grabbed must not advertise a grab cursor either.
+            if (splitView.isDividerActive() && splitView.isHoverDragging(context.mouseX, context.mouseY)) {
                 context.postRendering(ctx -> {
                     var icon = splitView.getDraggingIcon();
                     var width = icon.spriteSize.width;

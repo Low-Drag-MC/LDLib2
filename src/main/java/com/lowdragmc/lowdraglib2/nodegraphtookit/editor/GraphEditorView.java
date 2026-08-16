@@ -396,7 +396,30 @@ public class GraphEditorView extends View implements SubgraphRegistry.Listener {
         super.onAdded();
         if (this.graph != null) {
             graphView.loadGraph(this.graph);
+            // Re-subscribe on (re-)attach. Detaching happens on more paths than clear() covers —
+            // re-docking a tab goes removeSelf() → addView(), and closing the whole editor screen
+            // detaches without ever calling clear(). Both registries are Set-backed, so a
+            // duplicate register is a no-op.
+            SubgraphRegistry.INSTANCE.register(graph.graphModel);
+            SubgraphRegistry.INSTANCE.registerListener(this);
         }
+    }
+
+    /**
+     * Symmetric with {@link #onAdded()}: a detached editor must not keep receiving external-save
+     * broadcasts, and holding it in the registry pins its whole UI tree (node elements, previews,
+     * the graph model itself) for the lifetime of the game.
+     *
+     * <p>Note this does NOT fire when switching tabs — {@code TabView} toggles content visibility
+     * rather than detaching it.
+     */
+    @Override
+    protected void onRemoved() {
+        super.onRemoved();
+        if (this.graph != null) {
+            SubgraphRegistry.INSTANCE.unregister(graph.graphModel);
+        }
+        SubgraphRegistry.INSTANCE.unregisterListener(this);
     }
 
     @Override

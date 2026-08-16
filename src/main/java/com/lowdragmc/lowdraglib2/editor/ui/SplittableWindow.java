@@ -9,9 +9,11 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.mojang.datafixers.util.Pair;
 import lombok.Getter;
@@ -24,6 +26,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 @Accessors(chain = true)
 @ParametersAreNonnullByDefault
@@ -100,6 +103,18 @@ public class SplittableWindow extends UIElement {
      */
     @Nullable @Getter @Setter
     protected String anchorId;
+    /**
+     * Optional gate deciding which views may be docked into this window. {@code null} accepts
+     * everything — the default, and what every existing caller keeps getting.
+     *
+     * <p>Set it on a root window <em>before</em> splitting and it covers the whole subtree:
+     * {@link #acceptsView} walks up {@link #parentWindow}, so windows created later by
+     * {@link #splitNew} inherit it automatically. That is what lets a window tree nested inside
+     * another editor (a document editor with its own docked panes) refuse panes owned by the
+     * outer editor, which would otherwise be torn out of it and orphaned when the document closes.
+     */
+    @Nullable @Setter
+    protected Predicate<View> viewFilter;
 
     // runtime
     @Nullable
@@ -111,6 +126,11 @@ public class SplittableWindow extends UIElement {
     @Nullable
     @Getter
     private SplittableWindow first, second;
+    /**
+     * Live maximize state, only ever non-null on the root window of a tree — see {@link #maximize()}.
+     */
+    @Nullable
+    private MaximizeState maximizeState;
 
     public SplittableWindow() {
         this(null);
@@ -180,6 +200,8 @@ public class SplittableWindow extends UIElement {
      *                       updated in place to reflect the rebuilt tree (only ids present in config survive)
      */
     public void rebuildFromLayoutConfig(@Nullable LayoutConfig config, Map<String, SplittableWindow> anchorRegistry) {
+        // The rebuild discards the elements a maximize hid, so drop the state before it goes stale.
+        restoreMaximized();
         Map<String, SplittableWindow> survivors = new HashMap<>();
         rebuildInternal(config, anchorRegistry, survivors);
         anchorRegistry.clear();
@@ -262,6 +284,18 @@ public class SplittableWindow extends UIElement {
         return views;
     }
 
+    /**
+     * Whether any leaf under this window holds a view.
+     *
+     * <p>Separate from {@link #getAllViews()} because a floating window asks this every frame, and
+     * building a list per node of the tree just to test emptiness is pure garbage.
+     */
+    public boolean hasAnyView() {
+        if (viewContainer != null && !viewContainer.isEmptyWindow()) return true;
+        if (first != null && first.hasAnyView()) return true;
+        return second != null && second.hasAnyView();
+    }
+
     public SplittableWindow setViewContainer(@Nonnull ViewContainer viewContainer) {
         if (this.viewContainer != null) {
             this.viewContainer.removeSelf();
@@ -330,6 +364,122 @@ public class SplittableWindow extends UIElement {
 
     public boolean isSplit() {
         return splitView != null;
+    }
+
+    /**
+     * The topmost window reachable through {@link #getParentWindow()}. A tree nested inside another
+     * editor (a document editor hosting its own panes) has its own root, so a maximize inside it
+     * stays inside it.
+     */
+    public SplittableWindow getRootWindow() {
+        var window = this;
+        while (window.parentWindow != null) {
+            window = window.parentWindow;
+        }
+        return window;
+    }
+
+    /**
+     * The window currently filling this tree, or {@code null} if the tree shows its normal layout.
+     * Answerable from any node — the state lives on the root.
+     */
+    @Nullable
+    public SplittableWindow getMaximizedWindow() {
+        var state = getRootWindow().maximizeState;
+        return state == null ? null : state.window;
+    }
+
+    public boolean isMaximized() {
+        return getMaximizedWindow() == this;
+    }
+
+    /**
+     * Make this window fill its whole tree, hiding every sibling pane on the way up to the root.
+     * Restoring puts the splitters back exactly where they were.
+     *
+     * <p>Nothing is reparented. Pulling this window out of its {@link SplitView} slot would leave
+     * the tree torn while {@link #trimEmptySplits()}, {@link #removeSplitWindow} or a drag-drop dock
+     * could run; hiding siblings instead keeps every structural operation working while maximized.
+     * The mechanism is the one {@link ViewContainer#collapse()} already uses: {@code setDisplay}
+     * plus {@link Style#importantPipeline} overrides, undone by dropping the IMPORTANT candidates.
+     */
+    public void maximize() {
+        var root = getRootWindow();
+        if (root == this) return; // already fills the tree
+        if (isMaximized()) return;
+        root.restoreMaximized();
+
+        var state = new MaximizeState(this);
+        for (var node = this; node.parentWindow != null; node = node.parentWindow) {
+            var parent = node.parentWindow;
+            var splitView = parent.splitView;
+            if (splitView == null) continue;
+            var isFirst = parent.first == node;
+            var offPath = isFirst ? splitView.second : splitView.first;
+            offPath.setDisplay(false);
+            state.hiddenSlots.add(offPath);
+            if (isFirst) {
+                // The `second` slot is flex(1) and fills on its own once `first` is hidden, but
+                // `first` carries the split percentage as an explicit width/height, so on this side
+                // it has to be told to fill.
+                var vertical = splitView instanceof SplitView.Vertical;
+                splitView.first.layout(layout -> Style.importantPipeline(layout, style -> {
+                    if (vertical) {
+                        style.heightPercent(100);
+                    } else {
+                        style.widthPercent(100);
+                    }
+                }));
+                state.grownSlots.add(new GrownSlot(splitView.first, vertical));
+            }
+        }
+        root.maximizeState = state;
+    }
+
+    /**
+     * Undo a {@link #maximize()} anywhere in this tree. Safe to call when nothing is maximized.
+     */
+    public void restoreMaximized() {
+        var root = getRootWindow();
+        var state = root.maximizeState;
+        if (state == null) return;
+        root.maximizeState = null;
+        // The tree may have been reshaped while maximized, so some of these elements can already be
+        // detached. Both calls are no-ops on a detached element, which is exactly what we want.
+        for (var slot : state.hiddenSlots) {
+            slot.setDisplay(true);
+        }
+        for (var grown : state.grownSlots) {
+            grown.slot().getStyleBag().removeCandidates(
+                    grown.vertical() ? LayoutProperties.HEIGHT : LayoutProperties.WIDTH,
+                    candidate -> candidate.origin() == StyleOrigin.IMPORTANT);
+        }
+    }
+
+    public void toggleMaximize() {
+        if (isMaximized()) {
+            restoreMaximized();
+        } else {
+            maximize();
+        }
+    }
+
+    private record GrownSlot(UIElement slot, boolean vertical) {
+    }
+
+    /**
+     * The elements a maximize touched, remembered rather than re-derived on restore: the tree can be
+     * reshaped while a window is maximized (a drop, a tab close), and walking the path a second time
+     * would then miss slots or un-hide the wrong ones.
+     */
+    private static final class MaximizeState {
+        private final SplittableWindow window;
+        private final List<UIElement> hiddenSlots = new ArrayList<>();
+        private final List<GrownSlot> grownSlots = new ArrayList<>();
+
+        private MaximizeState(SplittableWindow window) {
+            this.window = window;
+        }
     }
 
     /**
@@ -435,10 +585,20 @@ public class SplittableWindow extends UIElement {
         }
     }
 
+    /**
+     * Whether {@code view} may be docked here. Honors this window's own {@link #viewFilter} and
+     * then defers to the parent window, so a filter set on a root covers every window split out
+     * of it. Default (no filter anywhere) accepts everything.
+     */
+    public boolean acceptsView(View view) {
+        if (viewFilter != null && !viewFilter.test(view)) return false;
+        return parentWindow == null || parentWindow.acceptsView(view);
+    }
+
     protected void onDragEnter(UIEvent event) {
         if (isSplit()) return;
         // check if a view is being dragged into the view
-        if (event.dragHandler.draggingObject instanceof View) {
+        if (event.dragHandler.draggingObject instanceof View view && acceptsView(view)) {
             style(style -> style.overlayTexture(GuiTexture.of(this::drawOverlay)));
         }
     }
@@ -453,7 +613,7 @@ public class SplittableWindow extends UIElement {
     protected void onDragPerform(UIEvent event) {
         if (isSplit()) return;
         style(style -> style.overlayTexture(IGuiTexture.EMPTY));
-        if (event.dragHandler.draggingObject instanceof View view) {
+        if (event.dragHandler.draggingObject instanceof View view && acceptsView(view)) {
             if (isBorderHovering(Edge.TOP, event.x, event.y)) {
                 tryMoveToNewWindow(view, Edge.TOP);
             } else if (isBorderHovering(Edge.BOTTOM, event.x, event.y)) {
@@ -472,11 +632,23 @@ public class SplittableWindow extends UIElement {
                     targetContainer.addView(view);
                     targetContainer.selectView(view);
                 }
+            } else {
+                return; // nothing here consumed it — let an ancestor window try
             }
+            // A drop is consumed exactly once. Windows nest (a document editor can host its own
+            // window tree), and this handler runs on bubble, i.e. innermost first — without this
+            // the next unsplit ancestor window would handle the very same drop and pull the view
+            // back out of wherever it was just docked.
+            event.stopPropagation();
         }
     }
 
     protected void onWindowsEmpty() {
+        // Closing the last tab of the maximized pane leaves nothing to focus on — come back to the
+        // normal layout rather than showing an empty full-screen pane.
+        if (isMaximized()) {
+            restoreMaximized();
+        }
         if (immortal) return;
         if (parentWindow != null) {
             parentWindow.removeSplitWindow(this);
@@ -486,6 +658,9 @@ public class SplittableWindow extends UIElement {
     public void removeSplitWindow(SplittableWindow window) {
         var target = window == this.first ? this.second : window == this.second ? this.first : null;
         if (target == null) return;
+        // A collapse re-slots subtrees, which can move the maximized window or reuse a slot we hid.
+        // Dropping the focus mode first keeps restore honest, and matches what an IDE does.
+        getRootWindow().restoreMaximized();
         if (shouldKeepIdentityWhenChildCollapses()) {
             replaceContentWith(target);
             return;
@@ -503,11 +678,18 @@ public class SplittableWindow extends UIElement {
     }
 
     public boolean trimEmptySplits() {
+        // Once at the entry point: the recursion below would otherwise walk to the root from every
+        // node only to find the state already cleared.
+        getRootWindow().restoreMaximized();
+        return trimEmptySplitsInternal();
+    }
+
+    private boolean trimEmptySplitsInternal() {
         if (viewContainer != null) {
             return !viewContainer.isEmptyWindow() || shouldKeepIdentityWhenChildCollapses();
         }
-        var firstUseful = first != null && first.trimEmptySplits();
-        var secondUseful = second != null && second.trimEmptySplits();
+        var firstUseful = first != null && first.trimEmptySplitsInternal();
+        var secondUseful = second != null && second.trimEmptySplitsInternal();
         if (firstUseful && secondUseful) {
             return true;
         }

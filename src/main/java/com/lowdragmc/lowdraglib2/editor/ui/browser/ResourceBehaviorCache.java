@@ -124,6 +124,12 @@ public class ResourceBehaviorCache {
     @Nullable
     public Resource<?> resourceOf(@Nullable File file) {
         if (file == null || file.isDirectory()) return null;
+        return resourceOfName(file);
+    }
+
+    /** The extension match on its own, for a caller that has already ruled out a directory. */
+    @Nullable
+    private Resource<?> resourceOfName(File file) {
         var name = file.getName();
         Resource<?> best = null;
         var bestLength = -1;
@@ -141,6 +147,16 @@ public class ResourceBehaviorCache {
     @Nullable
     public Behavior<?> forFile(@Nullable File file) {
         var resource = resourceOf(file);
+        return resource == null ? null : get(resource);
+    }
+
+    /**
+     * As {@link #forFile(File)}, for a file a listing has already established is not a directory. That
+     * check is a stat syscall, and skipping it once per entry is what keeps a large folder cheap.
+     */
+    @Nullable
+    public Behavior<?> forNonDirectory(File file) {
+        var resource = resourceOfName(file);
         return resource == null ? null : get(resource);
     }
 

@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib2.editor.resource.TexturesResource;
 import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.CursorOverlay;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.MCSprites;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.OreSprites;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
@@ -55,6 +56,8 @@ public class ClientEventListener {
         if (Platform.isDevEnv()) {
             LDFontStatsOverlay.INSTANCE.render(event.getGuiGraphics(), Minecraft.getInstance().getDeltaTracker());
         }
+        // Only draws while something is driving the cursor from inside the process; see the class doc.
+        CursorOverlay.render(event.getGuiGraphics(), event.getPartialTick());
     }
 
     @SubscribeEvent
