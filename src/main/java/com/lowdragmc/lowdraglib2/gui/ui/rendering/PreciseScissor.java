@@ -135,6 +135,6 @@ public final class PreciseScissor {
      * saturate into a negative int before it ever reached the clamp.
      */
     private static int clamp(long v, int max) {
-        return (int) Math.max(0L, Math.min(max, v));
+        return (int) Math.clamp(v, 0L, max);
     }
 }
