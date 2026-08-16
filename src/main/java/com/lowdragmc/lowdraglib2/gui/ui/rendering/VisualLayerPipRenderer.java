@@ -101,6 +101,14 @@ public class VisualLayerPipRenderer extends PictureInPictureRenderer<VisualLayer
     public void close() {
         super.close();
         closeMaskTextures();
+        // Owned, and holding the resources catalogued in ModularUIWindow#onDestroyed. One is built
+        // lazily per pooled renderer, so without this every masked or translucent element that ever
+        // drew leaves one behind — and nested layers leave a chain, since the sub renderer registers
+        // this very class again.
+        if (subRenderer != null) {
+            subRenderer.close();
+            subRenderer = null;
+        }
     }
 
     @Override
