@@ -70,10 +70,11 @@ public interface IGuiRendererExt {
     ///
     /// Paired with {@link #ldlib2$pushTargetOverride}: the target says where pixels land, this says
     /// in what coordinate space and within what bounds.
-    record OrthoExtent(float width, float height, int framebufferHeight, int guiScale) {}
+    record OrthoExtent(float width, float height, int framebufferWidth, int framebufferHeight, int guiScale) {}
 
-    static void ldlib2$pushOrthoOverride(float guiWidth, float guiHeight, int framebufferHeight, int guiScale) {
-        State.ORTHO_STACK.push(new OrthoExtent(guiWidth, guiHeight, framebufferHeight, guiScale));
+    static void ldlib2$pushOrthoOverride(float guiWidth, float guiHeight,
+                                         int framebufferWidth, int framebufferHeight, int guiScale) {
+        State.ORTHO_STACK.push(new OrthoExtent(guiWidth, guiHeight, framebufferWidth, framebufferHeight, guiScale));
     }
 
     static void ldlib2$popOrthoOverride() {

@@ -648,7 +648,7 @@ public class ModularUIWindow implements OsWindowHost {
                 IGuiRendererExt.ldlib2$pushTargetOverride(target);
                 IGuiRendererExt.ldlib2$pushOrthoOverride(
                         currentSurface.guiScaledWidth(), currentSurface.guiScaledHeight(),
-                        target.height, (int) currentSurface.guiScale());
+                        target.width, target.height, (int) currentSurface.guiScale());
                 try {
                     guiRenderer.render(IGuiRendererExt.ldlib2$getLastFogBuffer());
                 } finally {

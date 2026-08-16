@@ -108,11 +108,18 @@ public class GUIContext implements IGUIContext {
     @Override
     public boolean isInsideScissor(float minX, float minY, float width, float height) {
         var peek = peekScissor();
+        // The extent is ceil'd from the *edges*, not from the width. Flooring the origin and then
+        // ceiling the width independently gives a right edge of floor(minX) + ceil(width), which is
+        // up to a pixel short of minX + width — and `intersects` is strict, so an element whose only
+        // overlap with the clip is that last sub-pixel column would be culled along with its whole
+        // subtree. Erring outwards is the safe direction for a visibility test.
+        var left = Mth.floor(minX);
+        var top = Mth.floor(minY);
         return peek == null || peek.intersects(new ScreenRectangle(
-                Mth.floor(minX),
-                Mth.floor(minY),
-                Mth.ceil(width),
-                Mth.ceil(height)
+                left,
+                top,
+                Mth.ceil(minX + width) - left,
+                Mth.ceil(minY + height) - top
         ));
     }
 
@@ -120,8 +127,65 @@ public class GUIContext implements IGUIContext {
         GuiTextureRendererRegistry.findRenderer(texture).draw(texture, this, x, y, width, height);
     }
 
+    /**
+     * Clips to a rectangle given in this element's own coordinates.
+     *
+     * <p>Three things happen here that vanilla's path does not do.
+     *
+     * <p>The rectangle is transformed <em>before</em> it is rounded. Rounding in local space and
+     * letting the pose scale the result afterwards multiplies the error by the scale, which is how a
+     * clip inside a zoomed graph view ends up a whole node off.
+     *
+     * <p>All four corners are transformed. {@code ScreenRectangle#transformAxisAligned} maps two, so
+     * a rotated element produces a negative extent, intersects to nothing, and takes its entire
+     * subtree with it.
+     *
+     * <p>The integer rectangle handed to the scissor stack is the outer <em>hull</em>. Vanilla
+     * floors the origin and then floors the extent again, so a box narrower than a gui pixel comes
+     * out zero wide and everything inside it vanishes — the failure that shows up as a graph view
+     * going blank once you zoom out far enough.
+     *
+     * <p>The unrounded rectangle rides along on the pushed {@code ScreenRectangle} so
+     * {@code GuiRenderer} can quantise it once, against the physical pixel grid.
+     *
+     * @see PreciseScissor
+     */
     public void enableScissor(float x, float y, float width, float height) {
-        graphics.enableScissor(Mth.floor(x), Mth.floor(y), Mth.ceil(x + width), Mth.ceil(y + height));
+        // Named for what it is, because the GUIContext field `pose` is an EnhancedPoseStack wrapping
+        // this very matrix — and calling setIdentity() on that one would fire onTransform.
+        var matrix = graphics.pose();
+        var clip = PreciseScissor.transform(matrix, x, y, width, height);
+
+        // Nest in float space, against whatever the enclosing clip means.
+        var nested = PreciseScissor.intersect(clip, IPreciseScissor.clipOf(graphics.peekScissorStack()));
+
+        // The outer hull, so vanilla's integer copy is never smaller than the real clip. An empty
+        // nesting pushes a degenerate box and lets ScissorStack collapse it the way it already does.
+        var hull = nested != null ? nested : PreciseScissor.ClipRect.EMPTY;
+
+        // Push in screen space. GuiGraphicsExtractor#enableScissor transforms whatever it is handed
+        // by the current pose, so the pose is neutralised across the call rather than rounded a
+        // second time: with an identity pose and integer inputs transformAxisAligned is the
+        // identity, and the rectangle that lands on the stack is exactly the hull computed here.
+        //
+        // Restored by assignment rather than pushMatrix/popMatrix — the matrix stack has a fixed
+        // capacity that a deeply nested UI already competes for, and this runs at the deepest point.
+        var saved = new Matrix3x2f(matrix);
+        matrix.identity();
+        try {
+            graphics.enableScissor(Mth.floor(hull.left()), Mth.floor(hull.top()),
+                    Mth.ceil(hull.right()), Mth.ceil(hull.bottom()));
+        } finally {
+            matrix.set(saved);
+        }
+
+        // hull(A ∩ B) ⊆ hull(B), and the parent's stored rectangle is hull(parent), so the
+        // intersection ScissorStack#push does against it is a no-op on the numbers — but it still
+        // allocates, and on an empty stack the rectangle transformAxisAligned just built is stored
+        // verbatim. Either way what is on the stack is a fresh rectangle nobody else holds, so
+        // tagging it cannot leak precision onto someone else's clip. The one object that is shared,
+        // ScreenRectangle.empty(), is refused by attach.
+        IPreciseScissor.attach(graphics.peekScissorStack(), nested);
     }
 
     public @Nullable ScreenRectangle peekScissor() {
