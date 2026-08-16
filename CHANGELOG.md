@@ -12,5 +12,6 @@
 * Moved the asset browser grid onto the single-pass directory listing
 * Rendered scenes into the surface being drawn on rather than the game window
 * Added capturing a floating window's own framebuffer in the UI test harness
-* Added Vulkan support for OS-level windows and frame capture
 * Added project icon
+* Improved Clipped UI elements against the render target's pixel
+* Fixed Closed the gui renderers a floating window and a visual layer leaked
