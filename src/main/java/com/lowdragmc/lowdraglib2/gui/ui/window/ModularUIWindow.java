@@ -273,11 +273,16 @@ public class ModularUIWindow implements OsWindowHost {
             surface.destroy();
             surface = null;
         }
+        // A GuiRenderer is not garbage the collector can take: it holds an off-heap staged vertex
+        // buffer, an item atlas texture, a projection ubo, a cube map, and a render target for every
+        // picture-in-picture renderer it has pooled. And this host is not reused —
+        // FloatingViewManager builds a new one each time a panel is floated out — so dropping it
+        // here without closing leaks that whole set once per float.
+        //
+        // Safe to close precisely because ensureRenderer() gave it pools of its own: close() closes
+        // the pools it holds, and the game renderer's are not among them. The one thing that is
+        // borrowed — the feature dispatcher — close() never touches.
         if (renderer != null) {
-            // Not optional, and not something the garbage collector can do: a GuiRenderer owns an
-            // off-heap vertex buffer, its item atlas texture and one render target per pooled
-            // picture-in-picture renderer. A view that is docked and floated repeatedly builds one
-            // of these per float, so leaking it leaks all of that every time.
             renderer.close();
             renderer = null;
         }

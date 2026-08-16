@@ -215,8 +215,8 @@ can never silently click nothing and pass.
 
 1. Depend on LDLib2 as usual.
 2. Write scenarios in `src/main/java` with `@LDLRegisterClient(registry = UIScenario.REGISTRY)`.
-3. Copy the `-PldTest` block and the `verifyUiTest` task from LDLib2's `build.gradle`
-   (search for `ldlib2.uitest`), or `apply from:` `gradle/ldlib2-uitest.gradle`.
+3. Copy `gradle/ldlib2-uitest.gradle` into your mod and `apply from:` it — it carries both the
+   `-PldTest` wiring and the `verifyUiTest` task, and is inert without `-PldTest`.
 4. `gradlew runClient -PldTest=group:<yourmod>`.
 
 ## Where the code lives

@@ -104,6 +104,11 @@ public interface IGuiRendererExt {
     /// left at their defaults deliberately: no reader reached through this redirect touches them, and
     /// inventing values would be guessing rather than overriding.
     ///
+    /// Carries no gui-space extent, unlike 26.1's ortho override, because it does not have to: 26.2
+    /// derives the projection from these same fields as `width / guiScale`, exactly, so a gui unit
+    /// is exactly {@code guiScale} pixels here and on the game window alike. That is what lets the
+    /// precise scissor quantise against one scale factor instead of a ratio it has to reconstruct.
+    ///
     /// Paired with {@link #ldlib2$targetOverride}: the target says where pixels land, this says in
     /// what coordinate space and within what bounds. Both come off the same {@code RenderTarget}, so
     /// they cannot disagree about the size.

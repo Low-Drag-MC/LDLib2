@@ -21,6 +21,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
 import com.lowdragmc.lowdraglib2.gui.ui.event.*;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.TaffyLayoutStyle;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.PreciseScissor;
 import com.lowdragmc.lowdraglib2.gui.ui.style.*;
 import com.lowdragmc.lowdraglib2.gui.ui.style.animation.StyleAnimation;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
@@ -1753,31 +1754,16 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         }
     }
 
+    /**
+     * Culling shares {@link PreciseScissor#transform} with clipping on purpose: the two used to
+     * carry their own copy of the same four-corner reduction, and a screen-space box that the two
+     * sides disagree about is exactly how an element culls in and clips out, or the reverse.
+     */
     protected boolean isInsideTheScissorView(IGUIContext context) {
-        var trans = context.currentPose();
-        var x0 = getPositionX();
-        var y0 = getPositionY();
-        var x1 = x0 + getSizeWidth();
-        var y1 = y0 + getSizeHeight();
-
-        Vector2f p = new Vector2f();
-
-        trans.transformPosition(x0, y0, p);
-        float minX = p.x, maxX = p.x, minY = p.y, maxY = p.y;
-
-        trans.transformPosition(x1, y0, p);
-        minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
-        minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
-
-        trans.transformPosition(x0, y1, p);
-        minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
-        minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
-
-        trans.transformPosition(x1, y1, p);
-        minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
-        minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
-
-        return context.isInsideScissor(minX, minY, maxX - minX, maxY - minY);
+        var bounds = PreciseScissor.transform(context.currentPose(),
+                getPositionX(), getPositionY(), getSizeWidth(), getSizeHeight());
+        return context.isInsideScissor(bounds.left(), bounds.top(),
+                bounds.right() - bounds.left(), bounds.bottom() - bounds.top());
     }
 
     /**
