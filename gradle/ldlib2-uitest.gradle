@@ -1,41 +1,41 @@
 // LDLib2 in-client UI test harness - Gradle wiring.
 //
-// Copy this file into your mod and add, after your `runs { }` block:
+// Copy this file into your mod and add:
 //
 //     apply from: rootProject.file('gradle/ldlib2-uitest.gradle')
 //
 // Then:  gradlew runClient -PldTest=all
 // Docs:  https://github.com/Low-Drag-MC/LDLib2 -> docs/uitest.md
 //
-// Inert unless -PldTest is given, so an ordinary runClient is completely unaffected.
+// Inert unless -PldTest is given, and scoped to the invocation that gives it: nothing is written to
+// build/moddev, so a later `gradlew runClient` - or a launch from the IDE, which reuses whatever
+// ModDev last wrote there - is completely unaffected.
 
 // A captured local, not an ext property: inside a run/task closure `ext` resolves to the closure's
 // delegate rather than the project, so ldTestOutDir would not be visible where it is needed.
 def ldTestOutDir = layout.buildDirectory.dir('ldlib2-uitest').get().asFile.absolutePath
+def ldTestRequested = project.hasProperty('ldTest')
 
-if (project.hasProperty('ldTest')) {
-    // System properties rather than program arguments: Minecraft's own argument parser owns the
-    // command line and rejects what it does not recognise.
-    //
-    // neoForge.runs, not a bare `runs`: under the ModDev plugin the run container lives on the
-    // neoForge extension, and a top-level `runs` does not resolve at all.
-    //
-    // matching{}.configureEach{} rather than runs { client { } }: from a separate script the latter
-    // *creates* a run called client instead of configuring the existing one, which is then rejected
-    // for having no run type.
-    neoForge.runs.matching { it.name == 'client' }.configureEach { run ->
-        run.systemProperty 'ldlib2.uitest.run', project.property('ldTest')
-        run.systemProperty 'ldlib2.uitest.out', ldTestOutDir
-        run.systemProperty 'ldlib2.uitest.exclude', project.findProperty('ldTestExclude') ?: ''
-        // Run-wide default; individual scenarios override it via ScenarioOptions#guiScale.
-        run.systemProperty 'ldlib2.uitest.guiScale', project.findProperty('ldTestGuiScale') ?: '2'
-        // Empty = maximise. Pass e.g. -PldTestWindow=1280x720 to pin a size for comparable captures.
-        run.systemProperty 'ldlib2.uitest.window', project.findProperty('ldTestWindow') ?: ''
-        run.systemProperty 'ldlib2.uitest.inputMode', project.findProperty('ldTestInputMode') ?: 'SYNTHETIC'
-        run.systemProperty 'ldlib2.uitest.watchdogSec', project.findProperty('ldTestWatchdogSec') ?: '90'
-        if (project.hasProperty('ldTestKeepOpen')) {
-            run.systemProperty 'ldlib2.uitest.keepOpen', 'true'
-        }
+// System properties rather than program arguments: Minecraft's own argument parser owns the command
+// line and rejects what it does not recognise.
+//
+// Resolved here, once, rather than inside the task closure: with the configuration cache on, a body
+// that runs later may not reach back into `project`.
+def ldTestJvmArgs = []
+if (ldTestRequested) {
+    ldTestJvmArgs = [
+            "-Dldlib2.uitest.run=${project.property('ldTest')}",
+            "-Dldlib2.uitest.out=${ldTestOutDir}",
+            "-Dldlib2.uitest.exclude=${project.findProperty('ldTestExclude') ?: ''}",
+            // Run-wide default; individual scenarios override it via ScenarioOptions#guiScale.
+            "-Dldlib2.uitest.guiScale=${project.findProperty('ldTestGuiScale') ?: '2'}",
+            // Empty = maximise. Pass e.g. -PldTestWindow=1280x720 to pin a size for comparable captures.
+            "-Dldlib2.uitest.window=${project.findProperty('ldTestWindow') ?: ''}",
+            "-Dldlib2.uitest.inputMode=${project.findProperty('ldTestInputMode') ?: 'SYNTHETIC'}",
+            "-Dldlib2.uitest.watchdogSec=${project.findProperty('ldTestWatchdogSec') ?: '90'}",
+    ]*.toString()
+    if (project.hasProperty('ldTestKeepOpen')) {
+        ldTestJvmArgs += '-Dldlib2.uitest.keepOpen=true'
     }
 }
 
@@ -46,7 +46,6 @@ if (project.hasProperty('ldTest')) {
 // Captured outside the task closures: with the configuration cache on, a doLast/onlyIf body may
 // not reach back into `project` at execution time, and both `file(...)` and `hasProperty` do.
 def ldTestOutFile = file(ldTestOutDir)
-def ldTestRequested = project.hasProperty('ldTest')
 
 tasks.register('verifyUiTest') {
     group = 'verification'
@@ -85,7 +84,22 @@ tasks.register('verifyUiTest') {
 // The run tasks are created after this script is evaluated, so runClient cannot be looked up by
 // name here - match it lazily instead.
 tasks.configureEach { task ->
-    if (task.name == 'runClient') {
-        task.finalizedBy 'verifyUiTest'
+    if (task.name != 'runClient') return
+    task.finalizedBy 'verifyUiTest'
+
+    // On the task, not on `neoForge.runs.client`. That distinction is the whole difference between a
+    // flag that applies to this invocation and one that applies forever:
+    //
+    //   - a run definition is a persistent declaration. ModDev serialises it to
+    //     build/moddev/clientRunVmArgs.txt, and the IDE run configuration it generates passes that
+    //     same file as its VM parameters - with no Gradle task before launch, so nothing ever
+    //     rewrites it. One `-PldTest` run therefore left every later launch from the IDE running the
+    //     whole suite, with nothing in the IDE to suggest it would.
+    //   - jvmArgs on the task are assembled when the task runs and go nowhere else. Which is also
+    //     what this did under NeoGradle, where runClient built its own command line and the IDE
+    //     configuration carried its arguments inline: two paths that could not contaminate each
+    //     other. ModDev merged them into one file; this keeps them apart again.
+    if (!ldTestJvmArgs.isEmpty()) {
+        task.jvmArgs ldTestJvmArgs
     }
 }
