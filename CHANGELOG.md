@@ -1,3 +1,4 @@
-## v2.2.35
-* Improved Auto Tests in the background without taking focus or the physical mouse
-* Added DataBindingBuilder hooks
+## v2.2.36
+* Fixed missing update packet
+* Moved JEI calls to use APIs
+* Improved view container APIs
