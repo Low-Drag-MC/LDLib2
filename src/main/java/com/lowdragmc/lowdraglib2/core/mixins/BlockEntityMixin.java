@@ -7,6 +7,9 @@ import com.lowdragmc.lowdraglib2.syncdata.holder.ISyncMangedHolder;
 import com.lowdragmc.lowdraglib2.syncdata.holder.blockentity.*;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -33,6 +36,13 @@ public abstract class BlockEntityMixin {
     @Shadow
     @Nullable
     public abstract Level getLevel();
+
+    @Inject(method = "getUpdatePacket", at = @At(value = "RETURN"), cancellable = true)
+    private void injectGetUpdatePacket(CallbackInfoReturnable<Packet<ClientGamePacketListener>> cir) {
+        if (this instanceof ISyncMangedHolder && cir.getReturnValue() == null) {
+            cir.setReturnValue(ClientboundBlockEntityDataPacket.create((BlockEntity) (Object) this));
+        }
+    }
 
     @Inject(method = "getUpdateTag", at = @At(value = "RETURN"))
     private void injectGetUpdateTag(HolderLookup.Provider provider, CallbackInfoReturnable<CompoundTag> cir) {
