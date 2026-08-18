@@ -29,7 +29,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import mezz.jei.library.ingredients.itemStacks.TypedItemStack;
+import mezz.jei.api.constants.VanillaTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
@@ -687,7 +687,7 @@ public class Scene extends UIElement {
                 if (!scene.allowXEILookup) return null;
                 var current = scene.lastHoverItem;
                 if (current == null || current.isEmpty()) return null;
-                return TypedItemStack.create(current);
+                return LDLibJEIPlugin.createTypedIngredient(VanillaTypes.ITEM_STACK, current).orElse(null);
             });
         }
     }

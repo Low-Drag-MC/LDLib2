@@ -180,9 +180,26 @@ public class ViewContainer extends UIElement {
 
     }
 
+    /**
+     * Whether the window hosting this container would accept {@code view}.
+     *
+     * <p>The tab header runs its own drag handling, separate from {@link SplittableWindow}'s
+     * drop-into-the-body path, and it used to test only "is this a View". That made the tab strip
+     * a second way in that ignored {@link SplittableWindow#acceptsView} entirely: a window with a
+     * view filter — a document editor confining its own panes, say — would refuse a drop on its
+     * body and accept the identical drop on its tabs, and would paint an insertion placeholder
+     * for views it had already decided it did not want.
+     *
+     * <p>With no filter anywhere this is always true, so unfiltered windows behave exactly as
+     * before.
+     */
+    protected boolean acceptsView(View view) {
+        return window == null || window.acceptsView(view);
+    }
+
     protected void onTabHeaderDragEnter(UIEvent event) {
         if (tabPlaceHolder != null) return;
-        if (event.dragHandler.getDraggingObject() instanceof View) {
+        if (event.dragHandler.getDraggingObject() instanceof View view && acceptsView(view)) {
             tabPlaceHolder = new UIElement().layout(layout -> {
                 layout.height(tabView.tabHeaderContainer.getContentHeight());
                 layout.width(50);
@@ -214,7 +231,7 @@ public class ViewContainer extends UIElement {
 
     protected void onTabHeaderDragUpdate(UIEvent event) {
         if (tabPlaceHolder == null) return;
-        if (event.dragHandler.getDraggingObject() instanceof View) {
+        if (event.dragHandler.getDraggingObject() instanceof View view && acceptsView(view)) {
             var index = -1;
             var placeHolderIndex = tabView.tabScroller.viewContainer.getChildren().indexOf(tabPlaceHolder);
             for (var tab : tabView.tabScroller.viewContainer.getChildren()) {
@@ -240,7 +257,7 @@ public class ViewContainer extends UIElement {
 
     protected void onTabHeaderDragPerform(UIEvent event) {
         if (tabPlaceHolder == null) return;
-        if (event.dragHandler.getDraggingObject() instanceof View view) {
+        if (event.dragHandler.getDraggingObject() instanceof View view && acceptsView(view)) {
             var index = tabView.tabScroller.viewContainer.getChildren().indexOf(tabPlaceHolder);
             tabPlaceHolder.removeSelf();
             tabPlaceHolder = null;

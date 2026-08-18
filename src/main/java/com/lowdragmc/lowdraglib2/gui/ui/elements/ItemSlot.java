@@ -29,7 +29,6 @@ import com.lowdragmc.lowdraglib2.integration.xei.jei.LDLibJEIPlugin;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import mezz.jei.api.constants.VanillaTypes;
-import mezz.jei.library.ingredients.itemStacks.TypedItemStack;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
@@ -48,6 +47,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -456,7 +456,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
                 if (!itemSlot.allowXEILookup) return null;
                 var current = itemSlot.getValue();
                 if (current.isEmpty()) return null;
-                return TypedItemStack.create(current);
+                return LDLibJEIPlugin.createTypedIngredient(VanillaTypes.ITEM_STACK, current).orElse(null);
             });
         }
 
@@ -472,7 +472,9 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
 
         public static void recipeIngredient(ItemSlot itemSlot, IngredientIO io, Supplier<Stream<ItemStack>> allPossibleItems) {
             LDLibJEIPlugin.recipeIngredient(itemSlot, io, () -> allPossibleItems.get()
-                    .map(TypedItemStack::create)
+                    .map(itemStack -> LDLibJEIPlugin.createTypedIngredient(VanillaTypes.ITEM_STACK, itemStack))
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
                     .collect(Collectors.toList()));
         }
 
@@ -483,8 +485,12 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         public static void recipeSlot(ItemSlot itemSlot, Supplier<Stream<ItemStack>> allPossibleItems) {
             LDLibJEIPlugin.recipeSlot(itemSlot, () -> {
                 var item = itemSlot.getValue();
-                return item.isEmpty() ? null : TypedItemStack.create(item);
-            }, () ->allPossibleItems.get().map(TypedItemStack::create).collect(Collectors.toList()));
+                return item.isEmpty() ? null : LDLibJEIPlugin.createTypedIngredient(VanillaTypes.ITEM_STACK, item).orElse(null);
+            }, () -> allPossibleItems.get()
+                    .map(itemStack -> LDLibJEIPlugin.createTypedIngredient(VanillaTypes.ITEM_STACK, itemStack))
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .collect(Collectors.toList()));
         }
     }
 

@@ -19,10 +19,12 @@ import mezz.jei.common.platform.Services;
 import mezz.jei.common.util.SafeIngredientUtil;
 import mezz.jei.library.gui.ingredients.TagContentTooltipComponent;
 import mezz.jei.library.ingredients.DisplayIngredientAcceptor;
+import mezz.jei.library.ingredients.IIngredientManagerInternal;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
+import net.minecraft.tags.TagKey;
 import net.minecraft.util.context.ContextMap;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -97,6 +99,12 @@ public class JEIRecipeSlotWidget implements IRecipeSlotDrawable {
     }
 
     @Override
+    public Stream<ITypedIngredient<?>> getDisplayedIngredients() {
+        // JEI expands its own displayed ingredient into a display group; this slot shows exactly one.
+        return getDisplayedIngredient().stream();
+    }
+
+    @Override
     @Deprecated
     public List<Component> getTooltip() {
         return List.of();
@@ -145,6 +153,22 @@ public class JEIRecipeSlotWidget implements IRecipeSlotDrawable {
         }
     }
 
+    @Override
+    public Optional<TagKey<?>> getTagKey() {
+        return getDisplayedIngredient().flatMap(this::getTagKeyEquivalent);
+    }
+
+    private <T> Optional<TagKey<?>> getTagKeyEquivalent(ITypedIngredient<T> ingredient) {
+        IIngredientType<T> ingredientType = ingredient.getType();
+        List<T> ingredients = getIngredients(ingredientType).toList();
+        if (ingredients.isEmpty()) {
+            return Optional.empty();
+        }
+        IIngredientManager ingredientManager = Internal.getJeiRuntime().getIngredientManager();
+        IIngredientHelper<T> ingredientHelper = ingredientManager.getIngredientHelper(ingredientType);
+        return ingredientHelper.getTagKeyEquivalent(ingredients);
+    }
+
     private <T> void addTagNameTooltip(ITooltipBuilder tooltip, IIngredientManager ingredientManager, ITypedIngredient<T> ingredient) {
         IIngredientType<T> ingredientType = ingredient.getType();
         List<T> ingredients = getIngredients(ingredientType).toList();
@@ -153,7 +177,7 @@ public class JEIRecipeSlotWidget implements IRecipeSlotDrawable {
         }
 
         IClientConfig clientConfig = Internal.getJeiClientConfigs().getClientConfig();
-        if (clientConfig.getHideSingleTagContentTooltipEnabled() && ingredients.size() == 1) {
+        if (clientConfig.hideSingleTagContentTooltipEnabled().getValue() && ingredients.size() == 1) {
             return;
         }
 
@@ -174,7 +198,7 @@ public class JEIRecipeSlotWidget implements IRecipeSlotDrawable {
 
     private <T> void addIngredientsToTooltip(ITooltipBuilder tooltip, ITypedIngredient<T> displayed) {
         IClientConfig clientConfig = Internal.getJeiClientConfigs().getClientConfig();
-        if (clientConfig.isTagContentTooltipEnabled()) {
+        if (clientConfig.tagContentTooltipEnabled().getValue()) {
             IIngredientType<T> type = displayed.getType();
 
             IJeiRuntime jeiRuntime = Internal.getJeiRuntime();
@@ -205,8 +229,9 @@ public class JEIRecipeSlotWidget implements IRecipeSlotDrawable {
     @Override
     public IIngredientAcceptor<?> createDisplayOverrides() {
         if (displayOverrides == null) {
-            IIngredientManager ingredientManager = Internal.getJeiRuntime().getIngredientManager();
-            displayOverrides = new DisplayIngredientAcceptor(ingredientManager, contextMap);
+            // JEI's runtime manager is always the internal implementation; the acceptor needs that wider type.
+            var ingredientManager = (IIngredientManagerInternal) Internal.getJeiRuntime().getIngredientManager();
+            displayOverrides = new DisplayIngredientAcceptor(ingredientManager, contextMap, getRole());
         }
         return displayOverrides;
     }
