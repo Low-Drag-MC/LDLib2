@@ -27,7 +27,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import me.shedaniel.rei.api.common.util.EntryStacks;
-import mezz.jei.library.ingredients.itemStacks.TypedItemStack;
+import mezz.jei.api.constants.VanillaTypes;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -44,7 +44,6 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.appliedenergistics.yoga.YogaOverflow;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -689,7 +688,7 @@ public class Scene extends UIElement {
                 if (!scene.allowXEILookup) return null;
                 var current = scene.lastHoverItem;
                 if (current == null || current.isEmpty()) return null;
-                return TypedItemStack.create(current);
+                return LDLibJEIPlugin.createTypedIngredient(VanillaTypes.ITEM_STACK, current).orElse(null);
             });
         }
     }
