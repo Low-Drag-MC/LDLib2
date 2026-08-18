@@ -40,6 +40,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
 import org.jetbrains.annotations.NotNull;
@@ -72,6 +73,7 @@ public class TestComponentExamples implements IScreenTest {
 
         BiConsumer<String, Supplier<UIElement>> addExample = (name, exampleSupplier) -> {
             var toggle = new Toggle();
+            toggle.setId("example-" + name.replace(" / ", "-").replace(' ', '-'));
             toggle.setToggleGroup(toggleGroup);
             toggle.noText();
             toggle.toggleStyle(style -> {
@@ -86,7 +88,11 @@ public class TestComponentExamples implements IScreenTest {
             scrollerView.addScrollViewChild(toggle.setOnToggleChanged(isON -> {
                 if (isON) {
                     rightContainer.clearAllChildren();
-                    rightContainer.addChild(exampleSupplier.get());
+                    rightContainer.addChildren(
+                            new Label().setText(name)
+                                    .textStyle(style -> style.fontSize(12).textColor(0xff88ccff).textShadow(true)),
+                            exampleSupplier.get()
+                    );
                 }
             }));
         };
@@ -195,28 +201,31 @@ public class TestComponentExamples implements IScreenTest {
     }
 
     private UIElement toggleExample() {
+        var group = new ToggleGroupElement();
+        group.addChildren(
+                new Label().setText("Toggle Group"),
+                new Toggle().setText("toggle 1"),
+                new Toggle().setText("toggle 2").setValue(true, false),
+                new Toggle().setText("toggle 3")
+        ).addClass("panel_bg");
         return new UIElement().layout(layout -> layout.gapAll(2)).addChildren(
-                new Toggle().setText("my toggle"),
+                new Toggle().setText("my toggle").setValue(true, false),
                 new Toggle().setText("disabled").disabled(),
-                new ToggleGroupElement().addChildren(
-                        new Label().setText("Toggle Group"),
-                        new Toggle().setText("toggle 1"),
-                        new Toggle().setText("toggle 2"),
-                        new Toggle().setText("toggle 3")
-                ).addClass("panel_bg")
+                group
         );
     }
 
     private UIElement switchExample() {
         return new UIElement().layout(layout -> layout.gapAll(2)).addChildren(
-                new Switch(),
+                new Switch().setValue(true, false),
                 new Switch().disabled()
         );
     }
 
     private UIElement selectorExample() {
         return new UIElement().layout(layout -> layout.gapAll(2)).addChildren(
-                new Selector<Direction>().setCandidates(Arrays.stream(Direction.values()).toList()),
+                new Selector<Direction>().setSelected(Direction.NORTH, false)
+                        .setCandidates(Arrays.stream(Direction.values()).toList()),
                 new Selector<Item>()
                         .setSelected(Items.APPLE)
                         .setCandidates(List.of(Items.APPLE, Items.STONE, Items.CHEST))
@@ -270,8 +279,7 @@ public class TestComponentExamples implements IScreenTest {
     }
 
     private UIElement treeListExample() {
-        return new UIElement().layout(layout -> layout.gapAll(2)).addChildren(
-                new TreeList<>(TreeBuilder.start("root")
+        var root = TreeBuilder.start("root")
                         .leaf("leaf 1", null)
                         .leaf("leaf 2", null)
                         .branch("branch 3", branch -> branch.leaf("leaf 3-1", null))
@@ -281,8 +289,10 @@ public class TestComponentExamples implements IScreenTest {
                                 .branch("branch 5-2", branch2 ->
                                         branch2.leaf("leaf 5-2-1", null)
                                                 .leaf("leaf 5-2-2", null)))
-                        .build())
-        );
+                        .build();
+        var tree = new TreeList<>(root);
+        tree.expandAllNodesIf(root, node -> true);
+        return new UIElement().layout(layout -> layout.gapAll(2)).addChild(tree);
     }
 
     private UIElement codeEditorExample() {
@@ -372,7 +382,7 @@ public class TestComponentExamples implements IScreenTest {
                     public void onResultSelected(@Nullable Block value) {
                         // do noting
                     }
-                }).setCandidateUIProvider(UIElementProvider.iconText(
+                }).setSelected(Blocks.STONE, false).setCandidateUIProvider(UIElementProvider.iconText(
                         block -> new ItemStackTexture(block.asItem()),
                         block -> Component.translatable(block.getDescriptionId())
                 ))
