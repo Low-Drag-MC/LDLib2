@@ -1,4 +1,7 @@
 # ChangeLogs
+## v2.2.36.a
+* Fixed APIs compatibility
+
 ## v2.2.36
 * Fixed missing update packet
 * Moved JEI calls to use APIs
