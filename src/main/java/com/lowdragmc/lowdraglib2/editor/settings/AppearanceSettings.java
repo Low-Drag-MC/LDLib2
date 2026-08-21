@@ -65,7 +65,10 @@ public class AppearanceSettings implements Settings {
             editor.addEventListener(UIEvents.MUI_CHANGED, onMuiChangedListener);
         }
         applyStylesheet(editor);
-        // screenScale
+        // screenScale. -1 means the player never picked an editor-specific scale, so their own GUI scale
+        // stands. Without this the value would reach options#guiScale, be clamped to 0, and silently
+        // switch the game to "auto" the first time any editor is created.
+        if (screenScale < 0) return;
         var minecraft = Minecraft.getInstance();
         var guiScale = minecraft.options.guiScale();
         var maxScale =  minecraft.getWindow().calculateScale(0, minecraft.isEnforceUnicode());
