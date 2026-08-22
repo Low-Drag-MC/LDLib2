@@ -29,6 +29,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wiget.PlacematModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wiget.StickyNoteModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WirePlaceHolder;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireReroutePointModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireSide;
 import lombok.Getter;
 import net.minecraft.core.HolderLookup;
@@ -58,6 +59,12 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
     private List<AbstractNodeModel> nodeModels;
     @Getter
     private List<WireModel> wireModels;
+    /**
+     * Reroute points, owned by the graph rather than by any one wire: several wires share a point,
+     * and each stores only which point it leaves from. Layout only — see {@link WireReroutePointModel}.
+     */
+    @Getter
+    private List<WireReroutePointModel> wireReroutePointModels;
     @Getter
     private List<PlacematModel> placematModels;
     @Getter
@@ -105,6 +112,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
     protected GraphModel() {
         nodeModels = new ArrayList<>();
         wireModels = new ArrayList<>();
+        wireReroutePointModels = new ArrayList<>();
         placematModels = new ArrayList<>();
         stickyNoteModels = new ArrayList<>();
         placeholders = new ArrayList<>();
@@ -492,6 +500,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         elementsByUID = new HashMap<>();
         nodeModels.forEach(this::registerElement);
         wireModels.forEach(this::registerElement);
+        wireReroutePointModels.forEach(this::registerElement);
         stickyNoteModels.forEach(this::registerElement);
         placematModels.forEach(this::registerElement);
         // Some variables may not be under any section.
@@ -562,6 +571,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         unregisterElement(block);
     }
 
+
     /**
      * Registers a node preview model.
      *
@@ -623,6 +633,8 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         deleteGroups(elementsByType.groupModels);
         deleteStickyNotes(elementsByType.stickyNoteModels);
         deletePlacemats(elementsByType.placematModels);
+        // Before the wires: a point on a wire that is itself being deleted goes with the wire.
+        deleteWireReroutePoints(elementsByType.wireReroutePointModels);
         deleteWires(elementsByType.wireModels);
         deleteNodes(elementsByType.nodeModels, false, true);
 
@@ -685,6 +697,9 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                     break;
                 case WireModel wireModel:
                     removeWire(wireModel);
+                    break;
+                case WireReroutePointModel reroutePoint:
+                    removeWireReroutePoint(reroutePoint);
                     break;
                 case com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.BlockNodeModel blockNodeModel:
                     // Blocks live inside a context, not in the top-level nodeModels list.
@@ -1100,6 +1115,209 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         getCurrentGraphChangeDescription().addNewModel(wireModel);
     }
 
+    // region reroute points
+
+    /**
+     * Creates a reroute point hanging off {@code upstream} (or directly off a source port when
+     * {@code upstream} is {@code null}) and adds it to the graph.
+     *
+     * <p>The point is not attached to any wire yet — {@link WireModel#setRouteVia} or
+     * {@link #insertReroutePointOnWire} does that.</p>
+     *
+     * @param position top-left in canvas content coordinates (see {@link WireReroutePointModel#centerToPosition})
+     * @param upstream the point this one follows, or {@code null} to start a chain
+     * @param uid      a uid to restore, or {@code null} to allocate a fresh one
+     */
+    public WireReroutePointModel createWireReroutePoint(Vector2f position,
+                                                        @Nullable WireReroutePointModel upstream,
+                                                        @Nullable UUID uid) {
+        var point = new WireReroutePointModel(position);
+        point.setGraphModel(this);
+        if (uid != null) point.setUid(uid);
+        point.setUpstream(upstream);
+
+        wireReroutePointModels.add(point);
+        registerElement(point);
+        getCurrentGraphChangeDescription().addNewModel(point);
+        return point;
+    }
+
+    /**
+     * Bends {@code wire} at {@code index}, counting segments along {@code fromPort → point… → toPort}.
+     *
+     * <p>Bending a segment that ends at an existing point splices the new one in <em>upstream of that
+     * point</em>, so every wire and branch sharing that trunk bends with it — which is the whole
+     * reason a reroute point exists. Bending the last segment, the one running into {@code toPort},
+     * affects this wire alone because nothing else travels along it.</p>
+     *
+     * @param index    the segment to bend, clamped into {@code [0, chainLength]}
+     * @param position top-left of the new point in canvas content coordinates
+     */
+    public WireReroutePointModel insertReroutePointOnWire(WireModel wire, int index, Vector2f position) {
+        var chain = wire.getReroutePoints();
+        if (index < 0 || index >= chain.size()) {
+            var point = createWireReroutePoint(position, wire.getRouteVia(), null);
+            wire.setRouteVia(point);
+            return point;
+        }
+        var downstream = chain.get(index);
+        var point = createWireReroutePoint(position, downstream.getUpstream(), null);
+        downstream.setUpstream(point);
+        return point;
+    }
+
+    /**
+     * Every wire drawn through {@code point}. Several is the normal case: that is what makes a
+     * reroute point a fan-out, and each of those wires is an ordinary {@code fromPort → toPort}
+     * connection on the same output port.
+     */
+    /**
+     * Re-sources a reroute point: every wire through it now comes from {@code sourcePort} instead.
+     * This is what dropping an output port onto the point's input side means.
+     *
+     * <p>The point is also detached from its own upstream chain, because that chain may still feed
+     * other branches — leaving it attached would make one point serve two different source ports,
+     * and every wire through a point must agree on where it comes from.</p>
+     *
+     * <p>Unlike everything else about reroute points this <em>is</em> a topology change: it re-points
+     * real wires, exactly as if the user had dragged each one's origin by hand.</p>
+     */
+    public void setReroutePointSource(WireReroutePointModel point, PortModel sourcePort) {
+        if (point == null || sourcePort == null) return;
+        var wires = getWiresThroughReroutePoint(point);
+        if (wires.isEmpty()) return;
+
+        point.setUpstream(null);
+        for (var wire : wires) {
+            if (wire.getFromPort() != sourcePort) {
+                wire.setPort(WireSide.FROM, sourcePort);
+            }
+        }
+        // The old upstream may have been feeding nothing but this branch.
+        sweepOrphanReroutePoints();
+    }
+
+    /**
+     * Writes reroute points as {@code uid + position + upstream uid}. The collection must be
+     * upstream-closed — a chain from {@link WireModel#getReroutePoints()} always is.
+     */
+    protected static ListTag writeReroutePoints(Collection<WireReroutePointModel> points) {
+        var list = new ListTag();
+        for (var point : points) {
+            if (point == null) continue;
+            var entry = new CompoundTag();
+            entry.putUUID("uid", point.getUid());
+            entry.putFloat("x", point.getPosition().x);
+            entry.putFloat("y", point.getPosition().y);
+            if (point.getUpstream() != null) {
+                entry.putUUID("upstream", point.getUpstream().getUid());
+            }
+            list.add(entry);
+        }
+        return list;
+    }
+
+    /**
+     * Restores reroute points written by {@link #writeReroutePoints} and adds them to the graph.
+     *
+     * @param freshUids      {@code true} to allocate new uids (paste, so an in-graph paste cannot
+     *                       collide with the originals), {@code false} to keep them (load)
+     * @param positionOffset shifts every point, or {@code null} to keep the stored positions
+     * @return the serialized uid of each point mapped to the restored instance, for resolving the
+     *         {@code routeVia} references that follow
+     */
+    protected Map<UUID, WireReroutePointModel> readReroutePoints(ListTag list, boolean freshUids,
+                                                                 @Nullable Vector2f positionOffset) {
+        var byOldUid = new HashMap<UUID, WireReroutePointModel>();
+        var pendingUpstream = new LinkedHashMap<WireReroutePointModel, UUID>();
+        for (int i = 0; i < list.size(); i++) {
+            var entry = list.getCompound(i);
+            if (!entry.hasUUID("uid")) continue;
+            var position = new Vector2f(entry.getFloat("x"), entry.getFloat("y"));
+            if (positionOffset != null) position.add(positionOffset);
+            var oldUid = entry.getUUID("uid");
+            var point = createWireReroutePoint(position, null, freshUids ? null : oldUid);
+            byOldUid.put(oldUid, point);
+            if (entry.hasUUID("upstream")) {
+                pendingUpstream.put(point, entry.getUUID("upstream"));
+            }
+        }
+        // Second pass: a point may be listed before the one it hangs off.
+        pendingUpstream.forEach((point, upstreamUid) -> point.setUpstream(byOldUid.get(upstreamUid)));
+        return byOldUid;
+    }
+
+    public List<WireModel> getWiresThroughReroutePoint(@Nullable WireReroutePointModel point) {
+        if (point == null) return List.of();
+        var result = new ArrayList<WireModel>();
+        for (var wire : wireModels) {
+            if (wire != null && WireReroutePointModel.chainContains(wire.getRouteVia(), point)) {
+                result.add(wire);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Deletes reroute points. Purely a layout edit — the wires through them keep their ports and
+     * simply lose one bend.
+     *
+     * @param points the reroute points to delete
+     */
+    public void deleteWireReroutePoints(Collection<? extends WireReroutePointModel> points) {
+        for (var point : List.copyOf(points)) {
+            if (point != null && point.isDeletable()) {
+                removeWireReroutePoint(point);
+            }
+        }
+    }
+
+    /**
+     * Splices a reroute point out of the routing tree: everything that hung off it — downstream
+     * points and the wires routed via it — is re-linked to its own upstream, so the branch simply
+     * straightens by one bend. No connection is touched.
+     */
+    protected void removeWireReroutePoint(WireReroutePointModel point) {
+        if (point == null) return;
+        var upstream = point.getUpstream();
+        for (var other : wireReroutePointModels) {
+            if (other != null && other.getUpstream() == point) {
+                other.setUpstream(upstream);
+            }
+        }
+        for (var wire : wireModels) {
+            if (wire != null && wire.getRouteVia() == point) {
+                wire.setRouteVia(upstream);
+            }
+        }
+        point.setUpstream(null);
+        unregisterElement(point);
+        wireReroutePointModels.remove(point);
+        currentChangeDescription.addDeletedModel(point);
+    }
+
+    /**
+     * Drops every reroute point no wire routes through any more. A point exists only to shape the
+     * wires that pass through it, so one left behind by a wire deletion is invisible dead weight.
+     */
+    protected void sweepOrphanReroutePoints() {
+        if (wireReroutePointModels.isEmpty()) return;
+        var reachable = new HashSet<WireReroutePointModel>();
+        for (var wire : wireModels) {
+            if (wire == null) continue;
+            reachable.addAll(wire.getReroutePoints());
+        }
+        for (var point : List.copyOf(wireReroutePointModels)) {
+            if (point != null && !reachable.contains(point)) {
+                // Straight removal, not a splice: nothing downstream survives to be re-linked.
+                point.setUpstream(null);
+                unregisterElement(point);
+                wireReroutePointModels.remove(point);
+                currentChangeDescription.addDeletedModel(point);
+            }
+        }
+    }
+
     protected void removeWire(WireModel wireModel) {
         if (wireModel != null) {
             unregisterElement(wireModel);
@@ -1142,6 +1360,22 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
     }
 
     public void deleteWire(WireModel wireToDelete) {
+        deleteWireInternal(wireToDelete);
+        sweepOrphanReroutePoints();
+    }
+
+    /**
+     * Deletes wires from the graph.
+     * @param wireModels The list of wires to delete.
+     */
+    public void deleteWires(Collection<? extends WireModel> wireModels) {
+        List.copyOf(wireModels).forEach(this::deleteWireInternal);
+        // Once, after the whole batch: a reroute point can be left orphaned by the last wire that
+        // used it, and sweeping per wire would rescan the graph for every deletion.
+        sweepOrphanReroutePoints();
+    }
+
+    private void deleteWireInternal(WireModel wireToDelete) {
         if (wireToDelete != null && wireToDelete.isDeletable()) {
             if (wireToDelete instanceof WirePlaceHolder placeHolder) {
                 removePlaceholder(placeHolder);
@@ -1158,14 +1392,6 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                 removeWire(wireToDelete);
             }
         }
-    }
-
-    /**
-     * Deletes wires from the graph.
-     * @param wireModels The list of wires to delete.
-     */
-    public void deleteWires(Collection<? extends WireModel> wireModels) {
-        List.copyOf(wireModels).forEach(this::deleteWire);
     }
 
     /**
@@ -2426,7 +2652,10 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         }
         tag.put("nodes", nodesTag);
 
-        // 5. Wires
+        // 5. Reroute points — before the wires, which reference them by uid.
+        tag.put("reroutePoints", writeReroutePoints(wireReroutePointModels));
+
+        // 6. Wires
         var wiresTag = new ListTag();
         for (var wireModel : wireModels) {
             if (wireModel != null) {
@@ -2482,6 +2711,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         nodeModels.clear();
         onNodeModelsReset();
         wireModels.clear();
+        wireReroutePointModels.clear();
         placematModels.clear();
         stickyNoteModels.clear();
         graphVariableModels.clear();
@@ -2622,7 +2852,12 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
             }
         }
 
-        // 5. Wires - resolve port references
+        // 5. Reroute points — pure layout, referenced by uid from the wires loaded next.
+        if (compound.contains("reroutePoints")) {
+            readReroutePoints(compound.getList("reroutePoints", Tag.TAG_COMPOUND), false, null);
+        }
+
+        // 6. Wires - resolve port references
         if (compound.contains("wires")) {
             var wiresTag = compound.getList("wires", Tag.TAG_COMPOUND);
             for (int i = 0; i < wiresTag.size(); i++) {
@@ -2691,6 +2926,12 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                     }
                     wireModel.setPorts(toPort, fromPort);
 
+                    // Layout only — an unresolvable point just means the wire draws straight.
+                    var routeViaUid = WireModel.getRouteViaUidFromTag(wireTag);
+                    if (routeViaUid != null && getModel(routeViaUid) instanceof WireReroutePointModel point) {
+                        wireModel.setRouteVia(point);
+                    }
+
                     wireModels.add(wireModel);
                     registerElement(wireModel);
                     if (portWireIndex != null) {
@@ -2739,6 +2980,11 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         // failure isn't a meaningful event for them. Type-mismatch port-drops are already
         // handled by step 5 above (the wire's referenced port UID no longer resolves).
         dropWiresOnFailedInputConstants();
+
+        // A reroute point only exists to shape the wires through it. Step 6 can skip a wire whose
+        // ports never resolved and step 8 can drop one outright, in both cases leaving the points
+        // it used behind with nothing to shape.
+        sweepOrphanReroutePoints();
 
         // 9. Orphan missing-port sweep. A MISSING_PORT placeholder exists ONLY to keep a wire
         // alive (recovery fallback / type-conflict parking) — a missing port with no connected
@@ -2922,9 +3168,20 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
             wireRef.putString("fromPortUniqueName", wire.getFromPort().getUniqueName());
             wireRef.putUUID("toNodeUid", wire.getToPort().getNodeModel().getUid());
             wireRef.putString("toPortUniqueName", wire.getToPort().getUniqueName());
+            if (wire.getRouteVia() != null) {
+                wireRef.putUUID("routeVia", wire.getRouteVia().getUid());
+            }
             wiresTag.add(wireRef);
         }
         tag.put("wires", wiresTag);
+
+        // Reroute points reachable from the copied wires. Shared points are stored once, so a
+        // pasted fan-out keeps sharing its trunk instead of splitting into parallel copies.
+        var copiedPoints = new LinkedHashSet<WireReroutePointModel>();
+        for (var wire : internalWires) {
+            copiedPoints.addAll(wire.getReroutePoints());
+        }
+        tag.put("reroutePoints", writeReroutePoints(copiedPoints));
 
         // 5. Serialize variable declarations referenced by VariableNodeModels
         var variablesTag = new ListTag();
@@ -3156,6 +3413,12 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
             }
         }
 
+        // 3.5 Reroute points: fresh uids and shifted, before the wires that reference them. Points
+        // shared by several copied wires are restored once, so the pasted fan-out stays a fan-out.
+        var pastedReroutePoints = compound.contains("reroutePoints")
+                ? readReroutePoints(compound.getList("reroutePoints", Tag.TAG_COMPOUND), true, positionOffset)
+                : Map.<UUID, WireReroutePointModel>of();
+
         // 4. Wires: reconnect using oldNodeUid→newNode mapping + portUniqueName
         if (compound.contains("wires")) {
             var wiresTag = compound.getList("wires", Tag.TAG_COMPOUND);
@@ -3173,7 +3436,10 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                 var fromPort = findPortByUniqueName(newFromNode, fromPortName);
                 var toPort = findPortByUniqueName(newToNode, toPortName);
                 if (fromPort != null && toPort != null) {
-                    createWire(toPort, fromPort);
+                    var wire = createWire(toPort, fromPort);
+                    if (wire != null && wireRef.hasUUID("routeVia")) {
+                        wire.setRouteVia(pastedReroutePoints.get(wireRef.getUUID("routeVia")));
+                    }
                 }
             }
         }
@@ -3213,6 +3479,10 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
                 result.add(sn);
             }
         }
+
+        // A wire whose ports could not be re-resolved is skipped above, which can leave the points
+        // it would have used with nothing to shape.
+        sweepOrphanReroutePoints();
 
         return new PasteResult(result, oldToNewNodeMapOuter);
     }

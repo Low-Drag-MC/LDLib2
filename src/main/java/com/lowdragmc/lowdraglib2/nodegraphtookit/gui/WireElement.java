@@ -4,6 +4,8 @@ import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderTypes;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.GraphViewLod;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.WireCommands;
@@ -19,6 +21,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.IGhostWireModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireReroutePointModel;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
@@ -38,9 +41,15 @@ public class WireElement extends GraphElement<WireModel> {
     protected float toOffset = 15;
     protected List<Vector2f> rawPoints = Collections.emptyList();
     protected List<Vector2f> drawPoints = Collections.emptyList();
+    /** Reroute connector anchors, in the same parent-local layout space as {@link #from} / {@link #to}. */
+    protected List<Vector2f> reroutePositions = Collections.emptyList();
     protected ModelElement lastUsedFromPort;
     protected ModelElement lastUsedToPort;
+    /** The point elements {@link #addBackwardDependencies()} last hooked, in wire order. */
+    protected List<ModelElement> lastUsedReroutePoints = Collections.emptyList();
     protected WireModel lastWireModel;
+    protected WireReroutePointModel lastRouteVia;
+    protected int lastReroutePointCount = -1;
     /**
      * LOD the current {@link #drawPoints} were built for. Changing level changes the point list
      * (rounded vs. straight), and {@link GraphViewLod#BLOCK} skips {@link #updatePortPosition()}
@@ -52,6 +61,23 @@ public class WireElement extends GraphElement<WireModel> {
     public WireElement(WireModel wireModel) {
         super(wireModel);
         addClass("__wire__");
+        addEventListener(UIEvents.DOUBLE_CLICK, this::onDoubleClick);
+    }
+
+    /**
+     * Double-clicking a wire drops a reroute point where the cursor is — the same gesture Unreal and
+     * Unity use. It is a layout edit only: the wire keeps both of its ports.
+     */
+    protected void onDoubleClick(UIEvent event) {
+        if (event.button != 0) return;
+        var graphView = getGraphView();
+        // A ghost wire is transient drag feedback, not a real connection — nothing to bend.
+        if (graphView == null || getModel() instanceof IGhostWireModel) return;
+        var center = graphView.getContentViewContainer()
+                .worldToLocalLayoutOffset(new Vector2f(event.x, event.y));
+        graphView.dispatchCommand(new WireCommands.InsertReroutePointCommand(
+                getModel(), center, reroutePointInsertIndex(center)));
+        event.stopPropagation();
     }
 
     @Override
@@ -74,7 +100,18 @@ public class WireElement extends GraphElement<WireModel> {
     public boolean hasBackwardsDependenciesChanged() {
         if (graphView == null) return false;
         var modelElements = graphView.getModelElements();
-        return lastUsedFromPort != modelElements.get(getModel().getFromPort()) || lastUsedToPort != modelElements.get(getModel().getToPort());
+        if (lastUsedFromPort != modelElements.get(getModel().getFromPort())
+                || lastUsedToPort != modelElements.get(getModel().getToPort())) {
+            return true;
+        }
+        // A point added, removed or (re)built its UI: the LAYOUT hooks that keep the polyline glued
+        // to the points have to be re-attached, or dragging one would leave the wire behind.
+        var points = getModel().getReroutePoints();
+        if (lastUsedReroutePoints.size() != points.size()) return true;
+        for (int i = 0; i < points.size(); i++) {
+            if (lastUsedReroutePoints.get(i) != modelElements.get(points.get(i))) return true;
+        }
+        return false;
     }
 
     @Override
@@ -89,6 +126,18 @@ public class WireElement extends GraphElement<WireModel> {
         var modelElements = graphView.getModelElements();
         lastUsedFromPort = modelElements.get(getModel().getFromPort());
         lastUsedToPort = modelElements.get(getModel().getToPort());
+
+        // Same for the reroute points: the wire follows them while they are dragged.
+        var points = getModel().getReroutePoints();
+        var used = new ArrayList<ModelElement>(points.size());
+        for (var point : points) {
+            var ui = modelElements.get(point);
+            used.add(ui);
+            if (ui != null) {
+                getDependencies().addBackwardDependency(ui, DependencyTypes.LAYOUT);
+            }
+        }
+        lastUsedReroutePoints = used;
     }
 
     private void addDependencies(PortModel portModel) {
@@ -120,7 +169,12 @@ public class WireElement extends GraphElement<WireModel> {
 
     @Override
     public boolean hasModelDependenciesChanged() {
-        return lastWireModel != getModel();
+        var model = getModel();
+        // routeVia catches the branch being re-pointed, the count catches a splice further upstream
+        // that leaves routeVia alone — a shared trunk bending affects every wire below it.
+        return lastWireModel != model
+                || lastRouteVia != model.getRouteVia()
+                || lastReroutePointCount != model.getReroutePoints().size();
     }
 
     @Override
@@ -135,6 +189,14 @@ public class WireElement extends GraphElement<WireModel> {
         if (toPort != null && graphView.getModelElement(toPort) instanceof PortElement portElement) {
             portElement.addDependencyToWireModel(model);
         }
+        // Moving a reroute point changes the wire's geometry, so a change on the point model must
+        // reach us even when its element is rebuilt rather than merely re-laid-out.
+        var chain = model.getReroutePoints();
+        for (var reroutePoint : chain) {
+            getDependencies().addModelDependency(reroutePoint);
+        }
+        lastReroutePointCount = chain.size();
+        lastRouteVia = model.getRouteVia();
         lastWireModel = model;
     }
 
@@ -204,6 +266,20 @@ public class WireElement extends GraphElement<WireModel> {
         return new Vector2f();
     }
 
+    /**
+     * One of the wire's two ends in world coordinates: the port's endpoint, or — while the wire is a
+     * ghost being dragged out of a port — the loose end following the cursor.
+     *
+     * @param isFrom which end, used only to pick the ghost's loose end
+     */
+    private Vector2f endpointWorldPosition(@org.jetbrains.annotations.Nullable PortModel port, boolean isFrom) {
+        if (port != null) return resolvePortEndpoint(port);
+        if (getModel() instanceof IGhostWireModel ghostWire) {
+            return isFrom ? ghostWire.getFromWorldPoint() : ghostWire.getToWorldPoint();
+        }
+        return new Vector2f();
+    }
+
     protected void updatePortPosition() {
         var graphView = getGraphView();
         if (graphView == null) return;
@@ -212,32 +288,14 @@ public class WireElement extends GraphElement<WireModel> {
         var toPort = model.getToPort();
         var dirty = rawPoints.isEmpty() || geometryDirty;
 
-        Vector2f fromWorldPos = new Vector2f();
-        if (fromPort == null) {
-            if (model instanceof IGhostWireModel ghostWire) {
-                fromWorldPos = ghostWire.getFromWorldPoint();
-            }
-        } else {
-            fromWorldPos = resolvePortEndpoint(fromPort);
-        }
-
-        Vector2f toWorldPos = new Vector2f();
-        if (toPort == null) {
-            if (model instanceof IGhostWireModel ghostWire) {
-                toWorldPos = ghostWire.getToWorldPoint();
-            }
-        } else {
-            toWorldPos = resolvePortEndpoint(toPort);
-        }
-
         if (getParent() == null) return;
 
-        var fromPos = getParent().worldToLocalLayoutOffset(fromWorldPos);
+        var fromPos = getParent().worldToLocalLayoutOffset(endpointWorldPosition(fromPort, true));
         if (!fromPos.equals(from)) {
             dirty = true;
             this.from = fromPos;
         }
-        var toPos = getParent().worldToLocalLayoutOffset(toWorldPos);
+        var toPos = getParent().worldToLocalLayoutOffset(endpointWorldPosition(toPort, false));
         if (!toPos.equals(to)) {
             dirty = true;
             this.to = toPos;
@@ -253,39 +311,141 @@ public class WireElement extends GraphElement<WireModel> {
             this.toOffset = toPortOffset;
         }
 
+        // Reroute points, resolved from their UI so the wire tracks one mid-drag (the drag preview
+        // moves the element's layout without touching the model). This runs per wire per frame and
+        // most wires are straight, so that case is short-circuited before the chain walk: neither the
+        // chain list nor the per-point matrix work happens.
+        List<Vector2f> anchors = Collections.emptyList();
+        if (model.getRouteVia() != null) {
+            var chain = model.getReroutePoints();
+            // Two points each: a reroute point is drawn as a little node, so the wire lands on its
+            // input dot and leaves from its output dot rather than crossing a single spot.
+            anchors = new ArrayList<>(chain.size() * 2);
+            for (var reroutePoint : chain) {
+                anchors.add(getParent().worldToLocalLayoutOffset(resolveReroutePointAnchor(reroutePoint, true)));
+                anchors.add(getParent().worldToLocalLayoutOffset(resolveReroutePointAnchor(reroutePoint, false)));
+            }
+        }
+        if (!anchors.equals(reroutePositions)) {
+            dirty = true;
+            this.reroutePositions = anchors;
+        }
+
         if (dirty) {
             // Control points leave the port along its orientation: horizontal ports exit sideways
             // (±x), vertical ports exit up/down (±y). The output endpoint (`from`) pushes in the
             // exit direction (+), the input endpoint (`to`) pulls back from its approach side (-).
-            var fromPoint2 = controlPoint(fromPort, from, fromOffset, true);
-            var toPoint2 = controlPoint(toPort, to, toOffset, false);
+            // Reroute anchors sit between the two control points, in wire order, and are passed through
+            // verbatim — the corner rounding below turns them into smooth bends.
+            var localPoints = new ArrayList<Vector2f>(4 + anchors.size());
+            localPoints.add(from);
+            localPoints.add(controlPoint(fromPort, from, fromOffset, true));
+            localPoints.addAll(anchors);
+            localPoints.add(controlPoint(toPort, to, toOffset, false));
+            localPoints.add(to);
 
-            var minX = Math.min(Math.min(from.x, to.x), Math.min(fromPoint2.x, toPoint2.x));
-            var minY = Math.min(Math.min(from.y, to.y), Math.min(fromPoint2.y, toPoint2.y));
-            var maxX = Math.max(Math.max(from.x, to.x), Math.max(fromPoint2.x, toPoint2.x));
-            var maxY = Math.max(Math.max(from.y, to.y), Math.max(fromPoint2.y, toPoint2.y));
+            float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
+            float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
+            for (var point : localPoints) {
+                minX = Math.min(minX, point.x);
+                minY = Math.min(minY, point.y);
+                maxX = Math.max(maxX, point.x);
+                maxY = Math.max(maxY, point.y);
+            }
             var border = 2;
-
-            var x = minX - border;
-            var y = minY - border;
-            float fX = x, fY = y, fW = maxX - minX + 2 * border, fH = maxY - minY + 2 * border;
+            // Copied into effectively-final locals for the style lambda.
+            float boxLeft = minX - border, boxTop = minY - border;
+            float boxWidth = maxX - minX + 2 * border, boxHeight = maxY - minY + 2 * border;
             // Wire bounds computed from connected port positions — pin via IMPORTANT.
             Style.importantPipeline(getLayout(), l -> l
-                    .left(fX)
-                    .top(fY)
-                    .width(fW)
-                    .height(fH));
+                    .left(boxLeft)
+                    .top(boxTop)
+                    .width(boxWidth)
+                    .height(boxHeight));
             var offset = new Vector2f(getParent().getPositionX(), getParent().getPositionY());
-            var realFrom = from.add(offset, new Vector2f());
-            var realTo = to.add(offset, new Vector2f());
-            fromPoint2 = fromPoint2.add(offset);
-            toPoint2 = toPoint2.add(offset);
-            rawPoints = List.of(realFrom, fromPoint2, toPoint2, realTo);
+            rawPoints = localPoints.stream().map(point -> point.add(offset, new Vector2f())).toList();
             // Rounding a corner costs 8 extra points each; at reduced LOD the fillet is smaller
-            // than a pixel, so the raw 4-point polyline is used verbatim.
+            // than a pixel, so the raw polyline is used verbatim.
             drawPoints = effectiveLod() == GraphViewLod.SIMPLIFIED ? rawPoints : roundCorners(rawPoints, 6, 8);
             geometryDirty = false;
         }
+    }
+
+    /**
+     * Resolves one of a reroute point's two connector anchors in world coordinates — the centre of
+     * the matching dot element when one exists, otherwise the model anchor projected out of canvas
+     * content space (the element is built one frame behind the model on creation and after a rebuild).
+     *
+     * @param input {@code true} for the incoming side, {@code false} for the side branches leave from
+     */
+    private Vector2f resolveReroutePointAnchor(WireReroutePointModel reroutePoint, boolean input) {
+        var graphView = getGraphView();
+        if (graphView == null) return new Vector2f();
+        if (graphView.getModelElement(reroutePoint) instanceof WireReroutePointElement element) {
+            var dot = input ? element.getInputDot() : element.getOutputDot();
+            if (dot != null) {
+                return dot.getWorldMouse(
+                        dot.getPositionX() + dot.getSizeWidth() / 2,
+                        dot.getPositionY() + dot.getSizeHeight() / 2);
+            }
+        }
+        var container = graphView.getContentViewContainer();
+        var anchor = input ? reroutePoint.getInputAnchor() : reroutePoint.getOutputAnchor();
+        // Inverse of worldToLocalLayoutOffset: add the container's own position back before projecting.
+        return container.getWorldMouse(
+                anchor.x + container.getPositionX(),
+                anchor.y + container.getPositionY());
+    }
+
+    /**
+     * The reroute index a point dropped at {@code contentLocalPosition} (canvas content coordinates)
+     * should take, i.e. the index of the polyline segment it is closest to.
+     *
+     * <p>Segments are counted along {@code fromPort → reroute[0] → … → reroute[n-1] → toPort}, so
+     * segment {@code i} is exactly the slot a new point must occupy to bend it.</p>
+     */
+    public int reroutePointInsertIndex(Vector2f contentLocalPosition) {
+        var route = routeContentPositions();
+        if (route.size() < 2) return getModel().getReroutePoints().size();
+        var best = 0;
+        var bestDistance = Float.MAX_VALUE;
+        for (int i = 0; i < route.size() - 1; i++) {
+            var distance = distanceToSegment(contentLocalPosition, route.get(i), route.get(i + 1));
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = i;
+            }
+        }
+        return best;
+    }
+
+    /**
+     * The wire's route as {@code [fromPort, point…, toPort]} in canvas content coordinates — the same
+     * space model positions live in. Control points are deliberately left out: they are cosmetic
+     * tangents, and including them would bias segment picking near the ports.
+     */
+    protected List<Vector2f> routeContentPositions() {
+        var graphView = getGraphView();
+        if (graphView == null) return List.of();
+        var container = graphView.getContentViewContainer();
+        var model = getModel();
+        var route = new ArrayList<Vector2f>(2 + model.getReroutePoints().size());
+        route.add(container.worldToLocalLayoutOffset(endpointWorldPosition(model.getFromPort(), true)));
+        for (var reroutePoint : model.getReroutePoints()) {
+            route.add(reroutePoint.getCenter());
+        }
+        route.add(container.worldToLocalLayoutOffset(endpointWorldPosition(model.getToPort(), false)));
+        return route;
+    }
+
+    private static float distanceToSegment(Vector2f point, Vector2f a, Vector2f b) {
+        float dx = b.x - a.x, dy = b.y - a.y;
+        float length2 = dx * dx + dy * dy;
+        float t = length2 < 1e-6f ? 0f : ((point.x - a.x) * dx + (point.y - a.y) * dy) / length2;
+        t = Math.clamp(t, 0f, 1f);
+        float ex = point.x - (a.x + t * dx);
+        float ey = point.y - (a.y + t * dy);
+        return (float) Math.sqrt(ex * ex + ey * ey);
     }
 
     /**
@@ -445,27 +605,24 @@ public class WireElement extends GraphElement<WireModel> {
         if (!super.isIntersectWithPoint(localX, localY)) return false;
         // No geometry yet: the wire has never been drawn (culled since creation, or the graph is
         // zoomed out far enough that BLOCK LOD skips the endpoint resolve). Nothing to hit.
-        if (rawPoints.size() < 4) return false;
+        if (rawPoints.size() < 2) return false;
         var localMouse = new Vector2f((float) localX, (float) localY);
-        // line1
-        if (isMouseOverLine(localMouse, rawPoints.get(0), rawPoints.get(1), 2)) return true;
-        // line2
-        if (isMouseOverLine(localMouse, rawPoints.get(1), rawPoints.get(2), 2)) return true;
-        // line3
-        return isMouseOverLine(localMouse, rawPoints.get(2), rawPoints.get(3), 2);
+        // One test per polyline segment: four for a straight wire, plus two per reroute point.
+        for (int i = 0; i < rawPoints.size() - 1; i++) {
+            if (isMouseOverLine(localMouse, rawPoints.get(i), rawPoints.get(i + 1), 2)) return true;
+        }
+        return false;
     }
 
     @Override
     public boolean isOverlapping(float localX, float localY, float localWidth, float localHeight) {
         if (!super.isOverlapping(localX, localY, localWidth, localHeight)) return false;
-        if (rawPoints.size() < 4) return false;
+        if (rawPoints.size() < 2) return false;
         var localRect = new Vector4f(localX, localY, localWidth, localHeight);
-        // line1
-        if (isRectOverlapping(localRect, rawPoints.get(0), rawPoints.get(1), 2)) return true;
-        // line2
-        if (isRectOverlapping(localRect, rawPoints.get(1), rawPoints.get(2), 2)) return true;
-        // line3
-        return isRectOverlapping(localRect, rawPoints.get(2), rawPoints.get(3), 2);
+        for (int i = 0; i < rawPoints.size() - 1; i++) {
+            if (isRectOverlapping(localRect, rawPoints.get(i), rawPoints.get(i + 1), 2)) return true;
+        }
+        return false;
     }
 
     @Override
