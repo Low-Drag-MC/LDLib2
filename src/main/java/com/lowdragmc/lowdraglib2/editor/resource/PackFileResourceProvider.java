@@ -31,6 +31,9 @@ public final class PackFileResourceProvider<T>  {
     private T getResourceByLocation(ResourceLocation location) {
         for (PackResources pack : ResourceHelper.getResourceManager().listPacks().toList()) {
             var resource = pack.getResource(PackType.CLIENT_RESOURCES, location);
+            if (resource == null) {
+                resource = pack.getResource(PackType.SERVER_DATA, location);
+            }
             if (resource != null) {
                 try {
                     try (var stream = resource.get()) {

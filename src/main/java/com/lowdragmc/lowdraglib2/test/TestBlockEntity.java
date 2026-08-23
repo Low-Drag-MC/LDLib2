@@ -107,12 +107,12 @@ public class TestBlockEntity extends BlockEntity implements ISyncPersistRPCBlock
         root.addChild(
                 new UIElement().layout(layout -> layout.widthPercent(100).flexDirection(FlexDirection.ROW))
                         .addChildren(
-                                new Button().setText("+").setOnServerClick(e -> intValue++).layout(l -> l.flex(1)),
-                                new Button().setText("-").setOnServerClick(e -> intValue--).layout(l -> l.flex(1))
+                                new Button().setText("+").setOnServerClick(e -> intValue++).layout(l -> l.flex(1)).setId("btn_inc"),
+                                new Button().setText("-").setOnServerClick(e -> intValue--).layout(l -> l.flex(1)).setId("btn_dec")
                         )
         );
         root.addChild(new ItemSlot().slotStyle(slotStyle -> slotStyle.slotOverlay(FlexIcons.ALIGN_CONTENTS_CENTER_ROW)).bindDataSource(SupplierDataSource.of(() -> itemStack)));
-        root.addChild(new Label().bindDataSource(SupplierDataSource.of(() -> Component.literal(String.valueOf(intValue)))));
+        root.addChild(new Label().bindDataSource(SupplierDataSource.of(() -> Component.literal(String.valueOf(intValue)))).setId("int_value_label"));
 
         // --- @ReadOnlyManaged Map<String, List<BlockPos>> exercise ---
         root.addChild(new Label().bindDataSource(SupplierDataSource.of(() -> {

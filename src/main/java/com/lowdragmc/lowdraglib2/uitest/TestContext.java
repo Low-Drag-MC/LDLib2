@@ -14,8 +14,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -33,8 +31,13 @@ import java.util.function.Function;
  * <p>Nothing here is a closed set. {@link #mc()}, {@link #server()} and {@link #onServer} exist so
  * that a scenario the framework's named steps do not cover can still be written as plain Java —
  * which is the point: the fluent vocabulary is convenience over these primitives, not a cage.
+ *
+ * <p>Deliberately <b>not</b> {@code @OnlyIn(Dist.CLIENT)} even though this is a client API: the
+ * {@code ctx -> ...} lambdas inside a {@link com.lowdragmc.lowdraglib2.uitest.mp.MPScenario}'s
+ * client blocks put this type in the scenario class's synthetic method signatures, and linking that
+ * class on the dedicated-server process must be able to <em>load</em> this one. It is never linked
+ * there, so the client-only types in these signatures are never resolved.
  */
-@OnlyIn(Dist.CLIENT)
 public final class TestContext {
 
     private final ScenarioRun run;
@@ -78,6 +81,21 @@ public final class TestContext {
     @Nullable
     public ClientLevel level() {
         return mc().level;
+    }
+
+    /**
+     * Whether this run is one client of a multi-process test (dedicated server + N clients). The
+     * integrated-server primitives are unavailable in that mode; world mutation and authoritative
+     * assertions live in the {@code MPScenarioBuilder}'s server segments instead.
+     */
+    public boolean isMultiProcess() {
+        return runner.isMultiProcess();
+    }
+
+    /** This client's role in a multi-process run ({@code "A"}, {@code "B"}, ...), or {@code null}. */
+    @Nullable
+    public String role() {
+        return runner.mpRole();
     }
 
     /** The integrated server. {@code null} on the title screen or in multiplayer. */
@@ -266,6 +284,19 @@ public final class TestContext {
         stepReport.attachments.put(key, value);
     }
 
+    /**
+     * Reads a private field by name — the same escape hatch as
+     * {@link ServerContext#getField(Object, String)}, for the client's copy of an object.
+     */
+    public <T> T getField(Object target, String fieldName) {
+        return FieldAccess.get(target, fieldName);
+    }
+
+    /** Writes a private field by name. See {@link #getField(Object, String)}. */
+    public void setField(Object target, String fieldName, @Nullable Object value) {
+        FieldAccess.set(target, fieldName, value);
+    }
+
     // endregion
 
     // region step machine control
@@ -313,6 +344,7 @@ public final class TestContext {
      * you; this method is for scenarios that need finer control.
      */
     public CompletableFuture<Void> onServer(Consumer<ServerContext> body) {
+        requireNotMultiProcess();
         var server = requireServer();
         var future = new CompletableFuture<Void>();
         var serverContext = new ServerContext(server, run.state, stepReport);
@@ -328,6 +360,7 @@ public final class TestContext {
     }
 
     public <T> CompletableFuture<T> onServerGet(Function<ServerContext, T> body) {
+        requireNotMultiProcess();
         var server = requireServer();
         var future = new CompletableFuture<T>();
         var serverContext = new ServerContext(server, run.state, stepReport);
@@ -339,6 +372,14 @@ public final class TestContext {
             }
         });
         return future;
+    }
+
+    private void requireNotMultiProcess() {
+        if (isMultiProcess()) {
+            throw new IllegalStateException("This step talks to the integrated server, which a "
+                    + "multi-process client does not have. Move the work into an s.server(...) "
+                    + "segment, or use s.sync(...) for cross-process value convergence.");
+        }
     }
 
     // endregion

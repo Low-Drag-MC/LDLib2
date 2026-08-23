@@ -104,6 +104,16 @@ public final class RunConfig {
                 2, 1280, 720, InputMode.SYNTHETIC, 90, true);
     }
 
+    /**
+     * Config for one client of a multi-process run. The selection is a placeholder: it arrives over
+     * the control channel, and the MP scenario collection reads it from there, not from here. The
+     * watchdog is more generous than solo because three game processes share the machine.
+     */
+    static RunConfig forMultiProcess(java.nio.file.Path outDir) {
+        return new RunConfig("<multi-process>", "", outDir,
+                2, 0, 0, InputMode.SYNTHETIC, 180, false);
+    }
+
     private static int intProperty(String key, int fallback) {
         try {
             return Integer.parseInt(System.getProperty(key, String.valueOf(fallback)).trim());
@@ -119,28 +129,35 @@ public final class RunConfig {
      * | {@code mod:<modid>} | {@code regex:<pattern>}. Terms are OR-ed.
      */
     public boolean matches(LDLRegisterClient annotation, Class<?> scenarioClass, ScenarioOptions options) {
-        if (!matchesExpression(selection, annotation, scenarioClass, options)) return false;
-        return exclusion.isEmpty() || !matchesExpression(exclusion, annotation, scenarioClass, options);
+        if (!selectionMatches(selection, annotation.name(), annotation.group(), options.tags(), scenarioClass)) {
+            return false;
+        }
+        return exclusion.isEmpty()
+                || !selectionMatches(exclusion, annotation.name(), annotation.group(), options.tags(), scenarioClass);
     }
 
-    private static boolean matchesExpression(String expression, LDLRegisterClient annotation,
-                                             Class<?> scenarioClass, ScenarioOptions options) {
+    /**
+     * The selection grammar, factored out of the client-side config so the multi-process runners —
+     * the dedicated server included — evaluate exactly the same expression the same way.
+     */
+    public static boolean selectionMatches(String expression, String name, String group,
+                                           java.util.Set<String> tags, Class<?> scenarioClass) {
         for (var term : expression.split(",")) {
             term = term.trim();
             if (term.isEmpty()) continue;
             if (term.equalsIgnoreCase("all") || term.equals("*")) return true;
             if (term.startsWith("group:")) {
-                if (annotation.group().equalsIgnoreCase(term.substring(6))) return true;
+                if (group.equalsIgnoreCase(term.substring(6))) return true;
             } else if (term.startsWith("tag:")) {
                 var tag = term.substring(4);
-                if (options.tags().stream().anyMatch(tag::equalsIgnoreCase)) return true;
+                if (tags.stream().anyMatch(tag::equalsIgnoreCase)) return true;
             } else if (term.startsWith("mod:")) {
                 // By package, not by the annotation's registry: every scenario declares the same
-                // ldlib2:ui_scenario registry, so matching on that would select everything.
+                // registry, so matching on that would select everything.
                 if (scenarioClass.getName().contains("." + term.substring(4) + ".")) return true;
             } else if (term.startsWith("regex:")) {
-                if (Pattern.compile(term.substring(6)).matcher(annotation.name()).matches()) return true;
-            } else if (term.equalsIgnoreCase(annotation.name())) {
+                if (Pattern.compile(term.substring(6)).matcher(name).matches()) return true;
+            } else if (term.equalsIgnoreCase(name)) {
                 return true;
             }
         }

@@ -21,8 +21,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -42,8 +40,13 @@ import java.util.function.Predicate;
  * <p>Gestures expand into several steps on purpose. The runner runs one step per rendered frame, and
  * hover, drag state and layout are only recomputed while rendering: a click issued in the same frame
  * as the cursor move would resolve against the previous hover and silently do nothing.
+ *
+ * <p>Deliberately <b>not</b> {@code @OnlyIn(Dist.CLIENT)} even though this is a client API: a
+ * {@link com.lowdragmc.lowdraglib2.uitest.mp.MPScenario} class carries {@code Consumer<ScenarioBuilder>}
+ * lambdas in its synthetic method signatures, and linking that class on the dedicated-server process
+ * must be able to <em>load</em> this one. It is never linked there — client blocks only execute on
+ * the client that owns them — so the client-only types in the method bodies are never resolved.
  */
-@OnlyIn(Dist.CLIENT)
 public final class ScenarioBuilder {
 
     private final List<Step> steps = new ArrayList<>();
@@ -349,19 +352,32 @@ public final class ScenarioBuilder {
     }
 
     /**
-     * Right-clicks a block <b>on the server</b>, through {@code ServerPlayerGameMode#useItemOn}.
+     * Right-clicks a block through the real interaction path, without depending on a raycast
+     * landing correctly.
      *
-     * <p>This is the real path a player takes: the block's own {@code useWithoutItem} runs, opens
-     * its menu, and the server sends a genuine open-screen packet the client turns into a
-     * {@code ModularUIContainerScreen}. Nothing about the interaction is faked, so a machine UI test
-     * exercises the same code as a real click — without depending on a raycast landing correctly.
+     * <p>Solo runs go through {@code ServerPlayerGameMode#useItemOn} on the integrated server: the
+     * block's own {@code useWithoutItem} runs, opens its menu, and the server sends a genuine
+     * open-screen packet. A multi-process client goes through {@code MultiPlayerGameMode#useItemOn}
+     * instead, which sends the same {@code ServerboundUseItemOnPacket} a player's right click
+     * produces — so the dedicated server's reach validation and menu-open path are exercised over
+     * the actual wire.
      */
     public ScenarioBuilder useBlock(BlockPos pos) {
-        return server("useBlock " + pos.toShortString(), sc -> {
-            var player = sc.player();
-            var hit = new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos, false);
-            player.gameMode.useItemOn(player, sc.level(), player.getItemInHand(InteractionHand.MAIN_HAND),
-                    InteractionHand.MAIN_HAND, hit);
+        var integrated = awaitServer("server task: useBlock " + pos.toShortString(),
+                ctx -> ctx.onServer(sc -> {
+                    var player = sc.player();
+                    var hit = new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos, false);
+                    player.gameMode.useItemOn(player, sc.level(), player.getItemInHand(InteractionHand.MAIN_HAND),
+                            InteractionHand.MAIN_HAND, hit);
+                }), (ctx, ignored) -> {});
+        return add("useBlock " + pos.toShortString(), StepKind.WORLD, ctx -> {
+            if (ctx.isMultiProcess()) {
+                var player = ctx.requirePlayer();
+                var hit = new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos, false);
+                ctx.mc().gameMode.useItemOn(player, InteractionHand.MAIN_HAND, hit);
+                return;
+            }
+            integrated.run(ctx);
         });
     }
 

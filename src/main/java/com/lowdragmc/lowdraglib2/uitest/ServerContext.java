@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.uitest;
 
 import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.lowdragmc.lowdraglib2.uitest.mp.MPRoles;
 import com.lowdragmc.lowdraglib2.uitest.report.RunReport;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
@@ -11,7 +12,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.reflect.Field;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -40,7 +41,8 @@ public final class ServerContext {
     }
 
     /**
-     * The single-player player. Scenarios run against an integrated server with exactly one player.
+     * The single-player player. Solo scenarios run against an integrated server with exactly one
+     * player; in a multi-process scenario prefer {@link #player(String)} to say which client.
      *
      * @throws IllegalStateException if no player is connected yet
      */
@@ -50,6 +52,32 @@ public final class ServerContext {
             throw new IllegalStateException("No player on the server yet");
         }
         return players.getFirst();
+    }
+
+    /** Every connected player. In a multi-process run, one per client role. */
+    public List<ServerPlayer> players() {
+        return server.getPlayerList().getPlayers();
+    }
+
+    /**
+     * The player behind a client role. In a multi-process run roles map to usernames via
+     * {@link MPRoles#usernameFor}; in a solo run there is only one player and any role returns it,
+     * so a segment body can be written once and used in both modes.
+     */
+    public ServerPlayer player(String role) {
+        var players = server.getPlayerList().getPlayers();
+        if (players.size() == 1) {
+            return players.getFirst();
+        }
+        var username = MPRoles.usernameFor(role);
+        for (var player : players) {
+            if (player.getGameProfile().getName().equals(username)) {
+                return player;
+            }
+        }
+        throw new IllegalStateException("No player for role '" + role + "' (looked for username '"
+                + username + "'; online: "
+                + players.stream().map(p -> p.getGameProfile().getName()).toList() + ")");
     }
 
     public ServerLevel level() {
@@ -138,36 +166,12 @@ public final class ServerContext {
      * test author does not own and cannot add an accessor to. Without this, the alternative is
      * either not testing it or polluting production classes with test-only getters.
      */
-    @SuppressWarnings("unchecked")
     public <T> T getField(Object target, String fieldName) {
-        try {
-            return (T) findField(target.getClass(), fieldName).get(target);
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Cannot read field '" + fieldName + "' on "
-                    + target.getClass().getName(), e);
-        }
+        return FieldAccess.get(target, fieldName);
     }
 
     /** Writes a private field by name. See {@link #getField(Object, String)}. */
     public void setField(Object target, String fieldName, @Nullable Object value) {
-        try {
-            findField(target.getClass(), fieldName).set(target, value);
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Cannot write field '" + fieldName + "' on "
-                    + target.getClass().getName(), e);
-        }
-    }
-
-    private static Field findField(Class<?> type, String fieldName) throws NoSuchFieldException {
-        for (Class<?> current = type; current != null; current = current.getSuperclass()) {
-            try {
-                var field = current.getDeclaredField(fieldName);
-                field.setAccessible(true);
-                return field;
-            } catch (NoSuchFieldException ignored) {
-                // keep walking up
-            }
-        }
-        throw new NoSuchFieldException(fieldName + " not found on " + type.getName() + " or its supertypes");
+        FieldAccess.set(target, fieldName, value);
     }
 }
