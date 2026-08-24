@@ -47,6 +47,27 @@ public class Interpolator {
         finished = false;
     }
 
+    /**
+     * Moves this interpolator onto a clock running at the same rate from a different origin, keeping
+     * whatever progress it has already made.
+     *
+     * <p>The whole conversion is one offset, because that is the only thing separating two clocks both
+     * derived from {@link System#nanoTime()}: an interpolator a second into a three second run stays a
+     * second in, and one whose duration ran out while nobody was updating it still finishes on the very
+     * next update.
+     *
+     * <p>Harmless before the first {@link #update}, when {@link #startTime} has not been claimed yet
+     * and is about to be overwritten anyway.
+     *
+     * @param offset the destination clock's reading minus this one's, in seconds
+     */
+    public void shiftClock(float offset) {
+        startTime += offset;
+        if (!Float.isNaN(time)) {
+            time += offset;
+        }
+    }
+
     public void update(float currentTime) {
         if (finished) {
             return;

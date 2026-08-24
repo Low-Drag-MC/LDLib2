@@ -6,7 +6,7 @@ import lombok.Getter;
 public class AnimationRuntime {
     public final KeyFrameAnimation animation;
     // runtime
-    private final float initialTime;
+    private float initialTime;
     @Getter
     private final Interpolator interpolator;
 
@@ -37,5 +37,16 @@ public class AnimationRuntime {
 
     public boolean isFinished(){
         return interpolator.isFinished();
+    }
+
+    /**
+     * Moves this runtime, delay included, onto the clock of another {@link AnimationEngine}.
+     *
+     * @param offset the destination engine's reading minus the current one's, in seconds
+     * @see Interpolator#shiftClock(float)
+     */
+    public void shiftClock(float offset) {
+        this.initialTime += offset;
+        this.interpolator.shiftClock(offset);
     }
 }

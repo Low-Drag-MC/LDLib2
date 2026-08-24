@@ -61,6 +61,13 @@ public class Dialog extends UIElement {
         }
     }
 
+    /**
+     * How long past a {@link #showNotification(String, float)} progress bar's own duration the fallback
+     * deadline waits before closing the dialog itself, so a bar advancing normally always gets there
+     * first.
+     */
+    private static final long NOTIFICATION_GRACE_MS = 500;
+
     public final UIElement overlay;
     public final UIElement titleBar;
     public final UIElement contentContainer;
@@ -480,6 +487,23 @@ public class Dialog extends UIElement {
                                         .start())
                 ), 0
         );
+
+        // A deadline as well as the bar, and belt and braces on purpose. The bar is the mechanism, and
+        // the one way it was known to stall — the element tree being re-hosted by another ModularUI —
+        // is handled by AnimationEngine#handOver, so nothing here is load-bearing today. What keeps it
+        // is that this notification has no other way out at all: no button, no auto close, so anything
+        // that stops the animation leaves it on screen permanently with no input able to dismiss it.
+        // Ticks come from the Screen rather than from the UI running the animation, so they keep
+        // arriving whatever became of it.
+        var expiry = new long[]{0};
+        dialog.addEventListener(UIEvents.TICK, e -> {
+            var now = Util.getMillis();
+            if (expiry[0] == 0) {
+                expiry[0] = now + (long) (duration * 1000) + NOTIFICATION_GRACE_MS;
+            } else if (now >= expiry[0]) {
+                dialog.close();
+            }
+        });
         return dialog;
     }
 
