@@ -293,8 +293,9 @@ public class AssetBrowser extends UIElement {
         icon.addClass("__asset-browser_tree-node-icon__").moveInlineAsDefault();
 
         var label = new Label();
+        // Verbatim: a folder is named by whoever made it, not by a lang file.
         label.textStyle(style -> style.adaptiveWidth(true).textAlignVertical(Vertical.CENTER))
-                .setText(node.getKey().getName())
+                .setText(node.getKey().getName(), false)
                 .layout(layout -> layout.heightPercent(100));
         label.addClass("__asset-browser_tree-node-label__").moveInlineAsDefault();
 
@@ -771,7 +772,7 @@ public class AssetBrowser extends UIElement {
         ui.addEventListener(UIEvents.MOUSE_LEAVE, e -> {
             if (lastClickFile == file && isMouseDown(0)) {
                 e.currentElement.startDrag(dragPayloadOf(file, behavior),
-                        new TextTexture(displayNameOf(file, behavior)));
+                        TextTexture.raw(displayNameOf(file, behavior)));
             }
             lastClickFile = null;
         }, true);
