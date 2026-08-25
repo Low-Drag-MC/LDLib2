@@ -1,0 +1,124 @@
+// LDLib2 multi-process test harness - Gradle wiring.
+//
+// Copy this file into your mod next to ldlib2-uitest.gradle and add, after your `neoForge { }` block:
+//
+//     apply from: rootProject.file('gradle/ldlib2-mptest.gradle')
+//
+// Then:  gradlew runMpTest [-PldMpTest=<name|all|group:x|tag:y>] [-PldMpClients=A,B]
+//
+// runMpTest launches a dedicated server (runMpServer) plus one client per role (runMpClientA, ...)
+// as child Gradle builds, coordinates them over a local TCP hub, and merges their reports into
+// build/ldlib2-mptest/report.json. verifyMpTest turns that report into the build result.
+//
+// The child runs are inert when launched by hand: without -PldMpHub they are an ordinary dedicated
+// server / client with their own runs/<name> directories.
+
+def ldMpOutDir = layout.buildDirectory.dir('ldlib2-mptest').get().asFile.absolutePath
+def ldMpHub = (project.findProperty('ldMpHub') ?: '').toString()
+
+// Explicit type, because a run created from a separate script cannot borrow a type from its name
+// the way `runs { client { } }` in build.gradle does.
+//
+// gameDirectory is also explicit, and has to be: ModDev points *every* run at a single shared
+// `run/`, where NeoGradle gave each one runs/<name>. Per-process isolation is not a nicety here -
+// three Minecraft processes sharing a directory fight over latest.log (a hard failure on Windows,
+// which will not let a second process open it) and over each other's options.txt and world. The
+// server path additionally has to agree with MPTestOrchestrator, which writes server.properties
+// and eula.txt into projectDir/runs/mpServer before spawning anything.
+//
+// disableIdeRun on all three, for the same reason ldlib2-uitest.gradle keeps its flags off the run
+// definition: ModDev serialises a run's VM args to build/moddev/<name>RunVmArgs.txt and the IDE
+// configuration it generates passes that file verbatim, with no Gradle task before launch. So one
+// `runMpTest` would leave the hub address of that run baked into an IDE entry forever, and launching
+// it later would dial a port nobody is listening on. They are harness plumbing, not run configs -
+// `gradlew runMpServer` still works by hand, and only runMpTest is meant to drive them.
+//
+// Adding a role beyond A/B: copy an mpClient block as mpClient<Role>, keep the pattern intact -
+// the task must be named runMpClient<Role> (the orchestrator derives it from the role), and the
+// username must be LDTest<Role> (ServerContext.player(role) resolves via MPRoles.usernameFor).
+neoForge {
+    runs {
+        mpServer {
+            server()
+            disableIdeRun()
+            gameDirectory = project.file('runs/mpServer')
+            programArgument '--nogui'
+            systemProperty 'ldlib2.mptest.role', 'server'
+            systemProperty 'ldlib2.mptest.out', "$ldMpOutDir/server"
+            systemProperty 'ldlib2.mptest.hub', ldMpHub
+        }
+        mpClientA {
+            client()
+            disableIdeRun()
+            gameDirectory = project.file('runs/mpClientA')
+            programArguments.addAll '--username', 'LDTestA'
+            systemProperty 'ldlib2.mptest.role', 'A'
+            systemProperty 'ldlib2.mptest.out', "$ldMpOutDir/clientA"
+            systemProperty 'ldlib2.mptest.hub', ldMpHub
+        }
+        mpClientB {
+            client()
+            disableIdeRun()
+            gameDirectory = project.file('runs/mpClientB')
+            programArguments.addAll '--username', 'LDTestB'
+            systemProperty 'ldlib2.mptest.role', 'B'
+            systemProperty 'ldlib2.mptest.out', "$ldMpOutDir/clientB"
+            systemProperty 'ldlib2.mptest.hub', ldMpHub
+        }
+    }
+}
+
+tasks.register('runMpTest', JavaExec) {
+    group = 'verification'
+    description = 'Runs LDLib2 multi-process test scenarios (dedicated server + N clients).'
+    // The orchestrator never touches a Minecraft class, so it runs on a deliberately short
+    // classpath - which also sidesteps the Windows command-line length limit. Three entries:
+    //
+    //   sourceSets.main.output   LDLib2's own build, when this script is applied inside LDLib2
+    //   ldlib2-*.jar             the same classes when it is applied in a DOWNSTREAM mod, where
+    //                            MPTestOrchestrator lives in the dependency and not in the mod
+    //   gson-*.jar               the control protocol and the merged report
+    //
+    // Without the middle one a downstream `runMpTest` dies with ClassNotFoundException:
+    // MPTestOrchestrator before it starts anything, and verifyMpTest then reports the missing
+    // report rather than the missing class.
+    classpath = files(sourceSets.main.output,
+            configurations.runtimeClasspath.filter {
+                it.name.contains('gson') || it.name.startsWith('ldlib2')
+            })
+    mainClass = 'com.lowdragmc.lowdraglib2.uitest.mp.MPTestOrchestrator'
+    args '--projectDir', project.projectDir.absolutePath,
+            '--out', ldMpOutDir,
+            '--selection', (project.findProperty('ldMpTest') ?: 'all').toString(),
+            '--clients', (project.findProperty('ldMpClients') ?: 'A,B').toString()
+    // The exit code is informative only; verifyMpTest below is authoritative - it also catches the
+    // orchestrator dying before it could write a report at all.
+    ignoreExitValue = true
+    finalizedBy 'verifyMpTest'
+}
+
+tasks.register('verifyMpTest') {
+    group = 'verification'
+    description = 'Fails the build if the LDLib2 multi-process test report contains failures.'
+    doLast {
+        def reportFile = new File(ldMpOutDir, 'report.json')
+        if (!reportFile.exists()) {
+            throw new GradleException("LDLib2 MP test: no merged report at ${reportFile}.\n" +
+                    "The orchestrator failed before writing one - see the gradle.log files under ${ldMpOutDir}.")
+        }
+        def report = new groovy.json.JsonSlurper().parse(reportFile)
+        logger.lifecycle("LDLib2 MP test: ${report.totals.passed}/${report.totals.scenarios} scenarios passed, " +
+                "${report.totals.checks - report.totals.checksFailed}/${report.totals.checks} checks passed")
+        report.scenarios.findAll { it.status != 'PASS' }.each { scenario ->
+            logger.error("FAILED scenario '${scenario.name}'")
+            if (scenario.error) logger.error("  ${scenario.error.type}: ${scenario.error.message}")
+            scenario.steps.findAll { it.status != 'PASS' }.each { step ->
+                logger.error("  [${step.role}] step ${step.index} '${step.name}' -> ${step.status}" +
+                        (step.error ? " - ${step.error.message}" : ""))
+            }
+        }
+        if (report.status != 'PASS') {
+            throw new GradleException("LDLib2 MP test ${report.status} - full report: ${reportFile}")
+        }
+    }
+}

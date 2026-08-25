@@ -978,11 +978,25 @@ public abstract class Editor extends UIElement implements EditorHost {
         }
     }
 
+    /**
+     * An editor that hosts nothing. Widgets such as the resource selector dialog need an {@link Editor} to
+     * hang their resource container off, but they are shown inside somebody else's screen and this instance
+     * never joins an element tree.
+     *
+     * <p>It registers no settings on purpose: the editor settings reach outside the editor - the appearance
+     * settings own the Minecraft GUI scale - and a throwaway host has no business rewriting the player's
+     * options just because a dialog was opened. Everything reading them goes through a lookup that falls
+     * back to defaults (see {@link BehaviorSettings#of}).
+     */
     public static Editor emptyEditor() {
         return new Editor() {
             @Override
             protected Editor createNewEditorInstance() {
                 return emptyEditor();
+            }
+
+            @Override
+            protected void initEditorSettings() {
             }
         };
     }

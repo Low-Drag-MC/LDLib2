@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.WirePortalModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.IGhostWireModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireReroutePointModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireSide;
 import it.unimi.dsi.fastutil.Pair;
 import net.minecraft.network.chat.Component;
@@ -85,6 +86,12 @@ public final class WireCommands {
 
         public PortModel toPortModel;
         public PortModel fromPortModel;
+        /**
+         * Routes the new wire through this reroute point and everything upstream of it, so a branch
+         * pulled out of a reroute point shares the trunk that leads to it. Layout only — the wire is
+         * an ordinary {@code fromPortModel → toPortModel} connection either way.
+         */
+        public @Nullable WireReroutePointModel routeVia;
 
         /**
          * Creates a new wire command.
@@ -92,8 +99,18 @@ public final class WireCommands {
          * @param fromPortModel Origin port.
          */
         public CreateWireCommand(PortModel toPortModel, PortModel fromPortModel) {
+            this(toPortModel, fromPortModel, null);
+        }
+
+        /**
+         * @param routeVia the reroute point the wire should be drawn through, or {@code null} for a
+         *                 direct wire.
+         */
+        public CreateWireCommand(PortModel toPortModel, PortModel fromPortModel,
+                                 @Nullable WireReroutePointModel routeVia) {
             this.toPortModel = toPortModel;
             this.fromPortModel = fromPortModel;
+            this.routeVia = routeVia;
         }
 
         @Override
@@ -110,9 +127,81 @@ public final class WireCommands {
                 graphModel.deleteWires(wiresToDelete);
             }
 
-            graphModel.createWire(toPortModel, fromPortModel);
+            var wire = graphModel.createWire(toPortModel, fromPortModel);
+            if (wire != null && routeVia != null) {
+                wire.setRouteVia(routeVia);
+            }
         }
 
+    }
+
+    /**
+     * Drops a reroute point onto a wire. This does not touch the connection in any way — the wire
+     * keeps the same {@code fromPort} / {@code toPort}, and every port-side query returns exactly
+     * what it did before. Only the drawn route changes.
+     */
+    public static class InsertReroutePointCommand extends UndoableGraphCommand {
+        private final static Component NAME = Component.translatable("graph.commands.insert_reroute_point");
+
+        public final WireModel wireModel;
+        /** Where the point's centre should land, in canvas content coordinates. */
+        public final Vector2f center;
+        /**
+         * Which segment of {@code fromPort → point… → toPort} to bend. Bending a segment that already
+         * ends at a reroute point bends it for every wire sharing that trunk; negative means the last
+         * segment, which belongs to this wire alone.
+         */
+        public final int index;
+
+        public InsertReroutePointCommand(WireModel wireModel, Vector2f center, int index) {
+            this.wireModel = wireModel;
+            this.center = center;
+            this.index = index;
+        }
+
+        @Override
+        public Component getCommandName() {
+            return NAME;
+        }
+
+        @Override
+        public void execute() {
+            var position = WireReroutePointModel.centerToPosition(center);
+            // Snap the top-left exactly like drag-move does, so points line up with everything else.
+            if (view != null) position = view.snapPosition(position);
+            var reroutePoint = graphModel.insertReroutePointOnWire(wireModel, index, position);
+            if (view != null) {
+                view.clearAllSelected();
+                view.addSelected(reroutePoint);
+            }
+        }
+    }
+
+    /**
+     * Re-points every wire through a reroute point at a different output port — what dropping an
+     * output port onto the point means. This one really does change the connections; it is the same
+     * edit as dragging each of those wires' origins by hand, done once.
+     */
+    public static class ReSourceReroutePointCommand extends UndoableGraphCommand {
+        private final static Component NAME = Component.translatable("graph.commands.resource_reroute_point");
+
+        public final WireReroutePointModel reroutePoint;
+        public final PortModel sourcePort;
+
+        public ReSourceReroutePointCommand(WireReroutePointModel reroutePoint, PortModel sourcePort) {
+            this.reroutePoint = reroutePoint;
+            this.sourcePort = sourcePort;
+        }
+
+        @Override
+        public Component getCommandName() {
+            return NAME;
+        }
+
+        @Override
+        public void execute() {
+            graphModel.setReroutePointSource(reroutePoint, sourcePort);
+        }
     }
 
     public static class ConvertWiresToPortalsCommand extends UndoableGraphCommand {

@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.variable.VariableDeclarat
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wiget.PlacematModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wiget.StickyNoteModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireReroutePointModel;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -19,6 +20,7 @@ public class ElementsByType {
     public final Set<VariableDeclarationModelBase> variableDeclarationsModels = new HashSet<>();
     public final Set<GroupModel> groupModels = new HashSet<>();
     public final Set<WireModel> wireModels = new HashSet<>();
+    public final Set<WireReroutePointModel> wireReroutePointModels = new HashSet<>();
     public final Set<AbstractNodeModel> nodeModels = new HashSet<>();
 
     public ElementsByType(Collection<? extends GraphElementModel> elements) {
@@ -44,6 +46,9 @@ public class ElementsByType {
                     break;
                 case WireModel wireModel:
                     wireModels.add(wireModel);
+                    break;
+                case WireReroutePointModel reroutePointModel:
+                    wireReroutePointModels.add(reroutePointModel);
                     break;
                 case AbstractNodeModel nodeModel:
                     nodeModels.add(nodeModel);

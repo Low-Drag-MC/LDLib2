@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.GhostWireModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.IGhostWireModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireReroutePointModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireSide;
 import it.unimi.dsi.fastutil.Pair;
 import lombok.Getter;
@@ -249,6 +250,7 @@ public class WireDragHelper {
                 wireCandidateModel.getFromPort() == null;
 
         var endPort = getEndPort(mousePosition);
+        var endReroutePoint = endPort == null ? getEndReroutePoint() : null;
         if (endPort != null) {
             wireCandidate.setActive(true);
 
@@ -273,6 +275,9 @@ public class WireDragHelper {
                     createNewWire(wireCandidate.getModel().getFromPort(), wireCandidate.getModel().getToPort());
                 else
                     moveWires(affectedWires, endPort);
+            } else if (endReroutePoint != null) {
+                // Dropped onto a reroute point rather than a port: join the branch it fans out.
+                dropOnReroutePoint(endReroutePoint);
             } else {
                 removeWireCandidate = false;
 
@@ -318,6 +323,66 @@ public class WireDragHelper {
             }
         }
         return endPort;
+    }
+
+    /**
+     * The reroute point under the cursor that this drag may legally land on, if any.
+     *
+     * <p>A reroute point stands in for the output port its branches come from, so it accepts a drag
+     * from either side: grabbing an input port and dropping here adds a branch from that shared
+     * source, and grabbing an output port and dropping here re-sources the whole branch. Only the
+     * dots are targets — the body is the move handle, and dropping a wire while aiming at "move me"
+     * would be a surprise.</p>
+     */
+    @Nullable
+    protected WireReroutePointModel getEndReroutePoint() {
+        if (draggedPort == null || graphView.getGraph() == null) return null;
+        var graphModel = graphView.getGraph().graphModel;
+        for (var point : graphModel.getWireReroutePointModels()) {
+            if (point == null) continue;
+            if (!(graphView.getModelElement(point) instanceof WireReroutePointElement element)) continue;
+            if (!element.isVisible() || !element.isConnectorHovered()) continue;
+            if (canDropOnReroutePoint(point)) return point;
+        }
+        return null;
+    }
+
+    /**
+     * Whether the dragged port could legally connect through {@code point}. Checked against the real
+     * ports the point stands for, so the same type and direction rules apply as anywhere else.
+     */
+    protected boolean canDropOnReroutePoint(WireReroutePointModel point) {
+        if (graphView.getGraph() == null) return false;
+        var graphModel = graphView.getGraph().graphModel;
+        var sourcePort = point.getSourcePort();
+        if (sourcePort == null) return false;
+        if (draggedPort.getDirection() == PortDirection.INPUT) {
+            // Branching out of the point: the new wire is sourcePort -> draggedPort.
+            return graphModel.isCompatiblePort(draggedPort, sourcePort);
+        }
+        // Re-sourcing the point: the dragged output has to suit everything already hanging off it.
+        if (draggedPort == sourcePort) return false;
+        for (var wire : graphModel.getWiresThroughReroutePoint(point)) {
+            if (wire.getToPort() == null || !graphModel.isCompatiblePort(draggedPort, wire.getToPort())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Applies the drop. Which of the two operations it is follows from which end the user grabbed,
+     * so both dots accept both gestures and the user does not have to aim at the "correct" one.
+     */
+    protected void dropOnReroutePoint(WireReroutePointModel point) {
+        if (draggedPort.getDirection() == PortDirection.INPUT) {
+            var sourcePort = point.getSourcePort();
+            if (sourcePort != null) {
+                graphView.dispatchCommand(new WireCommands.CreateWireCommand(draggedPort, sourcePort, point));
+            }
+        } else {
+            graphView.dispatchCommand(new WireCommands.ReSourceReroutePointCommand(point, draggedPort));
+        }
     }
 
     protected void getCompatiblePorts(@Nullable Predicate<PortModel> compatiblePortsFilter) {

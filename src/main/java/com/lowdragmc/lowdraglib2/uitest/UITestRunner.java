@@ -7,12 +7,18 @@ import com.lowdragmc.lowdraglib2.gui.ui.utils.CursorOverlay;
 import com.lowdragmc.lowdraglib2.uitest.capture.CaptureRequest;
 import com.lowdragmc.lowdraglib2.uitest.capture.FrameCapture;
 import com.lowdragmc.lowdraglib2.uitest.input.InputDriver;
+import com.lowdragmc.lowdraglib2.uitest.mp.MPRunConfig;
 import com.lowdragmc.lowdraglib2.uitest.report.ReportWriter;
 import com.lowdragmc.lowdraglib2.uitest.report.RunReport;
 import com.lowdragmc.lowdraglib2.uitest.target.ElementPath;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.AccessibilityOnboardingScreen;
+import net.minecraft.client.gui.screens.ConnectScreen;
+import net.minecraft.client.gui.screens.DisconnectedScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.client.multiplayer.resolver.ServerAddress;
 import net.neoforged.fml.ModList;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
@@ -38,6 +44,10 @@ public final class UITestRunner {
         CREATE_WORLD,
         AWAIT_WORLD,
         PIN_WORLD,
+        /** Multi-process only: join the dedicated server instead of creating a world. */
+        MP_CONNECT,
+        MP_AWAIT_JOIN,
+        MP_AWAIT_BEGIN,
         NEXT_SCENARIO,
         RUN_SCENARIO,
         FINISH,
@@ -53,10 +63,14 @@ public final class UITestRunner {
     private final InputDriver inputDriver;
     private final String runId;
     private final String worldName;
+    /** Present when this client is one process of a multi-process run. */
+    @Nullable
+    private final MPClientSession mpSession;
 
     private Phase phase = Phase.WAIT_GAME_READY;
     private long settleUntilNanos;
     private boolean inStep;
+    private boolean awaitingHubConfigLogged;
     @Nullable
     private ScenarioRun currentRun;
     @Nullable
@@ -80,11 +94,12 @@ public final class UITestRunner {
                                  Class<?> scenarioClass) {
     }
 
-    private UITestRunner(RunConfig config, String runId) {
+    private UITestRunner(RunConfig config, String runId, @Nullable MPClientSession mpSession) {
         this.config = config;
         this.runId = runId;
         this.worldName = WorldBootstrap.worldNameFor(runId);
         this.inputDriver = InputDriver.of(config.inputMode());
+        this.mpSession = mpSession;
     }
 
     @Nullable
@@ -101,11 +116,20 @@ public final class UITestRunner {
      * not from a mod-loading event, because registries and the window are not ready that early.
      */
     static void bootstrapIfRequested() {
+        var mpConfig = MPRunConfig.fromSystemProperties();
+        if (mpConfig != null && !mpConfig.isServer()) {
+            var session = new MPClientSession(mpConfig);
+            session.connectAsync();
+            active = new UITestRunner(RunConfig.forMultiProcess(mpConfig.outDir()),
+                    "mp_" + mpConfig.role(), session);
+            active.begin();
+            return;
+        }
         var config = RunConfig.fromSystemProperties();
         if (config == null) return;
         // A pid-qualified id keeps two concurrent runs from sharing a world directory or an output dir.
         var runId = ProcessHandle.current().pid() + "_" + Integer.toHexString(System.identityHashCode(config));
-        active = new UITestRunner(config, runId);
+        active = new UITestRunner(config, runId, null);
         active.begin();
     }
 
@@ -123,7 +147,7 @@ public final class UITestRunner {
         if (isRunning()) {
             return "A UI test run is already in progress";
         }
-        var runner = new UITestRunner(RunConfig.interactive(selection), "interactive");
+        var runner = new UITestRunner(RunConfig.interactive(selection), "interactive", null);
         runner.begin();
         runner.collectEnvironment(Minecraft.getInstance());
         runner.collectScenarios();
@@ -191,6 +215,14 @@ public final class UITestRunner {
         // A resource reload replaces the screen and blocks input; nothing we do would stick.
         if (minecraft.gui.overlay() != null) return;
 
+        // A dead orchestrator must never leave game processes running. Going through fatal/FINISH
+        // still writes whatever report exists, which is more than an orphaned process would leave.
+        if (mpSession != null && mpSession.hub().isLost()
+                && phase != Phase.FINISH && phase != Phase.EXITING) {
+            fatal("the control hub connection was lost");
+            return;
+        }
+
         if (!pendingCaptures.isEmpty()) {
             servicePendingCapture(pendingCaptures.poll());
             return;
@@ -200,11 +232,35 @@ public final class UITestRunner {
 
         switch (phase) {
             case WAIT_GAME_READY -> {
-                if (minecraft.gui.screen() instanceof TitleScreen) {
+                var screen = minecraft.gui.screen();
+                if (screen instanceof TitleScreen) {
                     phase = Phase.PIN_OPTIONS;
+                } else if (screen instanceof AccessibilityOnboardingScreen) {
+                    // A fresh game directory (an mp client's first launch, a clean checkout) boots
+                    // into accessibility onboarding, not the title. Dismiss it the way its button
+                    // would, or the run sits here forever without a single log line.
+                    LDLib2.LOGGER.info("[uitest] dismissing first-launch accessibility onboarding");
+                    minecraft.options.onboardAccessibility = false;
+                    minecraft.options.save();
+                    minecraft.gui.setScreen(new TitleScreen());
+                } else if (elapsedMsSince(runStartedNanos) > 180_000) {
+                    fatal("never reached the title screen (stuck on "
+                            + (screen == null ? "no screen" : screen.getClass().getName()) + ")");
                 }
             }
             case PIN_OPTIONS -> {
+                // Multi-process: the selection and game port arrive in the hub's config message, so
+                // scenario collection cannot happen until it does.
+                if (mpSession != null && mpSession.hub().config() == null) {
+                    if (!awaitingHubConfigLogged) {
+                        awaitingHubConfigLogged = true;
+                        LDLib2.LOGGER.info("[mptest] waiting for the hub's run configuration");
+                    }
+                    if (elapsedMsSince(runStartedNanos) > 120_000) {
+                        fatal("the hub never sent its configuration");
+                    }
+                    return;
+                }
                 // Returns false until the window has actually reached the requested size. Everything
                 // below measures the window, so running it early would record — and lay the first
                 // scenario out against — the size the window had at launch.
@@ -215,7 +271,16 @@ public final class UITestRunner {
                 // skips that phase entirely, and would otherwise never get the key-state override.
                 inputDriver.install();
                 installBackgroundMode();
-                if (queue.isEmpty()) {
+                if (mpSession != null) {
+                    // Join even with an empty queue: the hub only releases `begin` once every
+                    // launched client is in the world, so a non-participating client that bailed
+                    // here would deadlock the ones with work to do.
+                    if (queue.isEmpty()) {
+                        LDLib2.LOGGER.warn("[uitest] no MP scenarios for role '{}' - joining anyway",
+                                mpSession.role());
+                    }
+                    phase = Phase.MP_CONNECT;
+                } else if (queue.isEmpty()) {
                     LDLib2.LOGGER.error("[uitest] selection '{}' matched no scenarios", config.selection());
                     phase = Phase.FINISH;
                 } else {
@@ -252,6 +317,49 @@ public final class UITestRunner {
                 // The gamerule commands were queued onto the server thread; give them a tick to land
                 // so the first scenario does not race "kill @e" spawning particles into a capture.
                 settle(100);
+            }
+            case MP_CONNECT -> {
+                assert mpSession != null;
+                var gamePort = mpSession.gamePort();
+                LDLib2.LOGGER.info("[mptest] '{}' connecting to 127.0.0.1:{} (attempt {})",
+                        mpSession.role(), gamePort, mpSession.connectAttempts() + 1);
+                mpSession.beginConnectAttempt();
+                // Advance before the call: startConnecting swaps screens and pumps events.
+                phase = Phase.MP_AWAIT_JOIN;
+                ConnectScreen.startConnecting(new TitleScreen(), minecraft,
+                        new ServerAddress("127.0.0.1", gamePort),
+                        new ServerData("LDLib2 MP Test", "127.0.0.1:" + gamePort, ServerData.Type.OTHER),
+                        false, null);
+            }
+            case MP_AWAIT_JOIN -> {
+                assert mpSession != null;
+                if (minecraft.player != null && minecraft.level != null) {
+                    LDLib2.LOGGER.info("[mptest] '{}' joined the dedicated server", mpSession.role());
+                    minecraft.gui.setScreen(null);
+                    mpSession.sendJoined();
+                    phase = Phase.MP_AWAIT_BEGIN;
+                    settle(100);
+                } else if (minecraft.gui.screen() instanceof DisconnectedScreen) {
+                    if (mpSession.connectAttempts() >= 10) {
+                        fatal("could not join the dedicated server after "
+                                + mpSession.connectAttempts() + " attempts");
+                    } else {
+                        LDLib2.LOGGER.warn("[mptest] join attempt failed; retrying");
+                        phase = Phase.MP_CONNECT;
+                        settle(2_000);
+                    }
+                } else if (elapsedMsSince(runStartedNanos) > 300_000) {
+                    fatal("never joined the dedicated server");
+                }
+            }
+            case MP_AWAIT_BEGIN -> {
+                assert mpSession != null;
+                if (mpSession.hub().isBegun()) {
+                    LDLib2.LOGGER.info("[mptest] '{}' starting scenarios", mpSession.role());
+                    phase = Phase.NEXT_SCENARIO;
+                } else if (elapsedMsSince(runStartedNanos) > 420_000) {
+                    fatal("the hub never sent 'begin' - did another client fail to join?");
+                }
             }
             case NEXT_SCENARIO -> startNextScenario(minecraft);
             case RUN_SCENARIO -> tickScenario();
@@ -299,6 +407,11 @@ public final class UITestRunner {
             scenarioReport.status = RunReport.Status.ERROR;
             scenarioReport.error = RunReport.ErrorInfo.of(t);
             LDLib2.LOGGER.error("[uitest] scenario '{}' failed while being defined", entry.name(), t);
+            if (mpSession != null) {
+                // Skipping a scenario without a word would leave the other processes waiting out
+                // their barrier budgets on segments this client will never run.
+                mpSession.onScenarioFinished(entry.name(), scenarioReport.status);
+            }
             return;
         }
 
@@ -425,6 +538,11 @@ public final class UITestRunner {
         run.report.durationMs = run.elapsedNanos(System.nanoTime()) / 1_000_000L;
         LDLib2.LOGGER.info("[uitest] --- scenario '{}' {} in {} ms", run.name, run.report.status,
                 run.report.durationMs);
+        if (mpSession != null) {
+            // Broadcast anything this client never announced (abort, timeout) so the other
+            // processes' barriers fail fast instead of waiting out their own timeouts.
+            mpSession.onScenarioFinished(run.name, run.report.status);
+        }
         currentRun = null;
         currentContext = null;
         currentStepReport = null;
@@ -515,6 +633,11 @@ public final class UITestRunner {
         ReportWriter.write(report, config.outDir());
         ReportWriter.logSummary(report);
 
+        if (mpSession != null) {
+            // After the report hit disk: the orchestrator merges from files once processes exit.
+            mpSession.onRunDone(report.status);
+        }
+
         if (config.keepOpen()) {
             LDLib2.LOGGER.info("[uitest] keepOpen is set - leaving the game running");
             phase = Phase.EXITING;
@@ -594,6 +717,17 @@ public final class UITestRunner {
 
     public InputDriver input() {
         return inputDriver;
+    }
+
+    /** Whether this run is one client of a multi-process test. */
+    public boolean isMultiProcess() {
+        return mpSession != null;
+    }
+
+    /** This client's role in a multi-process run, or {@code null} in solo/interactive runs. */
+    @Nullable
+    public String mpRole() {
+        return mpSession == null ? null : mpSession.role();
     }
 
     private void settle(long millis) {
@@ -765,6 +899,16 @@ public final class UITestRunner {
     }
 
     private void collectScenarios() {
+        if (mpSession != null) {
+            for (var entry : mpSession.compileSelection()) {
+                queue.add(new ScenarioEntry(entry.name(), entry.group(), entry.adapter(),
+                        entry.options(), entry.scenarioClass()));
+            }
+            LDLib2.LOGGER.info("[mptest] role '{}' participates in {} scenario(s): {}",
+                    mpSession.role(), queue.size(),
+                    queue.stream().map(ScenarioEntry::name).toList());
+            return;
+        }
         var registry = LDLib2ClientRegistries.UI_SCENARIOS;
         if (registry == null) {
             LDLib2.LOGGER.error("[uitest] the ldlib2:ui_scenario registry is unavailable");

@@ -328,9 +328,9 @@ public class EditorWindow extends UIElement {
                             }
                         }).setOverflowVisible(false),
                 new Button().noText().buttonStyle(style -> {
-                    style.baseTexture(Icons.REMOVE);
-                    style.hoverTexture(Icons.REMOVE.copy().setColor(ColorPattern.GRAY.color));
-                    style.pressedTexture(Icons.REMOVE);
+                    style.baseTexture(Icons.CLOSE);
+                    style.hoverTexture(Icons.CLOSE.copy().setColor(ColorPattern.GRAY.color));
+                    style.pressedTexture(Icons.CLOSE);
                 }).setOnClick(e -> {
                     showEditor(editor);
                     editor.exit();

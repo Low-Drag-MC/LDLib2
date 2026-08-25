@@ -252,6 +252,9 @@ public class ResourceProviderContainer<T> extends UIElement {
      * build the very same cell for a file on disk and stay in step with the resource panel.
      * <p>
      * The label is the LAST child, {@link #renameResource} relies on that to swap in its text field.
+     *
+     * @param name shown verbatim — a file name or a name the user gave a resource, never a
+     *             localisation key
      */
     public static UIElement createResourceCell(Resource.DisplayMode mode, int uiWidth,
                                                UIElement thumbnail, String name) {
@@ -275,7 +278,7 @@ public class ResourceProviderContainer<T> extends UIElement {
                 style.textAlignHorizontal(Horizontal.CENTER);
                 style.fontSize(5);
             }
-        }).setText(name).setOverflowVisible(false).layout(layout -> {
+        }).setText(name, false).setOverflowVisible(false).layout(layout -> {
             if (isList) {
                 layout.flex(1);
                 layout.heightPercent(100);
@@ -321,7 +324,7 @@ public class ResourceProviderContainer<T> extends UIElement {
                     lastClickPath = null; // Reset click time
                 }).addEventListener(UIEvents.MOUSE_LEAVE, e -> {
                     if (lastClickPath == key && isMouseDown(0)) {
-                        e.currentElement.startDrag(onDragProvider.apply(key), new TextTexture(nameSupplier.apply(key)));
+                        e.currentElement.startDrag(onDragProvider.apply(key), TextTexture.raw(nameSupplier.apply(key)));
                     }
                     lastClickPath = null;
                 }, true);
@@ -663,7 +666,9 @@ public class ResourceProviderContainer<T> extends UIElement {
         var cancelled = new boolean[1];
         textField.addEventListener(UIEvents.BLUR, e -> {
             var newName = textField.getText().trim();
-            label.setText(initial);
+            // Verbatim, like the label this replaced: restoring it through a translation lookup would
+            // leave a folder named after a key showing that key's translation until the next refresh.
+            label.setText(initial, false);
             label.removeChild(textField);
             if (!cancelled[0]) {
                 onCommit.accept(newName);

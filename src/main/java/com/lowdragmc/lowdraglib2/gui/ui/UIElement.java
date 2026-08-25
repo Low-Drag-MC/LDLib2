@@ -169,6 +169,46 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      * You should not call this method manually.
      */
     protected final void _setModularUIInternal(@Nullable ModularUI mui) {
+        // Once, from the top of the subtree that is moving, and before anything is re-registered.
+        handOverAnimations(modularUI, mui);
+        setModularUIRecursively(mui);
+    }
+
+    /**
+     * Moves whatever animations {@code from}'s engine is running for this subtree onto {@code to}'s.
+     *
+     * <p>A running animation lives in the engine of the UI that started it, and that engine stops being
+     * updated the moment this tree is drawn by a different one. Left where it is, the animation never
+     * reaches its {@code onFinished} — which is how a save notification that closes itself when its
+     * progress bar fills came to sit on screen for good, after the editor window had been minimized
+     * mid-notification and came back inside a fresh {@link ModularUI}.
+     */
+    private void handOverAnimations(@Nullable ModularUI from, @Nullable ModularUI to) {
+        if (from == null || to == null || from == to) return;
+        from.getAnimationEngine().handOver(to.getAnimationEngine(), this::isInSubtree);
+    }
+
+    /**
+     * Whether {@code candidate} is this element or one of its descendants.
+     *
+     * <p>Walks the live parent chain instead of going through {@link #isAncestorOf}: a subtree is
+     * re-hosted from inside {@link #addChildAt}, which invalidates the cached structure paths that
+     * method reads only afterwards, so the cached answer there can still be the pre-move one.
+     */
+    private boolean isInSubtree(Object candidate) {
+        if (!(candidate instanceof UIElement element)) return false;
+        for (var current = element; current != null; current = current.getParent()) {
+            if (current == this) return true;
+        }
+        return false;
+    }
+
+    /**
+     * The re-registration itself, walked down the subtree. Split out of
+     * {@link #_setModularUIInternal} so the work that belongs to a move as a whole happens once, at
+     * the top, rather than once per element on the way down.
+     */
+    private void setModularUIRecursively(@Nullable ModularUI mui) {
         var previous = modularUI;
         if (this.modularUI != mui) {
             if (this.modularUI != null) {
@@ -197,7 +237,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
             UIEventDispatcher.dispatchEvent(event, false, false, false);
         }
         for (var child : children) {
-            child._setModularUIInternal(mui);
+            child.setModularUIRecursively(mui);
         }
     }
 
@@ -679,12 +719,17 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         if (hasChild(child)) {
             throw new IllegalArgumentException("Cannot add the same child twice");
         }
+        // Detaching clears the child's UI, so the engine still holding whatever it had running has to be
+        // noted here — by the time _setModularUIInternal could work it out for itself it is gone.
+        ModularUI detachedFrom = null;
         if (child.hasParent()) {
             assert child.getParent() != null;
+            detachedFrom = child.getModularUI();
             child.getParent().removeChild(child);
         }
         child.parent = this;
         children.add(index, child);
+        child.handOverAnimations(detachedFrom, this.modularUI);
         child._setModularUIInternal(this.modularUI);
         clearSortedChildrenCache();
         child.clearStructurePathCache();

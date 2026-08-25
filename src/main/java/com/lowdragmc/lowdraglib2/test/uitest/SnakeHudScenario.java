@@ -111,7 +111,7 @@ public class SnakeHudScenario implements UIScenario {
 
                 .closeScreen()
                 .check("the screen closed", ctx -> ctx.screen() == null)
-                // Closing back into the world is what makes Minecraft#setScreen call
+                // Closing back into the world is what makes Gui#setScreen call
                 // MouseHandler#grabMouse, which would hide and capture the pointer of whoever is at
                 // the machine. Cancelled for the duration of a run; this is the guard on that.
                 .check("closing the screen did not capture the physical pointer",

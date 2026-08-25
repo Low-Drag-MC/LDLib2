@@ -49,6 +49,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.*;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.*;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wiget.PlacematModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.GraphModel;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.IGhostWireModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.PortMigrationResult;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WirePlaceHolder;
@@ -629,6 +630,13 @@ public class GraphView extends UIElement {
         // sticky notes
         for (var stickyNoteModel : graphModel.getStickyNoteModels()) {
             createAndAddModelElement(stickyNoteModel);
+        }
+
+        // reroute points — before the wires, so a wire's first update already sees the dots it is
+        // routed through and hooks their LAYOUT changes. Otherwise a dot dragged straight after a
+        // graph rebuild would leave its wires behind.
+        for (var reroutePoint : graphModel.getWireReroutePointModels()) {
+            createAndAddModelElement(reroutePoint);
         }
 
         // wire
@@ -1383,7 +1391,7 @@ public class GraphView extends UIElement {
 
         // Wire-specific items (only when all selected are wires)
         if (selectedModels.stream().allMatch(WireModel.class::isInstance)) {
-            appendWireMenuItems(menuBuilder, selectedModels);
+            appendWireMenuItems(menuBuilder, selectedModels, localPosition);
         }
 
         // Context/Block items
@@ -1553,7 +1561,18 @@ public class GraphView extends UIElement {
     }
 
     /** Appends wire-specific menu items (e.g., Convert to Portals). */
-    private void appendWireMenuItems(TreeBuilder.Menu menuBuilder, List<GraphElementModel> models) {
+    private void appendWireMenuItems(TreeBuilder.Menu menuBuilder, List<GraphElementModel> models, Vector2f localPosition) {
+        // Reroute point — the menu equivalent of double-clicking the wire. Single wire only: the
+        // insertion point is a position on one specific polyline.
+        if (models.size() == 1 && models.get(0) instanceof WireModel wire && !(wire instanceof IGhostWireModel)) {
+            menuBuilder.leaf("graph.commands.insert_reroute_point", () -> {
+                var index = getModelElement(wire) instanceof WireElement wireElement
+                        ? wireElement.reroutePointInsertIndex(localPosition)
+                        : wire.getReroutePoints().size();
+                dispatchCommand(new WireCommands.InsertReroutePointCommand(wire, localPosition, index));
+            });
+        }
+
         menuBuilder.leaf("graph.commands.covert_wires_to_portals", () -> {
             var wires = new ArrayList<WireModel>();
             for (var model : models) {

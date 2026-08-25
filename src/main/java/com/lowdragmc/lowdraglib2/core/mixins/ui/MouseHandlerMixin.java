@@ -67,7 +67,7 @@ public class MouseHandlerMixin {
     /**
      * A synthetic pointer and a captured physical one are mutually exclusive by definition.
      *
-     * <p>{@code Minecraft#setScreen(null)} calls this, and an automated run closes the screen between
+     * <p>{@code Gui#setScreen(null)} calls this, and an automated run closes the screen between
      * every scenario, so without this it hides and captures the pointer of whoever is using the
      * machine. Cancelling at HEAD leaves {@code mouseGrabbed} false, which is consistent rather than
      * lossy: {@code releaseMouse}'s whole body is inside {@code if (mouseGrabbed)}, so it stays a

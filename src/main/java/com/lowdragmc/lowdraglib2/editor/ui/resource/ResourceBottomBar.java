@@ -84,8 +84,9 @@ public class ResourceBottomBar extends UIElement {
         return this;
     }
 
+    /** @param text shown verbatim — it is a file path or a resource reference, not a localisation key */
     public ResourceBottomBar setText(@Nullable String text) {
-        pathLabel.setText(text == null ? "" : text);
+        pathLabel.setText(text == null ? "" : text, false);
         return this;
     }
 }

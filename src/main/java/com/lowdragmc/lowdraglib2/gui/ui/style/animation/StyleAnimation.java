@@ -104,6 +104,11 @@ public class StyleAnimation {
                 var keyFrame = KeyFrames.of(p.getInterpolator(), slots.toArray(new FloatObjectPair[0]));
                 var executor = new KFExecutor<>(keyFrame, new IFrameValueHandler<>() {
                     @Override
+                    public Object owner() {
+                        return target;
+                    }
+
+                    @Override
                     public void accept(AnimationRuntime runtime, Object o) {
                         target.getStyleBag().onAnimationUpdate(animationOrigin, p, o);
                         onInterpolate.accept(runtime, target);
