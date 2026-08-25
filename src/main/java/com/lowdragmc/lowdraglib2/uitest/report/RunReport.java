@@ -107,6 +107,8 @@ public class RunReport {
         public int index;
         public String name = "";
         public String kind = "";
+        /** Which process produced this step in a merged multi-process report; {@code null} in solo runs. */
+        public String role;
         public String group;
         public String status = Status.PASS;
         public long durationMs;

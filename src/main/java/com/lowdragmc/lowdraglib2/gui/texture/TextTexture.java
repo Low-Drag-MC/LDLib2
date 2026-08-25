@@ -98,6 +98,36 @@ public class TextTexture extends TransformTexture {
         }
     }
 
+    /**
+     * A texture showing {@code text} exactly as given.
+     *
+     * <p>The constructors and {@link #updateText} treat their argument as a localisation key, which is
+     * right for a hard-coded UI string and wrong for anything a user named. The lookup ends in a
+     * {@link String#format}, so a file called {@code 50%_off.png} comes out as
+     * {@code "Format error: 50%_off.png"}, and a name that happens to match a key any loaded mod
+     * defines is replaced by that translation.
+     */
+    public static TextTexture raw(String text) {
+        // Built empty and then filled in, because every constructor puts its argument through the
+        // lookup. Otherwise identical to new TextTexture(text), drop shadow included.
+        return new TextTexture("").setRawText(text);
+    }
+
+    /**
+     * Replaces the text without a translation lookup.
+     *
+     * @see #raw(String)
+     */
+    public TextTexture setRawText(String text) {
+        this.text = text;
+        this.texts = Collections.singletonList(this.text);
+        if (LDLib2.isClient()) {
+            // Splits it against the current width.
+            TextTextureClientSupport.refreshTexts(this);
+        }
+        return this;
+    }
+
     public TextTexture setBackgroundColor(int color) {
         this.backgroundColor = color;
         return this;
@@ -128,14 +158,17 @@ public class TextTexture extends TransformTexture {
 
     @Override
     public TextTexture copy() {
-        var copied = new TextTexture(text, color);
+        var copied = new TextTexture("", color);
         copied.type = type;
         copied.dropShadow = dropShadow;
         copied.rollSpeed = rollSpeed;
         copied.width = width;
         copied.backgroundColor = backgroundColor;
         copied.supplier = supplier;
-        copied.texts = List.copyOf(texts);
+        // Raw, and last so it splits against the width just copied: this text has already been through
+        // the lookup, and a second pass would mangle anything with a percent sign in it — which is
+        // everything raw() exists to display. Fills in texts on the way.
+        copied.setRawText(text);
         copied.copyTransform(this);
         return copied;
     }

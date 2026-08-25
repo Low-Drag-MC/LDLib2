@@ -219,6 +219,156 @@ can never silently click nothing and pass.
    `-PldTest` wiring and the `verifyUiTest` task, and is inert without `-PldTest`.
 4. `gradlew runClient -PldTest=group:<yourmod>`.
 
+---
+
+# Multi-process tests (dedicated server + N clients)
+
+Everything above runs one client against its integrated server. The multi-process harness tests the
+**full wire**: one real dedicated server plus one client per role, connected over localhost, driven
+in lockstep. This is how you test what a *second* player sees — `@DescSynced` world sync, per-player
+UI sessions, C2S interaction packets, RPC — against the same code paths production runs.
+
+```
+gradlew runMpTest -PldMpTest=mp_sync_smoke
+  -> build/ldlib2-mptest/report.json      merged, machine-readable
+  -> build/ldlib2-mptest/report.txt       human summary
+  -> build/ldlib2-mptest/server/          the dedicated server's own report + gradle.log
+  -> build/ldlib2-mptest/clientA|B/       each client's report, log and screenshots
+```
+
+One command spawns `runMpServer` + `runMpClientA`/`runMpClientB` as child Gradle builds, prepares
+`runs/mpServer` (fresh flat world, offline mode, a free port), coordinates everything over a local
+TCP hub, merges the three reports, and fails the build via `verifyMpTest` if anything failed —
+a missing report included. A dying orchestrator can never leak game processes: every process treats
+a dropped hub connection as "shut down now".
+
+## Writing a multi-process scenario
+
+A scenario is an ordered list of **segments**. Each segment is owned by one side; everyone else
+waits at a barrier. Inside a `client(..)` block the entire `ScenarioBuilder` DSL above is available
+unchanged.
+
+```java
+@LDLRegister(name = "my_sync", group = "mymod", registry = MPScenario.REGISTRY,
+             environment = RegistrationEnvironment.DEV_ONLY)   // plain @LDLRegister - both dists discover it
+public class MySyncScenario implements MPScenario {
+    public void configure(MPScenarioOptions o) { o.clients("A", "B"); }
+
+    public void define(MPScenarioBuilder s) {
+        s.server("place machine", sc -> { ... })               // dedicated server thread
+         .client("A", "open ui and click", b -> b              // ordinary ScenarioBuilder steps
+                 .useBlock(POS)                                // real C2S use packet in MP mode
+                 .awaitScreen(ModularUIContainerScreen.class)
+                 .click("#btn").screenshot("clicked"))
+         .serverWaitUntil("server saw it", sc -> ...)          // re-checked every tick
+         .server("assert authoritative state", sc -> sc.check(...))
+         .client("B", "other client sees it", b -> b
+                 .useBlock(POS).waitForText("#label", "43"))
+         .sync("value converged on B", "B",                    // cross-process waitForSync
+                 sc  -> sc.blockEntity(POS, MyBE.class).getValue(),
+                 ctx -> ctx.clientBlockEntity(POS, MyBE.class).getValue())
+         .allClients("close", b -> b.closeScreen())            // every client, barrier waits for all
+         .teardownServer("clean", sc -> { ... });              // teardown = owned-only, no barriers
+    }
+}
+```
+
+Segment vocabulary: `server` (one task), `serverWaitUntil` (per-tick poll), `client(role, block)`,
+`allClients(block)`, `sync`/`syncAll` (client polls until its value equals the server's, fetched as
+a probe over the control channel and compared by Gson JSON form — keep values to primitives/strings),
+`fetch`/`fetchOn` (below), `teardownServer`/`teardownClient`/`teardownAllClients`.
+
+### Asserting with a tolerance: `fetch`
+
+`sync` compares by JSON equality, which is right for a synced integer and useless for anything
+continuous — two processes whose body angles differ by a twentieth of a degree agree about
+everything that matters, and no rounding makes a live float converge on the nose. `fetch` copies
+the server's number into every client's scratch state once, and leaves the comparison to the client:
+
+```java
+.fetch("server.yaw", "the body angle the server holds", Double.class,
+        sc -> (double) mover(sc).yaw())
+.client("B", "and this client agrees", b -> b.check("within a tick of turning", ctx -> {
+    double server = ctx.get("server.yaw");
+    double here   = moverOf(ctx, "LDTestA").yaw();
+    ctx.log("server " + server + ", here " + here);        // in the report either way
+    return Math.abs(Mth.wrapDegrees(server - here)) < 2.0;
+}))
+```
+
+The reading is taken when the segment runs, so put the `fetch` where you want the sample taken —
+what a later step compares against is the server at a known point in the scenario, not at whenever
+that step happened to fire. `fetchOn(role, ...)` restricts it to one client. Use `Double.class`
+for anything numeric: Gson reads a bare JSON number as a double.
+
+Semantics worth knowing:
+
+- **Soft check failures do not gate other processes** — `check(..)` marks the step failed and the
+  run FAIL, exactly like solo. Only a *thrown* step (or a timeout) aborts: the owner broadcasts its
+  unfinished segments as ABORTED, every other process's barrier throws, and everyone converges on
+  its own teardown, then the next scenario.
+- **`server(..)` helpers inside client blocks throw.** A multi-process client has no integrated
+  server; world mutation belongs in `s.server(..)` segments, cross-process waits in `s.sync(..)`.
+  `useBlock` is the exception — in MP mode it switches to the real client-side interaction path.
+- **`ServerContext.player(role)`** resolves a role's player on the dedicated server
+  (usernames are `LDTest<role>`); `players()` gives all of them.
+- **`define()` runs in every process and must be deterministic** — same segments, same order,
+  everywhere. Never branch on live state in `define`; segment bodies are where that happens.
+- **A client skips scenarios it has no role in, but its next scenario's clock starts immediately** —
+  while the others are still on the earlier scenario, it sits in its first barrier. When scenarios
+  with different `clients(..)` sets share a run, size `scenarioTimeoutMs` to cover the scenarios a
+  non-participant waits through.
+
+## The dist rule (the one way to break the harness)
+
+`define()` also runs in the **dedicated-server process**, so the scenario class must stay loadable
+there. Method *signatures* resolve when a class links; bodies are lazy. In practice:
+
+- Fine: `Consumer<ServerContext>`, `Consumer<ScenarioBuilder>` blocks, inner `ctx -> ...` steps,
+  `Predicate<TestContext>`, sync getters returning boxed values, class literals like
+  `awaitScreen(Foo.class)` (resolved only when the owning client expands the block).
+- **Not fine**: a lambda whose erased signature names a client-only type — e.g.
+  `Function<TestContext, Screen>` factories (`openScreen`), or a lambda capturing a client-typed
+  local. Use `openScreenTest(name)` or move the code into an `@OnlyIn(Dist.CLIENT)` helper class
+  referenced only inside step bodies.
+
+`MPScenarioDistLoadingTest` (a game test, so it runs in every `runGameTestServer`) instantiates and
+defines every registered MP scenario on the dedicated dist — a violation fails there with the
+scenario's name instead of crashing a live `runMpTest`.
+
+## Running
+
+| Command | Effect |
+|---|---|
+| `gradlew runMpTest` | every registered MP scenario (`-PldMpTest=all`) |
+| `-PldMpTest=<name\|a,b\|group:x\|tag:y\|regex:p>` | the same selection grammar as `-PldTest` |
+| `-PldMpClients=A,B` | which client processes to launch (default `A,B`; scenarios needing absent roles are skipped) |
+
+A cold run takes ~1–2 minutes: three child Gradle builds boot in parallel, clients join over
+localhost, scenarios run in lockstep, reports merge. Timings inside client blocks are the solo
+defaults; barriers use the scenario budget (`MPScenarioOptions#scenarioTimeoutMs`, default 5 min)
+because they legitimately span another process's whole segment.
+
+Debugging order when a run fails: `build/ldlib2-mptest/report.txt` (which role, which segment),
+then that role's `report.json` and screenshots, then its `gradle.log`. The orchestrator's own
+`[mptest]` lines in the build output show the hub's view: who connected, who joined, which
+scenario ended how, who exited with what.
+
+## Where the multi-process code lives
+
+| Piece | Location |
+|---|---|
+| public API (`MPScenario`, `MPScenarioBuilder`, `MPScenarioOptions`, `MPSegment`) | `com.lowdragmc.lowdraglib2.uitest.mp` |
+| control protocol + hub client + orchestrator (no Minecraft imports) | `...uitest.mp` (`MPMessages`, `MPHubClient`, `MPTestOrchestrator`) |
+| client-side compiler/session glue | `com.lowdragmc.lowdraglib2.uitest.MPClientSession` |
+| dedicated-server runner + bootstrap | `...uitest.MPServerRunner`, `...uitest.MPServerBootstrap` |
+| Gradle wiring (`runMpTest`, `verifyMpTest`, the three child runs) | `gradle/ldlib2-mptest.gradle` |
+| LDLib2's own MP scenarios | `com.lowdragmc.lowdraglib2.test.uitest.mp` |
+
+Adopting it downstream mirrors the solo harness: write `MPScenario`s in `src/main/java`, copy
+`gradle/ldlib2-mptest.gradle` next to your `runs { }` block, and run
+`gradlew runMpTest -PldMpTest=group:<yourmod>`.
+
 ## Where the code lives
 
 | Package | Contents |

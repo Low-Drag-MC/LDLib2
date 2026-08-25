@@ -13,7 +13,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class NodeOptionsInspector extends ModelElement {
-    public record OptionFieldInfo(String name, TypeHandle type, boolean inspectorOnly, boolean configuratorEnabled) {}
+    public record OptionFieldInfo(String name, TypeHandle type, boolean inspectorOnly, boolean configuratorEnabled) {
+        @Deprecated
+        public OptionFieldInfo(String name, TypeHandle type, boolean inspectorOnly) {
+            this(name, type, inspectorOnly, true);
+        }
+    }
     public final NodeModel nodeModel;
 
     // runtime

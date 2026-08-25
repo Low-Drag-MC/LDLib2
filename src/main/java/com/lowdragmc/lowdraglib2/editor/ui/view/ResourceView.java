@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.editor.ui.View;
 import com.lowdragmc.lowdraglib2.editor.ui.browser.AssetBrowser;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceContainer;
+import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -43,6 +44,10 @@ public class ResourceView extends View {
     private final AssetBrowser assetBrowser;
     @Getter
     private final Tab assetBrowserTab;
+    /**
+     * The line between the pinned {@link #assetBrowserTab} and the resource tabs scrolling below it.
+     */
+    public final UIElement pinnedTabSeparator = new UIElement();
 
     public ResourceView(Editor editor) {
         super("editor.view.resources");
@@ -82,6 +87,29 @@ public class ResourceView extends View {
         this.assetBrowser = new AssetBrowser(editor);
         this.assetBrowserTab = createTab(Icons.FOLDER, Component.translatable("editor.view.assets"));
         tabView.addTab(assetBrowserTab, assetBrowser, 0);
+        pinAssetBrowserTab();
+    }
+
+    /**
+     * Lifts the browser's tab out of the scrolling strip and parks it at the top of the header, with a
+     * divider between it and the tabs that do scroll.
+     *
+     * <p>It is the way into the file system rather than one resource type among many, so it has no
+     * business scrolling out of reach the moment a project brings enough resources to overflow the
+     * strip. Only the header element moves: {@link TabView#addTab} has already wired the click and
+     * registered the content, and none of that cares where the element ends up — so selection behaves
+     * exactly as it did.
+     */
+    private void pinAssetBrowserTab() {
+        pinnedTabSeparator.layout(layout -> {
+            layout.widthPercent(100);
+            layout.height(1);
+            layout.marginVertical(1);
+        }).style(style -> style.backgroundTexture(ColorPattern.T_WHITE.rectTexture()));
+        pinnedTabSeparator.addClass("__resource-view_pinned-tab-separator__").moveInlineAsDefault();
+
+        tabView.tabHeaderContainer.addChildAt(assetBrowserTab, 0);
+        tabView.tabHeaderContainer.addChildAt(pinnedTabSeparator, 1);
     }
 
     private void onResourceSelected(Tab tab) {

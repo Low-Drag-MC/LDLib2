@@ -46,6 +46,11 @@ public class TransitionAnimation<T> implements IFrameValueHandler<T> {
     }
 
     @Override
+    public Object owner() {
+        return styleBag.element;
+    }
+
+    @Override
     public void accept(AnimationRuntime runtime, T value) {
         var oldValue = this.currentValue;
         this.currentValue = value;

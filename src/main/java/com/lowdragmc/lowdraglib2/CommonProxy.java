@@ -11,6 +11,7 @@ import com.lowdragmc.lowdraglib2.plugin.ILDLibPlugin;
 import com.lowdragmc.lowdraglib2.plugin.LDLibPlugin;
 import com.lowdragmc.lowdraglib2.syncdata.AccessorRegistries;
 import com.lowdragmc.lowdraglib2.test.*;
+import com.lowdragmc.lowdraglib2.test.gametest.mp.MPGameTests;
 import com.lowdragmc.lowdraglib2.test.gametest.nodegraph.NodeGraphGameTests;
 import com.lowdragmc.lowdraglib2.test.gametest.registry.RegistryGameTests;
 import com.lowdragmc.lowdraglib2.test.gametest.resource.ResourceGameTests;
@@ -72,6 +73,7 @@ public class CommonProxy {
             RegistryGameTests.init(eventBus);
             SyncDataGameTests.init(eventBus);
             ResourceGameTests.init(eventBus);
+            MPGameTests.init(eventBus);
         }
 
         BLOCKS.register(eventBus);

@@ -41,6 +41,26 @@ public class MouseHandlerMixin {
         return source == null ? original : CursorState.toPhysicalY(source.cursorY());
     }
 
+    // ...and the scaled pair as well, because they do NOT go through the getters above: both read the
+    // xpos/ypos *fields* directly. GameRenderer takes Screen#render's mouse arguments from these two,
+    // so without them the per-frame hover refresh in ModularUIWidget sees the physical pointer and
+    // overwrites the hover a synthetic move just set - the element is clicked correctly (that path
+    // dispatches against InputDriver#syncHover) while __hovered__ lands on whatever the real mouse
+    // happens to be over. Already GUI-scaled, which is the space CursorState.Source reports in, so
+    // these return the source position as-is rather than round-tripping it through toPhysical*.
+
+    @ModifyReturnValue(method = "getScaledXPos(Lcom/mojang/blaze3d/platform/Window;)D", at = @At("RETURN"))
+    private double ldlib2$virtualScaledXpos(double original) {
+        var source = CursorState.getSource();
+        return source == null ? original : source.cursorX();
+    }
+
+    @ModifyReturnValue(method = "getScaledYPos(Lcom/mojang/blaze3d/platform/Window;)D", at = @At("RETURN"))
+    private double ldlib2$virtualScaledYpos(double original) {
+        var source = CursorState.getSource();
+        return source == null ? original : source.cursorY();
+    }
+
     /**
      * A synthetic pointer and a captured physical one are mutually exclusive by definition.
      *

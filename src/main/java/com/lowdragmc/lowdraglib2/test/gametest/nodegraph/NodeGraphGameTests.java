@@ -41,6 +41,7 @@ public final class NodeGraphGameTests {
         GraphCommandPolicyTest.registerFunctions();
         GraphCrossTypeSubgraphTest.registerFunctions();
         GraphNodePreviewTest.registerFunctions();
+        GraphWireReroutePointTest.registerFunctions();
         TEST_FUNCTIONS.register(eventBus);
         eventBus.addListener(NodeGraphGameTests::registerGameTests);
     }
@@ -85,6 +86,7 @@ public final class NodeGraphGameTests {
         GraphCommandPolicyTest.register(event, environment);
         GraphCrossTypeSubgraphTest.register(event, environment);
         GraphNodePreviewTest.register(event, environment);
+        GraphWireReroutePointTest.register(event, environment);
     }
 
     static void registerFunctionTest(

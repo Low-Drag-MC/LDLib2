@@ -124,6 +124,8 @@ public class EditorSettings implements IPersistedSerializable {
      * Load all settings from the file.
      */
     public void loadAllSettingsFromFile() {
+        // nothing registered, nothing to read into - editors that only exist to host a widget open no file.
+        if (codecs.isEmpty()) return;
         if (!settingsFile.exists()) return;
         try (var reader = new FileReader(settingsFile)){
             var json = JsonParser.parseReader(reader).getAsJsonObject();

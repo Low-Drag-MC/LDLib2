@@ -25,6 +25,11 @@ import java.util.UUID;
  *
  * <p>A wire connects an output port to an input port, allowing data or execution flow to pass between nodes.
  * Each wire has exactly two endpoints: a "from" port (typically output) and a "to" port (typically input).</p>
+ *
+ * <p>A wire may additionally be drawn through {@linkplain WireReroutePointModel reroute points}. Those
+ * are pure layout: the wire still has exactly one {@code fromPort} and one {@code toPort} however it
+ * is routed, and several wires leaving the same reroute point are simply several wires on the same
+ * output port.</p>
  */
 public class WireModel extends GraphElementModel implements IPortWireIndexModel, IGraphElementUIModel {
     @Getter @Nullable
@@ -33,6 +38,13 @@ public class WireModel extends GraphElementModel implements IPortWireIndexModel,
     private PortModel toPort;
     @Getter @Setter @Nullable
     private Component bubbleText;
+    /**
+     * The last reroute point this wire travels through on its way to {@link #toPort}, or {@code null}
+     * when it runs straight. The rest of the route is implied by that point's upstream chain — see
+     * {@link WireReroutePointModel}. Layout only; it never changes what this wire connects.
+     */
+    @Getter @Nullable
+    private WireReroutePointModel routeVia;
 
     public WireModel() {
         capabilities.addAll(List.of(
@@ -56,6 +68,33 @@ public class WireModel extends GraphElementModel implements IPortWireIndexModel,
         super.setGraphModel(value);
         // todo reference
     }
+
+    // region reroute points
+
+    /**
+     * The reroute points this wire is drawn through, ordered from the {@link #getFromPort()} end to
+     * the {@link #getToPort()} end. Purely visual: they never change what this wire connects.
+     *
+     * <p>Derived from {@link #getRouteVia()}'s upstream chain, so a wire shares its whole routing with
+     * every other wire that leaves the same point. Empty (and allocation-free) for a straight wire.</p>
+     */
+    public List<WireReroutePointModel> getReroutePoints() {
+        return WireReroutePointModel.chainFrom(routeVia);
+    }
+
+    /**
+     * Routes this wire through {@code point} and everything upstream of it, or straightens it when
+     * {@code null}. The connection is untouched either way.
+     */
+    public void setRouteVia(@Nullable WireReroutePointModel point) {
+        if (routeVia == point) return;
+        routeVia = point;
+        if (graphModel != null) {
+            graphModel.getCurrentGraphChangeDescription().addChangedModel(this, ChangeHint.LAYOUT);
+        }
+    }
+
+    // endregion
 
     public void setFromPort(PortModel fromPort) {
         var oldPort = this.fromPort;
@@ -212,7 +251,21 @@ public class WireModel extends GraphElementModel implements IPortWireIndexModel,
             tag.putString("toPortId", toPort.getPortId());
             if (toPort.getNodeModel() != null) tag.putString("toNodeUid", toPort.getNodeModel().getUid().toString());
         }
+        // Only the last point: the rest of the route is the chain hanging off it, which the graph
+        // stores once and every wire on that branch shares.
+        if (routeVia != null) {
+            tag.putString("routeVia", routeVia.getUid().toString());
+        }
         return tag;
+    }
+
+    /** The serialized {@code routeVia} uid, or null. Resolved by GraphModel once the points exist. */
+    public static @Nullable UUID getRouteViaUidFromTag(CompoundTag tag) {
+        if (tag.contains("_additional")) {
+            var additional = tag.getCompoundOrEmpty("_additional");
+            return com.lowdragmc.lowdraglib2.utils.TagUtils.readUUID(additional, "routeVia").orElse(null);
+        }
+        return null;
     }
 
     /** The recovery node uid for one side, or null (older saves lack it). */
@@ -239,8 +292,8 @@ public class WireModel extends GraphElementModel implements IPortWireIndexModel,
 
     @Override
     public void deserializeAdditionalNBT(Tag tag, HolderLookup.Provider provider) {
-        // Port references are resolved by GraphModel after all nodes are created.
-        // Store the UUIDs temporarily in the tag - GraphModel will read them.
+        // Port and reroute-point references are resolved by GraphModel after all nodes and points
+        // are created. Store the UUIDs temporarily in the tag - GraphModel will read them.
     }
 
     /**
