@@ -104,7 +104,6 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
      * reconcile the two every frame.
      */
     @Nullable
-    @Getter
     private ITransform targetTransform;
     @Nullable
     @Setter
@@ -142,6 +141,18 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     // ---------------------------------------------------------------------------------------------
     // state / lifecycle
     // ---------------------------------------------------------------------------------------------
+
+    /**
+     * ⚠️ <b>The one signature this change widened.</b> This returned {@link Transform} until 2.2.38
+     * and now returns {@link ITransform}, which is a binary break for anything that called it — there
+     * is no compatible alternative, because a target that is not a {@code Transform} cannot be
+     * returned as one, and answering {@code null} for it would be a lie rather than a limitation.
+     * Every other signature involved kept a {@code Transform} overload.
+     */
+    @Nullable
+    public ITransform getTargetTransform() {
+        return targetTransform;
+    }
 
     public void setTargetTransform(@Nullable ITransform targetTransform) {
         if (this.targetTransform == targetTransform) return;
