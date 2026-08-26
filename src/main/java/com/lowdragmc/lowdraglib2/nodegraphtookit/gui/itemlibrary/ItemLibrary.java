@@ -452,10 +452,13 @@ public class ItemLibrary extends ItemLibraryPanel<ItemLibraryItem> {
         if (portModels.isEmpty()) return;
         testModels.clear();
         this.portModels = portModels;
-        title.setText(Component.translatable("graph.library.choose", Component.translatable(portModels.getFirst().getDataTypeHandle().getFriendlyName())));
         attachPortChildren();
         setPortRecommendation(portModels.getFirst());
         show(mouseX, mouseY, onFinished);
+        // AFTER show(), which puts the generic "add a node" title up. This one names the type the
+        // dragged wire carries, and setting it first meant it was overwritten before anyone saw it.
+        title.setText(Component.translatable("graph.library.choose",
+                Component.translatable(portModels.getFirst().getDataTypeHandle().getFriendlyName())));
     }
 
     @Override
