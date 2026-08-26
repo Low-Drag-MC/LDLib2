@@ -1,25 +1,14 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.itemlibrary;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.gui.ColorPattern;
-import com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
-import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemLibraryPanel;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TreeList;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
-import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.ITreeNode;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
-import com.lowdragmc.lowdraglib2.gui.util.WindowDragHelper;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.BlockNode;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.ContextNode;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.Node;
@@ -32,68 +21,43 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.ContextNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.ICustomNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.InputOutputPortsNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
-import com.lowdragmc.lowdraglib2.utils.LocalizationUtils;
-import dev.vfyjxf.taffy.style.AlignItems;
-import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyDisplay;
-import dev.vfyjxf.taffy.style.TaffyPosition;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Vector2f;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-public class ItemLibrary extends UIElement {
-    public record DragMove(Vector2f originalPos) {}
-    public record DragResize(Vector2f originalSize) {}
+/**
+ * The graph's pick-a-node popup: an {@link ItemLibraryPanel} whose entries are node classes, the
+ * constants of the graph's type system, a context's blocks, and the ports of any of those.
+ *
+ * <p>Everything about <i>being</i> a searchable popup — where it opens, the arrow keys, the search,
+ * the description panel, the drag and the resize — is the panel's, and was moved there so that
+ * anything else needing this window does not have to grow a second one that looks almost like it.
+ * What is left here is the half that knows what a node is: which trees exist, how a node type becomes
+ * an entry, the throwaway models used to read a node's ports and description, and the port sub-rows a
+ * wire drag hangs under each entry.
+ */
+public class ItemLibrary extends ItemLibraryPanel<ItemLibraryItem> {
 
     public final GraphView graphView;
 
-    public final UIElement headBar = new UIElement();
-    public final Label title = new Label();
-    public final TextField searchField = new TextField();
-    public final ScrollerView resultContainer = new ScrollerView();
-    public final UIElement tailBar = new UIElement();
-    public final Label tailLabel = new Label();
-    public final UIElement resizeButton = new UIElement();
-
-    /** Side panel showing the selected node's {@link Node#createDescriptionUI()}. Collapsed by default. */
-    public final UIElement descriptionPanel = new UIElement();
-    public final ScrollerView descriptionView = new ScrollerView();
-
-    public final UIElement treeContainer = new UIElement();
-    public final TreeList<TreeNode<ItemLibraryItem, Void>> searchTree = new TreeList<>();
-    public final TreeList<TreeNode<ItemLibraryItem, Void>> recommendationTree = new TreeList<>();
     public final TreeList<TreeNode<ItemLibraryItem, Void>> constantTree = new TreeList<>();
     public final TreeList<TreeNode<ItemLibraryItem, Void>> contextTree = new TreeList<>();
     public final TreeList<TreeNode<ItemLibraryItem, Void>> nodeTree = new TreeList<>();
     /** Hidden by default. Populated and shown only when {@link #showBlocksForContext} is called. */
     public final TreeList<TreeNode<ItemLibraryItem, Void>> blockTree = new TreeList<>();
-    /** Width of the {@link #descriptionPanel}, the library's own default width by default. */
-    protected float descriptionWidth = 150;
+
     // runtime
     @Nullable
     protected GraphModel graphModel;
     @Nullable
     protected List<PortModel> portModels;
-    @Nullable
-    protected TreeList<TreeNode<ItemLibraryItem, Void>> selectedTree;
-    @Nullable
-    protected ItemLibraryItem selectedItem;
-    @Nullable
-    protected TreeNode<ItemLibraryItem, Void> selectedNode;
-    @Nullable
-    protected Consumer<@Nullable ItemLibraryItem> onFinished;
-    @Nullable
-    protected List<ItemLibraryItem> searchCandidates;
     /** True while the library is in "pick a block for context X" mode (see {@link #showBlocksForContext}). */
     protected boolean blockOnlyMode = false;
     /**
@@ -104,150 +68,24 @@ public class ItemLibrary extends UIElement {
     protected final Map<ItemLibraryItem, GraphElementModel> testModels = new HashMap<>();
 
     public ItemLibrary(GraphView graphView) {
+        super(graphView, ItemLibraryItem::new);
         this.graphView = graphView;
-        addClass("__item-library__");
-        // ABSOLUTE positioning + width/height are popup-driven (resize, show-at-mouse) — pin via IMPORTANT.
-        Style.importantPipeline(getLayout(), l -> l.positionType(TaffyPosition.ABSOLUTE)
-                .width(150)
-                .height(200));
-        Style.defaultPipeline(getLayout(), l -> l.gapAll(2).paddingAll(5));
-        Style.defaultPipeline(getStyle(), s -> s.background(Sprites.BORDER1_RT1));
 
-        headBar.addClass("__item-library_head-bar__");
-        Style.defaultPipeline(headBar.getLayout(), l -> l.flexDirection(FlexDirection.ROW).alignItems(AlignItems.CENTER).gapAll(2));
-        title.addClass("__item-library_title__");
-        Style.defaultPipeline(title.getTextStyle(), s -> s.textWrap(TextWrap.HOVER_ROLL));
-        Style.defaultPipeline(title.getStyle(), s -> s.overflowVisible(false));
-        Style.defaultPipeline(title.getLayout(), l -> l.flex(1));
-
-        searchField.addClass("__item-library_search-field__");
-        resultContainer.addClass("__item-library_result-container__");
-        Style.defaultPipeline(resultContainer.getLayout(), l -> l.flex(1));
-
-        searchTree.setStaticTree(false);
-        recommendationTree.setStaticTree(false);
-        constantTree.setStaticTree(false);
-        contextTree.setStaticTree(false);
-        nodeTree.setStaticTree(false);
-        blockTree.setStaticTree(false);
-
-        searchTree.addClass("__item-library_search-tree__");
-        recommendationTree.addClass("__item-library_recommend-tree__");
         constantTree.addClass("__item-library_constant-tree__");
         contextTree.addClass("__item-library_context-tree__");
         nodeTree.addClass("__item-library_node-tree__");
         blockTree.addClass("__item-library_block-tree__");
-        treeContainer.addClass("__item-library_tree-container__");
 
-        searchField.setTextResponder(this::onSearchWordChanged);
-        // Initial tree visibility is mode-driven — pin via IMPORTANT.
-        Style.importantPipeline(searchTree.getLayout(), l -> l.display(TaffyDisplay.NONE));
-        searchTree.setFlattenRoot(true);
-        initTreeList(searchTree, null);
-
-        Style.importantPipeline(recommendationTree.getLayout(), l -> l.display(TaffyDisplay.NONE));
-        initTreeList(recommendationTree, treeContainer);
-        initTreeList(constantTree, treeContainer);
-        initTreeList(contextTree, treeContainer);
-        initTreeList(nodeTree, treeContainer);
+        addContentTree(constantTree);
+        addContentTree(contextTree);
+        addContentTree(nodeTree);
         // Block tree shares the same container slot; only one of {nodeTree+constantTree+contextTree}
         // and {blockTree} is visible at a time — see applyTreeVisibility.
         Style.importantPipeline(blockTree.getLayout(), l -> l.display(TaffyDisplay.NONE));
-        initTreeList(blockTree, treeContainer);
-
-        resultContainer.addScrollViewChildren(searchTree, treeContainer);
-
-        tailBar.addClass("__item-library_tail-bar__");
-        Style.defaultPipeline(tailBar.getLayout(), l -> l.flexDirection(FlexDirection.ROW).alignItems(AlignItems.CENTER).gapAll(2));
-        tailLabel.addClass("__item-library_tail-label__");
-        tailLabel.setText("Double click to add a node");
-        Style.defaultPipeline(tailLabel.getTextStyle(), s -> s.textWrap(TextWrap.HOVER_ROLL).textAlignVertical(Vertical.CENTER).fontSize(4.5f));
-        Style.defaultPipeline(tailLabel.getStyle(), s -> s.overflowVisible(false));
-        Style.defaultPipeline(tailLabel.getLayout(), l -> l.flex(1));
-        resizeButton.addClass("__item-library_resize-button__");
-        Style.defaultPipeline(resizeButton.getLayout(), l -> l.width(9).height(9));
-        Style.defaultPipeline(resizeButton.getStyle(), s -> s.background(DynamicTexture.of(() -> resizeButton.isHover() ?
-                Icons.RESIZE_BOTTOM_RIGHT : Icons.RESIZE_BOTTOM_RIGHT.copy().setColor(ColorPattern.LIGHT_GRAY.color))));
-
-        // Description panel: an absolutely positioned child, so it doesn't take part in the column
-        // layout and — being a descendant — hovering/scrolling it doesn't trip setEnforceFocus.
-        descriptionPanel.addClass("__item-library_description-panel__");
-        Style.importantPipeline(descriptionPanel.getLayout(), l -> l.positionType(TaffyPosition.ABSOLUTE)
-                .display(TaffyDisplay.NONE));
-        Style.defaultPipeline(descriptionPanel.getLayout(), l -> l.paddingAll(5));
-        Style.defaultPipeline(descriptionPanel.getStyle(), s -> s.background(Sprites.BORDER1_RT1));
-        descriptionView.addClass("__item-library_description-view__");
-        descriptionView.scrollerStyle(style -> style.mode(ScrollerMode.VERTICAL)
-                .verticalScrollDisplay(ScrollDisplay.AUTO));
-        Style.defaultPipeline(descriptionView.getLayout(), l -> l.widthPercent(100).flex(1));
-        descriptionPanel.addChild(descriptionView);
-
-        addChildren(
-                headBar.addChildren(title),
-                searchField,
-                resultContainer,
-                tailBar.addChildren(tailLabel, resizeButton),
-                descriptionPanel
-        );
-        setFocusable(true);
-        setEnforceFocus(e -> this.hide());
-        addEventListener(UIEvents.LAYOUT_CHANGED, e -> {
-            adaptPositionToScreen();
-            // only while it's on screen: this fires every frame the popup is dragged or resized
-            if (descriptionPanel.isDisplayed()) {
-                updateDescriptionPanelBounds();
-            }
-        });
-        addEventListener(UIEvents.KEY_DOWN, this::onKeyDown);
-
-        // drag
-        WindowDragHelper.setDragMove(headBar, this, null, null);
-
-        // resize
-        resizeButton.addEventListener(UIEvents.MOUSE_DOWN, e -> {
-            var width = 12;
-            var height = 12;
-            resizeButton.startDrag(new DragResize(new Vector2f(this.getSizeWidth(), this.getSizeHeight())), Icons.MOVE)
-                    .setDragTexture(- width / 2f, -height / 2f, width, height);
-        });
-        resizeButton.addEventListener(UIEvents.DRAG_SOURCE_UPDATE, e -> {
-            if (e.dragHandler.draggingObject instanceof DragResize(var oSize)) {
-                var normalSizeOffset = getLocalMouseNormal(e.x - e.dragStartX, e.y - e.dragStartY);
-                // Live resize — width/height are data-driven and must outrank stylesheet defaults.
-                Style.importantPipeline(getLayout(), l -> l
-                        .width(Math.max(oSize.x + normalSizeOffset.x, 50))
-                        .height(Math.max(oSize.y + normalSizeOffset.y, 70)));
-            }
-        });
+        addContentTree(blockTree);
     }
 
-    protected void initTreeList(TreeList<TreeNode<ItemLibraryItem, Void>> treeList, @Nullable UIElement container) {
-        treeList.setNodeUISupplier(TreeList.iconTextTemplate(
-                node -> node.getKey().getIcon(),
-                node -> node.getKey().getDisplayName())
-        );
-        treeList.setOnDoubleClickNode(node -> {
-            if (!isDecidableNode(node)) return;
-            onNodeDecided(node.getKey());
-        });
-        treeList.setOnSelectedChanged(selected -> {
-            if (selected.isEmpty()) return;
-            var node = selected.iterator().next();
-            onSelectedChanged(treeList, node, node.getKey());
-        });
-        // Port sub-items are attached when a row's UI is built, which covers every tree — including the
-        // search tree that is rebuilt on each keystroke — and only for the rows actually displayed.
-        treeList.setOnNodeUICreated((node, ui) -> ensurePortChildren(node));
-        treeList.setDoubleClickToExpand(false);
-        treeList.setClickToExpand(true);
-        // A node item stays selectable/confirmable once it grows port children; clicking it only
-        // selects it, expanding its ports is done with a right click (or the arrow).
-        treeList.setSelectableNodeFilter(ItemLibrary::isDecidableNode);
-        treeList.setClickToExpandFilter(node -> !(node.getKey() instanceof NodeModelLibraryItem));
-        treeList.setRightClickToExpand(true);
-        if (container == null) return;
-        container.addChild(treeList);
-    }
+    // ---- the graph's entries ----
 
     public void onLoadGraph(GraphModel graphModel) {
         this.graphModel = graphModel;
@@ -323,6 +161,7 @@ public class ItemLibrary extends UIElement {
         return groupPath;
     }
 
+    @Override
     public Stream<ItemLibraryItem> getAllItems() {
         // Search is scoped to whatever's currently visible. In block-only mode that's only the
         // compatible blocks; otherwise it's the regular nodes + contexts + constants.
@@ -334,47 +173,59 @@ public class ItemLibrary extends UIElement {
                 getTreeItems(contextTree));
     }
 
-    protected Stream<ItemLibraryItem> getTreeItems(TreeList<TreeNode<ItemLibraryItem, Void>> tree) {
-        return Optional.ofNullable(tree.getRoot())
-                .map(node -> node.flatten().stream()
-                        // entries, not group folders. A node item stays an entry once it grew port
-                        // children; the port children themselves are not library entries.
-                        .filter(ItemLibrary::isDecidableNode)
-                        .filter(n -> !(n.getKey() instanceof PortLibraryItem))
-                        .filter(n -> n.getParent() != null) // not root
-                        .map(ITreeNode::getKey)
-                )
-                .orElseGet(Stream::empty);
+    @Override
+    protected List<TreeList<TreeNode<ItemLibraryItem, Void>>> getKeyboardNavigationTrees() {
+        if (searchTree.getRoot() != null) {
+            return List.of(searchTree);
+        }
+        if (blockOnlyMode) {
+            return List.of(blockTree);
+        }
+        return List.of(recommendationTree, constantTree, contextTree, nodeTree);
     }
 
-    protected void onSelectedChanged(TreeList<TreeNode<ItemLibraryItem, Void>> tree, TreeNode<ItemLibraryItem, Void> node, ItemLibraryItem newSelected) {
-        if (selectedTree != tree) {
-            if (selectedTree != null) {
-                selectedTree.setSelected(Collections.emptySet(), false);
-            }
-            selectedTree = tree;
-        }
-        clearSelectedItemData(this.selectedItem);
-        this.selectedNode = node;
-        this.selectedItem = newSelected;
-        prepareSelectedItemData(newSelected);
-        updateDescription(newSelected);
+    // ---- what the panel asks about an entry ----
+
+    /**
+     * A node is decidable (selectable + confirmable) when it holds a node item — even if it grew port
+     * children — or when it is a leaf, i.e. a constant / block / port item. Group folders are not.
+     */
+    protected static boolean isDecidableNode(ITreeNode<ItemLibraryItem, ?> node) {
+        return node.getKey() instanceof NodeModelLibraryItem || node.isLeaf();
+    }
+
+    @Override
+    protected boolean isDecidable(ITreeNode<ItemLibraryItem, ?> node) {
+        return isDecidableNode(node);
+    }
+
+    /** A node item stays an entry once it grew port children; the port children themselves are not. */
+    @Override
+    protected boolean isEntryItem(ItemLibraryItem item) {
+        return !(item instanceof PortLibraryItem);
     }
 
     /**
-     * Shows the selected item's node description in the side panel, or collapses the panel when the
-     * node has none. See {@link Node#createDescriptionUI()}.
+     * A node item stays selectable/confirmable once it grows port children; clicking it only selects
+     * it, expanding its ports is done with a right click (or the arrow).
      */
-    protected void updateDescription(@Nullable ItemLibraryItem item) {
-        descriptionView.clearAllScrollViewChildren();
-        var node = item == null ? null : resolveNode(item);
-        var description = node == null ? null : node.createDescriptionUI();
-        Style.importantPipeline(descriptionPanel.getLayout(),
-                l -> l.display(description == null ? TaffyDisplay.NONE : TaffyDisplay.FLEX));
-        if (description != null) {
-            descriptionView.addScrollViewChild(description);
-            updateDescriptionPanelBounds();
-        }
+    @Override
+    protected boolean isClickToExpand(ITreeNode<ItemLibraryItem, ?> node) {
+        return !(node.getKey() instanceof NodeModelLibraryItem);
+    }
+
+    @Override
+    protected void onRowBuilt(TreeList<TreeNode<ItemLibraryItem, Void>> tree,
+                              TreeNode<ItemLibraryItem, Void> node, UIElement ui) {
+        ensurePortChildren(node);
+    }
+
+    /** The selected item's node description — see {@link Node#createDescriptionUI()}. */
+    @Nullable
+    @Override
+    protected UIElement createDescriptionUI(ItemLibraryItem item) {
+        var node = resolveNode(item);
+        return node == null ? null : node.createDescriptionUI();
     }
 
     /** Resolves the {@link Node} behind a library item, or null if the item isn't backed by one. */
@@ -393,170 +244,14 @@ public class ItemLibrary extends UIElement {
         return getTestModel(item) instanceof ICustomNodeModel customNodeModel ? customNodeModel.getNode() : null;
     }
 
-    /**
-     * Places the description panel next to the library, flipping it to the left side when it wouldn't
-     * fit on the right of the screen. Position and size are data-driven, so they are pinned IMPORTANT.
-     */
-    protected void updateDescriptionPanelBounds() {
-        var mui = getModularUI();
-        if (mui == null) return;
-        var onRight = getPositionX() + getSizeWidth() + descriptionWidth <= mui.getScreenWidth();
-        var anchorX = onRight ? getPositionX() + getSizeWidth() : getPositionX() - descriptionWidth;
-        var offset = worldToLocalLayoutOffset(new Vector2f(anchorX, getPositionY()));
-        var height = getSizeHeight();
-        Style.importantPipeline(descriptionPanel.getLayout(), l -> l
-                .left(offset.x)
-                .top(offset.y)
-                .width(descriptionWidth)
-                .height(height));
-    }
-
     /** Sets the width of the description side panel. */
+    @Override
     public ItemLibrary setDescriptionWidth(float descriptionWidth) {
-        this.descriptionWidth = descriptionWidth;
-        updateDescriptionPanelBounds();
+        super.setDescriptionWidth(descriptionWidth);
         return this;
     }
 
-    protected void onKeyDown(com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent event) {
-        switch (event.keyCode) {
-            case GLFW.GLFW_KEY_UP -> {
-                moveKeyboardSelection(-1);
-                event.stopPropagation();
-            }
-            case GLFW.GLFW_KEY_DOWN -> {
-                moveKeyboardSelection(1);
-                event.stopPropagation();
-            }
-            case GLFW.GLFW_KEY_RIGHT, GLFW.GLFW_KEY_LEFT -> {
-                if (selectedTree != null && selectedNode != null && selectedNode.isBranch()) {
-                    if (event.keyCode == GLFW.GLFW_KEY_RIGHT) {
-                        selectedTree.expandNode(selectedNode);
-                    } else {
-                        selectedTree.collapseNode(selectedNode);
-                    }
-                    event.stopPropagation();
-                }
-            }
-            case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> {
-                if (selectedNode != null && selectedItem != null && isDecidableNode(selectedNode)) {
-                    onNodeDecided(selectedItem);
-                    event.stopPropagation();
-                }
-            }
-        }
-    }
-
-    protected void moveKeyboardSelection(int direction) {
-        var entries = getKeyboardNavigationEntries();
-        if (entries.isEmpty()) return;
-
-        var currentIndex = -1;
-        for (int i = 0; i < entries.size(); i++) {
-            var entry = entries.get(i);
-            if (entry.tree() == selectedTree && entry.node() == selectedNode) {
-                currentIndex = i;
-                break;
-            }
-        }
-
-        var nextIndex = currentIndex < 0
-                ? (direction > 0 ? 0 : entries.size() - 1)
-                : Math.max(0, Math.min(entries.size() - 1, currentIndex + direction));
-        selectKeyboardEntry(entries.get(nextIndex));
-    }
-
-    protected List<TreeNavigationEntry> getKeyboardNavigationEntries() {
-        var entries = new ArrayList<TreeNavigationEntry>();
-        for (var tree : getKeyboardNavigationTrees()) {
-            addVisibleNodes(entries, tree);
-        }
-        return entries;
-    }
-
-    protected List<TreeList<TreeNode<ItemLibraryItem, Void>>> getKeyboardNavigationTrees() {
-        if (searchTree.getRoot() != null) {
-            return List.of(searchTree);
-        }
-        if (blockOnlyMode) {
-            return List.of(blockTree);
-        }
-        return List.of(recommendationTree, constantTree, contextTree, nodeTree);
-    }
-
-    protected void addVisibleNodes(List<TreeNavigationEntry> entries, TreeList<TreeNode<ItemLibraryItem, Void>> tree) {
-        var root = tree.getRoot();
-        if (root == null || !tree.isDisplayed()) return;
-        if (tree == searchTree) {
-            for (var child : root.getChildren()) {
-                addVisibleNode(entries, tree, child);
-            }
-        } else {
-            addVisibleNode(entries, tree, root);
-        }
-    }
-
-    protected void addVisibleNode(List<TreeNavigationEntry> entries,
-                                  TreeList<TreeNode<ItemLibraryItem, Void>> tree,
-                                  ITreeNode<ItemLibraryItem, Void> rawNode) {
-        var node = (TreeNode<ItemLibraryItem, Void>) rawNode;
-        entries.add(new TreeNavigationEntry(tree, node));
-        if (node.isBranch() && tree.isNodeExpanded(node)) {
-            for (var child : node.getChildren()) {
-                addVisibleNode(entries, tree, child);
-            }
-        }
-    }
-
-    protected void selectKeyboardEntry(TreeNavigationEntry entry) {
-        if (entry.tree() != selectedTree && selectedTree != null) {
-            selectedTree.setSelected(Collections.emptySet(), false);
-        }
-        entry.tree().setSelected(List.of(entry.node()), true);
-        selectedTree = entry.tree();
-        selectedNode = entry.node();
-    }
-
-    protected void onSearchWordChanged(String word) {
-        if (word.isBlank()) {
-            clearSearchResult();
-            return;
-        }
-        clearKeyboardSelection();
-        var lowerWorld = word.toLowerCase();
-        var builder = TreeBuilder.<ItemLibraryItem, Void>start(new ItemLibraryItem());
-        getAllItems().filter(item -> {
-                    if (item.getSearchableName().toLowerCase().contains(lowerWorld)) {
-                        return true;
-                    }
-                    if (item.getDisplayName().getString().toLowerCase().contains(lowerWorld)) {
-                        return true;
-                    }
-                    return LocalizationUtils.format(item.getDisplayName().getString()).toLowerCase().contains(lowerWorld);
-                })
-                .forEach(item -> {
-                    builder.leaf(item, null);
-                });
-        Style.importantPipeline(searchTree.getLayout(), l -> l.display(TaffyDisplay.FLEX));
-        searchTree.setRoot(builder.build());
-        Style.importantPipeline(treeContainer.getLayout(), l -> l.display(TaffyDisplay.NONE));
-    }
-
-    protected void clearSearchResult() {
-        Style.importantPipeline(searchTree.getLayout(), l -> l.display(TaffyDisplay.NONE));
-        searchTree.setRoot(null);
-        Style.importantPipeline(treeContainer.getLayout(), l -> l.display(TaffyDisplay.FLEX));
-        searchCandidates = null;
-        clearKeyboardSelection();
-    }
-
-    /**
-     * A node is decidable (selectable + confirmable) when it holds a node item — even if it grew port
-     * children — or when it is a leaf, i.e. a constant / block / port item. Group folders are not.
-     */
-    protected static boolean isDecidableNode(ITreeNode<ItemLibraryItem, ?> node) {
-        return node.getKey() instanceof NodeModelLibraryItem || node.isLeaf();
-    }
+    // ---- test models and ports ----
 
     /**
      * Gets the throwaway model used to inspect the item's node type, creating it on first use.
@@ -605,15 +300,10 @@ public class ItemLibrary extends UIElement {
         }
     }
 
-    /** All trees the library owns, whether currently visible or not. */
-    protected List<TreeList<TreeNode<ItemLibraryItem, Void>>> getAllTrees() {
-        return List.of(searchTree, recommendationTree, constantTree, contextTree, nodeTree, blockTree);
-    }
-
     /**
      * Attaches the port sub-items to the rows that already exist. Needed because trees (and their
      * rows) survive between shows, so a row built before this wire drag would never get them —
-     * rows built from now on are covered by the {@code onNodeUICreated} hook. With
+     * rows built from now on are covered by the {@code onRowBuilt} hook. With
      * {@code staticTree = false} the {@link TreeList} picks the new children up on its next tick.
      */
     protected void attachPortChildren() {
@@ -647,7 +337,20 @@ public class ItemLibrary extends UIElement {
         return item instanceof PortLibraryItem portItem ? portItem.getOwner() : item;
     }
 
-    protected void prepareSelectedItemData(ItemLibraryItem item) {
+    /**
+     * A port sub-item pins its port on the owner and hands the owner back: the create-node commands
+     * work with a {@link NodeModelLibraryItem} and read the port from its data.
+     */
+    @Override
+    protected ItemLibraryItem decidedItem(ItemLibraryItem item) {
+        if (item instanceof PortLibraryItem) {
+            prepareSelectedItemData(item);
+        }
+        return ownerItem(item);
+    }
+
+    @Override
+    protected void prepareSelectedItemData(@Nullable ItemLibraryItem item) {
         if (item == null || portModels == null || portModels.isEmpty()) return;
         NodeModelLibraryItem owner;
         PortModel portToConnect;
@@ -667,17 +370,21 @@ public class ItemLibrary extends UIElement {
         }
     }
 
-    protected void clearSelectedItemData(ItemLibraryItem item) {
+    @Override
+    protected void clearSelectedItemData(@Nullable ItemLibraryItem item) {
         if (item == null) return;
         ownerItem(item).setData(null);
     }
 
+    // ---- show / hide ----
+
+    @Override
     public void show(float mouseX, float mouseY, Consumer<@Nullable ItemLibraryItem> onFinished) {
         title.setText("graph.commands.add_node");
         tailLabel.setText("graph.double_click_add");
         this.blockOnlyMode = false;
         applyTreeVisibility();
-        positionAndShow(mouseX, mouseY, onFinished);
+        super.show(mouseX, mouseY, onFinished);
     }
 
     /**
@@ -709,7 +416,8 @@ public class ItemLibrary extends UIElement {
         clearKeyboardSelection();
 
         applyTreeVisibility();
-        positionAndShow(mouseX, mouseY, onFinished);
+        // not show(): that one resets block-only mode, which is the whole point of this entry point
+        super.show(mouseX, mouseY, onFinished);
     }
 
     /** Toggles tree visibility based on {@link #blockOnlyMode}. State-driven, pin via IMPORTANT. */
@@ -722,34 +430,12 @@ public class ItemLibrary extends UIElement {
         Style.importantPipeline(blockTree.getLayout(), l -> l.display(blockDisplay));
     }
 
-    /** Shared positioning + focus path for both show variants. */
-    private void positionAndShow(float mouseX, float mouseY, Consumer<@Nullable ItemLibraryItem> onFinished) {
-        var mui = graphView.getModularUI();
-        if (mui == null) return;
-
-        var root = mui.ui.rootElement;
-        if (getParent() != null) {
-            removeSelf();
-        }
-        root.addChild(this);
-
-        var offset = root.worldToLocalLayoutOffset(new Vector2f(mouseX, mouseY));
-        this.getLayout()
-                .left(offset.x)
-                .top(offset.y);
-        Style.importantPipeline(getLayout(), l -> l.display(TaffyDisplay.FLEX));
-        searchField.focus();
-        this.onFinished = onFinished;
-    }
-
     public void setRecommendation(Consumer<TreeBuilder<ItemLibraryItem, Void>> builderConsumer) {
         var recommendationBuilder = TreeBuilder.<ItemLibraryItem, Void>start(new ItemLibraryItem()
                 .setDisplayName(Component.translatable("graph.library.recommendation")));
         builderConsumer.accept(recommendationBuilder);
         if (recommendationBuilder.isEmpty()) return;
-        recommendationTree.setRoot(recommendationBuilder.build());
-        recommendationTree.expandNode(recommendationTree.getRoot());
-        Style.importantPipeline(recommendationTree.getLayout(), l -> l.display(TaffyDisplay.FLEX));
+        setRecommendationRoot(recommendationBuilder.build());
     }
 
     public void setPortRecommendation(PortModel sourcePort) {
@@ -772,58 +458,15 @@ public class ItemLibrary extends UIElement {
         show(mouseX, mouseY, onFinished);
     }
 
-    public void hide() {
-        if (this.onFinished != null) {
-            this.onFinished.accept(null);
-        }
-        clearSelectedItemData(this.selectedItem);
-        clearSearchResult();
-        clearKeyboardSelection();
+    @Override
+    protected void onHide() {
         // strip the port sub-items: the trees outlive this popup and the ports they point at don't
         detachPortChildren();
         testModels.clear();
-        this.searchField.setText("", false);
-        this.selectedTree = null;
-        this.selectedItem = null;
-        this.selectedNode = null;
         this.portModels = null;
-        this.onFinished = null;
-        this.recommendationTree.setRoot(null);
-        Style.importantPipeline(this.recommendationTree.getLayout(), l -> l.display(TaffyDisplay.NONE));
         // Clear block-mode state so the next show() starts fresh in default-tree mode.
         this.blockOnlyMode = false;
         this.blockTree.setRoot(null);
         Style.importantPipeline(this.blockTree.getLayout(), l -> l.display(TaffyDisplay.NONE));
-        Style.importantPipeline(getLayout(), l -> l.display(TaffyDisplay.NONE));
-        blur();
-        removeSelf();
-    }
-
-    protected void onNodeDecided(ItemLibraryItem itemLibraryItem) {
-        // a port sub-item pins its port on the owner and hands the owner back: the create-node
-        // commands work with a NodeModelLibraryItem and read the port from its data.
-        if (itemLibraryItem instanceof PortLibraryItem) {
-            prepareSelectedItemData(itemLibraryItem);
-        }
-        var decided = ownerItem(itemLibraryItem);
-        if (onFinished != null) {
-            onFinished.accept(decided);
-            onFinished = null;
-        }
-        hide();
-    }
-
-    protected record TreeNavigationEntry(TreeList<TreeNode<ItemLibraryItem, Void>> tree,
-                                         TreeNode<ItemLibraryItem, Void> node) {}
-
-    protected void clearKeyboardSelection() {
-        clearSelectedItemData(this.selectedItem);
-        if (this.selectedTree != null) {
-            this.selectedTree.setSelected(Collections.emptySet(), false);
-        }
-        this.selectedTree = null;
-        this.selectedNode = null;
-        this.selectedItem = null;
-        updateDescription(null);
     }
 }
