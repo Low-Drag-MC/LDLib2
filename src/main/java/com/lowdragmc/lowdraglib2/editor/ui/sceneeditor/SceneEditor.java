@@ -13,6 +13,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.math.Ray;
+import com.lowdragmc.lowdraglib2.math.ITransform;
 import com.lowdragmc.lowdraglib2.math.Transform;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.IScene;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneInteractable;
@@ -128,17 +129,32 @@ public class SceneEditor extends UIElement implements IScene {
         gizmoBar.setDisplay(true);
     }
 
-    public void setTransformGizmoTarget(@Nullable Transform transform) {
+    /**
+     * What the gizmo drags.
+     *
+     * <p>Takes an {@link ITransform}, so an editor can drive something that has a transform without
+     * that thing having to <b>be</b> a scene object. The {@link Transform} overloads below are the
+     * same method and are kept so existing callers do not have to change.
+     */
+    public void setTransformGizmoTarget(@Nullable ITransform transform) {
         setTransformGizmoTarget(transform, null);
     }
 
-    public void setTransformGizmoTarget(@Nullable Transform transform, @Nullable Runnable onTransformUpdated) {
+    public void setTransformGizmoTarget(@Nullable ITransform transform, @Nullable Runnable onTransformUpdated) {
         transformGizmo.setTargetTransform(transform);
         transformGizmo.setOnTransformChanged(onTransformUpdated);
         gizmoBar.setActive(transform != null);
         if (transform == null) {
             transformGizmo.setMode(TransformGizmo.Mode.NONE);
         }
+    }
+
+    public void setTransformGizmoTarget(@Nullable Transform transform) {
+        setTransformGizmoTarget((ITransform) transform, null);
+    }
+
+    public void setTransformGizmoTarget(@Nullable Transform transform, @Nullable Runnable onTransformUpdated) {
+        setTransformGizmoTarget((ITransform) transform, onTransformUpdated);
     }
 
     public TransformGizmo.Mode getTransformGizmoMode() {

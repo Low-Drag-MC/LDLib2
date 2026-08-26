@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneRenderi
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.SceneObject;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.math.Ray;
+import com.lowdragmc.lowdraglib2.math.ITransform;
 import com.lowdragmc.lowdraglib2.math.Transform;
 import com.lowdragmc.lowdraglib2.utils.Vector3fHelper;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -94,9 +95,17 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     private static final VoxelShape zRingCollider = createRingCollisionBox(
             new Vector3f(0, 0, 0), new Vector3f(0, 0, 1), 1.0, 16, 0.1);
 
+    /**
+     * What is being dragged.
+     *
+     * <p>{@link ITransform} rather than {@link Transform}: a gizmo needs six operations — world
+     * position and rotation, local scale, each read and written — and demanding a whole scene-object
+     * transform for those forced anything with its own transform to keep a shadow one beside it and
+     * reconcile the two every frame.
+     */
     @Nullable
     @Getter
-    private Transform targetTransform;
+    private ITransform targetTransform;
     @Nullable
     @Setter
     private Runnable onTransformChanged;
@@ -134,10 +143,19 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     // state / lifecycle
     // ---------------------------------------------------------------------------------------------
 
-    public void setTargetTransform(@Nullable Transform targetTransform) {
+    public void setTargetTransform(@Nullable ITransform targetTransform) {
         if (this.targetTransform == targetTransform) return;
         endDrag();
         this.targetTransform = targetTransform;
+    }
+
+    /**
+     * Kept so that callers compiled against the old signature keep working — {@link Transform}
+     * implements {@link ITransform}, so this is the same method, and overload resolution picks this
+     * one for a {@code Transform} argument.
+     */
+    public void setTargetTransform(@Nullable Transform targetTransform) {
+        setTargetTransform((ITransform) targetTransform);
     }
 
     public void setMode(@Nonnull Mode mode) {
