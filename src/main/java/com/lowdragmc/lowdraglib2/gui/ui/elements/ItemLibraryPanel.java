@@ -99,7 +99,7 @@ public class ItemLibraryPanel<T extends ILibraryItem> extends UIElement {
     /** The trees the entries live in, in display order — see {@link #addContentTree()}. */
     protected final List<TreeList<TreeNode<T, Void>>> contentTrees = new ArrayList<>();
 
-    /** Width of the {@link #descriptionPanel}, the library's own default width by default. */
+    /** Width of the {@link #descriptionPanel}. Independent of the popup's own width. */
     protected float descriptionWidth = 150;
 
     // runtime
@@ -470,8 +470,8 @@ public class ItemLibraryPanel<T extends ILibraryItem> extends UIElement {
         updateDescription(null);
     }
 
-    public record TreeNavigationEntry<T extends ILibraryItem>(TreeList<TreeNode<T, Void>> tree,
-                                                              TreeNode<T, Void> node) {}
+    protected record TreeNavigationEntry<T extends ILibraryItem>(TreeList<TreeNode<T, Void>> tree,
+                                                                 TreeNode<T, Void> node) {}
 
     // ---- search ----
 
