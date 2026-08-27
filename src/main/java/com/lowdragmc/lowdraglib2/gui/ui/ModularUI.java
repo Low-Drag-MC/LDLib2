@@ -62,6 +62,7 @@ import java.io.File;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
+import java.util.function.LongConsumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -126,6 +127,7 @@ public class ModularUI {
     private final Map<NodeId, UIElement> elementByNode = new HashMap<>();
     private final Set<NodeId> nodesWithNewLayout = new HashSet<>();
     private final Set<NodeId> nodesWithNewGeometry = new HashSet<>();
+    private final List<LongConsumer> frameCallbacks = new ArrayList<>();
 
     // UI state
     @Getter @Setter
@@ -624,6 +626,37 @@ public class ModularUI {
                 }
                 break;
             }
+        }
+    }
+
+    /**
+     * Registers a callback to run once per rendered frame, just before style and layout settle.
+     *
+     * <p>Frames are not ticks: this fires at the render rate, and it fires for a UI that has no
+     * {@link Screen} behind it too. It exists for work that has to produce its tree changes early
+     * enough in the frame to be laid out in that same frame — driving a Compose recomposition is
+     * the reason it is here.
+     *
+     * <p>The callback receives {@link System#nanoTime()} as sampled at the top of the frame, so that
+     * several callbacks in one frame agree on what time it is.
+     *
+     * @see #removeFrameCallback
+     */
+    public void addFrameCallback(LongConsumer callback) {
+        frameCallbacks.add(callback);
+    }
+
+    public void removeFrameCallback(LongConsumer callback) {
+        frameCallbacks.remove(callback);
+    }
+
+    private void runFrameCallbacks() {
+        if (frameCallbacks.isEmpty()) return;
+        var nanos = System.nanoTime();
+        // Copied: a callback is allowed to unregister itself, or to build a subtree whose own
+        // callbacks register during the walk.
+        for (var callback : List.copyOf(frameCallbacks)) {
+            callback.accept(nanos);
         }
     }
 
@@ -1577,6 +1610,11 @@ public class ModularUI {
                 mouseY = DebugScreen.REAL_MOUSE_POS.y;
             }
             animationEngine.updateFrame();
+
+            // Before layout on purpose: a frame callback that restructures the tree dirties the
+            // taffy nodes on its way through, so the settle below picks the change up in this same
+            // frame rather than showing a stale layout until the next one.
+            runFrameCallbacks();
 
             calculateStyleAndLayout();
 
