@@ -6,6 +6,7 @@ plugins {
     id 'net.neoforged.gradle.userdev' version '7.0.181'
     id 'org.jetbrains.kotlin.jvm' version '2.1.20'
     id 'org.jetbrains.kotlin.plugin.lombok' version '2.1.20'
+    id 'org.jetbrains.kotlin.plugin.compose' version '2.1.20'
     id 'io.freefair.lombok' version "9.2.0"
 }
 
@@ -47,6 +48,15 @@ repositories {
     }
     mavenCentral()
     mavenLocal()
+    maven {
+        // androidx.collection / androidx.annotation, pulled in by the Compose runtime.
+        // They are not on Maven Central, and nothing else here should ever resolve from Google.
+        name = "Google"
+        url = "https://maven.google.com"
+        content {
+            includeGroupByRegex "androidx\\..*"
+        }
+    }
     maven { url = "https://maven.shedaniel.me/" } // Cloth Config, REI
     maven {
         name = "Modrinth"
@@ -183,18 +193,32 @@ apply from: rootProject.file('gradle/ldlib2-mptest.gradle')
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 sourceSets.main.kotlin { srcDir("src/main/java") }
 
+/**
+ * Jar-in-Jar a library, pinning the embedded artifact to exactly {@code ver} while still advertising
+ * {@code [ver,)} as the compatible range, so NeoForge can still dedupe against other mods shipping
+ * the same library.
+ *
+ * <p>Declaring only the open range - {@code jarJar(... version: "[1.8.0,)")} - lets Gradle resolve it
+ * to whatever is newest in the repository at build time, which is not what the mod was compiled
+ * against. That has shipped alpha and RC artifacts, and for
+ * {@code compose.runtime:runtime-desktop} it picked up a 5 KB alias stub containing no classes at
+ * all. The range belongs in the metadata; it does not belong in artifact selection.
+ */
+void embed(String group, String name, String ver) {
+    dependencies.jarJar(group: group, name: name) {
+        version {
+            require "[${ver},)"
+            prefer ver
+        }
+    }
+}
+
 dependencies {
     implementation "net.neoforged:neoforge:${neo_version}"
     libraries("org.jetbrains.kotlin:kotlin-stdlib:${kotlin_stdlib_version}") {
         exclude group: "org.jetbrains", module: "annotations"
     }
-    // a bare range embeds the newest release, pre-releases included; prefer pins what the jar ships
-    jarJar(group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib') {
-        version {
-            require "[${kotlin_stdlib_version},)"
-            prefer kotlin_stdlib_version
-        }
-    }
+    embed('org.jetbrains.kotlin', 'kotlin-stdlib', kotlin_stdlib_version)
 
     // JEI
     compileOnly("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}") { transitive = false }
@@ -248,6 +272,19 @@ dependencies {
             prefer taffy_version
         }
     }
+
+    // Compose runtime - the recomposition engine only. `compose.ui` is deliberately absent: the
+    // rendering side is LDLib2's own UIElement tree, reached through a custom Applier.
+    // The transitive set (kotlinx-coroutines, androidx.collection, androidx.annotation) has to be
+    // jarJar'd too - see `gradlew dependencies --configuration libraries` for the resolved list.
+    libraries("org.jetbrains.compose.runtime:runtime-desktop:${compose_runtime_version}")
+    // The runtime's transitives. `annotation-internal` / `collection-internal` are alias modules
+    // with no classes of their own, so only the artifacts they redirect to are listed here.
+    embed('org.jetbrains.compose.runtime', 'runtime-desktop', compose_runtime_version)
+    embed('androidx.annotation', 'annotation-jvm', androidx_annotation_version)
+    embed('androidx.collection', 'collection-jvm', androidx_collection_version)
+    embed('org.jetbrains.kotlinx', 'atomicfu-jvm', atomicfu_version)
+    embed('org.jetbrains.kotlinx', 'kotlinx-coroutines-core-jvm', kotlinx_coroutines_version)
 
     // JUnit 5
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'

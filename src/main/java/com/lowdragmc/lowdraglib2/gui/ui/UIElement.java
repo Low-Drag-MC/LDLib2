@@ -774,6 +774,19 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return children.contains(child);
     }
 
+    /**
+     * The element that externally-supplied children actually belong under.
+     *
+     * <p>Usually the element itself, but a widget assembled out of internal parts may keep its
+     * content somewhere further down: {@link com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView}
+     * puts it in the view container, so that it scrolls rather than sitting next to the scrollbars.
+     * {@link #addEditorChild} has always made that redirection for insertion; this exposes the same
+     * answer to callers that also need to read or remove, which a reconciler does.
+     */
+    public UIElement getContentHost() {
+        return this;
+    }
+
     public UIElement addChildAt(@Nullable UIElement child, int index) {
         if (child == null) {
             return this;
@@ -842,6 +855,67 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         clearSortedChildrenCache();
         child.clearStructurePathCache();
         return true;
+    }
+
+    /**
+     * Rearranges this element's children into {@code newOrder}, without detaching any of them.
+     *
+     * <p>The obvious spelling — {@link #removeChild} followed by {@link #addChildAt} — is not
+     * equivalent. Detaching runs {@code onRemoved()}, drops the element out of the {@link ModularUI}
+     * (which unregisters its sync values and hands its animations back), releases its visual layer,
+     * and tears down its style-engine registration; re-attaching then builds all of that again from
+     * scratch. A reorder changes nothing about where the element lives, so none of that should
+     * happen — and if it did, a keyed list that merely shuffled would lose focus and restart any
+     * running animation.
+     *
+     * <p>Takes the whole permutation rather than one move at a time on purpose. Realising a shuffle
+     * as a sequence of single moves means re-deriving indices after each one, which is quadratic;
+     * this is one pass over the list plus one call into the layout tree, whatever the permutation.
+     *
+     * <p>One consequence of not re-registering: {@link ModularUI#getAllElements()} — and so
+     * {@link ModularUI#select}, which filters it — stays in the order elements were first attached.
+     * Reordering siblings makes that diverge from document order. Anything that cares about order
+     * should read {@link #getChildren()}, not a selector query.
+     *
+     * @param newOrder a permutation of this element's current children
+     */
+    public void reorderChildren(List<UIElement> newOrder) {
+        if (newOrder.size() != children.size()) {
+            throw new IllegalArgumentException(
+                    "Expected a permutation of %d children, got %d".formatted(children.size(), newOrder.size()));
+        }
+        if (newOrder.equals(children)) return;
+        for (var child : newOrder) {
+            if (child == null || child.parent != this) {
+                throw new IllegalArgumentException("Not a child of this element: " + child);
+            }
+        }
+        children.clear();
+        children.addAll(newOrder);
+
+        // The taffy child list mirrors `children` one-for-one, so it has to be told the new order
+        // too. setChildren replaces the whole list in one go rather than n removes and n inserts.
+        if (modularUI != null && nodeId != null) {
+            var taffyTree = modularUI.getTaffyTree();
+            if (taffyTree.containsNode(nodeId)) {
+                var nodes = new NodeId[children.size()];
+                var complete = true;
+                for (int i = 0; i < children.size(); i++) {
+                    var childNode = children.get(i).nodeId;
+                    if (childNode == null) {
+                        // A child that never got registered; leave the layout tree alone and let
+                        // attaching it rebuild the order.
+                        complete = false;
+                        break;
+                    }
+                    nodes[i] = childNode;
+                }
+                if (complete) {
+                    taffyTree.setChildren(nodeId, nodes);
+                }
+            }
+        }
+        clearSortedChildrenCache();
     }
 
     public void clearAllChildren() {

@@ -436,6 +436,11 @@ public class ScrollerView extends UIElement {
     }
 
     @Override
+    public UIElement getContentHost() {
+        return viewContainer;
+    }
+
+    @Override
     public void addEditorChild(UIElement child, int index) {
         if (index == -1) {
             addScrollViewChild(child);
