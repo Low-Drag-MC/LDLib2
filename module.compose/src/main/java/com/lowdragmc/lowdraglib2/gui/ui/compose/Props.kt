@@ -31,21 +31,33 @@ typealias StyleBlock = BasicStyle.() -> Unit
  * stacking a second listener.
  */
 class EventScope internal constructor() {
-    internal val handlers = LinkedHashMap<EventKey, (UIEvent) -> Unit>()
+    internal val handlers = LinkedHashMap<EventKey, MutableList<(UIEvent) -> Unit>>()
 
     internal fun reset() = handlers.clear()
 
-    /** Any event type, including ones with no named helper below. */
+    /**
+     * Any event type, including ones with no named helper below.
+     *
+     * <p>Declaring the same event twice adds a second handler rather than replacing the first, which
+     * is what lets [track] coexist with a caller's own `onMouseEnter`. Handlers do not accumulate
+     * across recompositions — the block is re-run from empty each time.
+     */
     fun on(type: String, capture: Boolean = false, handler: (UIEvent) -> Unit) {
-        handlers[EventKey(type, capture)] = handler
+        handlers.getOrPut(EventKey(type, capture)) { ArrayList(1) }.add(handler)
     }
 
     /** Press and release on the same element. Distinct from `Button`'s own mouse-down `onClick`. */
     fun onClick(handler: (UIEvent) -> Unit) = on(UIEvents.CLICK, handler = handler)
     fun onMouseDown(handler: (UIEvent) -> Unit) = on(UIEvents.MOUSE_DOWN, handler = handler)
     fun onMouseUp(handler: (UIEvent) -> Unit) = on(UIEvents.MOUSE_UP, handler = handler)
-    fun onMouseEnter(handler: (UIEvent) -> Unit) = on(UIEvents.MOUSE_ENTER, handler = handler)
-    fun onMouseLeave(handler: (UIEvent) -> Unit) = on(UIEvents.MOUSE_LEAVE, handler = handler)
+    /**
+     * Capture phase, and not optionally so: `ModularUI` dispatches enter and leave with
+     * `hasBubblePhase = false`, so a bubble-phase listener for them can never fire. It also targets
+     * the innermost element under the pointer, so capture is what lets a container hear about its
+     * own children being hovered — which is the only thing anyone wants from these two.
+     */
+    fun onMouseEnter(handler: (UIEvent) -> Unit) = on(UIEvents.MOUSE_ENTER, capture = true, handler = handler)
+    fun onMouseLeave(handler: (UIEvent) -> Unit) = on(UIEvents.MOUSE_LEAVE, capture = true, handler = handler)
     fun onMouseWheel(handler: (UIEvent) -> Unit) = on(UIEvents.MOUSE_WHEEL, handler = handler)
     fun onKeyDown(handler: (UIEvent) -> Unit) = on(UIEvents.KEY_DOWN, handler = handler)
     fun onCharTyped(handler: (UIEvent) -> Unit) = on(UIEvents.CHAR_TYPED, handler = handler)
@@ -162,11 +174,12 @@ internal class AppliedProps {
         for (key in gone) {
             listeners.remove(key)?.let { element.removeEventListener(key.type, it, key.capture) }
         }
-        for ((key, handler) in next) {
+        for ((key, list) in next) {
             val holder = listeners.getOrPut(key) {
                 EventHandlerHolder().also { element.addEventListener(key.type, it, key.capture) }
             }
-            holder.handler = handler
+            // The single-handler case is the common one, and gets no wrapper allocation.
+            holder.handler = if (list.size == 1) list[0] else { event -> list.forEach { it(event) } }
         }
     }
 }

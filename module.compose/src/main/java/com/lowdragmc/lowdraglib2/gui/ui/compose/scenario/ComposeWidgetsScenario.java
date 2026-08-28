@@ -150,6 +150,32 @@ public class ComposeWidgetsScenario implements UIScenario {
                 .frames(3)
                 .check("changing state re-drives it", ctx -> treeRows(ctx) == 4)
 
+                // Hover as composition state. The class half a stylesheet could do on its own via
+                // the __hovered__ class core maintains; the caption could not, and that round trip
+                // - pointer to element event to composition state to recomposed text - is what is
+                // actually under test here.
+                .check("the card starts idle", ctx -> !hasClass(ctx, ".hover-card", "hovered"))
+                .hover(".hover-card")
+                .frames(3)
+                .check("hovering flips the class", ctx -> hasClass(ctx, ".hover-card", "hovered"))
+                .check("and the state reached the body text", ctx ->
+                        text(ctx, ".hover-label").contains("hovered"))
+                .hover(".remount-toggle")
+                .frames(3)
+                .check("leaving clears it again", ctx -> !hasClass(ctx, ".hover-card", "hovered"))
+
+                // A nested ComposeElement removed and put back. Removal disposes its composition -
+                // that is what stops a closed screen being retained forever - so re-adding it has to
+                // rebuild from scratch rather than leave an empty element behind.
+                .checkExists(".remount-body")
+                .click(".remount-toggle")
+                .frames(3)
+                .checkNotExists(".remount-body")
+                .click(".remount-toggle")
+                .frames(3)
+                .check("the composition was rebuilt on re-attach", ctx ->
+                        ctx.query().select(".remount-body").optional().isPresent())
+
                 .closeScreen();
     }
 
@@ -167,6 +193,10 @@ public class ComposeWidgetsScenario implements UIScenario {
 
     private static String text(TestContext ctx, String selector) {
         return ctx.query().select(selector).one().text();
+    }
+
+    private static boolean hasClass(TestContext ctx, String selector, String styleClass) {
+        return element(ctx, selector).hasClass(styleClass);
     }
 
     /** How many rows the unwrapped tree widget is showing. */

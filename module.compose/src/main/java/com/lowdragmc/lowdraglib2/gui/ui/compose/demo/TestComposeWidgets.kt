@@ -12,7 +12,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.ModularUI
 import com.lowdragmc.lowdraglib2.gui.ui.compose.AnimatedVisibility
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Box
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Button
+import com.lowdragmc.lowdraglib2.gui.ui.compose.ComposeElement
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Dialog
+import com.lowdragmc.lowdraglib2.gui.ui.compose.Mount
 import com.lowdragmc.lowdraglib2.gui.ui.compose.ProgressBar
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Row
 import com.lowdragmc.lowdraglib2.gui.ui.compose.SplitViewHorizontal
@@ -22,6 +24,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.compose.TextField
 import com.lowdragmc.lowdraglib2.gui.ui.compose.TweenSpec
 import com.lowdragmc.lowdraglib2.gui.ui.compose.UIElementNode
 import com.lowdragmc.lowdraglib2.gui.ui.compose.composeModularUI
+import com.lowdragmc.lowdraglib2.gui.ui.compose.rememberInteraction
+import com.lowdragmc.lowdraglib2.gui.ui.compose.track
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TreeList
 import com.lowdragmc.lowdraglib2.gui.ui.layout.px
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager
@@ -77,6 +81,52 @@ private fun WidgetsDemo() {
         Tabs()
         ConfirmDialog()
         UnwrappedWidget()
+        HoverCard()
+        Remounted()
+    }
+}
+
+/**
+ * Hover that changes *what is composed*, not just how it is painted.
+ *
+ * <p>The class flip below could equally have been a `.__hovered__` stylesheet rule — core maintains
+ * that class on the hovered element and its ancestors already. The caption underneath could not: a
+ * stylesheet cannot swap the text, and that is what [rememberInteraction] is for.
+ */
+@Composable
+private fun HoverCard() {
+    val interaction = rememberInteraction()
+    Box(
+        layout = { size(60.px, 14.px) },
+        classes = if (interaction.hovered) "hover-card hovered" else "hover-card",
+        events = { track(interaction) },
+    ) {
+        Text(Component.literal(if (interaction.hovered) "hovered" else "idle"), classes = "hover-label")
+    }
+}
+
+/**
+ * A nested [ComposeElement] taken out of the tree and put back.
+ *
+ * <p>Removal runs `onRemoved`, which disposes the composition — that is what stops a closed screen
+ * from being retained forever by the recomposer's global snapshot observer. Putting the element back
+ * therefore has to rebuild the composition from scratch, and this is the demo that proves it does
+ * rather than leaving a silently empty element behind.
+ */
+@Composable
+private fun Remounted() {
+    var mounted by remember { mutableStateOf(true) }
+    val nested = remember {
+        ComposeElement { Text(Component.literal("nested"), classes = "remount-body") }
+    }
+
+    Button(
+        onClick = { mounted = !mounted },
+        text = Component.literal("挂载/卸载"),
+        classes = "remount-toggle",
+    )
+    if (mounted) {
+        Mount(nested)
     }
 }
 
