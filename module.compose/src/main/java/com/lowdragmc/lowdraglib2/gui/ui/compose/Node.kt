@@ -28,8 +28,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement
  *   recomposition, so anything that varies belongs in [update], not here.
  * @param layout the element's layout, with the same receiver `layoutDsl { }` gives you.
  * @param style the element's appearance, with the same receiver `styleDsl { }` gives you.
- * @param classes space-separated stylesheet classes, so `.name { }` rules match. This is the right
- *   place for appearance that varies with state — see [AppliedProps] for why a style block is not.
+ * @param classes space-separated stylesheet classes, so `.name { }` rules match. Diffed, so a name
+ *   dropped from the string is removed again — which a style block, being written through, is not.
  * @param update applies props. Wrap each one in [Updater.set] so it only runs when that prop
  *   actually changed.
  */
@@ -44,11 +44,14 @@ fun <T : UIElement> UIElementNode(
     visible: Boolean = true,
     focusable: Boolean? = null,
     events: (EventScope.() -> Unit)? = null,
+    widgetStyle: (T.() -> Unit)? = null,
     update: Updater<T>.() -> Unit = {},
     content: @Composable () -> Unit = {},
 ) {
-    // Shares the node's lifetime, so there is nothing to clean up when the node goes away.
-    val applied = remember { AppliedProps() }
+    val observer = LocalNodeObserver.current
+    // A RememberObserver, so it hears about leaving the composition and can drop the reads the
+    // NodeObserver recorded for it.
+    val applied = remember { AppliedProps<T>() }
     ComposeNode<T, UIApplier>(
         factory = factory,
         update = {
@@ -57,7 +60,10 @@ fun <T : UIElement> UIElementNode(
             // write whose value is unchanged returns early in StyleBag#replaceOrPutCandidate without
             // dirtying anything — and classes and events are diffed properly inside.
             reconcile {
-                applied.apply(this, layout, style, classes, id, enabled, visible, focusable, events)
+                applied.apply(
+                    observer, this, layout, style, widgetStyle,
+                    classes, id, enabled, visible, focusable, events,
+                )
             }
             update()
         },

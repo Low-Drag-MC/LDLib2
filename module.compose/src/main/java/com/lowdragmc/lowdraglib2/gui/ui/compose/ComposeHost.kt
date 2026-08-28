@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.compose
 import androidx.compose.runtime.BroadcastFrameClock
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Composition
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Recomposer
 import androidx.compose.runtime.snapshots.Snapshot
 import com.lowdragmc.lowdraglib2.LDLib2
@@ -79,6 +80,12 @@ private const val COROUTINE_AGENT_ADVICE =
 class ComposeHost(root: UIElement) {
     private val clock = BroadcastFrameClock()
     private val dispatcher = RenderThreadDispatcher()
+
+    /**
+     * Tracks the state that each node's `layout` / `style` blocks read, so those blocks re-run when
+     * it changes. See [NodeObserver] for why the composition cannot do this by itself.
+     */
+    private val nodeObserver = NodeObserver()
     private val errorHandler = CoroutineExceptionHandler { _, e ->
         LDLib2.LOGGER.error("Compose recomposition failed; this composition is now stopped", e)
     }
@@ -90,6 +97,7 @@ class ComposeHost(root: UIElement) {
         private set
 
     init {
+        nodeObserver.start()
         try {
             scope.launch { recomposer.runRecomposeAndApplyChanges() }
         } catch (e: IllegalAccessError) {
@@ -106,7 +114,9 @@ class ComposeHost(root: UIElement) {
      */
     fun setContent(content: @Composable () -> Unit) {
         check(!isDisposed) { "This ComposeHost has been disposed" }
-        composition.setContent(content)
+        composition.setContent {
+            CompositionLocalProvider(LocalNodeObserver provides nodeObserver) { content() }
+        }
     }
 
     /**
@@ -124,11 +134,17 @@ class ComposeHost(root: UIElement) {
         dispatcher.drain()
         clock.sendFrame(nanos)
         dispatcher.drain()
+        // Last, and after recomposition: a node whose style block read state that has just changed
+        // re-applies its blocks here, with no composition involved. Still before
+        // ModularUI#calculateStyleAndLayout, which is what the frame callback runs ahead of, so the
+        // change is laid out in this frame rather than the next.
+        nodeObserver.flush()
     }
 
     fun dispose() {
         if (isDisposed) return
         isDisposed = true
+        nodeObserver.dispose()
         composition.dispose()
         recomposer.cancel()
         scope.cancel()

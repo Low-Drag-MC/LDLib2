@@ -83,7 +83,31 @@ private fun WidgetsDemo() {
         UnwrappedWidget()
         HoverCard()
         Remounted()
+        ObservedBlock()
     }
+}
+
+/**
+ * A `layout` block that reads state, where *nothing else does*.
+ *
+ * <p>This is the case the node observer exists for, arranged so it cannot pass by accident. Blocks
+ * run in the apply phase, so their reads are invisible to the composition; `wide` is never read from
+ * a composable body here, so no recomposition can be triggered by changing it. If the width follows
+ * the button, it is because the observer re-ran this one block — nothing else could have.
+ */
+@Composable
+private fun ObservedBlock() {
+    val wide = remember { mutableStateOf(false) }
+
+    Button(
+        onClick = { wide.value = !wide.value },
+        text = Component.literal("变宽"),
+        classes = "observed-toggle",
+    )
+    Box(
+        layout = { width(if (wide.value) 120.px else 40.px); height(8.px) },
+        classes = "observed-box",
+    )
 }
 
 /**

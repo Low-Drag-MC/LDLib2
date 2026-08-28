@@ -176,6 +176,19 @@ public class ComposeWidgetsScenario implements UIScenario {
                 .check("the composition was rebuilt on re-attach", ctx ->
                         ctx.query().select(".remount-body").optional().isPresent())
 
+                // A layout block that reads state, with nothing else reading it. Blocks run in the
+                // apply phase, where reads are invisible to the composition, so no recomposition can
+                // possibly be involved here - if the width follows the button it is because the node
+                // observer re-ran that one block.
+                .check("the observed box starts narrow", ctx -> width(ctx, ".observed-box") < 60f)
+                .click(".observed-toggle")
+                .frames(3)
+                .check("a block that reads state follows it, with no recomposition", ctx ->
+                        width(ctx, ".observed-box") > 100f)
+                .click(".observed-toggle")
+                .frames(3)
+                .check("and back again", ctx -> width(ctx, ".observed-box") < 60f)
+
                 .closeScreen();
     }
 
@@ -197,6 +210,10 @@ public class ComposeWidgetsScenario implements UIScenario {
 
     private static boolean hasClass(TestContext ctx, String selector, String styleClass) {
         return element(ctx, selector).hasClass(styleClass);
+    }
+
+    private static float width(TestContext ctx, String selector) {
+        return ctx.query().select(selector).one().bounds().width();
     }
 
     /** How many rows the unwrapped tree widget is showing. */

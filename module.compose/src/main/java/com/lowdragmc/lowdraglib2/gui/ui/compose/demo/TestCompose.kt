@@ -66,14 +66,15 @@ private fun Highlightable() {
         text = Component.literal("高亮"),
         classes = "highlight-toggle",
     )
-    // Both derived here in the body, not inside the block: a style block runs during apply, and a
-    // snapshot read from there is not a composition dependency.
-    val size = if (hot) 18f else 9f
-    val colour = if (hot) 0xFFFF5555.toInt() else 0xFFFFFFFF.toInt()
     Text(
         Component.literal("styled text"),
         classes = if (hot) "styled-text hot" else "styled-text",
-        textStyle = { fontSize(size); textColor(colour) },
+        // `hot` read inside the block, which is tracked. Both branches still get a value, because a
+        // style block is never undone.
+        textStyle = {
+            fontSize(if (hot) 18f else 9f)
+            textColor(if (hot) 0xFFFF5555.toInt() else 0xFFFFFFFF.toInt())
+        },
     )
 }
 

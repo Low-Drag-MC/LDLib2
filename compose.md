@@ -116,8 +116,7 @@ Button(onClick = { count++ }, text = Component.literal("$count"))
 // 选中态放在列表外面，行被回收也不影响
 var selected by remember { mutableStateOf(-1) }
 LazyColumn(items, itemHeight = 14f) { index, item ->
-    val bg = if (index == selected) hi else none   // 在函数体里读，别在块里
-    Text(item, style = { backgroundTexture(bg) })
+    Text(item, style = { backgroundTexture(if (index == selected) hi else none) })
 }
 ```
 
@@ -180,18 +179,30 @@ classes = if (hot) "label hot" else "label"     // ✓✓ 更好：交给样式�
 
 重复写同一个值几乎不要钱：`StyleBag.replaceOrPutCandidate` 发现值没变会直接 return，不脏化、不重算布局。
 
-### 读状态要在函数体里，别在块里
-
-**这是这套 API 唯一的真陷阱。** 块是在 apply 阶段跑的，那时候读快照状态**不算组合依赖**：
+### 块里读状态：能用，而且比重组更省
 
 ```kotlin
-style = { opacity(alpha) }        // ✗ alpha 变了不触发重组，块永远拿第一帧的值
-
-val o = alpha.coerceIn(0f, 1f)    // ✓ 在函数体里读，把普通值捕获进去
-style = { opacity(o) }
+val alpha by animateFloatAsState(target)
+Box(style = { opacity(alpha) })   // ✓ 直接读，会跟着动
 ```
 
-`AnimatedVisibility` 就这么写错过一次：淡入卡在 0，因为 `if (visible || alpha > 0f)` 被短路了，函数体里再没有第二处读 `alpha`。
+块是在 **apply 阶段**跑的，Compose 只在组合阶段追踪读取，所以这本来是不成立的 —— 早期版本这里确实是个陷阱。现在每个节点的块跑在一个 `SnapshotStateObserver` 里（和 Compose UI 给 `Modifier.drawBehind` / `graphicsLayer` 用的是同一招）：读取归属到**这个节点**，值变了就**只重跑这一个块**。
+
+所以它比"把值提到函数体里"**更省** —— 那样会重组整个 composable，这样只是一次 `bag.set`。
+
+两点要知道：
+
+- **只有块能这么用。** `classes`、`enabled` 这些是普通参数，在函数体里求值，走的还是正常的重组依赖。
+- **决定"组合什么"的值必须在函数体里读。** 块只能改属性，不能决定挂不挂载：
+
+```kotlin
+val o = alpha.coerceIn(0f, 1f)        // 函数体里读，因为下面这行要用它决定挂不挂
+if (visible || o > 0f) { Box(style = { opacity(o) }) }
+```
+
+`AnimatedVisibility` 就是这个形状。
+
+> 实现细节：陈旧的读取依赖靠快照 id 判定，所以一个"不再读某个状态"的块会**多被重跑一次**才把它丢掉。方向永远是多跑，不会漏跑，而多跑一次写的是相同的值，`StyleBag` 直接丢弃。
 
 ### 事件
 
@@ -297,8 +308,7 @@ Subcompose(someContainer) { Whatever() }
 
 ```kotlin
 val alpha by animateFloatAsState(if (expanded) 1f else 0f, TweenSpec(200, easing = Eases.QUAD_OUT))
-val o = alpha                       // 函数体里读一次，见「读状态要在函数体里」
-Box(style = { opacity(o) }) { ... }
+Box(style = { opacity(alpha) }) { ... }   // 块里直接读，不重组，只重跑这个块
 
 // 弹性：跨目标切换保留速度，中途改目标是继续走而不是重新起步
 val offset by animateFloatAsState(target, spring(dampingRatio = 0.6f, stiffness = 300f))
@@ -371,13 +381,17 @@ UIElementNode(
 | 操作 | 耗时 |
 |---|---|
 | 空闲帧 | ~0 |
-| 更新 1 行 / 500 | 0.8ms |
+| 更新 1 行 / 500 | 1.2ms |
 | 更新 1 行 / 500（内容 hoist 后） | **0.2ms** |
-| 追加 1 行 | 0.8ms |
-| 反转 500 行 | 7.4ms |
-| *clear+rebuild 500 行（旧写法）* | *2.9ms* |
+| 追加 1 行 | 1.3ms |
+| 反转 500 行 | 9ms |
+| *clear+rebuild 500 行（旧写法）* | *2.6ms* |
 
-两点值得知道：
+> 这台机器上 `clear+rebuild` 那一行在 2.4–3.5ms 之间飘，所以别把比值当精确数字看。
+
+三点值得知道：
+
+**只有真的给了块才会被观察。** `layout` / `style` / `xxxStyle` / `events` 全为 null 时（`Text(t, classes = "row")` 就是），节点完全不进 `SnapshotStateObserver` —— 观察一个不可能读状态的东西只是白花钱，实测约 1.5µs 一个节点。
 
 **外层 lambda 仍是 O(N)。** 列表变了，那个 `forEach` 会走完每一项 —— 只是每项都命中编译器插入的跳过，不重组。所以"改一行"不是 O(1)，而是"N 次很便宜的检查 + 1 次真更新"。真正的收益是**保住状态、焦点、动画**，不是纯速度。
 
@@ -440,7 +454,7 @@ cannot access class kotlinx.coroutines.debug.internal.DebugProbesImpl (in module
 | | |
 |---|---|
 | **样式块无序、写穿不撤销** | 架构性的。底下是 CSS 级联 + Taffy，不是 Compose 的有序包装链。条件性外观走 `classes` |
-| **块里读状态不算依赖** | `layout` / `style` 块在 apply 阶段跑。派生值要在函数体里算好再传进去 |
+| **块只能改属性** | 块里读状态会跟着变，但决定"挂不挂载"的值必须在函数体里读 |
 | **手势** | 有 DOM 式事件冒泡和拖放（`DragHandler`），没有 `pointerInput` 那套 slop / 惯性 / 手势识别 |
 | **`rememberSaveable`** | 没有。关闭界面重开状态会丢（最小化编辑器换宿主的场景是能存活的） |
 | **无障碍** | 组合出来的元素不向 MC 旁白贡献信息 |
