@@ -50,7 +50,14 @@ import kotlin.math.floor
 fun <T> LazyColumn(
     items: List<T>,
     itemHeight: Float,
-    modifier: UIModifier = UIModifier,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
     overscan: Int = 2,
     key: ((index: Int, item: T) -> Any)? = null,
     itemContent: @Composable (index: Int, item: T) -> Unit,
@@ -63,7 +70,11 @@ fun <T> LazyColumn(
     val total = items.size
     val window = lazyWindow(total, itemHeight, metrics.viewport, metrics.fraction, overscan)
 
-    UIElementNode(factory = { view }, modifier = modifier) {
+    UIElementNode(
+        factory = { view },
+        layout = layout, style = style, classes = classes, id = id,
+        enabled = enabled, visible = visible, focusable = focusable, events = events,
+    ) {
         Spacer(window.first * itemHeight)
         for (index in window) {
             val item = items[index]
@@ -151,7 +162,14 @@ internal fun lazyWindow(
 fun <T> LazyRow(
     items: List<T>,
     itemWidth: Float,
-    modifier: UIModifier = UIModifier,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
     overscan: Int = 2,
     key: ((index: Int, item: T) -> Any)? = null,
     itemContent: @Composable (index: Int, item: T) -> Unit,
@@ -169,7 +187,8 @@ fun <T> LazyRow(
         // the view itself lays out the view's own parts — the viewport and its scrollbars — side by
         // side, and leaves the items still stacked vertically.
         factory = { view.also { it.viewContainer.getLayout().flexDirection(FlexDirection.ROW) } },
-        modifier = modifier,
+        layout = layout, style = style, classes = classes, id = id,
+        enabled = enabled, visible = visible, focusable = focusable, events = events,
     ) {
         HorizontalSpacer(window.first * itemWidth)
         for (index in window) {
@@ -202,7 +221,14 @@ fun <T> LazyVerticalGrid(
     columns: Int,
     cellWidth: Float,
     cellHeight: Float,
-    modifier: UIModifier = UIModifier,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
     overscan: Int = 1,
     key: ((index: Int, item: T) -> Any)? = null,
     itemContent: @Composable (index: Int, item: T) -> Unit,
@@ -216,23 +242,24 @@ fun <T> LazyVerticalGrid(
     LazyColumn(
         items = rows,
         itemHeight = cellHeight,
-        modifier = modifier,
+        layout = layout, style = style, classes = classes, id = id,
+        enabled = enabled, visible = visible, focusable = focusable, events = events,
         overscan = overscan,
         key = { _, row -> row },
     ) { _, row ->
-        Row(UIModifier.height(cellHeight.px)) {
+        Row(layout = { height(cellHeight.px) }) {
             for (column in 0 until columns) {
                 val index = row * columns + column
                 if (index < items.size) {
                     val item = items[index]
                     key(key?.invoke(index, item) ?: index) {
-                        Box(UIModifier.width(cellWidth.px).height(cellHeight.px)) {
+                        Box(layout = { size(cellWidth.px, cellHeight.px) }) {
                             itemContent(index, item)
                         }
                     }
                 } else {
                     // Padding out the last row, so its cells sit under the ones above.
-                    Box(UIModifier.width(cellWidth.px).height(cellHeight.px))
+                    Box(layout = { size(cellWidth.px, cellHeight.px) })
                 }
             }
         }
@@ -248,14 +275,18 @@ fun <T> LazyVerticalGrid(
  * two things.
  */
 @Composable
-fun Spacer(modifier: UIModifier = UIModifier) {
-    UIElementNode(factory = { UIElement() }, modifier = modifier)
+fun Spacer(
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+) {
+    UIElementNode(factory = { UIElement() }, layout = layout, style = style, classes = classes)
 }
 
 @Composable
-private fun Spacer(height: Float) =
-    Spacer(UIModifier.height(height.coerceAtLeast(0f).px))
+private fun Spacer(extent: Float) =
+    Spacer(layout = { height(extent.coerceAtLeast(0f).px) })
 
 @Composable
-private fun HorizontalSpacer(width: Float) =
-    Spacer(UIModifier.width(width.coerceAtLeast(0f).px))
+private fun HorizontalSpacer(extent: Float) =
+    Spacer(layout = { width(extent.coerceAtLeast(0f).px) })

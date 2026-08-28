@@ -19,29 +19,46 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement
  * ```kotlin
  * UIElementNode(
  *     factory = { ProgressBar() },
- *     modifier = UIModifier.size(80.px, 10.px),
+ *     layout = { size(80.px, 10.px) },
  *     update = { set(progress) { setProgress(it) } },
  * )
  * ```
  *
  * @param factory builds the element. Runs once, when the node is first created — never on
  *   recomposition, so anything that varies belongs in [update], not here.
+ * @param layout the element's layout, with the same receiver `layoutDsl { }` gives you.
+ * @param style the element's appearance, with the same receiver `styleDsl { }` gives you.
+ * @param classes space-separated stylesheet classes, so `.name { }` rules match. This is the right
+ *   place for appearance that varies with state — see [AppliedProps] for why a style block is not.
  * @param update applies props. Wrap each one in [Updater.set] so it only runs when that prop
  *   actually changed.
  */
 @Composable
 fun <T : UIElement> UIElementNode(
     factory: () -> T,
-    modifier: UIModifier = UIModifier,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
     update: Updater<T>.() -> Unit = {},
     content: @Composable () -> Unit = {},
 ) {
     // Shares the node's lifetime, so there is nothing to clean up when the node goes away.
-    val applied = remember { AppliedModifier() }
+    val applied = remember { AppliedProps() }
     ComposeNode<T, UIApplier>(
         factory = factory,
         update = {
-            set(modifier) { applied.applyTo(this, it) }
+            // reconcile, not set: the blocks are fresh lambdas on every recomposition, so there is
+            // nothing meaningful to compare them against. Running them again is cheap — a style
+            // write whose value is unchanged returns early in StyleBag#replaceOrPutCandidate without
+            // dirtying anything — and classes and events are diffed properly inside.
+            reconcile {
+                applied.apply(this, layout, style, classes, id, enabled, visible, focusable, events)
+            }
             update()
         },
         content = content,
@@ -77,7 +94,7 @@ fun Mount(element: UIElement, content: @Composable () -> Unit = {}) {
  *
  * ```kotlin
  * val view = remember { SplitView.Horizontal() }
- * UIElementNode(factory = { view }, modifier = modifier)
+ * UIElementNode(factory = { view }, layout = { … })
  * Subcompose(view.first) { LeftPane() }
  * Subcompose(view.second) { RightPane() }
  * ```

@@ -30,14 +30,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.compose.TagField
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Text
 import com.lowdragmc.lowdraglib2.gui.ui.compose.TextArea
 import com.lowdragmc.lowdraglib2.gui.ui.compose.ToggleGroup
-import com.lowdragmc.lowdraglib2.gui.ui.compose.UIModifier
 import com.lowdragmc.lowdraglib2.gui.ui.compose.UITemplate
-import com.lowdragmc.lowdraglib2.gui.ui.compose.classes
 import com.lowdragmc.lowdraglib2.gui.ui.compose.composeModularUI
-import com.lowdragmc.lowdraglib2.gui.ui.compose.gap
-import com.lowdragmc.lowdraglib2.gui.ui.compose.height
-import com.lowdragmc.lowdraglib2.gui.ui.compose.padding
-import com.lowdragmc.lowdraglib2.gui.ui.compose.width
 import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.language.Languages
 import com.lowdragmc.lowdraglib2.gui.ui.layout.px
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager
@@ -69,10 +63,10 @@ class TestComposeGallery : IScreenTest {
 
 @Composable
 private fun Gallery() {
-    Box(UIModifier.width(300.px).padding(6.px).gap(3.px).classes("gallery-root")) {
+    Box(layout = { width(300.px); padding { all(6.px) }; gap { all(3.px) } }, classes = "gallery-root") {
         // Column is the one container the other demos never used.
-        Column(UIModifier.gap(3.px).classes("gallery-column")) {
-            Label(Component.literal("label"), UIModifier.classes("g-label"))
+        Column(layout = { gap { all(3.px) } }, classes = "gallery-column") {
+            Label(Component.literal("label"), classes = "g-label")
             TextValues()
             NumericValues()
             PickerValues()
@@ -89,21 +83,23 @@ private fun TextValues() {
 
     Button(
         onClick = { lines = lines + "three" },
-        modifier = UIModifier.classes("g-add-line"),
         text = Component.literal("加一行"),
+        classes = "g-add-line",
     )
     // The array-valued widgets: their controlled-value guard has to compare contents, because
     // String[] compares by identity and would look changed on every recomposition.
     TextArea(
         lines = lines,
         onLinesChange = { lines = it },
-        modifier = UIModifier.width(140.px).height(30.px).classes("g-textarea"),
+        layout = { size(140.px, 30.px) },
+        classes = "g-textarea",
     )
     CodeEditor(
         lines = code,
         onLinesChange = { code = it },
         language = Languages.JAVASCRIPT,
-        modifier = UIModifier.width(140.px).height(30.px).classes("g-codeeditor"),
+        layout = { size(140.px, 30.px) },
+        classes = "g-codeeditor",
     )
 }
 
@@ -116,16 +112,16 @@ private fun NumericValues() {
 
     Button(
         onClick = { slider = 0.75f },
-        modifier = UIModifier.classes("g-set-slider"),
         text = Component.literal("滑块 0.75"),
+        classes = "g-set-slider",
     )
     // Rows need their own height: a Row with no height collapses to zero and its children draw over
     // whatever comes next. Same trap as a bare Text, and the reason `Text` self-sizes by default.
-    Row(UIModifier.gap(3.px).height(32.px)) {
-        Slider(slider, { slider = it }, UIModifier.width(80.px).height(10.px).classes("g-slider"))
-        SliderVertical(vSlider, { vSlider = it }, UIModifier.width(10.px).height(30.px).classes("g-slider-v"))
-        ScrollerHorizontal(hScroll, { hScroll = it }, UIModifier.width(80.px).height(10.px).classes("g-scroller-h"))
-        ScrollerVertical(vScroll, { vScroll = it }, UIModifier.width(10.px).height(30.px).classes("g-scroller-v"))
+    Row(layout = { gap { all(3.px) }; height(32.px) }) {
+        Slider(slider, { slider = it }, layout = { size(80.px, 10.px) }, classes = "g-slider")
+        SliderVertical(vSlider, { vSlider = it }, layout = { size(10.px, 30.px) }, classes = "g-slider-v")
+        ScrollerHorizontal(hScroll, { hScroll = it }, layout = { size(80.px, 10.px) }, classes = "g-scroller-h")
+        ScrollerVertical(vScroll, { vScroll = it }, layout = { size(10.px, 30.px) }, classes = "g-scroller-v")
     }
 }
 
@@ -139,29 +135,31 @@ private fun PickerValues() {
 
     Button(
         onClick = { picked = "gamma" },
-        modifier = UIModifier.classes("g-set-selector"),
         text = Component.literal("选 gamma"),
+        classes = "g-set-selector",
     )
     Button(
         onClick = { colour = 0xFFCC3333.toInt() },
-        modifier = UIModifier.classes("g-set-colour"),
         text = Component.literal("换颜色"),
+        classes = "g-set-colour",
     )
     Selector(
         selected = picked,
         candidates = listOf("alpha", "beta", "gamma"),
         onSelectedChange = { picked = it },
-        modifier = UIModifier.width(80.px).height(12.px).classes("g-selector"),
+        layout = { size(80.px, 12.px) },
+        classes = "g-selector",
     )
-    ColorSelector(colour, { colour = it }, UIModifier.width(40.px).height(12.px).classes("g-colour"))
-    TagField(tag, { tag = it }, UIModifier.width(120.px).height(12.px).classes("g-tagfield"))
+    ColorSelector(colour, { colour = it }, layout = { size(40.px, 12.px) }, classes = "g-colour")
+    TagField(tag, { tag = it }, layout = { size(120.px, 12.px) }, classes = "g-tagfield")
     StructuredTagEditor(
         structured,
         { structured = it },
-        UIModifier.width(140.px).height(24.px).classes("g-structured"),
+        layout = { size(140.px, 24.px) },
+        classes = "g-structured",
     )
     // Renders nothing; it exists to hold a value, so the only thing to check is that it composes.
-    BindableValue(headless, { headless = it }, UIModifier.classes("g-headless"))
+    BindableValue(headless, { headless = it }, classes = "g-headless")
 }
 
 @Composable
@@ -171,18 +169,18 @@ private fun SlotValues() {
 
     Button(
         onClick = { stack = ItemStack(Items.DIAMOND, 7) },
-        modifier = UIModifier.classes("g-set-item"),
         text = Component.literal("换物品"),
+        classes = "g-set-item",
     )
-    Row(UIModifier.gap(3.px).height(20.px)) {
-        ItemSlot(stack, { stack = it }, UIModifier.classes("g-itemslot"))
-        FluidSlot(fluid, {}, UIModifier.classes("g-fluidslot"))
-        ToggleGroup(UIModifier.gap(2.px).classes("g-togglegroup")) {
+    Row(layout = { gap { all(3.px) }; height(20.px) }) {
+        ItemSlot(stack, { stack = it }, classes = "g-itemslot")
+        FluidSlot(fluid, {}, classes = "g-fluidslot")
+        ToggleGroup(layout = { gap { all(2.px) } }, classes = "g-togglegroup") {
             Text(Component.literal("grouped"))
         }
     }
     // Binds itself to the player inventory once attached to a menu; on a plain screen it just draws.
-    InventorySlots(UIModifier.classes("g-inventory"))
+    InventorySlots(classes = "g-inventory")
 }
 
 @Composable
@@ -192,10 +190,11 @@ private fun Structural() {
     val adopted = remember { UIElement().addClass("g-mounted") }
 
     SplitViewVertical(
-        modifier = UIModifier.width(280.px).height(50.px).classes("g-split-v"),
-        top = { Text(Component.literal("top"), UIModifier.classes("g-split-top")) },
+        top = { Text(Component.literal("top"), classes = "g-split-top") },
         bottom = { Mount(adopted) },
+        layout = { size(280.px, 50.px) },
+        classes = "g-split-v",
     )
     // A null path is the "nothing selected yet" state an editor field starts in.
-    UITemplate(null, UIModifier.width(60.px).height(10.px).classes("g-template"))
+    UITemplate(null, layout = { size(60.px, 10.px) }, classes = "g-template")
 }

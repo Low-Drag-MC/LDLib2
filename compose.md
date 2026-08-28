@@ -116,7 +116,8 @@ Button(onClick = { count++ }, text = Component.literal("$count"))
 // 选中态放在列表外面，行被回收也不影响
 var selected by remember { mutableStateOf(-1) }
 LazyColumn(items, itemHeight = 14f) { index, item ->
-    Text(item, UIModifier.background(if (index == selected) hi else none))
+    val bg = if (index == selected) hi else none   // 在函数体里读，别在块里
+    Text(item, style = { backgroundTexture(bg) })
 }
 ```
 
@@ -130,54 +131,94 @@ items.forEach { item -> key(item.id) { Row(item) } }
 
 ---
 
-## Modifier
+## 属性
 
-链式，但**语义和 Compose UI 不一样，这条要先知道**。
-
-Compose UI 的 Modifier 是有序的包装链，`padding().background()` 和 `background().padding()` 视觉不同。
-
-**这里不是。** 每个 modifier 就是往元素的样式包里写一个属性，跟 CSS 一样：
+外观和行为不是一条 Modifier 链，而是一组具名参数 —— 而且用的就是 LDLib2 自己那套 DSL，**一个新名字都不引入**：
 
 ```kotlin
-UIModifier.padding(8.px).background(sprite)   // 和下面完全等价
-UIModifier.background(sprite).padding(8.px)
+Button(
+    onClick = { … },
+    text = Component.literal("确定"),
+    layout = { width(60.px); padding { all(4.px) } },       // 接收者 = TaffyLayoutStyleDsl，和 layoutDsl { } 同一个
+    style  = { backgroundTexture(Sprites.RECT_RD) },        // 接收者 = BasicStyle，和 styleDsl { } 同一个
+    buttonStyle = { hoverTexture(Sprites.RECT_RD_LIGHT) },  // 控件自己那个 facade
+    classes = "primary",
+)
 ```
 
-顺序只在**同一个属性写两次**时有意义（后写的赢）。想要"外圈内边距、内圈另一个背景"，得真的嵌两层 `Box`。
+> 早先这里是 `UIModifier.width(60.px).background(…)` 的链式写法，**已经去掉**。Compose UI 的 Modifier 是有序包装链（`padding().background()` 和反过来视觉不同），那是它存在的理由；这里写的是同一个 `StyleBag` 里的属性，顺序无关 —— 保留链式只是留了个形，代价是 261 行手写别名和第二套要记的名字。
 
 ### 有哪些
 
-| 类别 | |
+| 参数 | |
 |---|---|
-| 尺寸 | `width` `height` `size` `minWidth` `maxWidth` `minHeight` `maxHeight` `aspectRatio` |
-| 间距 | `padding` `paddingHorizontal` `paddingVertical` `margin` `marginHorizontal` `marginVertical` `gap` |
-| 弹性/定位 | `flex` `flexGrow` `flexShrink` `flexDirection` `flexWrap` `display` `alignItems` `alignSelf` `alignContent` `justifyContent` `position` `left` `top` `right` `bottom` |
-| 外观 | `background` `overlay` `opacity` `zIndex` `color` `transform2D` `tooltips` |
-| 文字 | `fontSize` `font` `textColor` `textShadow` `lineSpacing` `textWrap` `textAlign` `adaptiveWidth` `adaptiveHeight` |
-| 元素开关 | `enabled` `visible` `focusable` |
-| 选择器 | `classes` `id` |
-| 事件 | `onClick` `onMouseDown` `onMouseUp` `onMouseEnter` `onMouseLeave` `onMouseWheel` `onKeyDown` `onCharTyped` `onEvent` |
-| 逃生舱 | `layout(Property, v)` `style(Property, v)` |
+| `layout` | 尺寸、间距、flex/grid、定位。接收者 `TaffyLayoutStyleDsl` |
+| `style` | 背景、遮罩、透明度、z-index、tooltip、变换。接收者 `BasicStyle` |
+| `xxxStyle` | 控件自己的样式 facade：`buttonStyle` `toggleStyle` `sliderStyle` `textStyle` `slotStyle` `scrollerStyle` …… |
+| `classes` | 空格分隔的样式表类名 |
+| `id` | 给 `#id` 选择器用 |
+| `enabled` / `visible` / `focusable` | 元素开关。`enabled = false` 会加上 `__disabled__` 类 |
+| `events` | 事件，见下 |
 
-单位就是旧 DSL 那一套：`40.px`、`50.pct`、`auto`。
+单位还是旧 DSL 那一套：`40.px`、`50.pct`、`auto`。
 
-`enabled(false)` 会加上 `__disabled__` 类并让控件不响应输入 —— 样式表里的禁用外观就是靠这个类。
+### 三种参数，三种脾气
 
-**没有语法糖的属性用泛型逃生舱**，`PropertyRegistry` / `LayoutProperties` 里的任何属性都能设：
+| | 值变了 | 不写了 |
+|---|---|---|
+| `layout` / `style` / `xxxStyle` | 写进去 | **留在那，不会撤销** |
+| `classes` | diff | 移除 |
+| `enabled` / `visible` / 事件 | 写进去 | 不存在（总是传值） |
 
-```kotlin
-UIModifier.style(PropertyRegistry.ROLL_SPEED, 2f)
-```
-
-### 事件修饰符是 @Composable 的
-
-因为回调每次重组都是新 lambda，直接注册就会每帧反复增删监听器（而且 LDLib2 的监听器是前插的，顺序还会被搅乱）。所以事件修饰符把 handler 放在一个 `remember` 的持有器后面，注册一次，重组只换指向。
+**样式块是写穿的** —— `element.styleDsl { }` 一直就是这个语义，这里没有发明新规则。所以条件性外观要注意：
 
 ```kotlin
-Box(UIModifier.onClick { count++ }) { Text("点我") }
+textStyle = { if (hot) fontSize(18f) }          // ✗ hot 变 false 之后字还是大的
+textStyle = { fontSize(if (hot) 18f else 9f) }  // ✓ 两个分支都给值
+classes = if (hot) "label hot" else "label"     // ✓✓ 更好：交给样式表，class 是 diff 的
 ```
 
-> `UIModifier.onClick` 是 `mouseClick`（按下再松开）。`Button(onClick = ...)` 是控件自带的，在 **mouse-down** 触发并播放点击音 —— 两者行为不同，都保留了原语义。
+重复写同一个值几乎不要钱：`StyleBag.replaceOrPutCandidate` 发现值没变会直接 return，不脏化、不重算布局。
+
+### 读状态要在函数体里，别在块里
+
+**这是这套 API 唯一的真陷阱。** 块是在 apply 阶段跑的，那时候读快照状态**不算组合依赖**：
+
+```kotlin
+style = { opacity(alpha) }        // ✗ alpha 变了不触发重组，块永远拿第一帧的值
+
+val o = alpha.coerceIn(0f, 1f)    // ✓ 在函数体里读，把普通值捕获进去
+style = { opacity(o) }
+```
+
+`AnimatedVisibility` 就这么写错过一次：淡入卡在 0，因为 `if (visible || alpha > 0f)` 被短路了，函数体里再没有第二处读 `alpha`。
+
+### 事件
+
+```kotlin
+Box(events = {
+    onClick { count++ }
+    onMouseEnter { hovered = true }
+})
+```
+
+handler 每次重组都是新 lambda，所以它们被放在一个 `remember` 的持有器后面：注册一次，重组只换指向。直接反复 `addEventListener` 会每帧增删监听器，而 LDLib2 的监听器是前插的，顺序还会被搅乱。
+
+按 `(类型, capture)` 去重，同一个事件写两次是覆盖不是叠加。没有具名助手的走 `on("someType") { }`。
+
+> `onClick` 是 `mouseClick`（按下再松开）。`Button(onClick = …)` 是控件自带的，在 **mouse-down** 触发并播放点击音 —— 两者行为不同，都保留了原语义。
+
+### 控件自己的 *Style 为什么不需要特殊处理
+
+`Style` 的构造函数拿的是**宿主元素的那一个 `StyleBag`**：
+
+```java
+public Style(UIElement holder) { this.styleBag = holder.getStyleBag(); }
+```
+
+所以那二十个 `*Style` 只是属性的分组命名，不是另一套系统。需要联动的控件也把监听器注册在 **Property** 上（见 `Toggle.ToggleStyle.init`），谁写的都一样触发。这里直接把那个 facade 当接收者交给你，中间没有任何一层。
+
+一处要知道：**封装替你选的默认值写在 `DEFAULT` origin**（`Row` 的 flex 方向、`Text` 的自适应高度），你的 `layout` / `style` 在 `INLINE`。所以你永远压得过封装，样式表也压得过封装。
 
 ---
 
@@ -235,7 +276,8 @@ Subcompose(someContainer) { Whatever() }
 
 ```kotlin
 val alpha by animateFloatAsState(if (expanded) 1f else 0f, TweenSpec(200, easing = Eases.QUAD_OUT))
-Box(UIModifier.opacity(alpha)) { ... }
+val o = alpha                       // 函数体里读一次，见「读状态要在函数体里」
+Box(style = { opacity(o) }) { ... }
 
 // 弹性：跨目标切换保留速度，中途改目标是继续走而不是重新起步
 val offset by animateFloatAsState(target, spring(dampingRatio = 0.6f, stiffness = 300f))
@@ -285,7 +327,7 @@ val value by progress.collectAsState()
 ```kotlin
 UIElementNode(
     factory = { TreeList<TreeNode<String, String>>().setFlattenRoot(true) },
-    modifier = UIModifier.width(240.px).height(60.px),
+    layout = { size(240.px, 60.px) },
     update = { set(depth) { setRoot(root) } },
 )
 ```
@@ -318,16 +360,17 @@ UIElementNode(
 
 **外层 lambda 仍是 O(N)。** 列表变了，那个 `forEach` 会走完每一项 —— 只是每项都命中编译器插入的跳过，不重组。所以"改一行"不是 O(1)，而是"N 次很便宜的检查 + 1 次真更新"。真正的收益是**保住状态、焦点、动画**，不是纯速度。
 
-**常数项在你手里。** 上表里 hoist 前后差 4 倍，区别只是把 `Component.literal(...)` 和 modifier 从循环里提出去：
+**常数项在你手里。** 上表里 hoist 前后差 4 倍，区别只是把 `Component.literal(...)` 从循环里提出去：
 
 ```kotlin
-// 每行每帧两次分配
-items.forEach { key(it.id) { Text(Component.literal(it.name), UIModifier.classes("row")) } }
+// 每行每帧一次分配，而且 Component 不是 @Stable，这一行拦住了编译器的跳过
+items.forEach { key(it.id) { Text(Component.literal(it.name), classes = "row") } }
 
-// 提出去之后
-val rowModifier = remember { UIModifier.classes("row") }
-items.forEach { key(it.id) { Text(it.nameComponent, rowModifier) } }
+// 提出去之后：参数全是稳定值，整个 Text 调用可以被跳过
+items.forEach { key(it.id) { Text(it.nameComponent, classes = "row") } }
 ```
+
+> 顺带一个和参数形状有关的事实：**传 lambda 会让控件调用不可跳过**（每次重组都是新实例）。所以热路径上的行，能用 `classes` 表达的就别写 `style = { }`。
 
 ---
 
@@ -375,7 +418,8 @@ cannot access class kotlinx.coroutines.debug.internal.DebugProbesImpl (in module
 
 | | |
 |---|---|
-| **Modifier 无序** | 架构性的。底下是 CSS 级联 + Taffy，不是 Compose 的有序链 |
+| **样式块无序、写穿不撤销** | 架构性的。底下是 CSS 级联 + Taffy，不是 Compose 的有序包装链。条件性外观走 `classes` |
+| **块里读状态不算依赖** | `layout` / `style` 块在 apply 阶段跑。派生值要在函数体里算好再传进去 |
 | **手势** | 有 DOM 式事件冒泡和拖放（`DragHandler`），没有 `pointerInput` 那套 slop / 惯性 / 手势识别 |
 | **`rememberSaveable`** | 没有。关闭界面重开状态会丢（最小化编辑器换宿主的场景是能存活的） |
 | **无障碍** | 组合出来的元素不向 MC 旁白贡献信息 |

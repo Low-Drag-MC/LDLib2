@@ -7,16 +7,11 @@ import androidx.compose.runtime.Updater
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import com.lowdragmc.lowdraglib2.gui.ui.UIElement
 import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement
 import com.lowdragmc.lowdraglib2.gui.ui.elements.BindableUIElement
 import com.lowdragmc.lowdraglib2.gui.ui.elements.BindableValue
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ColorSelector
-import com.lowdragmc.lowdraglib2.gui.ui.elements.StructuredTagEditor
-import com.lowdragmc.lowdraglib2.gui.ui.elements.UITemplateElement
-import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.language.ILanguageDefinition
-import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog as LdlDialog
-import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.CodeEditor as LdlCodeEditor
 import com.lowdragmc.lowdraglib2.gui.ui.elements.FluidSlot
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label
@@ -26,6 +21,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Selector
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Slider
 import com.lowdragmc.lowdraglib2.gui.ui.elements.SplitView
+import com.lowdragmc.lowdraglib2.gui.ui.elements.StructuredTagEditor
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Switch
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TagField
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextArea
@@ -33,45 +29,96 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Toggle
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ToggleGroupElement
+import com.lowdragmc.lowdraglib2.gui.ui.elements.UITemplateElement
+import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.language.ILanguageDefinition
 import com.lowdragmc.lowdraglib2.gui.ui.elements.inventory.InventorySlots
-import net.minecraft.nbt.Tag
 import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties
-import com.lowdragmc.lowdraglib2.gui.ui.style.Property
 import dev.vfyjxf.taffy.style.AlignItems
 import dev.vfyjxf.taffy.style.FlexDirection
+import net.minecraft.nbt.Tag
 import net.minecraft.network.chat.Component
 import net.minecraft.world.item.ItemStack
 import net.neoforged.neoforge.fluids.FluidStack
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button as LdlButton
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog as LdlDialog
+import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.CodeEditor as LdlCodeEditor
 
 // region containers
 
 /** A plain container. Children stack in a column, which is LDLib2's default flex direction. */
 @Composable
-fun Box(modifier: UIModifier = UIModifier, content: @Composable () -> Unit = {}) {
-    UIElementNode(factory = { UIElement() }, modifier = modifier, content = content)
+fun Box(
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
+    content: @Composable () -> Unit = {},
+) {
+    UIElementNode(
+        factory = { UIElement() },
+        layout = layout, style = style, classes = classes, id = id,
+        enabled = enabled, visible = visible, focusable = focusable, events = events,
+        content = content,
+    )
 }
 
 /** Children top to bottom. */
 @Composable
-fun Column(modifier: UIModifier = UIModifier, content: @Composable () -> Unit = {}) {
+fun Column(
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
+    content: @Composable () -> Unit = {},
+) {
     UIElementNode(
-        factory = { UIElement() },
-        modifier = UIModifier.flexDirection(FlexDirection.COLUMN)
-            .alignItems(AlignItems.FLEX_START)
-            .then(modifier),
+        // At DEFAULT origin, so a caller's own `layout = { flexDirection(…) }` still wins.
+        factory = {
+            UIElement().apply {
+                defaultLayout {
+                    flexDirection(FlexDirection.COLUMN)
+                    alignItems(AlignItems.FLEX_START)
+                }
+            }
+        },
+        layout = layout, style = style, classes = classes, id = id,
+        enabled = enabled, visible = visible, focusable = focusable, events = events,
         content = content,
     )
 }
 
 /** Children left to right. */
 @Composable
-fun Row(modifier: UIModifier = UIModifier, content: @Composable () -> Unit = {}) {
+fun Row(
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
+    content: @Composable () -> Unit = {},
+) {
     UIElementNode(
-        factory = { UIElement() },
-        modifier = UIModifier.flexDirection(FlexDirection.ROW)
-            .alignItems(AlignItems.FLEX_START)
-            .then(modifier),
+        factory = {
+            UIElement().apply {
+                defaultLayout {
+                    flexDirection(FlexDirection.ROW)
+                    alignItems(AlignItems.FLEX_START)
+                }
+            }
+        },
+        layout = layout, style = style, classes = classes, id = id,
+        enabled = enabled, visible = visible, focusable = focusable, events = events,
         content = content,
     )
 }
@@ -83,8 +130,25 @@ fun Row(modifier: UIModifier = UIModifier, content: @Composable () -> Unit = {})
  * [UIElement.getContentHost] arranges — so they scroll instead of sitting alongside the scrollbars.
  */
 @Composable
-fun ScrollView(modifier: UIModifier = UIModifier, content: @Composable () -> Unit = {}) {
-    UIElementNode(factory = { ScrollerView() }, modifier = modifier, content = content)
+fun ScrollView(
+    scrollerStyle: (ScrollerView.ScrollerViewStyle.() -> Unit)? = null,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
+    content: @Composable () -> Unit = {},
+) {
+    UIElementNode(
+        factory = { ScrollerView() },
+        layout = layout, style = style, classes = classes, id = id,
+        enabled = enabled, visible = visible, focusable = focusable, events = events,
+        update = { reconcile { scrollerStyle?.let { getScrollerViewStyle().apply(it) } } },
+        content = content,
+    )
 }
 
 // endregion
@@ -92,49 +156,82 @@ fun ScrollView(modifier: UIModifier = UIModifier, content: @Composable () -> Uni
 // region text & buttons
 
 /**
- * Whether the chain sets [property] itself.
+ * Text sized to its content, unless the caller sized it themselves.
  *
- * <p>Used to decide whether a widget may size itself. Text elements do that by writing their
- * measured size at `IMPORTANT` origin, which out-ranks the `INLINE` origin modifiers write at — so a
- * widget that self-sizes unconditionally would silently ignore `UIModifier.height(...)`.
- */
-private fun UIModifier.sets(property: Property<*>): Boolean =
-    ops.any { it is StyleOp<*> && it.property == property }
-
-/**
- * Text sized to its content, unless the chain says otherwise.
- *
- * <p>`adaptive-height` is off by default on a bare [TextElement], which leaves it zero-height —
- * fine for a hand-built layout that assigns sizes anyway, wrong for `Text("hi")`, which would draw
- * over whatever came after it. So it is enabled here, and disabled again the moment a caller
- * supplies a height of their own.
+ * <p>`adaptive-height` is off by default on a bare [TextElement], which leaves it zero-height — fine
+ * for a hand-built layout that assigns sizes anyway, wrong for `Text("hi")`, which would draw over
+ * whatever came after it. So it is switched on here, and switched off again the moment the caller's
+ * own `layout` block supplies a height. That check has to happen *after* the block has run, which is
+ * why it lives in `reconcile` rather than being decided up front.
  */
 @Composable
-fun Text(text: Component, modifier: UIModifier = UIModifier) {
-    val adaptiveHeight = !modifier.sets(LayoutProperties.HEIGHT)
+fun Text(
+    text: Component,
+    textStyle: (TextElement.TextStyle.() -> Unit)? = null,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
+) {
     UIElementNode(
         factory = { TextElement() },
-        modifier = modifier,
+        layout = layout, style = style, classes = classes, id = id,
+        enabled = enabled, visible = visible, focusable = focusable, events = events,
         update = {
             set(text) { setText(it) }
-            set(adaptiveHeight) { adaptive -> textStyle { it.adaptiveHeight(adaptive) } }
+            reconcile {
+                getTextStyle().asDefault { adaptiveHeight(!callerSet(LayoutProperties.HEIGHT)) }
+                textStyle?.let { getTextStyle().apply(it) }
+            }
         },
     )
 }
 
 @Composable
-fun Text(text: String, modifier: UIModifier = UIModifier) = Text(Component.literal(text), modifier)
+fun Text(
+    text: String,
+    textStyle: (TextElement.TextStyle.() -> Unit)? = null,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
+) = Text(
+    Component.literal(text), textStyle, layout, style, classes, id,
+    enabled, visible, focusable, events,
+)
 
 /** Like [Text], but bindable — use it where a data source is going to drive the content. */
 @Composable
-fun Label(text: Component, modifier: UIModifier = UIModifier) {
-    val adaptiveHeight = !modifier.sets(LayoutProperties.HEIGHT)
+fun Label(
+    text: Component,
+    textStyle: (TextElement.TextStyle.() -> Unit)? = null,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
+) {
     UIElementNode(
         factory = { Label() },
-        modifier = modifier,
+        layout = layout, style = style, classes = classes, id = id,
+        enabled = enabled, visible = visible, focusable = focusable, events = events,
         update = {
             set(text) { setText(it) }
-            set(adaptiveHeight) { adaptive -> textStyle { it.adaptiveHeight(adaptive) } }
+            reconcile {
+                getTextStyle().asDefault { adaptiveHeight(!callerSet(LayoutProperties.HEIGHT)) }
+                textStyle?.let { getTextStyle().apply(it) }
+            }
         },
     )
 }
@@ -142,15 +239,25 @@ fun Label(text: Component, modifier: UIModifier = UIModifier) {
 /**
  * @param onClick fires on mouse-down and plays the click sound, matching
  *   [com.lowdragmc.lowdraglib2.gui.ui.elements.Button]'s own behaviour. For a press-and-release
- *   click, use [UIModifier.onClick] on a [Box] instead.
+ *   click, use `events = { onClick { … } }` on a [Box] instead.
  * @param text the button's own label. Leave it null and pass [content] to put arbitrary elements
  *   inside instead.
+ * @param buttonStyle the widget's own per-state textures, with the same receiver
+ *   `button.buttonStyle { }` gives you in Java.
  */
 @Composable
 fun Button(
     onClick: () -> Unit,
-    modifier: UIModifier = UIModifier,
     text: Component? = null,
+    buttonStyle: (LdlButton.ButtonStyle.() -> Unit)? = null,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
     content: @Composable () -> Unit = {},
 ) {
     // The listener is registered once and reads through the holder, so a fresh lambda every
@@ -159,8 +266,12 @@ fun Button(
     holder.handler = { onClick() }
     UIElementNode(
         factory = { LdlButton().also { it.setOnClick(holder) } },
-        modifier = modifier,
-        update = { set(text) { if (it == null) noText() else setText(it) } },
+        layout = layout, style = style, classes = classes, id = id,
+        enabled = enabled, visible = visible, focusable = focusable, events = events,
+        update = {
+            set(text) { if (it == null) noText() else setText(it) }
+            reconcile { buttonStyle?.let { getButtonStyle().apply(it) } }
+        },
         content = content,
     )
 }
@@ -169,8 +280,20 @@ fun Button(
 fun Button(
     onClick: () -> Unit,
     text: String,
-    modifier: UIModifier = UIModifier,
-) = Button(onClick, modifier, Component.translatable(text))
+    buttonStyle: (LdlButton.ButtonStyle.() -> Unit)? = null,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
+    content: @Composable () -> Unit = {},
+) = Button(
+    onClick, Component.translatable(text), buttonStyle, layout, style, classes, id,
+    enabled, visible, focusable, events, content,
+)
 
 // endregion
 
@@ -189,7 +312,14 @@ private fun <E : BindableUIElement<V>, V> BindableNode(
     factory: () -> E,
     value: V,
     onValueChange: (V) -> Unit,
-    modifier: UIModifier,
+    layout: LayoutBlock?,
+    style: StyleBlock?,
+    classes: String?,
+    id: String?,
+    enabled: Boolean,
+    visible: Boolean,
+    focusable: Boolean?,
+    events: (EventScope.() -> Unit)?,
     update: Updater<E>.() -> Unit = {},
     content: @Composable () -> Unit = {},
 ) {
@@ -199,7 +329,8 @@ private fun <E : BindableUIElement<V>, V> BindableNode(
         // The subscription lives exactly as long as the element does, and the element is discarded
         // wholesale when the node leaves the composition — so there is nothing to unsubscribe.
         factory = { factory().also { e -> e.registerValueListener { v -> holder.onValueChange?.invoke(v) } } },
-        modifier = modifier,
+        layout = layout, style = style, classes = classes, id = id,
+        enabled = enabled, visible = visible, focusable = focusable, events = events,
         update = {
             set(value) { if (getValue() != it) setValue(it, false) }
             update()
@@ -216,15 +347,39 @@ private class ValueChangeHolder<V> {
 fun TextField(
     value: String,
     onValueChange: (String) -> Unit,
-    modifier: UIModifier = UIModifier,
-) = BindableNode({ TextField() }, value, onValueChange, modifier)
+    fieldStyle: (TextField.TextFieldStyle.() -> Unit)? = null,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
+) = BindableNode(
+    { TextField() }, value, onValueChange,
+    layout, style, classes, id, enabled, visible, focusable, events,
+    update = { reconcile { fieldStyle?.let { getTextFieldStyle().apply(it) } } },
+)
 
 @Composable
 fun Switch(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
-    modifier: UIModifier = UIModifier,
-) = BindableNode({ Switch() }, checked, onCheckedChange, modifier)
+    switchStyle: (Switch.SwitchStyle.() -> Unit)? = null,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
+) = BindableNode(
+    { Switch() }, checked, onCheckedChange,
+    layout, style, classes, id, enabled, visible, focusable, events,
+    update = { reconcile { switchStyle?.let { getSwitchStyle().apply(it) } } },
+)
 
 /**
  * @param text the label beside the box. Defaults to none — the underlying widget ships with the
@@ -235,15 +390,26 @@ fun Switch(
 fun Toggle(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
-    modifier: UIModifier = UIModifier,
     text: Component? = null,
+    toggleStyle: (Toggle.ToggleStyle.() -> Unit)? = null,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
     content: @Composable () -> Unit = {},
 ) = BindableNode(
     factory = { Toggle() },
     value = checked,
     onValueChange = onCheckedChange,
-    modifier = modifier,
-    update = { set(text) { toggleLabel.setText(it ?: Component.empty()) } },
+    layout, style, classes, id, enabled, visible, focusable, events,
+    update = {
+        set(text) { toggleLabel.setText(it ?: Component.empty()) }
+        reconcile { toggleStyle?.let { getToggleStyle().apply(it) } }
+    },
     content = content,
 )
 
@@ -251,14 +417,101 @@ fun Toggle(
 fun Slider(
     value: Float,
     onValueChange: (Float) -> Unit,
-    modifier: UIModifier = UIModifier,
     range: ClosedFloatingPointRange<Float> = 0f..1f,
+    sliderStyle: (Slider.SliderStyle.() -> Unit)? = null,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
 ) = BindableNode(
     factory = { Slider.Horizontal() },
     value = value,
     onValueChange = onValueChange,
-    modifier = modifier,
-    update = { set(range) { setRange(it.start, it.endInclusive) } },
+    layout, style, classes, id, enabled, visible, focusable, events,
+    update = {
+        set(range) { setRange(it.start, it.endInclusive) }
+        reconcile { sliderStyle?.let { getSliderStyle().apply(it) } }
+    },
+)
+
+@Composable
+fun SliderVertical(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    range: ClosedFloatingPointRange<Float> = 0f..1f,
+    sliderStyle: (Slider.SliderStyle.() -> Unit)? = null,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
+) = BindableNode(
+    factory = { Slider.Vertical() },
+    value = value,
+    onValueChange = onValueChange,
+    layout, style, classes, id, enabled, visible, focusable, events,
+    update = {
+        set(range) { setRange(it.start, it.endInclusive) }
+        reconcile { sliderStyle?.let { getSliderStyle().apply(it) } }
+    },
+)
+
+/** A draggable scrollbar as a value in its own right, for driving something by hand. */
+@Composable
+fun ScrollerHorizontal(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    range: ClosedFloatingPointRange<Float> = 0f..1f,
+    scrollerStyle: (Scroller.ScrollerStyle.() -> Unit)? = null,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
+) = BindableNode(
+    factory = { Scroller.Horizontal() },
+    value = value,
+    onValueChange = onValueChange,
+    layout, style, classes, id, enabled, visible, focusable, events,
+    update = {
+        set(range) { setRange(it.start, it.endInclusive) }
+        reconcile { scrollerStyle?.let { getScrollerStyle().apply(it) } }
+    },
+)
+
+@Composable
+fun ScrollerVertical(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    range: ClosedFloatingPointRange<Float> = 0f..1f,
+    scrollerStyle: (Scroller.ScrollerStyle.() -> Unit)? = null,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
+) = BindableNode(
+    factory = { Scroller.Vertical() },
+    value = value,
+    onValueChange = onValueChange,
+    layout, style, classes, id, enabled, visible, focusable, events,
+    update = {
+        set(range) { setRange(it.start, it.endInclusive) }
+        reconcile { scrollerStyle?.let { getScrollerStyle().apply(it) } }
+    },
 )
 
 @Composable
@@ -266,86 +519,98 @@ fun <T> Selector(
     selected: T?,
     candidates: List<T>,
     onSelectedChange: (T?) -> Unit,
-    modifier: UIModifier = UIModifier,
+    selectorStyle: (Selector<T?>.SelectorStyle.() -> Unit)? = null,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
 ) = BindableNode<Selector<T?>, T?>(
     // Selector<T?> rather than Selector<T>: "nothing selected" is a real state here, and the
     // element's own value type has to admit it for the controlled-value round trip to typecheck.
     factory = { Selector<T?>() },
     value = selected,
     onValueChange = onSelectedChange,
-    modifier = modifier,
-    update = { set(candidates) { setCandidates(it) } },
+    layout, style, classes, id, enabled, visible, focusable, events,
+    update = {
+        set(candidates) { setCandidates(it) }
+        reconcile { selectorStyle?.let { getSelectorStyle().apply(it) } }
+    },
 )
 
 @Composable
 fun ItemSlot(
     item: ItemStack,
     onItemChange: (ItemStack) -> Unit = {},
-    modifier: UIModifier = UIModifier,
-) = BindableNode({ ItemSlot() }, item, onItemChange, modifier)
+    slotStyle: (ItemSlot.SlotStyle.() -> Unit)? = null,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
+) = BindableNode(
+    { ItemSlot() }, item, onItemChange,
+    layout, style, classes, id, enabled, visible, focusable, events,
+    update = { reconcile { slotStyle?.let { getSlotStyle().apply(it) } } },
+)
 
 @Composable
 fun FluidSlot(
     fluid: FluidStack,
     onFluidChange: (FluidStack) -> Unit = {},
-    modifier: UIModifier = UIModifier,
-) = BindableNode({ FluidSlot() }, fluid, onFluidChange, modifier)
+    slotStyle: (FluidSlot.SlotStyle.() -> Unit)? = null,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
+) = BindableNode(
+    { FluidSlot() }, fluid, onFluidChange,
+    layout, style, classes, id, enabled, visible, focusable, events,
+    update = { reconcile { slotStyle?.let { getSlotStyle().apply(it) } } },
+)
 
 @Composable
 fun ColorSelector(
     color: Int,
     onColorChange: (Int) -> Unit,
-    modifier: UIModifier = UIModifier,
-) = BindableNode({ ColorSelector() }, color, onColorChange, modifier)
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
+) = BindableNode(
+    { ColorSelector() }, color, onColorChange,
+    layout, style, classes, id, enabled, visible, focusable, events,
+)
 
 @Composable
 fun TagField(
     tag: Tag?,
     onTagChange: (Tag?) -> Unit,
-    modifier: UIModifier = UIModifier,
-) = BindableNode<TagField, Tag?>({ TagField() }, tag, onTagChange, modifier)
-
-/** A draggable scrollbar as a value in its own right, for driving something by hand. */
-@Composable
-fun ScrollerHorizontal(
-    value: Float,
-    onValueChange: (Float) -> Unit,
-    modifier: UIModifier = UIModifier,
-    range: ClosedFloatingPointRange<Float> = 0f..1f,
-) = BindableNode(
-    factory = { Scroller.Horizontal() },
-    value = value,
-    onValueChange = onValueChange,
-    modifier = modifier,
-    update = { set(range) { setRange(it.start, it.endInclusive) } },
-)
-
-@Composable
-fun ScrollerVertical(
-    value: Float,
-    onValueChange: (Float) -> Unit,
-    modifier: UIModifier = UIModifier,
-    range: ClosedFloatingPointRange<Float> = 0f..1f,
-) = BindableNode(
-    factory = { Scroller.Vertical() },
-    value = value,
-    onValueChange = onValueChange,
-    modifier = modifier,
-    update = { set(range) { setRange(it.start, it.endInclusive) } },
-)
-
-@Composable
-fun SliderVertical(
-    value: Float,
-    onValueChange: (Float) -> Unit,
-    modifier: UIModifier = UIModifier,
-    range: ClosedFloatingPointRange<Float> = 0f..1f,
-) = BindableNode(
-    factory = { Slider.Vertical() },
-    value = value,
-    onValueChange = onValueChange,
-    modifier = modifier,
-    update = { set(range) { setRange(it.start, it.endInclusive) } },
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
+) = BindableNode<TagField, Tag?>(
+    { TagField() }, tag, onTagChange,
+    layout, style, classes, id, enabled, visible, focusable, events,
 )
 
 /**
@@ -358,8 +623,35 @@ fun SliderVertical(
 fun <T> BindableValue(
     value: T,
     onValueChange: (T) -> Unit,
-    modifier: UIModifier = UIModifier,
-) = BindableNode<BindableValue<T>, T>({ BindableValue() }, value, onValueChange, modifier)
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
+) = BindableNode<BindableValue<T>, T>(
+    { BindableValue() }, value, onValueChange,
+    layout, style, classes, id, enabled, visible, focusable, events,
+)
+
+@Composable
+fun StructuredTagEditor(
+    tag: Tag?,
+    onTagChange: (Tag?) -> Unit,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
+) = BindableNode<StructuredTagEditor, Tag?>(
+    { StructuredTagEditor() }, tag, onTagChange,
+    layout, style, classes, id, enabled, visible, focusable, events,
+)
 
 /**
  * Multi-line text.
@@ -372,7 +664,15 @@ fun <T> BindableValue(
 fun TextArea(
     lines: List<String>,
     onLinesChange: (List<String>) -> Unit,
-    modifier: UIModifier = UIModifier,
+    areaStyle: (TextArea.TextAreaStyle.() -> Unit)? = null,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
 ) {
     val holder = remember { ValueChangeHolder<List<String>>() }
     holder.onValueChange = onLinesChange
@@ -382,8 +682,42 @@ fun TextArea(
                 area.registerValueListener { v -> holder.onValueChange?.invoke(v?.toList().orEmpty()) }
             }
         },
-        modifier = modifier,
+        layout = layout, style = style, classes = classes, id = id,
+        enabled = enabled, visible = visible, focusable = focusable, events = events,
         update = {
+            set(lines) { next -> if (getValue()?.toList() != next) setValue(next.toTypedArray(), false) }
+            reconcile { areaStyle?.let { getTextAreaStyle().apply(it) } }
+        },
+    )
+}
+
+/** [TextArea] with syntax highlighting. */
+@Composable
+fun CodeEditor(
+    lines: List<String>,
+    onLinesChange: (List<String>) -> Unit,
+    language: ILanguageDefinition,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
+) {
+    val holder = remember { ValueChangeHolder<List<String>>() }
+    holder.onValueChange = onLinesChange
+    UIElementNode(
+        factory = {
+            LdlCodeEditor().also { editor ->
+                editor.registerValueListener { v -> holder.onValueChange?.invoke(v?.toList().orEmpty()) }
+            }
+        },
+        layout = layout, style = style, classes = classes, id = id,
+        enabled = enabled, visible = visible, focusable = focusable, events = events,
+        update = {
+            set(language) { setLanguage(it) }
             set(lines) { next -> if (getValue()?.toList() != next) setValue(next.toTypedArray(), false) }
         },
     )
@@ -401,18 +735,28 @@ fun TextArea(
 @Composable
 fun ProgressBar(
     progress: Float,
-    modifier: UIModifier = UIModifier,
     range: ClosedFloatingPointRange<Float> = 0f..1f,
     text: Component? = null,
+    barStyle: (ProgressBar.ProgressBarStyle.() -> Unit)? = null,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
     content: @Composable () -> Unit = {},
 ) {
     UIElementNode(
         factory = { ProgressBar() },
-        modifier = modifier,
+        layout = layout, style = style, classes = classes, id = id,
+        enabled = enabled, visible = visible, focusable = focusable, events = events,
         update = {
             set(range) { setRange(it.start, it.endInclusive) }
             set(progress) { setProgress(it) }
             set(text) { label.setText(it ?: Component.empty()) }
+            reconcile { barStyle?.let { getProgressBarStyle().apply(it) } }
         },
         content = content,
     )
@@ -427,66 +771,67 @@ fun ProgressBar(
  */
 @Composable
 fun SplitViewHorizontal(
-    modifier: UIModifier = UIModifier,
     left: @Composable () -> Unit,
     right: @Composable () -> Unit,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
 ) {
     val view = remember { SplitView.Horizontal() }
-    UIElementNode(factory = { view }, modifier = modifier)
+    UIElementNode(
+        factory = { view },
+        layout = layout, style = style, classes = classes, id = id,
+        enabled = enabled, visible = visible, focusable = focusable, events = events,
+    )
     Subcompose(view.first, left)
     Subcompose(view.second, right)
 }
 
 @Composable
 fun SplitViewVertical(
-    modifier: UIModifier = UIModifier,
     top: @Composable () -> Unit,
     bottom: @Composable () -> Unit,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
 ) {
     val view = remember { SplitView.Vertical() }
-    UIElementNode(factory = { view }, modifier = modifier)
+    UIElementNode(
+        factory = { view },
+        layout = layout, style = style, classes = classes, id = id,
+        enabled = enabled, visible = visible, focusable = focusable, events = events,
+    )
     Subcompose(view.first, top)
     Subcompose(view.second, bottom)
 }
 
-/** [TextArea] with syntax highlighting. */
-@Composable
-fun CodeEditor(
-    lines: List<String>,
-    onLinesChange: (List<String>) -> Unit,
-    language: ILanguageDefinition,
-    modifier: UIModifier = UIModifier,
-) {
-    val holder = remember { ValueChangeHolder<List<String>>() }
-    holder.onValueChange = onLinesChange
-    UIElementNode(
-        factory = {
-            LdlCodeEditor().also { editor ->
-                editor.registerValueListener { v -> holder.onValueChange?.invoke(v?.toList().orEmpty()) }
-            }
-        },
-        modifier = modifier,
-        update = {
-            set(language) { setLanguage(it) }
-            set(lines) { next -> if (getValue()?.toList() != next) setValue(next.toTypedArray(), false) }
-        },
-    )
-}
-
-/** A tree editor for NBT. */
-@Composable
-fun StructuredTagEditor(
-    tag: Tag?,
-    onTagChange: (Tag?) -> Unit,
-    modifier: UIModifier = UIModifier,
-) = BindableNode<StructuredTagEditor, Tag?>({ StructuredTagEditor() }, tag, onTagChange, modifier)
-
 /** Embeds a UI saved by the editor. */
 @Composable
-fun UITemplate(templatePath: IResourcePath?, modifier: UIModifier = UIModifier) {
+fun UITemplate(
+    templatePath: IResourcePath?,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
+) {
     UIElementNode(
         factory = { UITemplateElement() },
-        modifier = modifier,
+        layout = layout, style = style, classes = classes, id = id,
+        enabled = enabled, visible = visible, focusable = focusable, events = events,
         update = { set(templatePath) { setTemplate(it) } },
     )
 }
@@ -498,7 +843,7 @@ fun UITemplate(templatePath: IResourcePath?, modifier: UIModifier = UIModifier) 
  * because `show()` decides whether to display its title, content and button rows from whether they
  * already have children — populate it afterwards and it appears empty. And the dialog can be closed
  * from inside itself, by its own buttons or by the overlay, so [onDismiss] reports that back; a
- * caller that ignores it will find `visible` and the dialog disagreeing.
+ * caller that ignores it will find [visible] and the dialog disagreeing.
  *
  * ```kotlin
  * var confirming by remember { mutableStateOf(false) }
@@ -512,18 +857,23 @@ fun UITemplate(templatePath: IResourcePath?, modifier: UIModifier = UIModifier) 
 fun Dialog(
     visible: Boolean,
     onDismiss: () -> Unit = {},
-    modifier: UIModifier = UIModifier,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
     content: @Composable () -> Unit,
 ) {
     val parent = LocalUIElement.current
     val dialog = remember { LdlDialog() }
-    val applied = remember { AppliedModifier() }
+    val applied = remember { AppliedProps() }
     val currentOnDismiss by rememberUpdatedState(onDismiss)
 
     // Before the show effect below, so its SideEffect runs first and the content is in place by the
     // time `show()` inspects the containers.
     Subcompose(dialog.contentContainer, content)
-    SideEffect { applied.applyTo(dialog, modifier) }
+    SideEffect {
+        applied.apply(dialog, layout, style, classes, id, true, true, null, null)
+    }
 
     DisposableEffect(dialog) {
         dialog.setOnClose { currentOnDismiss() }
@@ -537,14 +887,42 @@ fun Dialog(
 
 /** The player's inventory and hotbar. Binds itself once the UI is attached to a menu. */
 @Composable
-fun InventorySlots(modifier: UIModifier = UIModifier) {
-    UIElementNode(factory = { InventorySlots() }, modifier = modifier)
+fun InventorySlots(
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
+) {
+    UIElementNode(
+        factory = { InventorySlots() },
+        layout = layout, style = style, classes = classes, id = id,
+        enabled = enabled, visible = visible, focusable = focusable, events = events,
+    )
 }
 
 /** Groups the [Toggle]s composed inside it, so at most one is on at a time. */
 @Composable
-fun ToggleGroup(modifier: UIModifier = UIModifier, content: @Composable () -> Unit = {}) {
-    UIElementNode(factory = { ToggleGroupElement() }, modifier = modifier, content = content)
+fun ToggleGroup(
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    focusable: Boolean? = null,
+    events: (EventScope.() -> Unit)? = null,
+    content: @Composable () -> Unit = {},
+) {
+    UIElementNode(
+        factory = { ToggleGroupElement() },
+        layout = layout, style = style, classes = classes, id = id,
+        enabled = enabled, visible = visible, focusable = focusable, events = events,
+        content = content,
+    )
 }
 
 // endregion

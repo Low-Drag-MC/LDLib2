@@ -62,9 +62,14 @@ internal class TabSpec(
  */
 @Composable
 fun TabView(
-    modifier: UIModifier = UIModifier,
     selectedKey: Any? = null,
     onSelect: ((Any) -> Unit)? = null,
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
+    id: String? = null,
+    enabled: Boolean = true,
+    visible: Boolean = true,
     content: TabScope.() -> Unit,
 ) {
     val specs = TabScope().apply(content).specs
@@ -75,7 +80,11 @@ fun TabView(
     val tabsByKey = remember { HashMap<Any, LdlTab>() }
     val currentOnSelect by rememberUpdatedState(onSelect)
 
-    UIElementNode(factory = { view }, modifier = modifier)
+    UIElementNode(
+        factory = { view },
+        layout = layout, style = style, classes = classes, id = id,
+        enabled = enabled, visible = visible,
+    )
 
     DisposableEffect(view) {
         view.setOnTabSelected { tab -> keysByTab[tab]?.let { currentOnSelect?.invoke(it) } }

@@ -13,25 +13,19 @@ import com.lowdragmc.lowdraglib2.gui.ui.compose.AnimatedVisibility
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Box
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Button
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Dialog
-import com.lowdragmc.lowdraglib2.gui.ui.compose.TweenSpec
-import com.lowdragmc.lowdraglib2.gui.ui.compose.UIElementNode
-import com.lowdragmc.lowdraglib2.gui.ui.elements.TreeList
-import com.lowdragmc.lowdraglib2.gui.util.TreeNode
 import com.lowdragmc.lowdraglib2.gui.ui.compose.ProgressBar
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Row
 import com.lowdragmc.lowdraglib2.gui.ui.compose.SplitViewHorizontal
 import com.lowdragmc.lowdraglib2.gui.ui.compose.TabView
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Text
 import com.lowdragmc.lowdraglib2.gui.ui.compose.TextField
-import com.lowdragmc.lowdraglib2.gui.ui.compose.UIModifier
-import com.lowdragmc.lowdraglib2.gui.ui.compose.classes
+import com.lowdragmc.lowdraglib2.gui.ui.compose.TweenSpec
+import com.lowdragmc.lowdraglib2.gui.ui.compose.UIElementNode
 import com.lowdragmc.lowdraglib2.gui.ui.compose.composeModularUI
-import com.lowdragmc.lowdraglib2.gui.ui.compose.gap
-import com.lowdragmc.lowdraglib2.gui.ui.compose.height
-import com.lowdragmc.lowdraglib2.gui.ui.compose.padding
-import com.lowdragmc.lowdraglib2.gui.ui.compose.width
+import com.lowdragmc.lowdraglib2.gui.ui.elements.TreeList
 import com.lowdragmc.lowdraglib2.gui.ui.layout.px
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager
+import com.lowdragmc.lowdraglib2.gui.util.TreeNode
 import com.lowdragmc.lowdraglib2.math.interpolate.Eases
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient
 import com.lowdragmc.lowdraglib2.test.ui.IScreenTest
@@ -61,19 +55,21 @@ private val LocalGreeting = compositionLocalOf { "unset" }
 private fun WidgetsDemo() {
     var count by remember { mutableStateOf(0) }
 
-    Box(UIModifier.width(260.px).padding(6.px).gap(4.px)) {
+    Box(layout = { width(260.px); padding { all(6.px) }; gap { all(4.px) } }) {
         CompositionLocalProvider(LocalGreeting provides "provided") {
             SplitViewHorizontal(
-                modifier = UIModifier.width(240.px).height(70.px).classes("demo-split"),
                 left = { SplitPane("left", count) { count++ } },
                 right = { SplitPane("right", count) { count-- } },
+                layout = { width(240.px); height(70.px) },
+                classes = "demo-split",
             )
         }
 
         // Display-only widget driven straight from state.
         ProgressBar(
             progress = (count.coerceIn(0, 10)) / 10f,
-            modifier = UIModifier.width(240.px).height(10.px).classes("demo-progress"),
+            layout = { width(240.px); height(10.px) },
+            classes = "demo-progress",
         )
 
         ReorderableFields()
@@ -90,8 +86,8 @@ private fun WidgetsDemo() {
  * <p>[TreeList] has no `@Composable` of its own anywhere in this package — it is here precisely
  * because it does not. [UIElementNode] takes any [com.lowdragmc.lowdraglib2.gui.ui.UIElement]
  * subclass, from this mod or another, and gives it the same treatment a wrapped widget gets:
- * `factory` builds it once, `set` re-applies a property only when it changes, and the modifier chain
- * works as usual.
+ * `factory` builds it once, `set` re-applies a property only when it changes, and the same
+ * `layout` / `style` / `classes` blocks work as usual.
  *
  * <p>Which means a wrapper is sugar, not a prerequisite. Writing one is worth it for a widget used
  * often enough that naming its properties pays for itself; for everything else this is the API.
@@ -109,14 +105,15 @@ private fun UnwrappedWidget() {
 
     Button(
         onClick = { depth = if (depth == 2) 4 else 2 },
-        modifier = UIModifier.classes("tree-grow"),
         text = Component.literal("增删树节点"),
+        classes = "tree-grow",
     )
     UIElementNode(
         // One-off construction settings belong here, not in `update`: flattenRoot has to be true
         // before setRoot runs, because that is what decides whether the root itself becomes a row.
         factory = { TreeList<TreeNode<String, String>>().setFlattenRoot(true) },
-        modifier = UIModifier.width(240.px).height(60.px).classes("demo-tree"),
+        layout = { width(240.px); height(60.px) },
+        classes = "demo-tree",
         update = {
             // Gated on `depth`, not on `root` — and that distinction is the one thing to know about
             // this escape hatch. `set` decides whether to run by comparing with `equals`, and
@@ -141,17 +138,17 @@ private fun ConfirmDialog() {
 
     Button(
         onClick = { asking = true },
-        modifier = UIModifier.classes("dialog-open"),
         text = Component.literal("打开对话框"),
+        classes = "dialog-open",
     )
-    Text(Component.literal("answer: $answered"), UIModifier.classes("dialog-answer"))
+    Text(Component.literal("answer: $answered"), classes = "dialog-answer")
 
     Dialog(visible = asking, onDismiss = { asking = false }) {
-        Text(Component.literal("确定吗？"), UIModifier.classes("dialog-body"))
+        Text(Component.literal("确定吗？"), classes = "dialog-body")
         Button(
             onClick = { answered = "yes"; asking = false },
-            modifier = UIModifier.classes("dialog-confirm"),
             text = Component.literal("确定"),
+            classes = "dialog-confirm",
         )
     }
 }
@@ -168,28 +165,29 @@ private fun Tabs() {
     var extra by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<Any>("one") }
 
-    Row(UIModifier.gap(3.px)) {
+    Row(layout = { gap { all(3.px) } }) {
         Button(
             onClick = { extra = !extra },
-            modifier = UIModifier.classes("tab-toggle"),
             text = Component.literal("增删页"),
+            classes = "tab-toggle",
         )
         Button(
             onClick = { selected = "two" },
-            modifier = UIModifier.classes("tab-select-two"),
             text = Component.literal("选第二页"),
+            classes = "tab-select-two",
         )
     }
 
     TabView(
-        modifier = UIModifier.width(240.px).height(60.px).classes("demo-tabs"),
         selectedKey = selected,
         onSelect = { selected = it },
+        layout = { width(240.px); height(60.px) },
+        classes = "demo-tabs",
     ) {
-        tab("one", "One") { Text(Component.literal("page one"), UIModifier.classes("tab-body-one")) }
-        tab("two", "Two") { Text(Component.literal("page two"), UIModifier.classes("tab-body-two")) }
+        tab("one", "One") { Text(Component.literal("page one"), classes = "tab-body-one") }
+        tab("two", "Two") { Text(Component.literal("page two"), classes = "tab-body-two") }
         if (extra) {
-            tab("three", "Three") { Text(Component.literal("page three"), UIModifier.classes("tab-body-three")) }
+            tab("three", "Three") { Text(Component.literal("page three"), classes = "tab-body-three") }
         }
     }
 }
@@ -207,27 +205,29 @@ private fun FadePanel() {
 
     Button(
         onClick = { shown = !shown },
-        modifier = UIModifier.classes("fade-toggle"),
         text = Component.literal("淡入淡出"),
+        classes = "fade-toggle",
     )
     AnimatedVisibility(
         visible = shown,
-        modifier = UIModifier.width(240.px).classes("fade-panel"),
         animationSpec = TweenSpec(durationMillis = 400, easing = Eases.QUAD_OUT),
+        layout = { width(240.px) },
+        classes = "fade-panel",
     ) {
-        Text(Component.literal("faded in"), UIModifier.classes("fade-content"))
+        Text(Component.literal("faded in"), classes = "fade-content")
     }
 }
 
 @Composable
 private fun SplitPane(side: String, count: Int, onClick: () -> Unit) {
-    Box(UIModifier.padding(3.px).gap(2.px)) {
+    Box(layout = { padding { all(3.px) }; gap { all(2.px) } }) {
         // Both panes read the same `count` and the same local, across a composition boundary.
-        Text(Component.literal("$side ${LocalGreeting.current} $count"), UIModifier.classes("pane-$side"))
+        Text(Component.literal("$side ${LocalGreeting.current} $count"), classes = "pane-$side")
         Button(
             onClick = onClick,
-            modifier = UIModifier.width(60.px).classes("pane-button-$side"),
             text = Component.literal(side),
+            layout = { width(60.px) },
+            classes = "pane-button-$side",
         )
     }
 }
@@ -235,7 +235,7 @@ private fun SplitPane(side: String, count: Int, onClick: () -> Unit) {
 /**
  * Keyed text fields that can be reordered.
  *
- * <p>The point is focus. Reordering goes through `UIElement.reorderChild`, which moves a child
+ * <p>The point is focus. Reordering goes through `UIElement.reorderChildren`, which moves a child
  * without detaching it; doing the same thing with remove-and-re-add would produce the same visible
  * order while dropping whatever had keyboard focus.
  */
@@ -244,20 +244,21 @@ private fun ReorderableFields() {
     var order by remember { mutableStateOf(listOf("a", "b")) }
     var values by remember { mutableStateOf(mapOf("a" to "", "b" to "")) }
 
-    Row(UIModifier.gap(3.px)) {
+    Row(layout = { gap { all(3.px) } }) {
         order.forEach { id ->
             key(id) {
                 TextField(
                     value = values[id].orEmpty(),
                     onValueChange = { values = values + (id to it) },
-                    modifier = UIModifier.width(100.px).classes("field", "field-$id"),
+                    layout = { width(100.px) },
+                    classes = "field field-$id",
                 )
             }
         }
     }
     Button(
         onClick = { order = order.reversed() },
-        modifier = UIModifier.classes("swap-fields"),
         text = Component.literal("交换"),
+        classes = "swap-fields",
     )
 }
