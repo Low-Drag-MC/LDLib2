@@ -139,36 +139,6 @@ fun UIModifier.tooltips(tooltips: Tooltips): UIModifier = styleProp(PropertyRegi
 fun UIModifier.tooltips(vararg lines: Component): UIModifier = tooltips(Tooltips.of(*lines))
 fun UIModifier.tooltips(vararg lines: String): UIModifier = tooltips(Tooltips.of(*lines))
 
-// The per-state textures that widgets expose through their own style facades — `buttonStyle { }`,
-// `toggleStyle { }` and the eighteen others. Those facades are a naming convention, not a second
-// styling system: `Style`'s constructor takes the *holder's* StyleBag, so `ButtonStyle.baseTexture(t)`
-// is `bag.set(BASE_BACKGROUND, t)` at INLINE origin, which is exactly what these do. Widgets that
-// react to a change register the listener on the Property itself (see `Toggle.ToggleStyle.init`), so
-// they react the same way whichever facade wrote it.
-//
-// Only the two most-styled widgets get sugar here. For the rest — SliderStyle, TabStyle, MenuStyle —
-// use `style(PropertyRegistry.THE_PROPERTY, value)`; it is the same call with the name spelled out.
-
-/** [com.lowdragmc.lowdraglib2.gui.ui.elements.Button]'s resting texture. */
-fun UIModifier.baseTexture(texture: IGuiTexture): UIModifier =
-    styleProp(PropertyRegistry.BASE_BACKGROUND, texture)
-
-/** [com.lowdragmc.lowdraglib2.gui.ui.elements.Button]'s texture while the cursor is over it. */
-fun UIModifier.hoverTexture(texture: IGuiTexture): UIModifier =
-    styleProp(PropertyRegistry.HOVER_BACKGROUND, texture)
-
-/** [com.lowdragmc.lowdraglib2.gui.ui.elements.Button]'s texture while it is held down. */
-fun UIModifier.pressedTexture(texture: IGuiTexture): UIModifier =
-    styleProp(PropertyRegistry.PRESSED_BACKGROUND, texture)
-
-/** The tick drawn on a checked [com.lowdragmc.lowdraglib2.gui.ui.elements.Toggle]. */
-fun UIModifier.markTexture(texture: IGuiTexture): UIModifier =
-    styleProp(PropertyRegistry.MARK_BACKGROUND, texture)
-
-/** What an unchecked [com.lowdragmc.lowdraglib2.gui.ui.elements.Toggle] draws instead of the tick. */
-fun UIModifier.unmarkTexture(texture: IGuiTexture): UIModifier =
-    styleProp(PropertyRegistry.UNMARK_BACKGROUND, texture)
-
 /** Adds stylesheet classes, so `.name { }` rules match this element. */
 fun UIModifier.classes(vararg names: String): UIModifier =
     names.fold(this) { acc, name -> acc.then(ClassOp(name)) }
