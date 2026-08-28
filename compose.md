@@ -208,6 +208,27 @@ handler 每次重组都是新 lambda，所以它们被放在一个 `remember` �
 
 > `onClick` 是 `mouseClick`（按下再松开）。`Button(onClick = …)` 是控件自带的，在 **mouse-down** 触发并播放点击音 —— 两者行为不同，都保留了原语义。
 
+`onMouseEnter` / `onMouseLeave` 注册在**捕获阶段**，没得选：`ModularUI` 派发这两个事件时 `hasBubblePhase = false`，冒泡阶段的监听器永远不会触发；而且 target 是指针底下最内层的那个元素，所以容器要靠捕获才听得见自己孩子被划过。
+
+### hover / pressed
+
+**只是想换个外观的话不需要写代码。** 核心已经在悬停元素和它所有祖先上挂了 `__hovered__` 类：
+
+```lss
+.card.__hovered__ { background: ...; }
+```
+
+样式表做不到的是**改变组合内容** —— 换文字、多挂一个子元素、改动画目标。这种情况用：
+
+```kotlin
+val interaction = rememberInteraction()
+Box(events = { track(interaction) }) {
+    Text(Component.literal(if (interaction.hovered) "松开以删除" else "删除"))
+}
+```
+
+`pressed` 没有对应的类，只有自己实现了三态贴图的控件才知道按下与否，所以那一半无论如何是新的。
+
 ### 控件自己的 *Style 为什么不需要特殊处理
 
 `Style` 的构造函数拿的是**宿主元素的那一个 `StyleBag`**：
