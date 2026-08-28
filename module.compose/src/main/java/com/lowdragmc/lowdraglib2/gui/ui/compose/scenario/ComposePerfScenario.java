@@ -1,9 +1,9 @@
-package com.lowdragmc.lowdraglib2.test.uitest;
+package com.lowdragmc.lowdraglib2.gui.ui.compose.scenario;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.gui.ui.compose.demo.ComposeBenchmark;
 import com.lowdragmc.lowdraglib2.registry.RegistrationEnvironment;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
-import com.lowdragmc.lowdraglib2.test.ui.ComposeBenchmark;
 import com.lowdragmc.lowdraglib2.uitest.ScenarioBuilder;
 import com.lowdragmc.lowdraglib2.uitest.ScenarioOptions;
 import com.lowdragmc.lowdraglib2.uitest.UIScenario;

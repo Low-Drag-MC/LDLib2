@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib2.test.ui
+package com.lowdragmc.lowdraglib2.gui.ui.compose.demo
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -42,6 +42,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.language.Languages
 import com.lowdragmc.lowdraglib2.gui.ui.layout.px
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient
+import com.lowdragmc.lowdraglib2.test.ui.IScreenTest
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.StringTag
 import net.minecraft.nbt.Tag
