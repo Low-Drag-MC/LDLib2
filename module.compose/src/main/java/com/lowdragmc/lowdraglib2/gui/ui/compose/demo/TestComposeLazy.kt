@@ -67,17 +67,17 @@ private fun LazyDemo() {
             classes = "lazy-list",
             key = { _, item -> item },
         ) { index, item ->
-            // Decided here rather than inside the style block: a block runs during apply, where a
-            // snapshot read would not register as a composition dependency.
-            val highlight = if (index == selected) Sprites.RECT_SOLID else IGuiTexture.EMPTY
             Text(
                 Component.literal(item),
                 layout = { height(ROW_HEIGHT.px) },
                 classes = "lazy-row",
-                // Both branches, not just the selected one. A style block is written through and
-                // never taken back off, so a texture set only when selected would stay on the row
-                // after the selection moved elsewhere.
-                style = { backgroundTexture(highlight) },
+                // `selected` is read inside the block, which the node observer tracks. Both branches
+                // are given a value on purpose though: a style block is written through and never
+                // taken back off, so a texture set only when selected would stay on the row after
+                // the selection moved elsewhere.
+                style = {
+                    backgroundTexture(if (index == selected) Sprites.RECT_SOLID else IGuiTexture.EMPTY)
+                },
             )
         }
 

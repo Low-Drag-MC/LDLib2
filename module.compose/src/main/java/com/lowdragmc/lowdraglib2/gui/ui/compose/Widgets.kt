@@ -146,7 +146,7 @@ fun ScrollView(
         factory = { ScrollerView() },
         layout = layout, style = style, classes = classes, id = id,
         enabled = enabled, visible = visible, focusable = focusable, events = events,
-        update = { reconcile { scrollerStyle?.let { getScrollerViewStyle().apply(it) } } },
+        widgetStyle = scrollerStyle?.let { block -> { getScrollerViewStyle().apply(block) } },
         content = content,
     )
 }
@@ -154,6 +154,24 @@ fun ScrollView(
 // endregion
 
 // region text & buttons
+
+/**
+ * Remembers whether adaptive sizing is currently on, so the write only happens when it flips.
+ *
+ * <p>Whether a text element may size itself depends on what the caller's `layout` block wrote, so it
+ * can only be decided during apply — too late for [Updater.set], which is the usual way to make a
+ * write conditional. Doing it unconditionally instead costs a style write per text element per apply,
+ * and that is a per-row cost in exactly the lists this layer exists to make cheap.
+ */
+private class AdaptiveGate {
+    private var last: Boolean? = null
+
+    fun changed(value: Boolean): Boolean {
+        if (last == value) return false
+        last = value
+        return true
+    }
+}
 
 /**
  * Text sized to its content, unless the caller sized it themselves.
@@ -177,15 +195,21 @@ fun Text(
     focusable: Boolean? = null,
     events: (EventScope.() -> Unit)? = null,
 ) {
+    val gate = remember { AdaptiveGate() }
     UIElementNode(
         factory = { TextElement() },
         layout = layout, style = style, classes = classes, id = id,
         enabled = enabled, visible = visible, focusable = focusable, events = events,
+        widgetStyle = textStyle?.let { block -> { getTextStyle().apply(block) } },
         update = {
             set(text) { setText(it) }
+            // Left unobserved on purpose: this is the wrapper's own default, not a caller's block,
+            // and it reads the element rather than any composition state.
             reconcile {
-                getTextStyle().asDefault { adaptiveHeight(!callerSet(LayoutProperties.HEIGHT)) }
-                textStyle?.let { getTextStyle().apply(it) }
+                // No layout block means the caller cannot have set a height, so the common case
+                // never touches the style bag at all.
+                val adaptive = layout == null || !callerSet(LayoutProperties.HEIGHT)
+                if (gate.changed(adaptive)) getTextStyle().asDefault { adaptiveHeight(adaptive) }
             }
         },
     )
@@ -222,15 +246,19 @@ fun Label(
     focusable: Boolean? = null,
     events: (EventScope.() -> Unit)? = null,
 ) {
+    val gate = remember { AdaptiveGate() }
     UIElementNode(
         factory = { Label() },
         layout = layout, style = style, classes = classes, id = id,
         enabled = enabled, visible = visible, focusable = focusable, events = events,
+        widgetStyle = textStyle?.let { block -> { getTextStyle().apply(block) } },
         update = {
             set(text) { setText(it) }
             reconcile {
-                getTextStyle().asDefault { adaptiveHeight(!callerSet(LayoutProperties.HEIGHT)) }
-                textStyle?.let { getTextStyle().apply(it) }
+                // No layout block means the caller cannot have set a height, so the common case
+                // never touches the style bag at all.
+                val adaptive = layout == null || !callerSet(LayoutProperties.HEIGHT)
+                if (gate.changed(adaptive)) getTextStyle().asDefault { adaptiveHeight(adaptive) }
             }
         },
     )
@@ -268,10 +296,8 @@ fun Button(
         factory = { LdlButton().also { it.setOnClick(holder) } },
         layout = layout, style = style, classes = classes, id = id,
         enabled = enabled, visible = visible, focusable = focusable, events = events,
-        update = {
-            set(text) { if (it == null) noText() else setText(it) }
-            reconcile { buttonStyle?.let { getButtonStyle().apply(it) } }
-        },
+        widgetStyle = buttonStyle?.let { block -> { getButtonStyle().apply(block) } },
+        update = { set(text) { if (it == null) noText() else setText(it) } },
         content = content,
     )
 }
@@ -320,6 +346,7 @@ private fun <E : BindableUIElement<V>, V> BindableNode(
     visible: Boolean,
     focusable: Boolean?,
     events: (EventScope.() -> Unit)?,
+    widgetStyle: (E.() -> Unit)? = null,
     update: Updater<E>.() -> Unit = {},
     content: @Composable () -> Unit = {},
 ) {
@@ -331,6 +358,7 @@ private fun <E : BindableUIElement<V>, V> BindableNode(
         factory = { factory().also { e -> e.registerValueListener { v -> holder.onValueChange?.invoke(v) } } },
         layout = layout, style = style, classes = classes, id = id,
         enabled = enabled, visible = visible, focusable = focusable, events = events,
+        widgetStyle = widgetStyle,
         update = {
             set(value) { if (getValue() != it) setValue(it, false) }
             update()
@@ -359,7 +387,7 @@ fun TextField(
 ) = BindableNode(
     { TextField() }, value, onValueChange,
     layout, style, classes, id, enabled, visible, focusable, events,
-    update = { reconcile { fieldStyle?.let { getTextFieldStyle().apply(it) } } },
+    widgetStyle = fieldStyle?.let { block -> { getTextFieldStyle().apply(block) } },
 )
 
 @Composable
@@ -378,7 +406,7 @@ fun Switch(
 ) = BindableNode(
     { Switch() }, checked, onCheckedChange,
     layout, style, classes, id, enabled, visible, focusable, events,
-    update = { reconcile { switchStyle?.let { getSwitchStyle().apply(it) } } },
+    widgetStyle = switchStyle?.let { block -> { getSwitchStyle().apply(block) } },
 )
 
 /**
@@ -406,10 +434,8 @@ fun Toggle(
     value = checked,
     onValueChange = onCheckedChange,
     layout, style, classes, id, enabled, visible, focusable, events,
-    update = {
-        set(text) { toggleLabel.setText(it ?: Component.empty()) }
-        reconcile { toggleStyle?.let { getToggleStyle().apply(it) } }
-    },
+    widgetStyle = toggleStyle?.let { block -> { getToggleStyle().apply(block) } },
+    update = { set(text) { toggleLabel.setText(it ?: Component.empty()) } },
     content = content,
 )
 
@@ -432,10 +458,8 @@ fun Slider(
     value = value,
     onValueChange = onValueChange,
     layout, style, classes, id, enabled, visible, focusable, events,
-    update = {
-        set(range) { setRange(it.start, it.endInclusive) }
-        reconcile { sliderStyle?.let { getSliderStyle().apply(it) } }
-    },
+    widgetStyle = sliderStyle?.let { block -> { getSliderStyle().apply(block) } },
+    update = { set(range) { setRange(it.start, it.endInclusive) } },
 )
 
 @Composable
@@ -457,10 +481,8 @@ fun SliderVertical(
     value = value,
     onValueChange = onValueChange,
     layout, style, classes, id, enabled, visible, focusable, events,
-    update = {
-        set(range) { setRange(it.start, it.endInclusive) }
-        reconcile { sliderStyle?.let { getSliderStyle().apply(it) } }
-    },
+    widgetStyle = sliderStyle?.let { block -> { getSliderStyle().apply(block) } },
+    update = { set(range) { setRange(it.start, it.endInclusive) } },
 )
 
 /** A draggable scrollbar as a value in its own right, for driving something by hand. */
@@ -483,10 +505,8 @@ fun ScrollerHorizontal(
     value = value,
     onValueChange = onValueChange,
     layout, style, classes, id, enabled, visible, focusable, events,
-    update = {
-        set(range) { setRange(it.start, it.endInclusive) }
-        reconcile { scrollerStyle?.let { getScrollerStyle().apply(it) } }
-    },
+    widgetStyle = scrollerStyle?.let { block -> { getScrollerStyle().apply(block) } },
+    update = { set(range) { setRange(it.start, it.endInclusive) } },
 )
 
 @Composable
@@ -508,10 +528,8 @@ fun ScrollerVertical(
     value = value,
     onValueChange = onValueChange,
     layout, style, classes, id, enabled, visible, focusable, events,
-    update = {
-        set(range) { setRange(it.start, it.endInclusive) }
-        reconcile { scrollerStyle?.let { getScrollerStyle().apply(it) } }
-    },
+    widgetStyle = scrollerStyle?.let { block -> { getScrollerStyle().apply(block) } },
+    update = { set(range) { setRange(it.start, it.endInclusive) } },
 )
 
 @Composable
@@ -535,10 +553,8 @@ fun <T> Selector(
     value = selected,
     onValueChange = onSelectedChange,
     layout, style, classes, id, enabled, visible, focusable, events,
-    update = {
-        set(candidates) { setCandidates(it) }
-        reconcile { selectorStyle?.let { getSelectorStyle().apply(it) } }
-    },
+    widgetStyle = selectorStyle?.let { block -> { getSelectorStyle().apply(block) } },
+    update = { set(candidates) { setCandidates(it) } },
 )
 
 @Composable
@@ -557,7 +573,7 @@ fun ItemSlot(
 ) = BindableNode(
     { ItemSlot() }, item, onItemChange,
     layout, style, classes, id, enabled, visible, focusable, events,
-    update = { reconcile { slotStyle?.let { getSlotStyle().apply(it) } } },
+    widgetStyle = slotStyle?.let { block -> { getSlotStyle().apply(block) } },
 )
 
 @Composable
@@ -576,7 +592,7 @@ fun FluidSlot(
 ) = BindableNode(
     { FluidSlot() }, fluid, onFluidChange,
     layout, style, classes, id, enabled, visible, focusable, events,
-    update = { reconcile { slotStyle?.let { getSlotStyle().apply(it) } } },
+    widgetStyle = slotStyle?.let { block -> { getSlotStyle().apply(block) } },
 )
 
 @Composable
@@ -684,9 +700,9 @@ fun TextArea(
         },
         layout = layout, style = style, classes = classes, id = id,
         enabled = enabled, visible = visible, focusable = focusable, events = events,
+        widgetStyle = areaStyle?.let { block -> { getTextAreaStyle().apply(block) } },
         update = {
             set(lines) { next -> if (getValue()?.toList() != next) setValue(next.toTypedArray(), false) }
-            reconcile { areaStyle?.let { getTextAreaStyle().apply(it) } }
         },
     )
 }
@@ -752,11 +768,11 @@ fun ProgressBar(
         factory = { ProgressBar() },
         layout = layout, style = style, classes = classes, id = id,
         enabled = enabled, visible = visible, focusable = focusable, events = events,
+        widgetStyle = barStyle?.let { block -> { getProgressBarStyle().apply(block) } },
         update = {
             set(range) { setRange(it.start, it.endInclusive) }
             set(progress) { setProgress(it) }
             set(text) { label.setText(it ?: Component.empty()) }
-            reconcile { barStyle?.let { getProgressBarStyle().apply(it) } }
         },
         content = content,
     )
@@ -864,15 +880,19 @@ fun Dialog(
     content: @Composable () -> Unit,
 ) {
     val parent = LocalUIElement.current
+    val observer = LocalNodeObserver.current
     val dialog = remember { LdlDialog() }
-    val applied = remember { AppliedProps() }
+    val applied = remember { AppliedProps<LdlDialog>() }
     val currentOnDismiss by rememberUpdatedState(onDismiss)
 
     // Before the show effect below, so its SideEffect runs first and the content is in place by the
     // time `show()` inspects the containers.
     Subcompose(dialog.contentContainer, content)
     SideEffect {
-        applied.apply(dialog, layout, style, classes, id, true, true, null, null)
+        applied.apply(
+            observer, dialog, layout, style, widget = null,
+            classes = classes, id = id, enabled = true, visible = true, focusable = null, events = null,
+        )
     }
 
     DisposableEffect(dialog) {

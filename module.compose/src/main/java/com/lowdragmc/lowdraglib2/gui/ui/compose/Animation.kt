@@ -323,10 +323,10 @@ fun AnimatedVisibility(
     content: @Composable () -> Unit,
 ) {
     val alpha by animateFloatAsState(if (visible) 1f else 0f, animationSpec)
-    // Read here, in the composable body, and captured as a plain Float. A `style` block runs during
-    // the apply phase, and a snapshot read from there is *not* recorded as a composition dependency —
-    // so reading `alpha` inside the block instead would leave this composable with nothing to
-    // recompose on and the fade stuck at its first frame. See "读状态要在函数体里" in compose.md.
+    // Read here rather than inside the style block, because this value decides whether the content is
+    // composed at all. The node observer would keep a style block following `alpha` on its own, but it
+    // can only re-run the block — it cannot mount or unmount anything, and the whole point of this
+    // composable is to keep the content in the tree until the fade has finished.
     val opacity = alpha.coerceIn(0f, 1f)
     if (visible || opacity > 0f) {
         Box(
