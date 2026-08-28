@@ -15,15 +15,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.compose.ScrollView
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Text
 import com.lowdragmc.lowdraglib2.gui.ui.compose.TextField
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Toggle
-import com.lowdragmc.lowdraglib2.gui.ui.compose.UIModifier
-import com.lowdragmc.lowdraglib2.gui.ui.compose.classes
 import com.lowdragmc.lowdraglib2.gui.ui.compose.composeModularUI
-import com.lowdragmc.lowdraglib2.gui.ui.compose.flex
-import com.lowdragmc.lowdraglib2.gui.ui.compose.gap
-import com.lowdragmc.lowdraglib2.gui.ui.compose.height
-import com.lowdragmc.lowdraglib2.gui.ui.compose.padding
-import com.lowdragmc.lowdraglib2.gui.ui.compose.size
-import com.lowdragmc.lowdraglib2.gui.ui.compose.width
 import com.lowdragmc.lowdraglib2.gui.ui.layout.px
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient
@@ -80,41 +72,43 @@ private fun TodoApp() {
         draft = ""
     }
 
-    Box(UIModifier.width(240.px).padding(6.px).gap(4.px)) {
-        Row(UIModifier.gap(3.px)) {
+    Box(layout = { width(240.px); padding { all(6.px) }; gap { all(4.px) } }) {
+        Row(layout = { gap { all(3.px) } }) {
             TextField(
                 value = draft,
                 onValueChange = { draft = it },
-                modifier = UIModifier.flex(1f).classes("todo-input"),
+                layout = { flex(1f) },
+                classes = "todo-input",
             )
             Button(
                 onClick = { add() },
-                modifier = UIModifier.width(40.px).classes("todo-add"),
                 text = Component.literal("+"),
+                layout = { width(40.px) },
+                classes = "todo-add",
             )
         }
 
-        Row(UIModifier.gap(3.px)) {
+        Row(layout = { gap { all(3.px) } }) {
             Filter.entries.forEach { candidate ->
                 key(candidate) {
                     Button(
                         onClick = { filter = candidate },
-                        // The selected filter carries an extra class, so the modifier has to be
-                        // removed again when the selection moves on.
-                        modifier = UIModifier.width(60.px)
-                            .classes("todo-filter", "todo-filter-${candidate.name.lowercase()}")
-                            .let { if (candidate == filter) it.classes("selected") else it },
                         text = Component.literal(candidate.label),
+                        layout = { width(60.px) },
+                        // The selected filter carries an extra class. Classes are diffed, so it is
+                        // genuinely removed again when the selection moves on.
+                        classes = "todo-filter todo-filter-${candidate.name.lowercase()}" +
+                            if (candidate == filter) " selected" else "",
                     )
                 }
             }
         }
 
-        Text(Component.literal("剩余 $remaining / ${todos.size}"), UIModifier.classes("todo-count"))
+        Text(Component.literal("剩余 $remaining / ${todos.size}"), classes = "todo-count")
 
-        ScrollView(UIModifier.height(120.px).gap(2.px)) {
+        ScrollView(layout = { height(120.px); gap { all(2.px) } }) {
             if (visible.isEmpty()) {
-                Text(Component.literal("空"), UIModifier.classes("todo-empty"))
+                Text(Component.literal("空"), classes = "todo-empty")
             } else {
                 visible.forEach { todo ->
                     // Keyed by id, so filtering out an item and bringing it back does not shuffle
@@ -139,24 +133,25 @@ private fun TodoApp() {
 private fun TodoRow(todo: Todo, onToggle: (Boolean) -> Unit, onDelete: () -> Unit) {
     // The per-id class is what makes an individual row addressable from a selector, for the test
     // and for anyone styling one specific row from a stylesheet.
-    Row(UIModifier.gap(3.px).classes("todo-row", "todo-row-${todo.id}")) {
+    Row(layout = { gap { all(3.px) } }, classes = "todo-row todo-row-${todo.id}") {
         // Width only: the widget lays itself out as a row of [box | label] with its own height, so
         // forcing a square would squash the box and push the label over the text beside it.
         Toggle(
             checked = todo.done,
             onCheckedChange = onToggle,
-            modifier = UIModifier.width(14.px).classes("todo-toggle"),
+            layout = { width(14.px) },
+            classes = "todo-toggle",
         )
         Text(
             Component.literal(todo.text),
-            UIModifier.flex(1f)
-                .classes("todo-text")
-                .let { if (todo.done) it.classes("done") else it },
+            layout = { flex(1f) },
+            classes = if (todo.done) "todo-text done" else "todo-text",
         )
         Button(
             onClick = onDelete,
-            modifier = UIModifier.size(14.px).classes("todo-delete"),
             text = Component.literal("x"),
+            layout = { size(14.px) },
+            classes = "todo-delete",
         )
     }
 }

@@ -4,17 +4,26 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 /**
- * The rule the modifier system rests on: an element is reused across recompositions, so a chain that
- * stops asking for something has to actively take it back off.
+ * The rule the diffed props rest on: an element is reused across recompositions, so a node that
+ * stops asking for a class or an event handler has to actively take it back off.
  *
- * <p>Both halves have teeth. Forgetting to unapply leaves styles nobody asked for stuck on the
- * element. Re-applying something that was already there would unregister and re-register event
+ * <p>Both halves have teeth. Forgetting to remove leaves classes nobody asked for stuck on the
+ * element. Re-adding something that was already there would unregister and re-register event
  * listeners every frame — and since LDLib2 prepends listeners, that quietly reverses dispatch order
  * as well as churning.
  */
-class ModifierDiffTest {
+class PropsDiffTest {
 
-    private fun diff(current: List<String>, next: List<String>) = diffOps(current, next)
+    private fun diff(current: List<String>, next: List<String>) = diffKeys(current, next)
+
+    @Test
+    fun `a class spec splits on spaces and tolerates blanks`() {
+        assertEquals(listOf("card", "primary"), parseClasses("card primary"))
+        assertEquals(listOf("card"), parseClasses("card "))
+        assertEquals(listOf("card", "hot"), parseClasses(" card  hot "))
+        assertEquals(emptyList<String>(), parseClasses(null))
+        assertEquals(emptyList<String>(), parseClasses("   "))
+    }
 
     @Test
     fun `nothing to do when the chain is unchanged`() {

@@ -9,8 +9,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.UI
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement
 import com.lowdragmc.lowdraglib2.gui.ui.compose.ComposeHost
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Text
-import com.lowdragmc.lowdraglib2.gui.ui.compose.UIModifier
-import com.lowdragmc.lowdraglib2.gui.ui.compose.classes
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement
 import net.minecraft.network.chat.Component
 
@@ -68,7 +66,7 @@ object ComposeBenchmark {
             val host = ComposeHost(root)
             var rows by mutableStateOf((1..size).map { Row(it, "row $it") })
             host.setContent {
-                rows.forEach { row -> key(row.id) { Text(Component.literal(row.text), UIModifier.classes("bench-row")) } }
+                rows.forEach { row -> key(row.id) { Text(Component.literal(row.text), classes = "bench-row") } }
             }
             host.dispose()
         }
@@ -79,7 +77,7 @@ object ComposeBenchmark {
         val liveHost = ComposeHost(liveRoot)
         var liveRows by mutableStateOf((1..size).map { Row(it, "row $it") })
         liveHost.setContent {
-            liveRows.forEach { row -> key(row.id) { Text(Component.literal(row.text), UIModifier.classes("bench-row")) } }
+            liveRows.forEach { row -> key(row.id) { Text(Component.literal(row.text), classes = "bench-row") } }
         }
 
         val idleCost = measure(warmup = 20, runs = 50) { liveHost.onFrame(it.toLong()) }
@@ -105,19 +103,18 @@ object ComposeBenchmark {
         liveHost.dispose()
 
         // --- the same update, with nothing allocated per row --------------------------------
-        // Identical structure, except each row carries a ready-made Component and they all share
-        // one modifier instance. The skip still has to be *reached*, so the enclosing loop still
-        // walks every row - but it now walks them without building two objects per row on the way.
+        // Identical structure, except each row carries a ready-made Component instead of building
+        // one per recomposition. The skip still has to be *reached*, so the enclosing loop still
+        // walks every row - but it now walks them without allocating on the way.
         class StableRow(val id: Int, val text: Component)
 
-        val sharedModifier = UIModifier.classes("bench-row")
         val (_, stableRoot) = newUI()
         val stableHost = ComposeHost(stableRoot)
         var stableRows by mutableStateOf(
             (1..size).map { StableRow(it, Component.literal("row $it")) }
         )
         stableHost.setContent {
-            stableRows.forEach { row -> key(row.id) { Text(row.text, sharedModifier) } }
+            stableRows.forEach { row -> key(row.id) { Text(row.text, classes = "bench-row") } }
         }
         val stableUpdateCost = measure(warmup = 10, runs = 30) { rev ->
             stableRows = stableRows.toMutableList()

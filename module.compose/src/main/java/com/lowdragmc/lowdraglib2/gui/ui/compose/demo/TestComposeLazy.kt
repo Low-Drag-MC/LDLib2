@@ -5,23 +5,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Box
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Button
 import com.lowdragmc.lowdraglib2.gui.ui.compose.LazyColumn
 import com.lowdragmc.lowdraglib2.gui.ui.compose.LazyRow
 import com.lowdragmc.lowdraglib2.gui.ui.compose.LazyVerticalGrid
-import com.lowdragmc.lowdraglib2.gui.ui.compose.enabled
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Row
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Text
-import com.lowdragmc.lowdraglib2.gui.ui.compose.UIModifier
-import com.lowdragmc.lowdraglib2.gui.ui.compose.background
-import com.lowdragmc.lowdraglib2.gui.ui.compose.classes
 import com.lowdragmc.lowdraglib2.gui.ui.compose.composeModularUI
-import com.lowdragmc.lowdraglib2.gui.ui.compose.gap
-import com.lowdragmc.lowdraglib2.gui.ui.compose.height
-import com.lowdragmc.lowdraglib2.gui.ui.compose.padding
-import com.lowdragmc.lowdraglib2.gui.ui.compose.width
 import com.lowdragmc.lowdraglib2.gui.ui.layout.px
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites
@@ -54,39 +47,48 @@ private fun LazyDemo() {
 
     val items = remember(count) { List(count) { "item $it" } }
 
-    Box(UIModifier.width(240.px).padding(6.px).gap(4.px)) {
-        Row(UIModifier.gap(3.px)) {
+    Box(layout = { width(240.px); padding { all(6.px) }; gap { all(4.px) } }) {
+        Row(layout = { gap { all(3.px) } }) {
             Text(
                 Component.literal("$count rows, selected $selected"),
-                UIModifier.classes("lazy-status"),
+                classes = "lazy-status",
             )
         }
         Button(
             onClick = { count = if (count == 10_000) 20 else 10_000 },
-            modifier = UIModifier.classes("lazy-resize"),
             text = Component.literal("切换长度"),
+            classes = "lazy-resize",
         )
 
         LazyColumn(
             items = items,
             itemHeight = ROW_HEIGHT,
-            modifier = UIModifier.width(220.px).height(140.px).classes("lazy-list"),
+            layout = { width(220.px); height(140.px) },
+            classes = "lazy-list",
             key = { _, item -> item },
         ) { index, item ->
+            // Decided here rather than inside the style block: a block runs during apply, where a
+            // snapshot read would not register as a composition dependency.
+            val highlight = if (index == selected) Sprites.RECT_SOLID else IGuiTexture.EMPTY
             Text(
                 Component.literal(item),
-                UIModifier.height(ROW_HEIGHT.px)
-                    .classes("lazy-row")
-                    .let { if (index == selected) it.background(Sprites.RECT_SOLID) else it },
+                layout = { height(ROW_HEIGHT.px) },
+                classes = "lazy-row",
+                // Both branches, not just the selected one. A style block is written through and
+                // never taken back off, so a texture set only when selected would stay on the row
+                // after the selection moved elsewhere.
+                style = { backgroundTexture(highlight) },
             )
         }
 
         Button(
             onClick = { selected = 5000 },
-            // Disabled once it has already been used - the flag every real UI needs and the reason
-            // `enabled` is a modifier rather than a parameter on each of thirty-odd widgets.
-            modifier = UIModifier.classes("lazy-select").enabled(selected != 5000),
             text = Component.literal("选中 5000"),
+            classes = "lazy-select",
+            // Disabled once it has already been used — the flag every real UI needs. It is a plain
+            // parameter, so "not passed" is a value rather than an absence and there is nothing to
+            // undo when it flips back.
+            enabled = selected != 5000,
         )
 
         Grid()
@@ -101,10 +103,11 @@ private fun Strip() {
     LazyRow(
         items = cells,
         itemWidth = 40f,
-        modifier = UIModifier.width(220.px).height(24.px).classes("lazy-strip"),
+        layout = { width(220.px); height(24.px) },
+        classes = "lazy-strip",
         key = { _, cell -> cell },
     ) { _, cell ->
-        Text(Component.literal(cell), UIModifier.width(40f.px).classes("strip-cell"))
+        Text(Component.literal(cell), layout = { width(40f.px) }, classes = "strip-cell")
     }
 }
 
@@ -121,9 +124,10 @@ private fun Grid() {
         columns = 8,
         cellWidth = 26f,
         cellHeight = 16f,
-        modifier = UIModifier.width(220.px).height(60.px).classes("lazy-grid"),
+        layout = { width(220.px); height(60.px) },
+        classes = "lazy-grid",
         key = { _, cell -> cell },
     ) { _, cell ->
-        Text(Component.literal(cell), UIModifier.height(16f.px).classes("grid-cell"))
+        Text(Component.literal(cell), layout = { height(16f.px) }, classes = "grid-cell")
     }
 }

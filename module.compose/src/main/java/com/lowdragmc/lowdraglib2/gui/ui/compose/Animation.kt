@@ -316,12 +316,25 @@ internal fun lerpArgb(from: Int, to: Int, fraction: Float): Int =
 @Composable
 fun AnimatedVisibility(
     visible: Boolean,
-    modifier: UIModifier = UIModifier,
     animationSpec: AnimationSpec = TweenSpec(),
+    layout: LayoutBlock? = null,
+    style: StyleBlock? = null,
+    classes: String? = null,
     content: @Composable () -> Unit,
 ) {
     val alpha by animateFloatAsState(if (visible) 1f else 0f, animationSpec)
-    if (visible || alpha > 0f) {
-        Box(modifier.opacity(alpha.coerceIn(0f, 1f)), content)
+    // Read here, in the composable body, and captured as a plain Float. A `style` block runs during
+    // the apply phase, and a snapshot read from there is *not* recorded as a composition dependency —
+    // so reading `alpha` inside the block instead would leave this composable with nothing to
+    // recompose on and the fade stuck at its first frame. See "读状态要在函数体里" in compose.md.
+    val opacity = alpha.coerceIn(0f, 1f)
+    if (visible || opacity > 0f) {
+        Box(
+            layout = layout,
+            // After the caller's own block, so the animated value is the one that lands.
+            style = { style?.invoke(this); opacity(opacity) },
+            classes = classes,
+            content = content,
+        )
     }
 }
