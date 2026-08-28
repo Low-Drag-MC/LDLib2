@@ -74,8 +74,11 @@ tasks.register('runMpTest', JavaExec) {
             // Not inherited by the child builds this spawns; see MPTestOrchestrator#spawnChild.
             '--headless', project.hasProperty('ldTestHeadless').toString()
     // The exit code is informative only; verifyMpTest below is authoritative - it also catches the
-    // orchestrator dying before it could write a report at all.
+    // orchestrator dying before it could write a report at all. Which only works if there is no
+    // report left over from last time: otherwise a run that died on startup is reported as whatever
+    // the previous one scored.
     ignoreExitValue = true
+    doFirst { new File(ldMpOutDir).deleteDir() }
     finalizedBy 'verifyMpTest'
 }
 
