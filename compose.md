@@ -153,7 +153,6 @@ UIModifier.background(sprite).padding(8.px)
 | 间距 | `padding` `paddingHorizontal` `paddingVertical` `margin` `marginHorizontal` `marginVertical` `gap` |
 | 弹性/定位 | `flex` `flexGrow` `flexShrink` `flexDirection` `flexWrap` `display` `alignItems` `alignSelf` `alignContent` `justifyContent` `position` `left` `top` `right` `bottom` |
 | 外观 | `background` `overlay` `opacity` `zIndex` `color` `transform2D` `tooltips` |
-| 控件分状态贴图 | `baseTexture` `hoverTexture` `pressedTexture` `markTexture` `unmarkTexture` |
 | 文字 | `fontSize` `font` `textColor` `textShadow` `lineSpacing` `textWrap` `textAlign` `adaptiveWidth` `adaptiveHeight` |
 | 元素开关 | `enabled` `visible` `focusable` |
 | 选择器 | `classes` `id` |
@@ -169,36 +168,6 @@ UIModifier.background(sprite).padding(8.px)
 ```kotlin
 UIModifier.style(PropertyRegistry.ROLL_SPEED, 2f)
 ```
-
-### 那 ButtonStyle / ToggleStyle 这些呢
-
-**它们不是另一套样式系统，没有被绕过。** `Style` 的构造函数拿的是**宿主元素的那一个 `StyleBag`**：
-
-```java
-public Style(UIElement holder) { this.styleBag = holder.getStyleBag(); }
-```
-
-所以 `ButtonStyle.baseTexture(t)` 展开就是 `bag.set(BASE_BACKGROUND, t)`，写在 `INLINE` origin 上 —— 和 `UIModifier.baseTexture(t)` 逐字节相同。`buttonStyle{}`、`toggleStyle{}`、`textStyle{}` 这二十个 `*Style` 只是**属性的分组命名**，`getProperties()` 只用来给编辑器列属性，`set()` 根本不校验。
-
-需要联动的控件也是把监听器注册在 **Property 上**，不是在某个 facade 上：
-
-```java
-// Toggle.ToggleStyle.init()
-PropertyRegistry.MARK_BACKGROUND.addListener(ToggleStyle::onPropertyChanged);
-```
-
-所以谁写的都一样触发。Button / Toggle 的常用几个给了语法糖，剩下的（`SliderStyle`、`TabStyle`、`MenuStyle`……）走逃生舱就行，是同一次调用换个写法。
-
-### 动态性不是 Modifier 独有的
-
-只要在重组时执行，写哪儿都是动态的 —— `UIElementNode(update = { set(x) { buttonStyle { … } } })` 一样会跟着状态变。
-
-Modifier 换来的是另外两件事：
-
-1. **有 `unapply`。** 一个 op 从链上消失时，它写的候选值会被**移除**，样式表的规则重新生效。裸写没有撤销动作，所以 `if (highlight) …` 一旦亮过就永远亮着 —— 这是最容易踩的那个。
-2. **整条链按值比较**，没变就一次调用都不做。
-
-真正随状态变的外观，**首选还是样式表 + `classes()`**：hover / pressed / `__disabled__` 这些级联本来就在 LSS 里，`classes()` 是一个带正确撤销的 op，比在 Kotlin 里手写分支干净。贴图修饰符留给"这一个控件就是要长得不一样"的情况。
 
 ### 事件修饰符是 @Composable 的
 
