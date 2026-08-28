@@ -62,7 +62,10 @@ dependencies {
     // copies of net/minecraft/server/MinecraftServer.class". At runtime Minecraft always comes from
     // the core project (dev) or from the loader (production), so this module never needs its own.
     compileOnly "net.neoforged:neoforge:${neo_version}"
-    implementation rootProject
+    // api, not implementation: half of what these composables take and return is LDLib2's own types
+    // - UIElement, ModularUI, Stylesheet - so a consumer cannot call them without the core on its
+    // compile classpath.
+    api rootProject
 
     // Compose runtime - the recomposition engine only. `compose.ui` is deliberately absent: the
     // rendering side is LDLib2's own UIElement tree, reached through a custom Applier.
