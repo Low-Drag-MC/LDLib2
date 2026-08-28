@@ -11,3 +11,6 @@ plugins {
 }
 
 rootProject.name = "${mod_id}-neoforge"
+
+// Optional add-on modules. Each builds its own mod jar; the core jar never depends on them.
+include 'module.compose'

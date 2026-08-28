@@ -37,9 +37,13 @@ LDLib2 提供的是它下面那半截：一个把 Compose 的树编辑应用到 
 
 ## 接入
 
-### 本模组
+**这一层不在 LDLib2 主 jar 里。** 它是一个独立的可选模组 `ldlib2-compose`（modid `ldlib2_compose`）：不装它，LDLib2 和以前完全一样；装了才多出这一层。核心里只多了四个不提 compose 的通用钩子（`UIElement#reorderChildren`、`UIElement#getContentHost`、`ModularUI#addFrameCallback`、`ScrollerView#getContentHost`）。
 
-已经配好了。`build.gradle` 里是 `org.jetbrains.kotlin.plugin.compose` 加上 JiJ 进去的 `compose.runtime`。
+做成**模组**而不是普通的库 jar，是因为它要带 Compose runtime，而 NeoForge 的 Jar-in-Jar **只解一层**：下游把 `ldlib2-compose` JiJ 进自己的 jar，只会拿到这个 jar，拿不到它里面嵌套的 runtime，运行时直接 `NoClassDefFoundError`。作为顶层模组，它自己的 JiJ 就在第一层，能正常加载。
+
+### 本仓库
+
+`module.compose` 子项目。核心的 `build.gradle` 里没有任何 compose 痕迹 —— 编译器插件、runtime、JiJ 声明全在 `module.compose/build.gradle`。`gradlew runClient` 会把两个模组一起装进去，`gradlew test` 会同时跑两边的单测。
 
 ### 下游模组
 
@@ -50,9 +54,30 @@ plugins {
     id 'org.jetbrains.kotlin.jvm' version '2.1.20'
     id 'org.jetbrains.kotlin.plugin.compose' version '2.1.20'  // 版本必须和 kotlin.jvm 一致
 }
+
+repositories {
+    maven {
+        // androidx.annotation / androidx.collection 是 compose runtime 的传递依赖，不在 Maven Central
+        url = "https://maven.google.com"
+        content { includeGroupByRegex "androidx\\..*" }
+    }
+}
+
+dependencies {
+    implementation "com.lowdragmc.ldlib2:ldlib2-compose-1.21.1:${ldlib2_version}"
+}
 ```
 
-运行时不用额外声明依赖 —— `compose.runtime`、coroutines、androidx.collection 都由 LDLib2 通过 Jar-in-Jar 提供。
+`compose.runtime`、coroutines、androidx.collection 都是 `ldlib2-compose` 的 api 依赖，编译期跟着上面这一行进来，运行期由它 Jar-in-Jar 提供，不用再声明。
+
+最后在 `neoforge.mods.toml` 里声明模组依赖，否则玩家少装一个 jar 就是启动崩溃：
+
+```toml
+[[dependencies.yourmod]]
+modId = "ldlib2_compose"
+type = "required"
+versionRange = "[2.2.37,)"
+```
 
 ---
 
@@ -308,7 +333,7 @@ items.forEach { key(it.id) { Text(it.nameComponent, rowModifier) } }
 
 ## 测试
 
-协调逻辑可以在 `src/test` 里纯 JVM 测（那个 source set 没有 Minecraft，但 Compose runtime 是纯 JVM 的）。`TestComposeHarness.kt` 提供逐帧步进的 harness —— 连动画都能精确测，不用 sleep：
+协调逻辑可以在 `module.compose/src/test` 里纯 JVM 测（那个 source set 不启动 Minecraft，而 Compose runtime 是纯 JVM 的）。`TestComposeHarness.kt` 提供逐帧步进的 harness —— 连动画都能精确测，不用 sleep：
 
 ```kotlin
 val h = TestHarness()

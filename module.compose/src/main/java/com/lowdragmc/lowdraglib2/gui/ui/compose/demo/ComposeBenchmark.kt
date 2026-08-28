@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib2.test.ui
+package com.lowdragmc.lowdraglib2.gui.ui.compose.demo
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key

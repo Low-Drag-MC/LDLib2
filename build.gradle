@@ -6,7 +6,6 @@ plugins {
     id 'net.neoforged.gradle.userdev' version '7.0.181'
     id 'org.jetbrains.kotlin.jvm' version '2.1.20'
     id 'org.jetbrains.kotlin.plugin.lombok' version '2.1.20'
-    id 'org.jetbrains.kotlin.plugin.compose' version '2.1.20'
     id 'io.freefair.lombok' version "9.2.0"
 }
 
@@ -32,79 +31,83 @@ configurations {
     runtimeClasspath.extendsFrom localRuntime
 }
 
-repositories {
-    // NeoGradle's mirrors are asked before mavenCentral(), and a 5xx from one fails the build instead of
-    // falling through, so test-only libraries skip them
-    exclusiveContent {
-        forRepository { mavenCentral() }
-        filter {
-            includeGroupByRegex 'org\\.junit(\\..*)?'
-            includeGroup 'org.mockito'
-            includeGroup 'org.opentest4j'
-            includeGroup 'org.apiguardian'
-            includeGroup 'net.bytebuddy'
-            includeGroup 'org.objenesis'
+// allprojects, not project-local: the add-on modules under module.* resolve LDLib2's own
+// transitives (kotlin-stdlib, yoga, taffy) and would otherwise each need this list copied.
+allprojects {
+    repositories {
+        // NeoGradle's mirrors are asked before mavenCentral(), and a 5xx from one fails the build instead of
+        // falling through, so test-only libraries skip them
+        exclusiveContent {
+            forRepository { mavenCentral() }
+            filter {
+                includeGroupByRegex 'org\\.junit(\\..*)?'
+                includeGroup 'org.mockito'
+                includeGroup 'org.opentest4j'
+                includeGroup 'org.apiguardian'
+                includeGroup 'net.bytebuddy'
+                includeGroup 'org.objenesis'
+            }
         }
-    }
-    mavenCentral()
-    mavenLocal()
-    maven {
-        // androidx.collection / androidx.annotation, pulled in by the Compose runtime.
-        // They are not on Maven Central, and nothing else here should ever resolve from Google.
-        name = "Google"
-        url = "https://maven.google.com"
-        content {
-            includeGroupByRegex "androidx\\..*"
+        mavenCentral()
+        mavenLocal()
+        maven {
+            // androidx.collection / androidx.annotation, pulled in by the Compose runtime that
+            // module.compose ships. Nothing else here should ever resolve from Google.
+            name = "Google"
+            url = "https://maven.google.com"
+            content {
+                includeGroupByRegex "androidx\\..*"
+            }
         }
-    }
-    maven { url = "https://maven.shedaniel.me/" } // Cloth Config, REI
-    maven {
-        name = "Modrinth"
-        url = "https://api.modrinth.com/maven"
-        content {
-            includeGroup "maven.modrinth"
+        maven { url = "https://maven.shedaniel.me/" } // Cloth Config, REI
+        maven {
+            name = "Modrinth"
+            url = "https://api.modrinth.com/maven"
+            content {
+                includeGroup "maven.modrinth"
+            }
+        } // Modrinth File
+        maven {
+            name = "CurseForge"
+            url = "https://cursemaven.com"
+        } // CurseForge
+        maven {
+            // location of the maven that hosts JEI files since January 2023
+            name = "Jared's maven"
+            url = "https://maven.blamejared.com/"
         }
-    } // Modrinth File
-    maven {
-        name = "CurseForge"
-        url = "https://cursemaven.com"
-    } // CurseForge
-    maven {
-        // location of the maven that hosts JEI files since January 2023
-        name = "Jared's maven"
-        url = "https://maven.blamejared.com/"
-    }
-    maven {
-        // location of a maven mirror for JEI files, as a fallback
-        name = "ModMaven"
-        url = "https://modmaven.dev"
-    }
-    maven { url = "https://maven.parchmentmc.org" } // Parchment mappings
-    maven { url = "https://maven.quiltmc.org/repository/release" } // Quilt Mappings
-    maven { // Flywheel
-        url = "https://maven.tterrag.com/"
-        content {
-            // need to be specific here due to version overlaps
-            includeGroup("com.jozufozu.flywheel")
+        maven {
+            // location of a maven mirror for JEI files, as a fallback
+            name = "ModMaven"
+            url = "https://modmaven.dev"
         }
-    }
-    // mavens for Forge-exclusives
-    maven { url = "https://maven.theillusivec4.top/" } // Curios
-    maven { url = "https://maven.terraformersmc.com/releases/" } // Mod Menu, EMI
-    maven { // Create Forge and Registrate Forge
-        url = "https://maven.tterrag.com/"
-        content {
-            includeGroup("com.tterrag.registrate")
-            includeGroup("com.simibubi.create")
+        maven { url = "https://maven.parchmentmc.org" } // Parchment mappings
+        maven { url = "https://maven.quiltmc.org/repository/release" } // Quilt Mappings
+        maven { // Flywheel
+            url = "https://maven.tterrag.com/"
+            content {
+                // need to be specific here due to version overlaps
+                includeGroup("com.jozufozu.flywheel")
+            }
         }
-    }
-    maven { url = "https://jitpack.io/" } // Mixin Extras, Fabric ASM
-    maven {
-        // saps.dev Maven (KubeJS and Rhino)
-        url "https://maven.latvian.dev/releases"
-        content {
-            includeGroup "dev.latvian.mods"
-            includeGroup "dev.latvian.apps"
+        // mavens for Forge-exclusives
+        maven { url = "https://maven.theillusivec4.top/" } // Curios
+        maven { url = "https://maven.terraformersmc.com/releases/" } // Mod Menu, EMI
+        maven { // Create Forge and Registrate Forge
+            url = "https://maven.tterrag.com/"
+            content {
+                includeGroup("com.tterrag.registrate")
+                includeGroup("com.simibubi.create")
+            }
+        }
+        maven { url = "https://jitpack.io/" } // Mixin Extras, Fabric ASM
+        maven {
+            // saps.dev Maven (KubeJS and Rhino)
+            url "https://maven.latvian.dev/releases"
+            content {
+                includeGroup "dev.latvian.mods"
+                includeGroup "dev.latvian.apps"
+            }
         }
     }
 }
@@ -272,19 +275,6 @@ dependencies {
             prefer taffy_version
         }
     }
-
-    // Compose runtime - the recomposition engine only. `compose.ui` is deliberately absent: the
-    // rendering side is LDLib2's own UIElement tree, reached through a custom Applier.
-    // The transitive set (kotlinx-coroutines, androidx.collection, androidx.annotation) has to be
-    // jarJar'd too - see `gradlew dependencies --configuration libraries` for the resolved list.
-    libraries("org.jetbrains.compose.runtime:runtime-desktop:${compose_runtime_version}")
-    // The runtime's transitives. `annotation-internal` / `collection-internal` are alias modules
-    // with no classes of their own, so only the artifacts they redirect to are listed here.
-    embed('org.jetbrains.compose.runtime', 'runtime-desktop', compose_runtime_version)
-    embed('androidx.annotation', 'annotation-jvm', androidx_annotation_version)
-    embed('androidx.collection', 'collection-jvm', androidx_collection_version)
-    embed('org.jetbrains.kotlinx', 'atomicfu-jvm', atomicfu_version)
-    embed('org.jetbrains.kotlinx', 'kotlinx-coroutines-core-jvm', kotlinx_coroutines_version)
 
     // JUnit 5
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'

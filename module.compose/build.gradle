@@ -1,0 +1,146 @@
+// ldlib2-compose - LDLib2's declarative UI layer, shipped as a separate optional mod.
+//
+// A mod rather than a plain library, because it carries the Compose runtime and NeoForge's
+// Jar-in-Jar only unpacks one level: a downstream mod that Jar-in-Jar'd this artifact would get
+// this jar but not the Compose runtime nested inside it. As a top-level mod its own JiJ entries sit
+// at depth one and do load. Downstream setup is in compose.md.
+
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'net.neoforged.gradle.userdev'
+    id 'org.jetbrains.kotlin.jvm'
+    // Must be the same version as kotlin.jvm above, which the root project pins.
+    id 'org.jetbrains.kotlin.plugin.compose' version '2.1.20'
+}
+
+version = mod_version
+group = maven_group
+
+jarJar.enable()
+
+configurations {
+    // Same shape as the core project: everything in `libraries` is both a compile dependency, an api
+    // dependency of the published artifact, and Jar-in-Jar'd into the mod jar below.
+    libraries
+    api.extendsFrom libraries
+}
+
+base {
+    archivesName = "ldlib2-compose-${minecraft_version}"
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    withSourcesJar()
+}
+
+kotlin {
+    jvmToolchain(21)
+}
+
+sourceSets.main.kotlin { srcDir("src/main/java") }
+
+// The core's access transformer, so both projects compile against the same Minecraft. Not shipped in
+// this jar's mods.toml - at runtime the core applies it.
+minecraft.accessTransformers.file rootProject.file('src/main/resources/META-INF/accesstransformer.cfg')
+
+/** See the identical helper in the root build for why the version is pinned rather than ranged. */
+void embed(String group, String name, String ver) {
+    dependencies.jarJar(group: group, name: name) {
+        version {
+            require "[${ver},)"
+            prefer ver
+        }
+    }
+}
+
+dependencies {
+    // compileOnly, not implementation: NeoGradle materialises its own patched Minecraft jar per
+    // project, under <project>/.gradle/repositories. Putting it on this module's *runtime* classpath
+    // as well as the core's lands both copies in the dev run, and FML aborts with "Found multiple
+    // copies of net/minecraft/server/MinecraftServer.class". At runtime Minecraft always comes from
+    // the core project (dev) or from the loader (production), so this module never needs its own.
+    compileOnly "net.neoforged:neoforge:${neo_version}"
+    implementation rootProject
+
+    // Compose runtime - the recomposition engine only. `compose.ui` is deliberately absent: the
+    // rendering side is LDLib2's own UIElement tree, reached through a custom Applier.
+    libraries("org.jetbrains.compose.runtime:runtime-desktop:${compose_runtime_version}")
+    // The runtime's transitives, each of which needs its own jarJar entry. `annotation-internal` /
+    // `collection-internal` are alias modules with no classes of their own, so only the artifacts
+    // they redirect to are listed. Re-check with `gradlew :module.compose:dependencies
+    // --configuration libraries` after a compose bump.
+    embed('org.jetbrains.compose.runtime', 'runtime-desktop', compose_runtime_version)
+    embed('androidx.annotation', 'annotation-jvm', androidx_annotation_version)
+    embed('androidx.collection', 'collection-jvm', androidx_collection_version)
+    embed('org.jetbrains.kotlinx', 'atomicfu-jvm', atomicfu_version)
+    embed('org.jetbrains.kotlinx', 'kotlinx-coroutines-core-jvm', kotlinx_coroutines_version)
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.10.0'
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+        showStandardStreams = false
+    }
+}
+
+tasks.withType(ProcessResources).configureEach {
+    var replaceProperties = [
+            "version"       : version,
+            "loader_version": loader_version,
+            "mod_license"   : mod_license,
+            "mod_url"       : mod_url,
+    ]
+    inputs.properties replaceProperties
+    filesMatching(['META-INF/neoforge.mods.toml']) {
+        expand replaceProperties
+    }
+}
+
+// Join the core project's dev runs rather than declaring runs of our own: one client, both mods.
+// Registered from here so that dropping this module from settings.gradle leaves the core untouched.
+//
+// Captured locals, not `project.…`: inside a run closure the delegate is the Run, and NeoGradle's
+// Run has its own getProject() pointing at the project that declared the run - the root. Reading
+// `project.sourceSets.main` in there silently re-adds the core source set instead of this one.
+def composeSources = sourceSets.main
+def composeLibraries = configurations.libraries
+
+// NeoGradle gives every project it is applied to its own client/server/data/gameTestServer runs.
+// An unqualified `gradlew runClient` runs the task in all projects that have it, so this module's
+// copy - which nothing configures - would launch alongside the core's and fail the build even when
+// the real run passed. The module joins the core's runs instead; its own are dead weight.
+tasks.matching { it.name in ['runClient', 'runServer', 'runData', 'runGameTestServer'] }
+        .configureEach { enabled = false }
+
+rootProject.runs.configureEach {
+    modSource composeSources
+    dependencies {
+        runtime composeLibraries
+    }
+}
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            artifactId = base.archivesName.get()
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            url "https://maven.firstdark.dev/snapshots"
+            credentials {
+                username System.getenv("MAVEN_USER")
+                password System.getenv("MAVEN_PASS")
+            }
+        }
+    }
+}

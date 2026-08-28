@@ -1,0 +1,25 @@
+modLoader = "javafml"
+loaderVersion = "[${loader_version},)"
+license = "${mod_license}"
+
+[[mods]]
+modId = "ldlib2_compose"
+version = "${version}"
+displayName = "LowDragLib2 Compose"
+authors = "KilaBash"
+description = "Declarative UI for LowDragLib2, built on the Jetpack Compose runtime."
+displayURL = "${mod_url}"
+issueTrackerURL = "https://github.com/Low-Drag-MC/LDLib2/issues"
+
+[[dependencies.ldlib2_compose]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.1.216,)"
+ordering = "NONE"
+side = "BOTH"
+[[dependencies.ldlib2_compose]]
+modId = "ldlib2"
+type = "required"
+versionRange = "[${version},)"
+ordering = "AFTER"
+side = "BOTH"
