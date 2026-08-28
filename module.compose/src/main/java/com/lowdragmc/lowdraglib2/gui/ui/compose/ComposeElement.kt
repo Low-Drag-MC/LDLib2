@@ -24,6 +24,7 @@ import java.util.function.LongConsumer
 class ComposeElement() : UIElement() {
     private var host: ComposeHost? = null
     private var boundUI: ModularUI? = null
+    private var content: (@Composable () -> Unit)? = null
 
     /** Stable instance, so unregistering from the previous host actually finds it. */
     private val frameCallback = LongConsumer { nanos -> host?.onFrame(nanos) }
@@ -46,26 +47,46 @@ class ComposeElement() : UIElement() {
      */
     fun setContent(content: @Composable () -> Unit) {
         if (!LDLib2.isClient()) return
-        val host = this.host ?: ComposeHost(this).also {
-            this.host = it
-            rebindFrameCallback()
-        }
-        host.setContent {
-            CompositionLocalProvider(LocalUIElement provides this) { content() }
-        }
+        this.content = content
+        startComposition(content)
+        rebindFrameCallback()
     }
 
     /**
-     * Tears the composition down, running every `DisposableEffect`'s cleanup.
+     * Tears the composition down when the element is finished with, which is what `onRemoved` means
+     * everywhere else in LDLib2 — `Scene`, `Switch` and `Toggle` all release their resources here.
      *
-     * <p>Not called on removal from a parent, on purpose — see the class comment. Call it when the
-     * element is genuinely finished with.
+     * <p>Disposing here is not optional. A running `Recomposer` registers a *global* snapshot apply
+     * observer and only releases it when it is cancelled, so a composition nobody disposed stays
+     * reachable from that global list forever — and with it the applier, this element, and the entire
+     * subtree it built. Every screen the player opened would be retained for the rest of the session.
+     *
+     * <p>Re-hosting does not come through here, which is the reason this is safe: minimising an editor
+     * window re-points the same tree at a fresh `ModularUI` via `init`, firing `MUI_CHANGED` without
+     * ever calling `onRemoved`. A genuine detach does call it, and [rebindFrameCallback] rebuilds the
+     * composition if the element is later attached again.
      */
+    override fun onRemoved() {
+        // Before super, not after: disposing clears the composed children through the applier, so
+        // running it first leaves super's own walk with an empty list. The other order would send
+        // onRemoved to every child twice.
+        dispose()
+        super.onRemoved()
+    }
+
+    /** Tears the composition down, running every `DisposableEffect`'s cleanup. */
     fun dispose() {
         boundUI?.removeFrameCallback(frameCallback)
         boundUI = null
         host?.dispose()
         host = null
+    }
+
+    private fun startComposition(content: @Composable () -> Unit) {
+        val host = this.host ?: ComposeHost(this).also { this.host = it }
+        host.setContent {
+            CompositionLocalProvider(LocalUIElement provides this) { content() }
+        }
     }
 
     /**
@@ -78,6 +99,10 @@ class ComposeElement() : UIElement() {
      */
     private fun rebindFrameCallback() {
         val mui = modularUI
+        // Attached again after [onRemoved] tore the composition down. Rebuilding from the content we
+        // were handed beats leaving a silently empty element behind; `remember` state does not
+        // survive, because the composition that held it is gone.
+        if (host == null && mui != null) content?.let { startComposition(it) }
         if (mui === boundUI) return
         boundUI?.removeFrameCallback(frameCallback)
         boundUI = null
