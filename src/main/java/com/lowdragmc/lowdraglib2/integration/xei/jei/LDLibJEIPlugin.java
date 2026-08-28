@@ -5,9 +5,7 @@ import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
-import com.lowdragmc.lowdraglib2.integration.xei.XEITooltipContext;
-import com.lowdragmc.lowdraglib2.integration.xei.jei.handler.JEIRecipeIngredientHandler;
-import com.lowdragmc.lowdraglib2.integration.xei.jei.handler.JEIRecipeWidgetHandler;
+import com.lowdragmc.lowdraglib2.integration.xei.jei.handler.JEIRecipeSlotHandler;
 import com.lowdragmc.lowdraglib2.integration.xei.jei.handler.JEITargetsTypedHandler;
 import com.lowdragmc.lowdraglib2.test.xei.TestJEIPlugin;
 import mezz.jei.api.IModPlugin;
@@ -21,14 +19,9 @@ import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
 import mezz.jei.api.runtime.IIngredientManager;
 import mezz.jei.api.runtime.IJeiRuntime;
-import mezz.jei.common.Internal;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.Rect2i;
-
-import net.minecraft.network.chat.FormattedText;
 import net.minecraft.resources.Identifier;
-import net.minecraft.util.context.ContextMap;
-import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
 
@@ -38,6 +31,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 @JeiPlugin
 @ParametersAreNonnullByDefault
@@ -95,22 +89,8 @@ public class LDLibJEIPlugin implements IModPlugin {
     }
 
     public static <V> Optional<ITypedIngredient<V>> createTypedIngredient(IIngredientType<V> ingredientType, V ingredient) {
-        return createTypedIngredient(ingredientType, ingredient, false);
-    }
-
-    public static <V> Optional<ITypedIngredient<V>> createTypedIngredient(IIngredientType<V> ingredientType, V ingredient, boolean normalize) {
-        IIngredientManager manager = ingredientManager;
-        if (manager == null) {
-            // JEI runtime isn't created until all plugin registration phases finish, so
-            // Internal.getJeiRuntime() throws if another plugin reaches us during its own
-            // registerRecipes before LDLib2's registerCategories had a chance to cache it.
-            try {
-                manager = Internal.getJeiRuntime().getIngredientManager();
-            } catch (Throwable ignored) {
-                return Optional.empty();
-            }
-        }
-        return manager.createTypedIngredient(ingredientType, ingredient, normalize);
+        if (ingredientManager == null) return Optional.empty();
+        return ingredientManager.createTypedIngredient(ingredientType, ingredient, false);
     }
 
     @Override
@@ -121,6 +101,13 @@ public class LDLibJEIPlugin implements IModPlugin {
     @Override
     public void onRuntimeAvailable(IJeiRuntime jeiRuntime) {
         LDLibJEIPlugin.jeiRuntime = jeiRuntime;
+        LDLibJEIPlugin.ingredientManager = jeiRuntime.getIngredientManager();
+    }
+
+    @Override
+    public void onRuntimeUnavailable() {
+        jeiRuntime = null;
+        ingredientManager = null;
     }
 
     @Override
@@ -162,7 +149,7 @@ public class LDLibJEIPlugin implements IModPlugin {
      * @param element The UI element to which the clickable ingredient behavior will be bound.
      * @param clickableBuilder A function that provides an {@code ITypedIngredient} of current mouse.
      */
-    public static <T extends UIElement, I> void clickableIngredient(T element, Supplier<ITypedIngredient<I>> clickableBuilder) {
+    public static <T extends UIElement, I> void clickableIngredient(T element, Supplier<@Nullable ITypedIngredient<I>> clickableBuilder) {
         element.addEventListener(JEIUIEvents.CLICKABLE_INGREDIENT, event -> {
             if (element.isMouseOverElement(event.x, event.y) && event.customData instanceof IClickableIngredientFactory factory) {
                 var clickable = clickableBuilder.get();
@@ -213,58 +200,53 @@ public class LDLibJEIPlugin implements IModPlugin {
      * @param ingredientsProvider A {@link Supplier} that provides a list of {@link ITypedIngredient} values to associate with the element.
      */
     public static <T extends UIElement> void recipeIngredient(T element, IngredientIO ingredientIO,
-                                                              Supplier<List<ITypedIngredient<?>>> ingredientsProvider) {
-        element.addEventListener(JEIUIEvents.RECIPE_INGREDIENT, event -> {
-            if (event.customData instanceof JEIRecipeIngredientHandler focuses) {
-                focuses.add(new JEIRecipeIngredientHandler.Entry(
-                        getRole(ingredientIO),
-                        ingredientsProvider.get(),
-                        getAreaLocal(element, true)
-                ));
+                                                              Supplier<? extends List<? extends ITypedIngredient<?>>> ingredientsProvider) {
+        element.addEventListener(JEIUIEvents.RECIPE_BINDING, event -> {
+            if (event.customData instanceof JEIRecipeSlotHandler handler) {
+                handler.addIngredients(element, getRole(ingredientIO), ingredientsProvider.get());
             }
         });
     }
 
     /**
-     * Adds recipe (slots)widgets to the JEI recipe.
-     * This allows associating an invisible slot in the UI element for JEI lookups and tooltips.
+     * Binds one LDLib element to one genuine JEI recipe slot.
+     * The complete static alternatives are snapshotted when JEI lays out the recipe, while
+     * the returned listener keeps the genuine slot synchronized with LDLib's displayed ingredient.
      * <p>
-     * While such a slot is hovered, JEI draws the slot tooltip <b>instead of</b> the tooltip of any
-     * {@link mezz.jei.api.gui.widgets.IRecipeWidget}, so {@link ModularUIJEIWidget#getTooltip} never runs.
-     * The tooltips of the element are therefore appended to the slot tooltip to keep them visible.
+     * The element's additional tooltips are added through the genuine slot's rich-tooltip callback,
+     * so JEI displays them alongside its standard ingredient tooltip.
      *
-     * @param <T> The type of the {@link UIElement} to which the slot functionality is added.
-     * @param element The {@link UIElement} where the recipe slot functionality is applied.
-     * @param displayIngredient A {@link Supplier} that provides the primary {@link ITypedIngredient}
-     *                          to be displayed in the slot.
-     * @param allIngredients An optional {@link Supplier} that provides a list of additional
-     *                       {@link ITypedIngredient} instances to associate with the slot.
+     * @param <T> The type of the {@link UIElement} to bind.
+     * @param <V> The ingredient value type.
+     * @param element The element whose position, hover behavior, and additional tooltips represent the slot.
+     * @param ingredientIO The semantic role of the slot in the recipe.
+     * @param ingredientType The JEI ingredient type for the slot's values.
+     * @param ingredientsProvider The complete static alternatives to snapshot during recipe layout.
+     * @param displayedIngredientListener A listener that updates LDLib's externally rendered value when JEI
+     *                                    cycles the genuine slot.
+     * @return A listener that updates the genuine JEI slot when LDLib's displayed ingredient changes.
      */
-    public static <T extends UIElement> void recipeSlot(T element,
-                                                        Supplier<ITypedIngredient<?>> displayIngredient,
-                                                        @Nullable Supplier<List<@Nullable ITypedIngredient<?>>> allIngredients) {
-        element.addEventListener(JEIUIEvents.RECIPE_WIDGET, event -> {
-            if (event.customData instanceof JEIRecipeWidgetHandler recipeSlot) {
-                recipeSlot.addSlot(new JEIRecipeSlotWidget(
-                        recipeSlot.localToWorld,
-                        element::isMouseOverElement,
-                        displayIngredient,
-                        allIngredients,
-                        ((view, tooltip) -> {
-                            var hoverTooltips = XEITooltipContext.RECIPE_SLOT.collectTooltips(element);
-                            if (hoverTooltips == null) return;
-                            for (var entry : hoverTooltips.tooltips()) {
-                                if (entry instanceof FormattedText text) {
-                                    tooltip.add(text);
-                                } else if (entry instanceof TooltipComponent component) {
-                                    tooltip.add(component);
-                                }
-                            }
-                        }),
-                        ContextMap.EMPTY
-                        ));
+    public static <T extends UIElement, V> Consumer<V> recipeSlot(
+            T element,
+            IngredientIO ingredientIO,
+            IIngredientType<V> ingredientType,
+            Supplier<Stream<V>> ingredientsProvider,
+            Consumer<@Nullable V> displayedIngredientListener
+    ) {
+        var slotUpdater = new JEIRecipeSlotHandler.SlotUpdater(displayedIngredient ->
+                displayedIngredientListener.accept(displayedIngredient == null ? null :
+                        displayedIngredient.getCastIngredient(ingredientType)));
+        element.addEventListener(JEIUIEvents.RECIPE_BINDING, event -> {
+            if (event.customData instanceof JEIRecipeSlotHandler handler) {
+                var ingredients = ingredientsProvider.get()
+                        .map(ingredient -> createTypedIngredient(ingredientType, ingredient))
+                        .flatMap(Optional::stream)
+                        .toList();
+                handler.addSlot(element, getRole(ingredientIO), ingredients, slotUpdater);
             }
         });
+        return ingredient -> slotUpdater.setDisplayedIngredient(
+                createTypedIngredient(ingredientType, ingredient).orElse(null));
     }
 
 }
