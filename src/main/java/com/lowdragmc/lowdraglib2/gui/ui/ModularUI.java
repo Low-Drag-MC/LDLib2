@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.core.mixins.accessor.MinecraftAccessor;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.holder.DebugScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.debugger.UIDebugger;
+import com.lowdragmc.lowdraglib2.gui.ui.debugger.UIDebuggerWindow;
 import com.lowdragmc.lowdraglib2.gui.ui.style.HierarchicalStyleMatcher;
 import com.lowdragmc.lowdraglib2.utils.animation.AnimationEngine;
 import com.lowdragmc.lowdraglib2.gui.sync.UISyncManager;
@@ -177,6 +178,18 @@ public class ModularUI {
     private boolean debugMode = false;
     @Nullable
     private UIDebugger uiDebuggerCache;
+    /** A queued {@link #setDebuggerWindowed} — see {@link #applyPendingDebuggerHost}. */
+    @Nullable
+    private Boolean pendingDebuggerWindowed;
+    /**
+     * Whether this UI has been torn down and not re-initialised since.
+     *
+     * <p>The honest answer to "is this still being shown", and not one a caller can work out for
+     * itself: a screen pushed under a gui layer is not {@code Minecraft#screen} any more but is very
+     * much still alive, so comparing against that reports every dialog as a teardown.
+     */
+    @Getter
+    private boolean removed;
 
     public ModularUI(UI ui) {
         this(ui, null);
@@ -502,6 +515,9 @@ public class ModularUI {
 
     @OnlyIn(Dist.CLIENT)
     public void init(int screenWidth, int screenHeight) {
+        // A UI can be torn down and stood back up - a preview pane, a recipe viewer - so this is
+        // "removed and not since re-initialised", not "was ever removed".
+        this.removed = false;
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
         if (ui.dynamicSize != null) {
@@ -621,6 +637,7 @@ public class ModularUI {
      * This method can be overridden to perform cleanup tasks.
      */
     public void onRemoved() {
+        removed = true;
         ui.rootElement.onRemoved();
         styleEngine.dispose();
     }
@@ -879,11 +896,21 @@ public class ModularUI {
     }
 
     /**
-     * Marks this UI as being inspected and returns its debugger, without opening a debug screen.
+     * This UI's debugger, or {@code null} if it has never had one. Creates nothing and enables
+     * nothing, unlike {@link #acquireDebugger()} — so asking is never what starts a session.
+     */
+    @OnlyIn(Dist.CLIENT)
+    @Nullable
+    public UIDebugger getUiDebugger() {
+        return uiDebuggerCache;
+    }
+
+    /**
+     * Marks this UI as being inspected and returns its debugger, without opening a host for it.
      *
      * <p>{@link #enableDebugger(boolean)} pushes a screen, which is right when the user asks for one
-     * but wrong when a screen that already exists wants to retarget itself at this UI — a floating
-     * window's UI, say. That case needs the debugger, not a second screen.
+     * but wrong when a host that already exists wants to retarget itself at this UI — a floating
+     * window's UI, say. That case needs the debugger, not a second host.
      */
     @OnlyIn(Dist.CLIENT)
     public UIDebugger acquireDebugger() {
@@ -894,16 +921,109 @@ public class ModularUI {
         return uiDebuggerCache;
     }
 
+    /**
+     * Opens or closes a debugger on this UI.
+     *
+     * <p>It opens where it always has, as a {@link DebugScreen} layered over the game — that is one
+     * keypress with nothing else to know. The title bar's window toggle then moves it into an OS
+     * window of its own, which is where it stops covering the UI it inspects; see
+     * {@link #setDebuggerWindowed}.
+     */
     @OnlyIn(Dist.CLIENT)
     public void enableDebugger(boolean debugMode) {
         if (this.debugMode == debugMode) return;
         this.debugMode = debugMode;
         if (debugMode) {
-            if (uiDebuggerCache == null) {
-                uiDebuggerCache = new UIDebugger(this);
-            }
-            Minecraft.getInstance().pushGuiLayer(new DebugScreen(uiDebuggerCache));
+            Minecraft.getInstance().pushGuiLayer(new DebugScreen(acquireDebugger()));
+        } else {
+            // Both hosts, because either could be the one showing it. Leaving the other open would
+            // put a debugger on screen that its own target no longer believes in.
+            UIDebuggerWindow.closeFor(this);
+            dismissDebugScreen();
         }
+    }
+
+    /**
+     * Pops the debug screen layer, if the top one is this UI's.
+     *
+     * <p>Guarded twice over. Only a layer of ours, because something else may have been pushed above
+     * it and popping that would be a different screen disappearing; and only the debugger this UI
+     * currently owns, because a debug screen that has been retargeted elsewhere is no longer ours to
+     * close.
+     */
+    @OnlyIn(Dist.CLIENT)
+    private void dismissDebugScreen() {
+        var minecraft = Minecraft.getInstance();
+        if (minecraft.screen instanceof DebugScreen debugScreen && debugScreen.uiDebugger == uiDebuggerCache) {
+            minecraft.popGuiLayer();
+        }
+    }
+
+    /** Whether this UI's debugger is in an OS window of its own rather than layered over the game. */
+    @OnlyIn(Dist.CLIENT)
+    public boolean isDebuggerWindowed() {
+        return UIDebuggerWindow.windowFor(this) != null;
+    }
+
+    /**
+     * Moves an open debugger between its two hosts, without ending the session.
+     *
+     * <p>The order matters in both directions and is the whole content of this method: the incoming
+     * host adopts the debugger element <em>before</em> the outgoing one goes away, or the outgoing
+     * one takes it down with it — popping a gui layer runs {@code removed()} over everything still
+     * parented under it.
+     *
+     * <p>Requesting a window can fail (native fullscreen, a GLFW with no windowing platform), in
+     * which case nothing moves and the debugger stays where it is.
+     */
+    @OnlyIn(Dist.CLIENT)
+    public void setDebuggerWindowed(boolean windowed) {
+        if (!debugMode || uiDebuggerCache == null || windowed == isDebuggerWindowed()) return;
+        var minecraft = Minecraft.getInstance();
+        if (windowed) {
+            if (!UIDebuggerWindow.openFor(uiDebuggerCache)) return;
+            dismissDebugScreen();
+        } else {
+            minecraft.pushGuiLayer(new DebugScreen(uiDebuggerCache));
+            var window = UIDebuggerWindow.windowFor(this);
+            if (window != null) {
+                window.handOff();
+            }
+        }
+    }
+
+    /**
+     * Applies a host switch the debugger's title bar asked for.
+     *
+     * <p>Called by whichever host is showing it, between frames. The request is queued rather than
+     * acted on because it arrives from inside the toggle's own click dispatch, and switching hosts
+     * reparents the whole debugger — the toggle's own great-grandparent — out from under it.
+     */
+    @OnlyIn(Dist.CLIENT)
+    public void applyPendingDebuggerHost() {
+        var pending = pendingDebuggerWindowed;
+        if (pending == null) return;
+        pendingDebuggerWindowed = null;
+        setDebuggerWindowed(pending);
+    }
+
+    /**
+     * Asks for a host switch on the next frame.
+     *
+     * @see #applyPendingDebuggerHost()
+     */
+    @OnlyIn(Dist.CLIENT)
+    public void requestDebuggerWindowed(boolean windowed) {
+        pendingDebuggerWindowed = windowed;
+    }
+
+    /**
+     * Whether the debugger has turned the pointer into an element inspector, in which case presses on
+     * this UI select rather than activate.
+     */
+    @OnlyIn(Dist.CLIENT)
+    private boolean isPickingElements() {
+        return debugMode && uiDebuggerCache != null && uiDebuggerCache.isFocusMode();
     }
 
     @ParametersAreNonnullByDefault
@@ -959,6 +1079,14 @@ public class ModularUI {
 
         @Override
         public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            // Picking comes first and swallows the press: in focus mode the pointer is an inspector,
+            // and inspecting a button is not supposed to also press it. Handled here rather than in
+            // whatever host is showing this UI, because since the debugger became a window of its own
+            // it need not be the same host - and both paths arrive through this method.
+            if (isPickingElements()) {
+                uiDebuggerCache.pickHovered();
+                return true;
+            }
             lastMouseDownX = (float) mouseX;
             lastMouseDownY = (float) mouseY;
             lastMouseDownButton = button;
@@ -992,6 +1120,10 @@ public class ModularUI {
 
         @Override
         public boolean mouseReleased(double mouseX, double mouseY, int button) {
+            // The other half of the swallowed press. Without it the release still lands, and against
+            // whatever element the last real click remembered — which fires a CLICK on it, so
+            // inspecting a button you had already pressed once would press it again.
+            if (isPickingElements()) return true;
             lastMouseDownButton = -1;
             var releasedElement = getLastHoveredElement();
             if (dragHandler.isDragging()) {
@@ -1142,6 +1274,19 @@ public class ModularUI {
         public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
             if (allowDebugMode && keyCode == GLFW.GLFW_KEY_F3) {
                 enableDebugger(!debugMode);
+            }
+            // The debugger's own chords, handled here so they work with the pointer over the UI being
+            // inspected — which, now that the debugger is a window of its own, is not where its
+            // keyboard is. Live only while it is open, so a UI's own F1 is untouched otherwise.
+            if (debugMode && uiDebuggerCache != null) {
+                if (keyCode == GLFW.GLFW_KEY_F1) {
+                    uiDebuggerCache.setFocusMode(!uiDebuggerCache.isFocusMode());
+                    return true;
+                }
+                if (keyCode == GLFW.GLFW_KEY_F4) {
+                    uiDebuggerCache.setRenderUIShaping(!uiDebuggerCache.isRenderUIShaping());
+                    return true;
+                }
             }
             lastPressedKeyCode = keyCode;
             lastPressedScanCode = scanCode;
@@ -1349,6 +1494,13 @@ public class ModularUI {
 
             RenderSystem.enableDepthTest();
             RenderSystem.depthMask(true);
+
+            // Above the UI's own content, below its tooltips - and drawn here, in the inspected UI's
+            // frame, because the debugger showing these outlines may well be in a different window.
+            if (debugMode && uiDebuggerCache != null) {
+                uiDebuggerCache.renderHostOverlay(guiGraphics, mouseX, mouseY);
+            }
+
             if (screen instanceof AbstractContainerScreen<?> containerScreen && !containerScreen.getMenu().getCarried().isEmpty()) {
                 return;
             }
