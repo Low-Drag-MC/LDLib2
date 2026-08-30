@@ -150,12 +150,18 @@ private fun PickerValues() {
         layout = { size(80.px, 12.px) },
         classes = "g-selector",
     )
-    ColorSelector(colour, { colour = it }, layout = { size(40.px, 12.px) }, classes = "g-colour")
-    TagField(tag, { tag = it }, layout = { size(120.px, 12.px) }, classes = "g-tagfield")
+    // Width only, no height — it is a whole picker panel (saturation square, hue strip, channel
+    // rows) and sizes itself, which is how core uses it too. Pinning a height here is what made the
+    // first version of this screen look broken: the panel does not clip, so the rows that did not
+    // fit were drawn straight over the widgets below rather than being cropped.
+    ColorSelector(colour, { colour = it }, layout = { width(90.px) }, classes = "g-colour")
+    TagField(tag, { tag = it }, layout = { size(120.px, 14.px) }, classes = "g-tagfield")
+    // Tall enough for its header row plus a line of tree: at 24px the rows spilled out of the
+    // element and drew over the widgets underneath, because nothing here clips overflow.
     StructuredTagEditor(
         structured,
         { structured = it },
-        layout = { size(140.px, 24.px) },
+        layout = { size(140.px, 56.px) },
         classes = "g-structured",
     )
     // Renders nothing; it exists to hold a value, so the only thing to check is that it composes.
