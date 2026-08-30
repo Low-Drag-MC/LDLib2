@@ -76,8 +76,16 @@ tasks.register('verifyUiTest') {
 
 // NeoGradle creates the run tasks after this script is evaluated, so runClient cannot be looked up
 // by name here - match it lazily instead.
+def ldTestOutDirFile = file(ldTestOutDir)
 tasks.configureEach { task ->
     if (task.name == 'runClient') {
         task.finalizedBy 'verifyUiTest'
+        if (project.hasProperty('ldTest')) {
+            // Clear last run's output first. verifyUiTest reads whatever report.json is on disk, so a
+            // client that dies before the runner even starts - a bad class path, a crash during mod
+            // loading - would otherwise be reported with the *previous* run's verdict. Removing it up
+            // front is what makes "no report is a failure" actually fire.
+            task.doFirst { ldTestOutDirFile.deleteDir() }
+        }
     }
 }

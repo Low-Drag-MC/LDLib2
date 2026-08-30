@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.uitest;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.client.window.OsWindowHints;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.UISurface;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.CursorOverlay;
 import com.lowdragmc.lowdraglib2.uitest.capture.CaptureRequest;
 import com.lowdragmc.lowdraglib2.uitest.capture.FrameCapture;
@@ -565,6 +566,13 @@ public final class UITestRunner {
                 stepReport.index, stepReport, element));
     }
 
+    /** Queues a capture of a render target that is not the game's frame. See {@link CaptureRequest.Kind#SURFACE}. */
+    public void requestSurfaceCapture(ScenarioRun run, RunReport.StepReport stepReport, String label,
+                                      UISurface surface) {
+        enqueueCapture(new CaptureRequest(CaptureRequest.Kind.SURFACE, run.name, label,
+                stepReport.index, stepReport, null, surface));
+    }
+
     private void enqueueCapture(CaptureRequest request) {
         pendingCaptures.add(request);
         // The frame about to be rendered is the one this reads back, so the stand-in pointer has to go
@@ -578,7 +586,10 @@ public final class UITestRunner {
         NativeImage frame = null;
         NativeImage cropped = null;
         try {
-            frame = FrameCapture.grab();
+            // A window's own target, when asked for. It was last drawn into after this frame's step
+            // ran - windows are driven at the end of the frame, after the runner - so it holds the
+            // state the requesting step produced, which is the same promise a full capture makes.
+            frame = request.surface == null ? FrameCapture.grab() : FrameCapture.grab(request.surface.target());
             var fileName = "%02d_%s".formatted(request.stepIndex, sanitize(request.label));
             var directory = config.outDir().resolve("screenshots").resolve(sanitize(request.scenarioName));
 

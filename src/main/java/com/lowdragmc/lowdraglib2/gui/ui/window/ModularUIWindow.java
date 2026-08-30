@@ -69,8 +69,13 @@ public class ModularUIWindow implements OsWindowHost {
      * has no platform border to aim at, so this band plus the pointer shape is the only affordance.
      */
     protected static final int RESIZE_BORDER = 6;
-    protected static final int MIN_WIDTH = 200;
-    protected static final int MIN_HEIGHT = 150;
+    /**
+     * The resize floor. Public because it is also the floor for a size <em>computed</em> by a caller
+     * — a remembered rectangle, or one derived from wherever a pane used to sit — and a caller that
+     * does not know it produces a window the user cannot get back.
+     */
+    public static final int MIN_WIDTH = 200;
+    public static final int MIN_HEIGHT = 150;
 
     private static final int EDGE_LEFT = 1;
     private static final int EDGE_RIGHT = 1 << 1;
@@ -138,6 +143,9 @@ public class ModularUIWindow implements OsWindowHost {
     @Setter
     @Nullable
     private Runnable onCloseRequested;
+
+    @Nullable
+    private WindowBounds restoredBounds;
 
     /**
      * Every {@code ModularUIWindow} currently open, in the order they were opened.
@@ -251,6 +259,44 @@ public class ModularUIWindow implements OsWindowHost {
 
     public boolean isMaximized() {
         return isOpen() && window().isMaximized();
+    }
+
+    /**
+     * Pins the window above the others. Silently a no-op where the platform refuses — see
+     * {@link OsWindow#supportsAlwaysOnTop()}, which a caller offering a control for this should check.
+     */
+    public void setAlwaysOnTop(boolean onTop) {
+        if (isOpen()) {
+            window().setAlwaysOnTop(onTop);
+        }
+    }
+
+    public boolean isAlwaysOnTop() {
+        return isOpen() && window().isAlwaysOnTop();
+    }
+
+    /**
+     * Where this window was the last time it was open and not maximized, or {@code null} if it has
+     * never been either. What to reopen it at.
+     *
+     * <p>Sampled every frame rather than read on close, and that is not laziness: by the time
+     * {@code onDestroyed} runs the handle is already destroyed, so {@code isMaximized()} answers
+     * false and the maximized bounds would be recorded as though they were an ordinary size —
+     * leaving a window with no way back to its real one. Sampling also survives the paths where
+     * nothing gets to run at all, such as the game being killed.
+     */
+    @Nullable
+    public WindowBounds restoredBounds() {
+        return restoredBounds;
+    }
+
+    /** Four ints the platform's own callbacks have already cached; no syscall but the maximize query. */
+    private void sampleRestoredBounds() {
+        if (!isOpen()) return;
+        var current = window();
+        if (current.isMaximized()) return;
+        restoredBounds = new WindowBounds(current.getPositionX(), current.getPositionY(),
+                current.getWindowWidth(), current.getWindowHeight());
     }
 
     public void toggleMaximized() {
@@ -566,6 +612,7 @@ public class ModularUIWindow implements OsWindowHost {
         var currentSurface = surface;
         if (current == null || currentSurface == null || current.isIconified()) return;
 
+        sampleRestoredBounds();
         syncStylesheets();
 
         // The gui scale is shared with the game window (see OffscreenSurface), so a change to the
