@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.editor.ui;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.editor.ui.floating.FloatingLayout;
+import com.lowdragmc.lowdraglib2.gui.ui.window.WindowBounds;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtIo;
@@ -9,7 +10,9 @@ import net.minecraft.nbt.Tag;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -18,6 +21,7 @@ import java.util.Optional;
  */
 public final class EditorLayoutStore {
     private static final String FLOATING_KEY = "floating";
+    private static final String FLOATING_BOUNDS_KEY = "floatingBounds";
 
     private EditorLayoutStore() {}
 
@@ -38,16 +42,22 @@ public final class EditorLayoutStore {
     }
 
     public static void save(String projectTypeName, EditorLayout layout) {
-        save(projectTypeName, layout, List.of());
+        save(projectTypeName, layout, List.of(), Map.of());
     }
 
     /**
-     * Writes the docked layout and any floating windows to the same file.
+     * Writes the docked layout, any floating windows, and where each floated view was last left.
      *
-     * <p>The floating windows go under their own key, so a file written by an older version — which
-     * has no such key — still loads, and one written here still loads in an older version.
+     * <p>Each goes under its own key, so a file written by an older version — which has neither —
+     * still loads, and one written here still loads in an older version.
+     *
+     * <p>The remembered rectangles are not the same thing as the floating windows: those describe
+     * the windows that are open <em>now</em> and are re-opened next session, while these describe
+     * where a view's window belongs whenever it is next torn out, including for views that are
+     * docked at the moment.
      */
-    public static void save(String projectTypeName, EditorLayout layout, List<FloatingLayout> floating) {
+    public static void save(String projectTypeName, EditorLayout layout, List<FloatingLayout> floating,
+                            Map<String, WindowBounds> floatingBounds) {
         try {
             var tag = layout.serialize();
             if (!floating.isEmpty()) {
@@ -56,6 +66,19 @@ public final class EditorLayoutStore {
                     list.add(window.serialize());
                 }
                 tag.put(FLOATING_KEY, list);
+            }
+            if (!floatingBounds.isEmpty()) {
+                var list = new ListTag();
+                floatingBounds.forEach((name, bounds) -> {
+                    var entry = new CompoundTag();
+                    entry.putString("name", name);
+                    entry.putInt("x", bounds.x());
+                    entry.putInt("y", bounds.y());
+                    entry.putInt("width", bounds.width());
+                    entry.putInt("height", bounds.height());
+                    list.add(entry);
+                });
+                tag.put(FLOATING_BOUNDS_KEY, list);
             }
             NbtIo.write(tag, getFile(projectTypeName).toPath());
         } catch (Exception ignored) {}
@@ -82,6 +105,25 @@ public final class EditorLayoutStore {
             }
         }
         return floating;
+    }
+
+    /**
+     * Where each floated view's window was last left, keyed by view name. Empty for a file written
+     * before this was recorded, in which case a first float sizes itself from the pane instead.
+     */
+    public static Map<String, WindowBounds> loadFloatingBounds(String projectTypeName) {
+        var tag = read(projectTypeName).orElse(null);
+        if (tag == null || !tag.contains(FLOATING_BOUNDS_KEY, Tag.TAG_LIST)) return Map.of();
+        var list = tag.getList(FLOATING_BOUNDS_KEY, Tag.TAG_COMPOUND);
+        var bounds = new LinkedHashMap<String, WindowBounds>(list.size());
+        for (int i = 0; i < list.size(); i++) {
+            var entry = list.getCompound(i);
+            var name = entry.getString("name");
+            if (name.isEmpty()) continue;
+            bounds.put(name, new WindowBounds(entry.getInt("x"), entry.getInt("y"),
+                    entry.getInt("width"), entry.getInt("height")));
+        }
+        return bounds;
     }
 
     private static Optional<CompoundTag> read(String projectTypeName) {

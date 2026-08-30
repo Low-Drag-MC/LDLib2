@@ -4,12 +4,11 @@ import com.lowdragmc.lowdraglib2.client.window.OsWindowEvent;
 import com.lowdragmc.lowdraglib2.client.window.OsWindowManager;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.editor.ui.View;
+import com.lowdragmc.lowdraglib2.editor.ui.floating.FloatingViewWindow;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
-import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import org.jetbrains.annotations.Nullable;
 import com.lowdragmc.lowdraglib2.registry.RegistrationEnvironment;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.test.TestEditor;
@@ -17,6 +16,7 @@ import com.lowdragmc.lowdraglib2.uitest.ScenarioBuilder;
 import com.lowdragmc.lowdraglib2.uitest.ScenarioOptions;
 import com.lowdragmc.lowdraglib2.uitest.TestContext;
 import com.lowdragmc.lowdraglib2.uitest.UIScenario;
+import org.lwjgl.glfw.GLFW;
 
 /**
  * Tears a view out of the editor into a real operating-system window and puts it back.
@@ -36,6 +36,8 @@ import com.lowdragmc.lowdraglib2.uitest.UIScenario;
 public class FloatingViewScenario implements UIScenario {
 
     private static final String DOCKED_BACKGROUND = "docked_code_editor_background";
+    private static final String PANE_ON_DESKTOP = "inspector_pane_on_desktop";
+    private static final String MOVED_TO = "inspector_window_moved_to";
 
     @Override
     public void configure(ScenarioOptions options) {
@@ -50,6 +52,62 @@ public class FloatingViewScenario implements UIScenario {
                 .waitUntil("the editor has laid out", ctx -> editor(ctx).centerWindow.getSizeWidth() > 0)
                 .check("no native windows are open to begin with", ctx -> !OsWindowManager.hasWindows())
                 .screenshot("01_before_float")
+
+                // First, while nothing has been floated yet and there is therefore nothing remembered.
+                .group("a view floated for the first time comes off its own pane", g -> g
+                        .step("note where the pane is on the desktop",
+                                ctx -> ctx.put(PANE_ON_DESKTOP, paneOnDesktop(ctx, editor(ctx).inspectorView)))
+                        .step("float the inspector",
+                                ctx -> ctx.check("floatView reported success",
+                                        editor(ctx).getFloatingViews().floatView(editor(ctx).inspectorView)))
+                        .frames(20)
+                        // Size in window pixels, so this fails if the GUI scale is ever dropped from
+                        // the conversion — a 2x-too-small window is the shape that mistake takes.
+                        .check("the window is the size the pane was", ctx -> {
+                            int[] pane = ctx.get(PANE_ON_DESKTOP);
+                            var os = inspectorWindow(ctx).window();
+                            return near(os.getWindowWidth(), pane[2], 4) && near(os.getWindowHeight(), pane[3], 4);
+                        })
+                        // And near where the pane was, which fails if the game window's own desktop
+                        // position is ever dropped — that mistake puts it at the top-left of the
+                        // screen. Loose, because the exact nudge is not what is being pinned.
+                        .check("and sits over where the pane was, give or take a nudge", ctx -> {
+                            int[] pane = ctx.get(PANE_ON_DESKTOP);
+                            var os = inspectorWindow(ctx).window();
+                            return near(os.getPositionX(), pane[0], 64) && near(os.getPositionY(), pane[1], 64);
+                        }))
+
+                .group("and remembers where it was left the next time", g -> g
+                        .step("move and resize it", ctx -> {
+                            var os = inspectorWindow(ctx).window();
+                            os.setPosition(180, 140);
+                            os.setSize(520, 380);
+                        })
+                        // The platform answers through callbacks, which only run when Minecraft polls,
+                        // so what is recorded is what it actually did rather than what it was asked.
+                        .frames(15)
+                        .step("record where it ended up", ctx -> {
+                            var os = inspectorWindow(ctx).window();
+                            ctx.put(MOVED_TO, new int[]{os.getPositionX(), os.getPositionY(),
+                                    os.getWindowWidth(), os.getWindowHeight()});
+                        })
+                        .step("dock it back", ctx ->
+                                editor(ctx).getFloatingViews().dockBack(editor(ctx).inspectorView))
+                        .frames(15)
+                        .check("the window closed", ctx -> !OsWindowManager.hasWindows())
+                        .step("float it again", ctx ->
+                                editor(ctx).getFloatingViews().floatView(editor(ctx).inspectorView))
+                        .frames(20)
+                        .check("it came back at exactly the same rectangle", ctx -> {
+                            int[] before = ctx.get(MOVED_TO);
+                            var os = inspectorWindow(ctx).window();
+                            return os.getPositionX() == before[0] && os.getPositionY() == before[1]
+                                    && os.getWindowWidth() == before[2] && os.getWindowHeight() == before[3];
+                        })
+                        .step("dock it back again, so the groups below start from the docked state",
+                                ctx -> editor(ctx).getFloatingViews().dockBack(editor(ctx).inspectorView))
+                        .frames(15)
+                        .check("no native window was left behind", ctx -> !OsWindowManager.hasWindows()))
 
                 .group("float a view", g -> g
                         .step("float the inspector", ctx -> {
@@ -167,6 +225,41 @@ public class FloatingViewScenario implements UIScenario {
 
     private static Editor editor(TestContext ctx) {
         return EditorPaneMaximizeScenario.editor(ctx);
+    }
+
+    private static FloatingViewWindow inspectorWindow(TestContext ctx) {
+        var window = editor(ctx).getFloatingViews().windowOf(editor(ctx).inspectorView);
+        if (window == null || !window.isOpen()) {
+            throw new IllegalStateException("The inspector is not in a native window");
+        }
+        return window;
+    }
+
+    /**
+     * A view's pane as a desktop rectangle {@code {x, y, width, height}} — the space a window is
+     * positioned and sized in.
+     *
+     * <p>Restated here rather than shared with the production code on purpose: the point of the two
+     * checks above is that the conversion is done <em>at all</em>, and a test that called the same
+     * helper would agree with it however wrong it was.
+     */
+    private static int[] paneOnDesktop(TestContext ctx, View view) {
+        var pane = view.getViewContainer();
+        ctx.require("the view is in a pane", pane != null);
+        var topLeft = pane.getWorldMouse(pane.getPositionX(), pane.getPositionY());
+        var scale = ctx.mc().getWindow().getGuiScale();
+        var originX = new int[1];
+        var originY = new int[1];
+        GLFW.glfwGetWindowPos(ctx.mc().getWindow().getWindow(), originX, originY);
+        return new int[]{
+                originX[0] + (int) (topLeft.x * scale),
+                originY[0] + (int) (topLeft.y * scale),
+                (int) (pane.getSizeWidth() * scale),
+                (int) (pane.getSizeHeight() * scale)};
+    }
+
+    private static boolean near(int actual, int expected, int tolerance) {
+        return Math.abs(actual - expected) <= tolerance;
     }
 
 
