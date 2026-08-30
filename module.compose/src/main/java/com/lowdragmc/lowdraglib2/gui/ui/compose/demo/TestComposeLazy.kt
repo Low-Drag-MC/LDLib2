@@ -93,6 +93,33 @@ private fun LazyDemo() {
 
         Grid()
         Strip()
+        Ragged()
+    }
+}
+
+/**
+ * Rows that are not all the same height — the case a fixed `itemHeight` cannot express.
+ *
+ * <p>Nothing here tells the list how tall a row is. Each row declares its own height, the list finds
+ * out by measuring the ones it has mounted, and everything it has not mounted yet is still carrying
+ * the 14px estimate. The spacers above and below are computed from that mixture, which is why the
+ * scrollbar stays the right size while the guesses are still being replaced.
+ */
+@Composable
+private fun Ragged() {
+    val rows = remember { List(400) { it } }
+    LazyColumn(
+        items = rows,
+        itemHeight = 14f,
+        variableHeight = true,
+        layout = { width(200.px); height(80.px) },
+        classes = "ragged-list",
+        key = { _, row -> row },
+    ) { index, row ->
+        Box(
+            layout = { width(180.px); height((10 + (row % 5) * 8).px) },
+            classes = "ragged-row ragged-row-$index",
+        )
     }
 }
 

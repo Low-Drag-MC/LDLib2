@@ -13,8 +13,10 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Scroller
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents
+import com.lowdragmc.lowdraglib2.gui.ui.layout.pct
 import com.lowdragmc.lowdraglib2.gui.ui.layout.px
 import dev.vfyjxf.taffy.style.FlexDirection
+import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
 
@@ -36,11 +38,13 @@ import kotlin.math.floor
  * being scrolled out of view. Anything that must outlive that — a selection, an expanded flag, an
  * edit in progress — belongs in state held above this call, keyed by item.
  *
- * <p>Rows must all be [itemHeight] tall. Measuring them instead would mean composing them to find
- * out how big they are, which is the thing being avoided; a variable-height version needs a measured
- * height cache and is not implemented.
+ * <p>Rows are all [itemHeight] tall unless [variableHeight] is set, in which case they measure
+ * themselves and [itemHeight] is only the opening guess.
  *
- * @param itemHeight the fixed height of every row, in pixels.
+ * @param itemHeight the height of every row in pixels — or, with [variableHeight], the estimate used
+ *   for rows that have not been on screen yet.
+ * @param variableHeight lets rows be different heights, at the cost of a wrapper element per row and
+ *   a settling frame. See below for what that costs and when it is wrong.
  * @param overscan how many extra rows to keep mounted beyond each edge, so a fast scroll does not
  *   show a gap before the next frame catches up.
  * @param key identifies a row across scrolls and list edits. Defaults to the index, which is right
@@ -50,6 +54,7 @@ import kotlin.math.floor
 fun <T> LazyColumn(
     items: List<T>,
     itemHeight: Float,
+    variableHeight: Boolean = false,
     layout: LayoutBlock? = null,
     style: StyleBlock? = null,
     classes: String? = null,
@@ -66,24 +71,72 @@ fun <T> LazyColumn(
 
     val view = remember { ScrollerView() }
     val metrics = rememberScrollMetrics(view, view.verticalScroller) { view.viewPort.contentHeight }
-
     val total = items.size
-    val window = lazyWindow(total, itemHeight, metrics.viewport, metrics.fraction, overscan)
+
+    if (!variableHeight) {
+        val window = lazyWindow(total, itemHeight, metrics.viewport, metrics.fraction, overscan)
+        UIElementNode(
+            factory = { view },
+            layout = layout, style = style, classes = classes, id = id,
+            enabled = enabled, visible = visible, focusable = focusable, events = events,
+        ) {
+            Spacer(window.first * itemHeight)
+            for (index in window) {
+                val item = items[index]
+                key(key?.invoke(index, item) ?: index) {
+                    itemContent(index, item)
+                }
+            }
+            Spacer((total - window.last - 1) * itemHeight)
+        }
+        return
+    }
+
+    val rows = remember(itemHeight) { RowHeights(itemHeight) }
+    rows.resize(total)
+    // The subscription. `heights` is a plain array behind it — see RowHeights for why.
+    @Suppress("UNUSED_EXPRESSION") rows.version
+    val window = measuredWindow(rows.heights, metrics.viewport, metrics.fraction, overscan)
 
     UIElementNode(
         factory = { view },
         layout = layout, style = style, classes = classes, id = id,
         enabled = enabled, visible = visible, focusable = focusable, events = events,
     ) {
-        Spacer(window.first * itemHeight)
-        for (index in window) {
+        Spacer(window.leading)
+        for (index in window.range) {
             val item = items[index]
             key(key?.invoke(index, item) ?: index) {
-                itemContent(index, item)
+                MeasuredRow(rows, index) { itemContent(index, item) }
             }
         }
-        Spacer((total - window.last - 1) * itemHeight)
+        Spacer(window.trailing)
     }
+}
+
+/**
+ * Wraps one variable-height row so it can report how tall it turned out to be.
+ *
+ * <p>A row can only be measured once it has been laid out, which is a frame after it was composed —
+ * so the first frame a row appears it is still occupying its estimate, and the window corrects on the
+ * next. That settling is visible as a small scrollbar adjustment when you scroll into fresh rows, and
+ * it is the price of not knowing sizes up front.
+ *
+ * <p>Full width, height left to the content. A row whose content does not size itself measures zero,
+ * which [RowHeights.measure] refuses — otherwise a list of zero-height rows would decide the whole
+ * list fits on screen and mount all of it.
+ */
+@Composable
+private fun MeasuredRow(rows: RowHeights, index: Int, content: @Composable () -> Unit) {
+    Box(
+        layout = { width(100.pct) },
+        events = {
+            on(UIEvents.LAYOUT_CHANGED) { event ->
+                event.currentElement?.let { rows.measure(index, it.sizeHeight) }
+            }
+        },
+        content = content,
+    )
 }
 
 /** Where the scrollbar is and how much fits, along one axis. */
@@ -150,6 +203,110 @@ internal fun lazyWindow(
     val first = (floor(scrolledPx / itemSize).toInt() - overscan).coerceIn(0, total - 1)
     val last = (first + fits + overscan * 2).coerceAtMost(total) - 1
     return first..last
+}
+
+/** Where a variable-height window sits, and how much blank space to leave on either side of it. */
+internal data class MeasuredWindow(
+    val range: IntRange,
+    val leading: Float,
+    val trailing: Float,
+)
+
+/**
+ * The same question as [lazyWindow], for rows that are not all the same height.
+ *
+ * <p>Takes the heights rather than measuring anything, so it stays pure and testable — and because
+ * the heights it is given are a mixture of measured and estimated by nature. A row that has never
+ * been on screen has never been laid out, so its height is a guess until it has been; the window this
+ * returns is correct for the numbers it was handed, and self-corrects as guesses are replaced.
+ *
+ * <p>`leading + (heights over range) + trailing` always equals the total, which is what keeps the
+ * scrollbar honest: the spacers plus the mounted rows add up to the whole list.
+ *
+ * @param heights one entry per item, measured where known and estimated where not.
+ */
+internal fun measuredWindow(
+    heights: FloatArray,
+    viewportSize: Float,
+    scrollFraction: Float,
+    overscan: Int,
+): MeasuredWindow {
+    val total = heights.size
+    if (total == 0) return MeasuredWindow(IntRange.EMPTY, 0f, 0f)
+
+    var content = 0f
+    for (height in heights) content += height
+
+    val maxScroll = (content - viewportSize).coerceAtLeast(0f)
+    val scrolled = scrollFraction.coerceIn(0f, 1f) * maxScroll
+
+    // First row whose bottom edge is past the scroll position, tracking its offset as we go.
+    var first = 0
+    var firstOffset = 0f
+    while (first < total - 1 && firstOffset + heights[first] <= scrolled) {
+        firstOffset += heights[first]
+        first++
+    }
+
+    // Then forward until the viewport is covered. Zero viewport means the first layout has not
+    // happened yet; one row is enough to get something on screen and the next frame corrects it.
+    var last = first
+    var filled = firstOffset + heights[first]
+    while (last < total - 1 && filled < scrolled + viewportSize) {
+        last++
+        filled += heights[last]
+    }
+
+    val start = (first - overscan).coerceAtLeast(0)
+    val end = (last + overscan).coerceAtMost(total - 1)
+
+    var leading = firstOffset
+    for (i in start until first) leading -= heights[i]
+    var mounted = 0f
+    for (i in start..end) mounted += heights[i]
+
+    return MeasuredWindow(start..end, leading, (content - leading - mounted).coerceAtLeast(0f))
+}
+
+/**
+ * The heights of a list's rows, measured where they have been on screen and estimated where not.
+ *
+ * <p>[version] rather than the array itself is the observable state. A row reports its height from a
+ * layout event, and copying a ten-thousand-entry array on each of those — several per frame while
+ * scrolling — costs more than the virtualisation saves. So the array is mutated in place and the
+ * counter is bumped, which is what readers actually subscribe to.
+ */
+@Stable
+internal class RowHeights(private val estimate: Float) {
+    private var array = FloatArray(0)
+
+    var version by mutableStateOf(0)
+        private set
+
+    /** Read [version] first — that is the subscription; this is just the data. */
+    val heights: FloatArray get() = array
+
+    fun resize(count: Int) {
+        val old = array
+        if (old.size == count) return
+        array = FloatArray(count) { if (it < old.size) old[it] else estimate }
+        version++
+    }
+
+    /**
+     * Records a measured height.
+     *
+     * <p>Ignores changes under half a pixel. Layout produces fractional values, and a row whose
+     * height wobbles in the noise would invalidate the window every frame, which re-lays-out the
+     * rows, which produces another wobble.
+     */
+    fun measure(index: Int, height: Float) {
+        val old = array
+        if (index !in old.indices || height <= 0f) return
+        if (abs(old[index] - height) < 0.5f) return
+        old[index] = height
+        version++
+    }
 }
 
 /**

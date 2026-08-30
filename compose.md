@@ -289,8 +289,28 @@ LazyVerticalGrid(items = stacks, columns = 9, cellWidth = 18f, cellHeight = 18f)
 
 两个前提：
 
-- **行高/格子尺寸必须固定。** 要测量就得先造出来，而那正是要避免的事。
+- **默认行高必须固定。** 变高行见下。
 - **滚出视野的行会离开组合**，它 `remember` 的状态跟着没。选中态、展开态、编辑中的内容提到列表外面按 item 存。
+
+#### 变高行
+
+行高不一致（会换行的文本、可展开的行）就打开 `variableHeight`：
+
+```kotlin
+LazyColumn(items = rows, itemHeight = 14f, variableHeight = true) { _, row ->
+    Text(row.text)          // 多高由内容决定
+}
+```
+
+`itemHeight` 这时只是**没上过屏的行的初始猜测**。上过屏的行会被量出真实高度，上下两个 spacer 由"已量到的 + 还在猜的"混合算出来 —— 所以滚动条尺寸在猜测被逐步替换的过程中会**轻微跳动**，这是不预先知道尺寸的代价。
+
+三个代价，值得先知道：
+
+- **每行多一个包装元素**（用来接 `LAYOUT_CHANGED` 量高度）
+- **新行第一帧还占着估计值**，第二帧才修正
+- **行内容必须自己有高度。** 量到 0 的行会被拒绝（否则整个列表会以为全都能塞进屏幕，然后把一万行全挂上）
+
+固定高度那条路更快也更准，能用就用它。
 
 ### 带命名槽位的控件
 
@@ -458,7 +478,7 @@ cannot access class kotlinx.coroutines.debug.internal.DebugProbesImpl (in module
 | **手势** | 有 DOM 式事件冒泡和拖放（`DragHandler`），没有 `pointerInput` 那套 slop / 惯性 / 手势识别 |
 | **`rememberSaveable`** | 没有。关闭界面重开状态会丢（最小化编辑器换宿主的场景是能存活的） |
 | **无障碍** | 组合出来的元素不向 MC 旁白贡献信息 |
-| **Lazy 变高行** | 只支持固定尺寸 |
+| **Lazy 变高行** | `LazyColumn(variableHeight = true)` 支持；`LazyRow` / `LazyVerticalGrid` 仍只支持固定尺寸 |
 | **TabView 重排** | 加删支持，已有页签换顺序不生效 |
 | **`AnimatedVisibility`** | 只有淡入淡出，没有 slide / expand |
 | **服务端 UI** | 组合只在客户端跑。服务端数据走上面的 binding 桥 |
