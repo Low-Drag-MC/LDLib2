@@ -13,6 +13,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.BlockNode;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.ContextNode;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.Node;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.NodeAttribute;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphView;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.GraphElementModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.graph.CustomGraphModelImpl;
@@ -29,6 +30,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -438,14 +440,40 @@ public class ItemLibrary extends ItemLibraryPanel<ItemLibraryItem> {
         setRecommendationRoot(recommendationBuilder.build());
     }
 
+    /**
+     * Recommends every node the dragged wire can land on, the ones carrying the wire's own type first
+     * and the merely compatible ones after.
+     *
+     * <p>Compatibility is assignability ({@link PortModel#canConnectPort}), so a wire dragged off a
+     * {@code Float} port is offered every node with a port that accepts a float — which is most of
+     * them, and buries the handful the user actually meant under the rest. Sorting the exact type
+     * matches to the top puts those back on the first screen. Both groups keep the order
+     * {@link #getAllItems()} walks the trees in, so entries only ever move up, never shuffle.
+     */
     public void setPortRecommendation(PortModel sourcePort) {
         if (this.graphModel == null) return;
-        setRecommendation(builder -> getAllItems().forEach(item -> {
+        var sourceType = sourcePort.getDataTypeHandle();
+        var sameType = new ArrayList<NodeModelLibraryItem>();
+        var otherTypes = new ArrayList<NodeModelLibraryItem>();
+        getAllItems().forEach(item -> {
+            if (!(item instanceof NodeModelLibraryItem nodeItem)) return;
             // same lookup the port sub-items use, so it hits the shared test model cache
-            if (item instanceof NodeModelLibraryItem nodeItem && !getCompatiblePorts(nodeItem, sourcePort).isEmpty()) {
-                builder.leaf(nodeItem, null);
-            }
-        }));
+            var ports = getCompatiblePorts(nodeItem, sourcePort);
+            if (ports.isEmpty()) return;
+            (hasPortOfType(ports, sourceType) ? sameType : otherTypes).add(nodeItem);
+        });
+        setRecommendation(builder -> {
+            sameType.forEach(item -> builder.leaf(item, null));
+            otherTypes.forEach(item -> builder.leaf(item, null));
+        });
+    }
+
+    /** Whether any of the ports carries exactly {@code type}, rather than one merely assignable to it. */
+    private static boolean hasPortOfType(List<PortModel> ports, @Nullable TypeHandle type) {
+        for (var port : ports) {
+            if (Objects.equals(port.getDataTypeHandle(), type)) return true;
+        }
+        return false;
     }
 
     public void showWithNodesFitPort(float mouseX, float mouseY, List<PortModel> portModels, Consumer<@Nullable ItemLibraryItem> onFinished) {
