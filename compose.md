@@ -21,7 +21,7 @@ fun DynamicButtonList() {
 }
 ```
 
-游戏里跑一下：`/ldlib2_screen_test compose`（还有 `compose_todo`、`compose_widgets`、`compose_lazy`）。
+游戏里跑一下：`/ldlib2_screen_test compose`（还有 `compose_todo`、`compose_widgets`、`compose_lazy`、`compose_gallery`）。服务端驱动的那个走真实菜单路径，用 `gradlew runClient -PldTest=compose_server`。
 
 ---
 
@@ -353,21 +353,63 @@ AnimatedVisibility(visible = shown, animationSpec = TweenSpec(300)) {
 
 ---
 
-## 服务端数据
+## 服务端驱动的 UI
 
-同步槽是按注册顺序编号且不复用的，所以 **binding 要在组合外面建好**，只把值桥进来：
+**能做到行数完全由服务端决定** —— 但有一条规则必须先讲清楚，否则会静默出错。
+
+### 那条规则
+
+`UISyncManager` 给同步值和 RPC 事件**按注册顺序编号**：发送方写下标，接收方按同一个下标查自己的表。两边之所以对得上，是因为两边跑的是同一个 `createUI`。
+
+而组合**只在客户端跑**，还会随状态增删元素。所以组合里注册的任何东西，两边的编号都会错位 —— 而且错得无声无息：一条读错，`handlePack` 吞掉异常，后面整包全从错误的偏移读。
+
+所以：
+
+> **凡是"注册"的，都写在 `createUI` 里、组合外面；组合只负责"使用"。**
+
+具体说，**组合里不要碰** `bindDataSource`、`setOnServerClick`、`addServerEventListener` —— 这三个都会注册。
+
+### 这不限制动态性
+
+因为一次注册可以承载任意多的动态内容：
+
+- **服务端 → 客户端**：**一个**同步值装下整个模型。三行和三百行是同一个槽，编号永远不动。
+- **客户端 → 服务端**：**消息**，按*名字*寻址，所有名字共用底层同一个 RPC 事件（`UIElement.getOrCreateMessageRPC`）。所以组合想发什么就发什么，不用注册任何东西。
 
 ```kotlin
-// 组合外面，槽位顺序固定
-private val progress = TrackData(0f)
+// createUI 里，两边都跑
+val host = ComposeElement { Rows(model) }
 
-// 组合里面
-val value by progress.collectAsState()
+// 一个同步值装下整个模型
+root.addChild(BindableValue<String>().bind(
+    DataBindingBuilder.stringS2C { rows.joinToString("|") }.name("rows")
+        .onRemoteSyncReceived { model.value = decode(it) }   // 只在客户端跑
+        .build()))
+
+// 消息处理器挂在组合的宿主元素上 —— 必须是同一个元素，共用的 RPC 才会同号
+host.onMessage("remove") { tag -> rows = rows - tag.getString("row") }
+root.addChild(host)
 ```
 
-三个桥：`IDataProvider.collectAsState()`、`TrackData.asMutableState()`、`IBinding.asMutableState()`。
+```kotlin
+// 组合里，客户端
+val server = rememberServerMessenger()
+rows.forEach { row ->
+    key(row) {
+        Button(onClick = { server.send("remove") { putString("row", row) } }, text = ...)
+    }
+}
+```
 
-轮询型的数据源（`ITickable`，比如 `SupplierDataSource`）会挂在宿主元素的 20Hz tick 上，跟着 tick 更新而不是跟着帧。
+要传类型化参数而不是 `CompoundTag` 就用 `server.call(rpcEvent, args…)` —— 同样，`rpcEvent` 得在 `createUI` 里注册。
+
+跑一下：`gradlew runClient -PldTest=compose_server`。那个场景走的是真实菜单路径（服务端 `openMenu` → 开屏包 → 初始数据包 → RPC 回传），断言行数在两个方向上都跟着服务端走，包括清空到 0 再加回来。
+
+### 单个值的桥
+
+模型不必是一整坨。已有的三个桥照样能用：`IDataProvider.collectAsState()`、`TrackData.asMutableState()`、`IBinding.asMutableState()` —— 前提还是那条：**binding 在组合外面建好**。
+
+轮询型数据源（`ITickable`，比如 `SupplierDataSource`）挂在宿主元素的 20Hz tick 上，跟着 tick 更新而不是跟着帧。
 
 ---
 
@@ -481,6 +523,6 @@ cannot access class kotlinx.coroutines.debug.internal.DebugProbesImpl (in module
 | **Lazy 变高行** | `LazyColumn(variableHeight = true)` 支持；`LazyRow` / `LazyVerticalGrid` 仍只支持固定尺寸 |
 | **TabView 重排** | 加删支持，已有页签换顺序不生效 |
 | **`AnimatedVisibility`** | 只有淡入淡出，没有 slide / expand |
-| **服务端 UI** | 组合只在客户端跑。服务端数据走上面的 binding 桥 |
+| **服务端 UI** | 组合只在客户端跑，但行数可以完全由服务端驱动 —— 见「服务端驱动的 UI」。限制是注册必须在组合外 |
 
 `Menu` / `SearchComponent` / `Scene` / `GraphView` 没有类型化封装 —— 用 `UIElementNode` 直接使。
