@@ -76,7 +76,7 @@ dependencies {
 [[dependencies.yourmod]]
 modId = "ldlib2_compose"
 type = "required"
-versionRange = "[2.2.37,)"
+versionRange = "[${ldlib2_version},)"
 ```
 
 ---
