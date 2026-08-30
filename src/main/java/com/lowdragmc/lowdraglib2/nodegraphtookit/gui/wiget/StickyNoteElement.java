@@ -82,6 +82,9 @@ public class StickyNoteElement extends GraphElement<StickyNoteModel> {
             var content = String.join("\n", lines);
             model.setContent(content);
         });
+        // A sticky note writes its content straight to the model rather than through a command, so
+        // read-only has to stop it here. The header stays live, so the note can still be collapsed.
+        textArea.setActive(!isGraphReadOnly());
         addChild(textArea);
 
         applyCollapsedState(model.isCollapsed());

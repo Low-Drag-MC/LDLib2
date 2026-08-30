@@ -72,6 +72,9 @@ public class PortConstantEditorElement extends ModelElement {
                     editor = new FieldValueInspector();
                     if (getGraphView() != null) editor.setHistoryStack(getGraphView().getHistoryStack());
                     editor.loadValueField(portModel);
+                    // Set here as well as in updateUIFromModel: a freshly built editor is on screen and
+                    // typeable from the moment it is added, before any model update runs.
+                    editor.setActive(!isGraphReadOnly());
                     addChild(editor);
                 }
             }
@@ -117,7 +120,9 @@ public class PortConstantEditorElement extends ModelElement {
 //                    }
 //                }
                 }
-                editor.setActive(!ancestorIsConnected && !allSubPortsConnected);
+                // A constant editor writes into the port's embedded value directly, not through a
+                // command, so read-only is enforced here rather than by dispatchCommand.
+                editor.setActive(!isGraphReadOnly() && !ancestorIsConnected && !allSubPortsConnected);
             }
             // Hide editor when port is connected (data-driven) — pin via IMPORTANT.
             Style.importantPipeline(getLayout(), l -> l.display(hideEditor ? TaffyDisplay.NONE : TaffyDisplay.FLEX));

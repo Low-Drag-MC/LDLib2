@@ -115,6 +115,8 @@ public class PlacematElement extends GraphElement<PlacematModel> {
     private void onResizeMouseDown(UIEvent e) {
         // only resize on left-click over a border/corner handle
         if (e.button != 0) return;
+        // The ResizeElementCommand at drag end would be refused and the placemat would snap back.
+        if (isGraphReadOnly()) return;
         var handle = WindowDragHelper.detectResizeHandle(this, e.x, e.y, RESIZE_BORDER);
         if (handle == null) return;
         var icon = handle.icon;
@@ -227,6 +229,7 @@ public class PlacematElement extends GraphElement<PlacematModel> {
     public void startInlineRename() {
         if (inlineRenameField != null) return;
         if (!getModel().isRenamable()) return;
+        if (isGraphReadOnly()) return;
         var initial = getModel().getName();
         // Force-hide the title label while the inline edit field is in place.
         Style.importantPipeline(titleLabel.getLayout(), l -> l.display(TaffyDisplay.NONE));

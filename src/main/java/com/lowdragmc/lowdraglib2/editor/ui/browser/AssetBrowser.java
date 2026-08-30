@@ -980,7 +980,9 @@ public class AssetBrowser extends UIElement {
         menu.leaf(Icons.CUT, "editor.assets.cut", () -> copyToClipboard(target, true));
         if (container != null && container.getCanCopy().test(path)) {
             menu.leaf("editor.assets.duplicate", () -> {
-                container.copyResource(path);
+                // duplicateResource, not copyResource: this entry means "make one here" and rebuilds
+                // the grid on the next line, so it needs the copy to have happened already.
+                container.duplicateResource(path);
                 requestGridRebuild();
             });
         }

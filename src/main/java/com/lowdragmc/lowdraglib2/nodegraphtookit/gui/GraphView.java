@@ -102,6 +102,20 @@ public class GraphView extends UIElement {
     private Predicate<IGraphCommand> commandInterceptor;
     /** Observers notified after a command executes (see {@link #addCommandListener}). */
     private final List<GraphCommandListener> commandListeners = new ArrayList<>();
+    /**
+     * A view that shows a graph without letting it be changed — what a built-in resource opens as.
+     *
+     * <p>Enforced at the one place every structural change passes through ({@link #dispatchCommand}),
+     * so a mutation added later is read-only-safe by default rather than by being remembered. The rest
+     * of what this flag switches off is <em>presentation</em>: interactions whose feedback would be a
+     * lie if the command behind them can never land — starting a node drag that would snap back, a
+     * context menu of entries that all no-op, an inline value field that accepts a keystroke and
+     * discards it.</p>
+     *
+     * @see #setReadOnly(boolean)
+     */
+    @Getter
+    private boolean readOnly = false;
 
     // runtime
     @Nullable
@@ -385,11 +399,39 @@ public class GraphView extends UIElement {
      *              If {@code null}, the view will be cleared and no graph will be loaded.
      * @return the current {@code GraphView} instance to allow method chaining.
      */
+    /**
+     * Switches this view between authoring and viewing.
+     *
+     * <p>Set it <em>before</em> {@link #loadGraph}: the inline port editors are built as the UI tree is
+     * built and read the flag as they go, so flipping it afterwards leaves the ones already on screen
+     * editable until something else rebuilds them.</p>
+     *
+     * @see #readOnly
+     */
+    public GraphView setReadOnly(boolean readOnly) {
+        if (this.readOnly == readOnly) return this;
+        this.readOnly = readOnly;
+        // The two panels that author a graph rather than describe it. Left visible, because reading a
+        // built-in blueprint's variables and node options is the whole point of being able to open it —
+        // an inactive element still draws, it just stops taking input.
+        blackboard.setActive(!readOnly);
+        inspector.setActive(!readOnly);
+        header.select(".__node-graph-view_header-undo__").forEach(e -> e.setActive(!readOnly));
+        header.select(".__node-graph-view_header-redo__").forEach(e -> e.setActive(!readOnly));
+        return this;
+    }
+
     public GraphView loadGraph(@Nullable Graph graph) {
         clearGraph();
         this.graph = graph;
         if (this.graph == null) return this;
         this.itemLibrary.onLoadGraph(graph.graphModel);
+        // Warm the supported-type probe here, on the thread that owns this graph. It is cached per
+        // graph class, so this costs nothing after the first graph of a type — but it decides WHICH
+        // thread pays for it, and the blackboard's type picker would otherwise be first, from its
+        // background search thread, building models in a graph this view is already ticking.
+        // See CustomGraphModelImpl.detectSupportedTypes.
+        graph.getSupportTypes();
         buildUITree(this.graph.graphModel);
         requireFitGraph = true;
         // Push initial snapshot so the first command can be undone
@@ -677,6 +719,7 @@ public class GraphView extends UIElement {
      */
     public boolean dispatchCommand(IGraphCommand command) {
         if (graph == null) return false;
+        if (readOnly) return false;
         var graphModel = graph.graphModel;
         // before-veto: the graph's own policy AND the optional instance interceptor must both allow.
         if (!graphModel.canExecuteCommand(command)) return false;
@@ -852,6 +895,12 @@ public class GraphView extends UIElement {
             addSelected(model);
             moveElementTop(element);
         });
+
+        // A drag only ever *looks* like it moved something: the element's position is pinned while
+        // dragging and the model is written by the MoveElementsCommand at drag end, which read-only
+        // refuses — so the node would snap back. Selection above still works, so a read-only graph can
+        // be clicked through and inspected.
+        if (readOnly) return;
 
         // drag movable — include fully contained nodes when dragging a placemat. Filter
         // by the MOVABLE capability so non-movable nodes (e.g. BlockNodeModel) don't
@@ -1128,7 +1177,10 @@ public class GraphView extends UIElement {
     protected void onKeyDown(UIEvent event) {
         if (this.isFocused() || panelLayer.getChildren().stream().anyMatch(UIElement::isFocused)) {
             switch (event.keyCode) {
-                case GLFW.GLFW_KEY_DELETE -> deleteSelectedElements();
+                case GLFW.GLFW_KEY_DELETE -> {
+                    if (readOnly) event.hasHandler = false;
+                    else deleteSelectedElements();
+                }
                 default -> event.hasHandler = false;
             }
         } else {
@@ -1137,6 +1189,14 @@ public class GraphView extends UIElement {
     }
 
     protected void onValidateCommand(UIEvent event) {
+        // Copy is the one that still means something read-only: it takes a snapshot out of the graph
+        // rather than putting anything into it, which is exactly how you fork a built-in blueprint.
+        if (readOnly) {
+            if (CommandEvents.COPY.equals(event.command)) {
+                event.stopPropagation();
+            }
+            return;
+        }
         if (
                 CommandEvents.UNDO.equals(event.command) ||
                 CommandEvents.REDO.equals(event.command) ||
@@ -1152,6 +1212,12 @@ public class GraphView extends UIElement {
 
 
     protected void onExecuteCommand(UIEvent event) {
+        if (readOnly) {
+            if (CommandEvents.COPY.equals(event.command)) {
+                copySelectedElements();
+            }
+            return;
+        }
         if (CommandEvents.REDO.equals(event.command)) {
             historyStack.redo();
         } else if (CommandEvents.UNDO.equals(event.command)) {
@@ -1339,6 +1405,10 @@ public class GraphView extends UIElement {
 
     protected TreeBuilder.Menu createMenu(float mouseX, float mouseY) {
         var menuBuilder = TreeBuilder.Menu.start();
+        // Read-only: every entry below either creates or edits something, and dispatchCommand refuses
+        // all of it. An empty menu is not opened at all (see onGraphViewMouseUp), so right-click stays
+        // pure panning instead of popping up a list of things that silently do nothing.
+        if (readOnly) return menuBuilder;
         // Newly-created elements align to the snap grid the same way drag-moved ones do, so the
         // canvas stays grid-consistent regardless of how the user adds content.
         var localPosition = snapPosition(

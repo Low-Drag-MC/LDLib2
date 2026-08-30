@@ -71,10 +71,17 @@ public class BlockListContainerElement extends ModelElement {
         rebuildBlocks();
     }
 
-    /** Hide the Add Block button entirely when the context accepts no block types. Data-driven. */
+    /**
+     * Hide the Add Block button when the context accepts no block types — or when the graph is being
+     * viewed rather than edited. Data-driven.
+     *
+     * <p>Read-only matters here because the button is the one control on a node that opens something:
+     * {@code dispatchCommand} would refuse the insert, but only after the player had picked a block out
+     * of the library, which is a worse answer than not offering it.</p>
+     */
     private void applyAddButtonVisibility() {
         if (addBlockButton == null) return;
-        var hasSupport = !contextNodeModel.getSupportBlockClasses().isEmpty();
+        var hasSupport = !contextNodeModel.getSupportBlockClasses().isEmpty() && !isGraphReadOnly();
         Style.importantPipeline(addBlockButton.getLayout(), l -> l.display(hasSupport ? TaffyDisplay.FLEX : TaffyDisplay.NONE));
     }
 

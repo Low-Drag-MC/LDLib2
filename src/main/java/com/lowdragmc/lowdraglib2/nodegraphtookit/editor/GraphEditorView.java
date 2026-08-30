@@ -62,6 +62,14 @@ public class GraphEditorView extends View implements SubgraphRegistry.Listener {
      */
     @Nullable @Getter
     private IResourcePath rootPath;
+    /**
+     * Viewing rather than editing — see {@link GraphView#isReadOnly()}. Owned here as well as on the
+     * views because it also governs what belongs to the editor rather than the canvas: the save
+     * button, dirty tracking, and the save-before-close prompt. Dive views inherit it, so navigating
+     * into a subgraph of a read-only graph cannot become a way to edit one.
+     */
+    @Getter
+    private boolean readOnly = false;
     /** Subgraph navigation stack. Bottom entry is always the root level. */
     private final Deque<Level> levelStack = new ArrayDeque<>();
     /**
@@ -140,6 +148,28 @@ public class GraphEditorView extends View implements SubgraphRegistry.Listener {
     }
 
     /**
+     * Opens this editor as a viewer.
+     *
+     * <p>Call it before {@link #loadGraph}, for the reason {@link GraphView#setReadOnly} gives.</p>
+     *
+     * @see #readOnly
+     */
+    public GraphEditorView setReadOnly(boolean readOnly) {
+        if (this.readOnly == readOnly) return this;
+        this.readOnly = readOnly;
+        for (var level : levelStack) {
+            level.view.setReadOnly(readOnly);
+        }
+        // Hidden rather than disabled: an inactive Save reads as "nothing to save yet", which is a
+        // different statement from "this resource is not yours to save".
+        saveButton.setDisplay(!readOnly);
+        if (readOnly) {
+            clearDirty();
+        }
+        return this;
+    }
+
+    /**
      * Reattaches the saveButton + breadcrumb to a given GraphView's header. The UI framework
      * auto-removes them from any previous parent when re-parented.
      */
@@ -191,6 +221,7 @@ public class GraphEditorView extends View implements SubgraphRegistry.Listener {
         levelStack.push(level);
         attachOverlayToHeader(newView);
         addChildren(newView);
+        newView.setReadOnly(readOnly);
         newView.loadGraph(innerGraph);
         if (externalPath != null) {
             level.levelSavedTag = serializeLevelGraph(level);
@@ -224,6 +255,7 @@ public class GraphEditorView extends View implements SubgraphRegistry.Listener {
         levelStack.push(level);
         attachOverlayToHeader(newView);
         addChildren(newView);
+        newView.setReadOnly(readOnly);
         newView.loadGraph(innerGraph);
         level.levelSavedTag = serializeLevelGraph(level);
         refreshBreadcrumb();
@@ -301,6 +333,9 @@ public class GraphEditorView extends View implements SubgraphRegistry.Listener {
     }
 
     public void markAsDirty() {
+        // Nothing on a read-only graph can change, so a "dirty" state here would only be a false
+        // asterisk on the tab and a save prompt on close for edits that never happened.
+        if (readOnly) return;
         isDirty = true;
         saveButton.setActive(true);
     }
@@ -316,6 +351,7 @@ public class GraphEditorView extends View implements SubgraphRegistry.Listener {
      * back through the {@link IGraphReferenceResolver#save resolver}.
      */
     public void notifySaved() {
+        if (readOnly) return;
         isSavingSelf = true;
         try {
             var level = getCurrentLevel();
@@ -421,7 +457,7 @@ public class GraphEditorView extends View implements SubgraphRegistry.Listener {
         super.screenTick();
         // Auto-detect dirtiness: compare the current level's graph serialization against its
         // last-saved snapshot. Brute-force comparison; can be optimized later if it shows up.
-        if (!isDirty) {
+        if (!isDirty && !readOnly) {
             var mui = getModularUI();
             if (mui != null && (mui.getTickCounter() & 20) == 0) {
                 var level = getCurrentLevel();

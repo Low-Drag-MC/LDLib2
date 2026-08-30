@@ -180,6 +180,24 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
     }
 
     /**
+     * The providers a new resource can be written into, builtin first, in display order.
+     *
+     * <p>The destinations offered when copying a resource. A read-only provider (the builtin library a
+     * mod ships) reports {@link IResourceProvider#supportAdd() supportAdd() == false} and is left out,
+     * which is what makes "copy" the way to fork one of its resources into somewhere writable.</p>
+     */
+    public List<IResourceProvider<T>> listWritableProviders() {
+        var providers = new ArrayList<IResourceProvider<T>>();
+        for (var list : builtinProviders.values()) {
+            list.stream().filter(IResourceProvider::supportAdd).forEach(providers::add);
+        }
+        for (var list : customProviders.values()) {
+            list.stream().filter(IResourceProvider::supportAdd).forEach(providers::add);
+        }
+        return Collections.unmodifiableList(providers);
+    }
+
+    /**
      * Looks up the entry of the given resource. The resource is matched by identity first, then by
      * {@link Object#equals(Object)}.
      *
