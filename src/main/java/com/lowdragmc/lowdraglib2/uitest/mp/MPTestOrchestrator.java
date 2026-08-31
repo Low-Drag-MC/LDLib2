@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.uitest.mp;
 
-import com.google.gson.GsonBuilder;
+import com.lowdragmc.lowdraglib2.uitest.proc.ChildBuilds;
+import com.lowdragmc.lowdraglib2.uitest.report.ReportMerge;
 import com.lowdragmc.lowdraglib2.uitest.report.ReportWriter;
 import com.lowdragmc.lowdraglib2.uitest.report.RunReport;
 
@@ -18,7 +19,6 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -113,40 +113,16 @@ public final class MPTestOrchestrator {
     // region child processes
 
     private static Process spawnChild(Path projectDir, String task, int hubPort, Path logDir) throws IOException {
-        Files.createDirectories(logDir);
-        boolean windows = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
-        var command = new ArrayList<String>();
-        if (windows) {
-            command.add("cmd.exe");
-            command.add("/c");
-            command.add(projectDir.resolve("gradlew.bat").toString());
-        } else {
-            command.add(projectDir.resolve("gradlew").toString());
-        }
-        command.add(task);
-        command.add("-PldMpHub=127.0.0.1:" + hubPort);
-        command.add("--console=plain");
-        var builder = new ProcessBuilder(command)
-                .directory(projectDir.toFile())
-                .redirectErrorStream(true)
-                .redirectOutput(logDir.resolve("gradle.log").toFile());
-        // The project-local Gradle user home (fine for compiles) breaks game launches: it puts
-        // bootstraplauncher on both the module path and the class path, and the JVM dies on boot.
-        builder.environment().remove("GRADLE_USER_HOME");
-        return builder.start();
+        return ChildBuilds.spawn(projectDir, task, List.of("-PldMpHub=127.0.0.1:" + hubPort),
+                logDir.resolve("gradle.log"));
     }
 
     private static void killAll(Map<String, Process> processes) {
-        for (var process : processes.values()) {
-            if (process.isAlive()) {
-                process.descendants().forEach(ProcessHandle::destroyForcibly);
-                process.destroyForcibly();
-            }
-        }
+        ChildBuilds.killAll(processes);
     }
 
     private static boolean processDied(Map<String, Process> processes) {
-        return processes.values().stream().anyMatch(process -> !process.isAlive());
+        return ChildBuilds.anyDied(processes);
     }
 
     private static void fail(Map<String, Process> processes, Hub hub, Path outDir, String message) {
@@ -373,23 +349,14 @@ public final class MPTestOrchestrator {
         for (var role : roles) {
             var dir = MPMessages.SERVER_ROLE.equals(role) ? "server" : "client" + role;
             var reportFile = outDir.resolve(dir).resolve(ReportWriter.REPORT_FILE);
-            if (!Files.isRegularFile(reportFile)) {
+            var part = ReportMerge.read(reportFile);
+            if (part == null) {
                 log("MISSING report from '" + role + "' (" + reportFile + ")");
-                merged.status = RunReport.Status.worst(merged.status, RunReport.Status.ERROR);
-                var missing = new RunReport.ScenarioReport();
-                missing.name = "<" + role + ">";
-                missing.status = RunReport.Status.ERROR;
-                missing.error = RunReport.ErrorInfo.of(new IllegalStateException(
-                        "the '" + role + "' process left no report - it crashed or never got that far"));
-                merged.scenarios.add(missing);
+                merged.scenarios.add(ReportMerge.syntheticError("<" + role + ">",
+                        "the '" + role + "' process left no readable report - it crashed or never got that far"));
                 continue;
             }
-            try (var reader = Files.newBufferedReader(reportFile, StandardCharsets.UTF_8)) {
-                parts.put(role, MPMessages.GSON.fromJson(reader, RunReport.class));
-            } catch (IOException | RuntimeException e) {
-                log("UNREADABLE report from '" + role + "': " + e);
-                merged.status = RunReport.Status.worst(merged.status, RunReport.Status.ERROR);
-            }
+            parts.put(role, part);
         }
         if (timedOut) {
             merged.status = RunReport.Status.worst(merged.status, RunReport.Status.HUNG);
@@ -426,29 +393,15 @@ public final class MPTestOrchestrator {
         }
 
         if (merged.scenarios.isEmpty()) {
-            // The solo harness treats "selection matched nothing" as an error, and so does this one:
-            // a typo'd -PldMpTest passing green is exactly the silent failure a gate must not allow.
+            // Same verdict the solo harness reaches for its own empty case: a typo'd -PldMpTest
+            // passing green is exactly the silent failure a gate must not allow.
             log("the selection '" + selection + "' matched no scenarios in any process");
-            merged.status = RunReport.Status.worst(merged.status, RunReport.Status.ERROR);
-            var empty = new RunReport.ScenarioReport();
-            empty.name = "<selection>";
-            empty.status = RunReport.Status.ERROR;
-            empty.error = RunReport.ErrorInfo.of(new IllegalStateException(
+            merged.scenarios.add(ReportMerge.syntheticError("<selection>",
                     "selection '" + selection + "' matched no MP scenarios"));
-            merged.scenarios.add(empty);
         }
 
-        // Before finalise, which derives durationMs from these two.
-        merged.finishedAt = System.currentTimeMillis();
-        ReportWriter.finalise(merged);
-        // finalise recounts scenarios/steps/checks from the merged tree, but capture counts only
-        // exist in the per-process totals.
-        merged.totals.captures = parts.values().stream().mapToInt(part -> part.totals.captures).sum();
-
         try {
-            var gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
-            Files.writeString(outDir.resolve(ReportWriter.REPORT_FILE), gson.toJson(merged));
-            Files.writeString(outDir.resolve(ReportWriter.SUMMARY_FILE), summarise(merged, parts.keySet()));
+            ReportMerge.write(merged, parts.values(), outDir, report -> summarise(report, parts.keySet()));
         } catch (IOException e) {
             log("could not write the merged report: " + e);
             return 2;
@@ -502,37 +455,17 @@ public final class MPTestOrchestrator {
     }
 
     private static int pickFreePort() throws IOException {
-        try (var socket = new ServerSocket(0)) {
-            return socket.getLocalPort();
-        }
-    }
-
-    private interface Check {
-        boolean stop();
+        return ChildBuilds.pickFreePort();
     }
 
     /** Polls until the condition holds, the abort check fires, or the timeout elapses. */
-    private static boolean waitUntil(Check condition, long timeoutMs, Check abort) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + Math.max(0, timeoutMs);
-        while (System.currentTimeMillis() < deadline) {
-            if (condition.stop()) return true;
-            if (abort.stop()) return condition.stop();
-            Thread.sleep(500);
-        }
-        return condition.stop();
+    private static boolean waitUntil(ChildBuilds.Check condition, long timeoutMs, ChildBuilds.Check abort)
+            throws InterruptedException {
+        return ChildBuilds.waitUntil(condition, timeoutMs, abort);
     }
 
     private static void deleteRecursively(Path root) throws IOException {
-        if (!Files.exists(root)) return;
-        try (Stream<Path> paths = Files.walk(root)) {
-            paths.sorted(Comparator.reverseOrder()).forEach(path -> {
-                try {
-                    Files.deleteIfExists(path);
-                } catch (IOException e) {
-                    log("could not delete " + path + ": " + e);
-                }
-            });
-        }
+        ChildBuilds.deleteRecursively(root, MPTestOrchestrator::log);
     }
 
     private static void log(String message) {

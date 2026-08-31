@@ -23,6 +23,7 @@ import org.joml.Vector2f;
 
 import java.lang.reflect.Type;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 public class CustomGraphModelImpl extends GraphModel {
@@ -85,7 +86,46 @@ public class CustomGraphModelImpl extends GraphModel {
         return graph.getSupportedSubgraphVariableKinds();
     }
 
+    /**
+     * Cached per graph type — the answer depends only on {@link GraphModel#getSupportNodes()}, which
+     * is a constant of the graph class, never of the instance being asked.
+     */
+    private static final Map<Class<?>, List<TypeHandle>> SUPPORTED_TYPES = new ConcurrentHashMap<>();
+
+    /**
+     * Every type a port of this kind of graph can carry, found by instantiating each registered node
+     * class and reading its ports.
+     *
+     * <h2>Cached, and isolated from the graph it is asked about</h2>
+     * This is a query, but the only way to answer it is to build one of everything — several hundred
+     * nodes and several thousand ports for a graph whose registry is large. Two things follow, and
+     * both were live bugs:
+     *
+     * <ul>
+     *   <li>The probe nodes are spawned orphaned and discarded, but their ports were still reported
+     *       through the model's change description, so a single call queued thousands of new models
+     *       for a view that has no elements for them. {@link GraphModel#withIsolatedChanges} keeps
+     *       that churn off the live change set.</li>
+     *   <li>Callers include the blackboard's variable-type picker, whose search runs on a background
+     *       thread ({@code SearchEngine}). Building models there raced the render thread's
+     *       {@code GraphView.updateGraphModelChanges}, corrupting the change set's {@code HashSet} —
+     *       a {@code ConcurrentModificationException} or a {@code toArray} overflow, both of which
+     *       took down the screen. Caching means the probe runs once, and
+     *       {@link java.util.concurrent.ConcurrentHashMap#computeIfAbsent} serialises even that.</li>
+     * </ul>
+     *
+     * <p>Keyed by the {@code Graph}'s class where there is one: two graph types can share a model
+     * class ({@code CustomGraphModelImpl}) while registering completely different node sets.</p>
+     */
     public static List<TypeHandle> detectSupportedTypes(GraphModel graphModel) {
+        var key = graphModel instanceof CustomGraphModelImpl custom && custom.getGraph() != null
+                ? custom.getGraph().getClass()
+                : graphModel.getClass();
+        return SUPPORTED_TYPES.computeIfAbsent(key, ignored ->
+                graphModel.withIsolatedChanges(() -> probeSupportedTypes(graphModel)));
+    }
+
+    private static List<TypeHandle> probeSupportedTypes(GraphModel graphModel) {
         var foundTypes = new HashSet<TypeHandle>();
         var nodeCreationData = GraphNodeCreationData.ofOrphan(graphModel);
         // Iterate every registered node type (regular, context, AND block) — getNodeImplType

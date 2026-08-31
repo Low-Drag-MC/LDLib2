@@ -1,0 +1,145 @@
+// LDLib2 parallel UI test harness - Gradle wiring.
+//
+// Copy this file into your mod next to ldlib2-uitest.gradle and apply it after both your
+// `neoForge { }` block and that script:
+//
+//     apply from: rootProject.file('gradle/ldlib2-uitest-par.gradle')
+//
+// Then:  gradlew runParTest -PldTestJobs=4 [-PldTest=all]
+//
+// -PldTestJobs is required - the shard runs are created from it at configuration time, so there is
+// nothing to launch without it. Every other -PldTest* flag is optional and forwarded to the shards.
+//
+// runParTest splits the selection across N client processes, runs them at once, and merges their
+// reports into build/ldlib2-uitest-par/report.json. verifyParTest turns that into the build result.
+//
+// Serial runs are untouched: `runClient -PldTest=...` behaves exactly as before, and the shard runs
+// below do not exist unless -PldTestJobs is given, so they stay out of the IDE's run list.
+
+def ldParOutDir = layout.buildDirectory.dir('ldlib2-uitest-par').get().asFile.absolutePath
+// Deliberately a sibling of the output directory rather than inside it: runParTest wipes the output
+// on every run, and these measurements have to survive that to balance the next one.
+def ldParWeights = layout.buildDirectory.file('ldlib2-uitest-weights.json').get().asFile.absolutePath
+def ldParJobs = (project.findProperty('ldTestJobs') ?: '0').toString().toInteger()
+// Resolved here rather than inside verifyParTest's doLast: with the configuration cache on, a body
+// that runs later may not call back into the project, and `file(...)` does exactly that. Same reason
+// ldlib2-uitest.gradle captures its own output directory up front.
+def ldParOutDirFile = file(ldParOutDir)
+
+// The -PldTest* flags this invocation was given, forwarded verbatim to each shard build. A child
+// build is a fresh Gradle invocation with none of them, and the shard run definitions below read
+// them through findProperty - so anything not forwarded silently falls back to the default here
+// rather than being merely absent. -PldTestJobs is added by the orchestrator itself.
+def ldParChildFlags = ['ldTest', 'ldTestExclude', 'ldTestGuiScale', 'ldTestWindow', 'ldTestInputMode',
+                       'ldTestWatchdogSec']
+        .findAll { project.hasProperty(it) }
+        .collect { "-P$it=${project.property(it)}".toString() }
+
+// The shard runs exist only while a parallel run is being set up. Both the parent invocation and
+// each child build see the same -PldTestJobs, so they agree on how many there are.
+//
+// gameDirectory is explicit, and has to be - exactly as in ldlib2-mptest.gradle. ModDev points
+// *every* run at a single shared `run/`, where NeoGradle gave each one runs/<name>. Per-process
+// isolation is the whole reason this is safe: WorldBootstrap deletes every ldtest_ world it can see
+// before creating its own, so shards sharing a game directory would delete each other's worlds
+// mid-run - and on Windows they would also fight over latest.log, which is a hard failure. Separate
+// saves/, latest.log and options.txt come with the separate directory.
+//
+// disableIdeRun for the same reason the other two harness scripts use it: ModDev serialises a run's
+// VM args to build/moddev/<name>RunVmArgs.txt and the IDE configuration it generates passes that
+// file verbatim, with no Gradle task before launch. These are harness plumbing driven by
+// runParTest, not run configs meant to appear in the IDE's list.
+if (ldParJobs > 0) {
+    neoForge {
+        runs {
+            (0..<ldParJobs).each { shard ->
+                create("uiTestShard$shard".toString()) {
+                    client()
+                    disableIdeRun()
+                    gameDirectory = project.file("runs/uiTestShard$shard")
+                    systemProperty 'ldlib2.uitest.run', (project.findProperty('ldTest') ?: 'all').toString()
+                    systemProperty 'ldlib2.uitest.exclude', (project.findProperty('ldTestExclude') ?: '').toString()
+                    systemProperty 'ldlib2.uitest.out', "$ldParOutDir/shard$shard"
+                    systemProperty 'ldlib2.uitest.shard', "$shard/$ldParJobs"
+                    systemProperty 'ldlib2.uitest.weights', ldParWeights
+                    systemProperty 'ldlib2.uitest.guiScale', (project.findProperty('ldTestGuiScale') ?: '2').toString()
+                    systemProperty 'ldlib2.uitest.window', (project.findProperty('ldTestWindow') ?: '').toString()
+                    systemProperty 'ldlib2.uitest.inputMode', (project.findProperty('ldTestInputMode') ?: 'SYNTHETIC').toString()
+                    // More generous than a serial run's 90s: N clients share one machine, and a shard
+                    // starved of frames while its neighbours load mods is slow, not hung.
+                    systemProperty 'ldlib2.uitest.watchdogSec', (project.findProperty('ldTestWatchdogSec') ?: '180').toString()
+                }
+            }
+        }
+    }
+}
+
+tasks.register('runParTest', JavaExec) {
+    group = 'verification'
+    description = 'Runs LDLib2 UI test scenarios split across several client processes.'
+    // Same short class path as runMpTest, and for the same two reasons: the orchestrator never
+    // touches a Minecraft class, and a full runtime class path would blow the Windows command-line
+    // length limit. The ldlib2-*.jar entry is what makes this work in a DOWNSTREAM mod, where the
+    // orchestrator lives in the dependency rather than in the mod's own output.
+    classpath = files(sourceSets.main.output,
+            configurations.runtimeClasspath.filter {
+                it.name.contains('gson') || it.name.startsWith('ldlib2')
+            })
+    mainClass = 'com.lowdragmc.lowdraglib2.uitest.par.ParallelTestOrchestrator'
+    // The --key value options first, then the shard flags: the orchestrator reads everything past
+    // its own options as arguments to hand each child build.
+    args(['--projectDir', project.projectDir.absolutePath,
+          '--out', ldParOutDir,
+          '--weights', ldParWeights,
+          '--selection', (project.findProperty('ldTest') ?: 'all').toString(),
+          '--jobs', (ldParJobs > 0 ? ldParJobs : 2).toString()] + ldParChildFlags)
+    doFirst {
+        if (ldParJobs <= 0) {
+            // The shard runs are created at configuration time from this property, so it has to be
+            // present on the command line - defaulting it here would leave nothing to launch.
+            throw new GradleException("runParTest needs -PldTestJobs=<n> (2 is a good start).\n" +
+                    "Each job is a whole Minecraft client, so raise it only as far as the machine "
+                    + "keeps up - frame starvation makes timing-sensitive scenarios fail for no reason.")
+        }
+    }
+    // Informative only; verifyParTest below is authoritative and also catches the orchestrator
+    // dying before it could write a report at all.
+    ignoreExitValue = true
+    finalizedBy 'verifyParTest'
+}
+
+tasks.register('verifyParTest') {
+    group = 'verification'
+    description = 'Fails the build if the LDLib2 parallel UI test report contains failures.'
+    // Skipped when runParTest never got as far as launching anything, so its own error message about
+    // the missing -PldTestJobs is what the user reads rather than "no merged report".
+    onlyIf { ldParJobs > 0 }
+    doLast {
+        def dir = ldParOutDirFile
+        def reportFile = new File(dir, 'report.json')
+        if (!reportFile.exists()) {
+            throw new GradleException("LDLib2 parallel UI test: no merged report at ${reportFile}.\n" +
+                    "The orchestrator failed before writing one - see the gradle.log files under ${dir}.")
+        }
+        def report = new groovy.json.JsonSlurper().parse(reportFile)
+        logger.lifecycle("LDLib2 parallel UI test: ${report.totals.passed}/${report.totals.scenarios} scenarios passed, " +
+                "${report.totals.checks - report.totals.checksFailed}/${report.totals.checks} checks passed " +
+                "in ${report.durationMs} ms")
+        report.scenarios.findAll { it.status != 'PASS' }.each { scenario ->
+            logger.error("FAILED scenario '${scenario.name}' (${scenario.className})")
+            if (scenario.error) logger.error("  ${scenario.error.type}: ${scenario.error.message}")
+            scenario.steps.findAll { it.status != 'PASS' }.each { step ->
+                logger.error("  step ${step.index} [${step.kind}] ${step.name} -> ${step.status}")
+                if (step.error) logger.error("    error: ${step.error.message}")
+                step.checks.findAll { !it.passed }.each { check ->
+                    logger.error("    check '${check.desc}'" +
+                            (check.expected != null ? " expected=${check.expected} actual=${check.actual}" : ""))
+                }
+                step.captures.each { logger.error("    shot: ${new File(dir, it.path)}") }
+            }
+        }
+        if (report.status != 'PASS') {
+            throw new GradleException("LDLib2 parallel UI test ${report.status} - full report: ${reportFile}")
+        }
+    }
+}

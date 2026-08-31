@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.uitest.capture;
 
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.UISurface;
 import com.lowdragmc.lowdraglib2.uitest.ElementRef;
 import com.lowdragmc.lowdraglib2.uitest.report.RunReport;
 import org.jetbrains.annotations.Nullable;
@@ -16,6 +17,12 @@ public final class CaptureRequest {
     public enum Kind {
         FULL,
         ELEMENT,
+        /**
+         * A render target that is not the game's frame — a UI hosted in its own operating-system
+         * window. Its pixels never reach the main framebuffer, so a {@link #FULL} capture cannot see
+         * it at all.
+         */
+        SURFACE,
         /** Taken automatically when a step fails or throws. */
         ERROR
     }
@@ -27,14 +34,24 @@ public final class CaptureRequest {
     public final RunReport.StepReport stepReport;
     @Nullable
     public final ElementRef element;
+    /** Where to read the frame back from. {@code null} means the game's own. */
+    @Nullable
+    public final UISurface surface;
 
     public CaptureRequest(Kind kind, String scenarioName, String label, int stepIndex,
                           RunReport.StepReport stepReport, @Nullable ElementRef element) {
+        this(kind, scenarioName, label, stepIndex, stepReport, element, null);
+    }
+
+    public CaptureRequest(Kind kind, String scenarioName, String label, int stepIndex,
+                          RunReport.StepReport stepReport, @Nullable ElementRef element,
+                          @Nullable UISurface surface) {
         this.kind = kind;
         this.scenarioName = scenarioName;
         this.label = label;
         this.stepIndex = stepIndex;
         this.stepReport = stepReport;
         this.element = element;
+        this.surface = surface;
     }
 }

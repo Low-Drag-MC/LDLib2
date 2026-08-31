@@ -90,6 +90,31 @@ public class FurnaceUiScenario implements UIScenario {
 `verifyUiTest` is attached to `runClient` with `finalizedBy`, so it runs even if the client crashes,
 and **a missing report is itself a failure**.
 
+### Parallel runs
+
+```bash
+gradlew runParTest -PldTestJobs=4 [-PldTest=all]
+```
+
+Splits the same selection across N client processes, runs them at once, and merges their reports into
+`build/ldlib2-uitest-par/report.json`. `verifyParTest` turns that into the build result, exactly as
+`verifyUiTest` does for a serial run. Every `-PldTest*` flag above works and is forwarded to each
+shard; `-PldTestJobs` is the one that is required, because the shard runs are created from it at
+configuration time.
+
+Each job is a whole Minecraft client, so raise it only as far as the machine keeps up — a shard
+starved of frames makes timing-sensitive scenarios fail for no reason. The watchdog is 180s here
+rather than 90s for the same reason.
+
+Nothing coordinates the split at runtime: every shard resolves the same name-sorted selection and
+keeps its own bucket. The merge step then checks that they agreed, and reports a scenario that ran in
+no shard — or in two — rather than letting it vanish from the totals. Timings are recorded to
+`build/ldlib2-uitest-weights.json` so the next run balances the buckets by duration.
+
+Shards get their own game directory (`runs/uiTestShard<n>`). That is load-bearing, not tidiness:
+`WorldBootstrap` deletes every `ldtest_` world it can see before creating its own, so shards sharing
+one would delete each other's mid-run.
+
 ### Background runs
 
 A run does not need the window focused and never touches your mouse, so you can start one and carry
@@ -158,7 +183,7 @@ s.step("anything on the client thread", ctx -> { ... })   // TestContext
 `checkText` `checkTextContains` `checkVisible` `checkHidden` `checkFocused` `checkHovered`
 `checkClass` `checkBounds` `checkScreen` `checkValue`
 
-**Capture** — `screenshot` `screenshotElement`
+**Capture** — `screenshot` `screenshotElement` `screenshotSurface`
 
 **Structure** — `group` `repeat` `teardown` `teardownServer` `settleMs` `timeoutMs` `log`
 
@@ -177,6 +202,39 @@ ctx.query("button").withText("+").excludeInternal().nth(1).one();
 Every input step hit-tests the target's centre before acting, and fails with
 `"resolved X but hit test returned Y"` if the element is occluded, clipped or off screen — so a test
 can never silently click nothing and pass.
+
+### A UI in its own OS window
+
+`ctx.el`, `ctx.query` and every input step resolve through the UI behind `Minecraft#screen`. A UI
+hosted in a `ModularUIWindow` is behind no screen at all: it takes its input from raw GLFW callbacks
+on its own window and is drawn into an off-screen target that never reaches the game's frame. Three
+things address that, and each is the only way to do its job:
+
+```java
+ctx.in(window.getModularUI(), "button")   // query that window's UI instead of the screen's
+   .withText("Save").one();
+
+ctx.input(window)                         // post into the window's own event queue
+   .moveTo(element).mouseDown(MOUSE_LEFT);
+
+s.screenshotSurface("label", ctx -> window.surface());   // read back the window's own framebuffer
+```
+
+`ctx.input(window)` posts real `OsWindowEvent`s, so the drain, the hit test, the move/resize gesture
+check and the dispatch are all the window's own — not a shortcut around them. Coordinates are that
+window's GUI space, which is what `ElementBounds` already reports for elements in its UI. Post one
+primitive per step, exactly as with the screen driver: the queue is drained once per frame, so
+anything that needs a frame to pass in between — a drag — will not start if you batch it.
+
+Two things about it that are load-bearing rather than incidental:
+
+- **One driver per window, kept for the whole scenario.** It remembers where `moveTo` last aimed and
+  re-states that position with every button event. A window reads its *own* cached cursor when a
+  button arrives, and the platform writes that cache too — so without the re-aim, a physical mouse
+  drifting over the window between the aim and the press takes the synthetic click with it.
+- **Press and release in the same step for a control that tears down its host** — a window's close
+  button, or the debugger's window toggle. LDLib2 controls fire on MOUSE_DOWN, so by the next step
+  there is no window left to release into.
 
 ## What gets verified
 
@@ -373,10 +431,12 @@ Adopting it downstream mirrors the solo harness: write `MPScenario`s in `src/mai
 
 | Package | Contents |
 |---|---|
-| `com.lowdragmc.lowdraglib2.uitest` | public API + engine: `UIScenario`, `ScenarioBuilder`, `TestContext`, `ServerContext`, `UITestRunner` |
-| `...uitest.input` | `InputDriver`, synthetic/real drivers, `Keys` |
+| `com.lowdragmc.lowdraglib2.uitest` | public API + engine: `UIScenario`, `ScenarioBuilder`, `TestContext`, `ServerContext`, `UITestRunner`, and the shard split (`ShardPlan`, `ShardWeights`) |
+| `...uitest.input` | `InputDriver`, synthetic/real drivers, `Keys`, `WindowInput` (a UI in its own OS window) |
 | `...uitest.target` | selector validation, stable element paths, text extraction |
 | `...uitest.capture` | framebuffer readback and cropping |
 | `...uitest.report` | report model and writer |
+| `...uitest.par` | `ParallelTestOrchestrator` (no Minecraft imports); Gradle wiring in `gradle/ldlib2-uitest-par.gradle` |
+| `...uitest.proc` | `ChildBuilds`, shared by both orchestrators for launching and reaping child Gradle builds |
 | `com.lowdragmc.lowdraglib2.gui.ui.utils` | the seams a run installs itself into: `KeyState`, `CursorState`, `RawInputGate` |
 | `com.lowdragmc.lowdraglib2.test.uitest` | LDLib2's own scenarios (dev only) |

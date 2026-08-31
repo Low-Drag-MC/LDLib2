@@ -19,6 +19,7 @@
     "accessor.PictureInPictureRendererAccessor",
     "ui.AbstractContainerScreenMixin",
     "ui.ContainerEventHandlerMixin",
+    "ui.GuiGraphicsMixin",
     "ui.GuiRendererMixin",
     "ui.KeyboardHandlerMixin",
     "ui.MouseHandlerMixin",

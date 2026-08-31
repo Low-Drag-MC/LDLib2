@@ -37,6 +37,19 @@ public abstract class ModelElement extends UIElement {
         addEventListener(UIEvents.REMOVED, this::onRemoved);
     }
 
+    /**
+     * Whether the view showing this element forbids changing the graph.
+     *
+     * <p>False for an element not attached to a view yet — an element with nowhere to dispatch to
+     * cannot edit anything either way, and defaulting to "read-only" would make elements build
+     * themselves disabled and never recover.</p>
+     *
+     * @see GraphView#isReadOnly()
+     */
+    public boolean isGraphReadOnly() {
+        return graphView != null && graphView.isReadOnly();
+    }
+
     public void setGraphView(@Nullable GraphView graphView) {
         if (this.graphView == graphView) return;
         dependencies.setGraphView(graphView);

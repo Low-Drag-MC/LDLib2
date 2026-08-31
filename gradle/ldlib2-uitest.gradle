@@ -87,6 +87,14 @@ tasks.configureEach { task ->
     if (task.name != 'runClient') return
     task.finalizedBy 'verifyUiTest'
 
+    // Clear last run's output first. verifyUiTest reads whatever report.json is on disk, so a client
+    // that dies before the runner even starts - a bad class path, a crash during mod loading - would
+    // otherwise be reported with the *previous* run's verdict. Removing it up front is what makes
+    // "no report is a failure" actually fire.
+    if (ldTestRequested) {
+        task.doFirst { ldTestOutFile.deleteDir() }
+    }
+
     // On the task, not on `neoForge.runs.client`. That distinction is the whole difference between a
     // flag that applies to this invocation and one that applies forever:
     //

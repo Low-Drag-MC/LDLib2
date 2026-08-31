@@ -74,9 +74,16 @@ public class BuiltinResourceProvider<T> extends ResourceProvider<T> {
         return false;
     }
 
+    /**
+     * Copying is allowed even though nothing else is: a copy is written into a provider the user
+     * chooses, not back into this one, so it is the supported way to fork a builtin resource into
+     * something editable.
+     *
+     * @see com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceProviderContainer#copyResource
+     */
     @Override
     public boolean canCopy(IResourcePath path) {
-        return false;
+        return true;
     }
 
     @Override

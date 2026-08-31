@@ -145,6 +145,8 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
     protected boolean supportMultipleSelection = false;
     @Setter
     protected boolean staticTree = false;
+    /** When true the root row is not drawn and its children are the top level. */
+    @Getter
     protected boolean flattenRoot = false;
     /**
      * Opt-in drag-to-reorder. When enabled each row can be dragged onto another row to request a

@@ -198,15 +198,28 @@ public class ScrollerView extends UIElement {
         });
     }
 
+    /**
+     * Routes the wheel to whichever scroller it belongs to, with shift swapping the two axes.
+     *
+     * <p>Almost no mouse has a horizontal wheel, so without the swap the only way to move a
+     * both-directions view sideways is to drag its scroll bar — and shift is what every desktop
+     * application uses for this.
+     *
+     * <p>Only in {@link ScrollerMode#BOTH}. A horizontal-only view already takes the ordinary wheel,
+     * and a vertical-only one has nothing to swap onto: honouring shift there would turn shift+wheel
+     * from "scroll this list" into "do nothing", which is a regression rather than a feature.
+     */
     protected void onScrollWheel(UIEvent event) {
-        var mode = scrollerViewStyle.mode();
-        if (event.deltaY != 0 && (mode == ScrollerMode.VERTICAL || mode == ScrollerMode.BOTH)) {
-            verticalScroller.onScrollWheel(event);
-        }
-        if (event.deltaX != 0 && (mode == ScrollerMode.HORIZONTAL || mode == ScrollerMode.BOTH)) {
-            horizontalScroller.onScrollWheel(event);
-        } else if (event.deltaY != 0 && mode == ScrollerMode.HORIZONTAL) {
-            horizontalScroller.onScrollWheel(event);
+        switch (scrollerViewStyle.mode()) {
+            case VERTICAL -> verticalScroller.scrollByWheel(event.deltaY);
+            // Through the scroller's own handler, so its "fall back to the vertical wheel" rule stays
+            // in the one place that owns it.
+            case HORIZONTAL -> horizontalScroller.onScrollWheel(event);
+            case BOTH -> {
+                var swapped = event.isShiftDown();
+                verticalScroller.scrollByWheel(swapped ? event.deltaX : event.deltaY);
+                horizontalScroller.scrollByWheel(swapped ? event.deltaY : event.deltaX);
+            }
         }
     }
 

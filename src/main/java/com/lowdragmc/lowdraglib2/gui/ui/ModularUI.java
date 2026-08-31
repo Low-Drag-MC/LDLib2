@@ -130,6 +130,15 @@ public class ModularUI {
     private boolean allowDebugMode = true;
     @Getter @Setter
     private boolean debugMode = false;
+    /**
+     * Whether this UI has been torn down and not re-initialised since.
+     *
+     * <p>The honest answer to "is this still being shown", and not one a caller can work out for
+     * itself: a screen pushed under a gui layer is not {@code Minecraft#screen} any more but is very
+     * much still alive, so comparing against that reports every dialog as a teardown.
+     */
+    @Getter
+    private boolean removed;
 
     public ModularUI(UI ui) {
         this(ui, null);
@@ -442,6 +451,9 @@ public class ModularUI {
     }
 
     public void init(int screenWidth, int screenHeight) {
+        // A UI can be torn down and stood back up - a preview pane, a recipe viewer - so this is
+        // "removed and not since re-initialised", not "was ever removed".
+        this.removed = false;
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
         if (ui.dynamicSize != null) {
@@ -560,6 +572,7 @@ public class ModularUI {
      * This method can be overridden to perform cleanup tasks.
      */
     public void onRemoved() {
+        removed = true;
         ui.rootElement.onRemoved();
         styleEngine.dispose();
     }

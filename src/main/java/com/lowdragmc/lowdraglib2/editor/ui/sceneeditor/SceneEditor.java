@@ -16,6 +16,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.math.Ray;
+import com.lowdragmc.lowdraglib2.math.ITransform;
 import com.lowdragmc.lowdraglib2.math.Transform;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.IScene;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneInteractable;
@@ -63,14 +64,6 @@ public class SceneEditor extends UIElement implements IScene {
     protected Map<UUID, ISceneObject> sceneObjects = new LinkedHashMap<>();
     @Getter
     protected final TransformGizmo transformGizmo;
-    public enum TransformGizmoMode {
-        TRANSLATE,
-        ROTATE,
-        SCALE,
-        NONE
-    }
-    @Getter
-    protected TransformGizmoMode transformGizmoMode = TransformGizmoMode.NONE;
 
     public SceneEditor() {
         this.topBar = new UIElement();
@@ -160,31 +153,39 @@ public class SceneEditor extends UIElement implements IScene {
     }
 
     /**
-     * Sets the editor's gizmo mode AND propagates it to the gizmo itself — the gizmo's own
-     * {@link TransformGizmo#isActive()} gates rendering/interaction on {@code mode != NONE}, so the
-     * NONE case must reach {@link TransformGizmo#setMode} too (deactivating it), not just the field.
+     * What the gizmo drags.
+     *
+     * <p>Takes an {@link ITransform}, so an editor can drive something that has a transform without
+     * that thing having to <b>be</b> a scene object. The {@link Transform} overloads below are the
+     * same method and are kept so existing callers do not have to change.
      */
-    public void setTransformGizmoMode(TransformGizmoMode mode) {
-        transformGizmoMode = mode;
-        switch (mode) {
-            case TRANSLATE -> transformGizmo.setMode(TransformGizmo.Mode.TRANSLATE);
-            case ROTATE -> transformGizmo.setMode(TransformGizmo.Mode.ROTATE);
-            case SCALE -> transformGizmo.setMode(TransformGizmo.Mode.SCALE);
-            case NONE -> transformGizmo.setMode(TransformGizmo.Mode.NONE);
-        }
-    }
-
-    public void setTransformGizmoTarget(@Nullable Transform transform) {
+    public void setTransformGizmoTarget(@Nullable ITransform transform) {
         setTransformGizmoTarget(transform, null);
     }
 
-    public void setTransformGizmoTarget(@Nullable Transform transform, @Nullable Runnable onTransformUpdated) {
+    public void setTransformGizmoTarget(@Nullable ITransform transform, @Nullable Runnable onTransformUpdated) {
         transformGizmo.setTargetTransform(transform);
         transformGizmo.setOnTransformChanged(onTransformUpdated);
         gizmoBar.setActive(transform != null);
         if (transform == null) {
-            setTransformGizmoMode(TransformGizmoMode.NONE);
+            transformGizmo.setMode(TransformGizmo.Mode.NONE);
         }
+    }
+
+    public void setTransformGizmoTarget(@Nullable Transform transform) {
+        setTransformGizmoTarget((ITransform) transform, null);
+    }
+
+    public void setTransformGizmoTarget(@Nullable Transform transform, @Nullable Runnable onTransformUpdated) {
+        setTransformGizmoTarget((ITransform) transform, onTransformUpdated);
+    }
+
+    public TransformGizmo.Mode getTransformGizmoMode() {
+        return transformGizmo.getMode();
+    }
+
+    public void setTransformGizmoMode(TransformGizmo.Mode mode) {
+        transformGizmo.setMode(mode);
     }
 
     public void initTopBar() {
@@ -207,28 +208,26 @@ public class SceneEditor extends UIElement implements IScene {
     public void initGizmos() {
         var toggleGroup = new Toggle.ToggleGroup().setAllowEmpty(true);
         // translate
-        gizmoBar.addChild(createTransformToggle(toggleGroup, TransformGizmoMode.TRANSLATE, Icons.TRANSFORM_TRANSLATE));
+        gizmoBar.addChild(createTransformToggle(toggleGroup, TransformGizmo.Mode.TRANSLATE, Icons.TRANSFORM_TRANSLATE));
         // rotation
-        gizmoBar.addChild(createTransformToggle(toggleGroup, TransformGizmoMode.ROTATE, Icons.TRANSFORM_ROTATE));
+        gizmoBar.addChild(createTransformToggle(toggleGroup, TransformGizmo.Mode.ROTATE, Icons.TRANSFORM_ROTATE));
         // scale
-        gizmoBar.addChild(createTransformToggle(toggleGroup, TransformGizmoMode.SCALE, Icons.TRANSFORM_SCALE));
+        gizmoBar.addChild(createTransformToggle(toggleGroup, TransformGizmo.Mode.SCALE, Icons.TRANSFORM_SCALE));
         // local / global space toggle
         gizmoBar.addChild(createSpaceToggle());
     }
 
 
-    private Toggle createTransformToggle(Toggle.ToggleGroup toggleGroup, TransformGizmoMode mode, IGuiTexture icon) {
+    private Toggle createTransformToggle(Toggle.ToggleGroup toggleGroup, TransformGizmo.Mode mode, IGuiTexture icon) {
         return (Toggle) new Toggle()
                 .setToggleGroup(toggleGroup)
                 .setText("")
-                .setOn(transformGizmoMode == mode, false)
+                .setOn(transformGizmo.getMode() == mode, false)
                 .toggleButton(button -> button.layout(layout -> {
                     layout.widthPercent(100);
                     layout.heightPercent(100);
                 }))
-                .setOnToggleChanged(isOn -> {
-                    setTransformGizmoMode(isOn ? mode : TransformGizmoMode.NONE);
-                })
+                .setOnToggleChanged(isOn -> setTransformGizmoMode(isOn ? mode : TransformGizmo.Mode.NONE))
                 .toggleStyle(style -> {
                     style.baseTexture(IGuiTexture.EMPTY);
                     style.hoverTexture(ColorPattern.T_BLUE.rectTexture());
@@ -241,8 +240,8 @@ public class SceneEditor extends UIElement implements IScene {
                     layout.setAspectRatio(1f);
                 }).addEventListener(UIEvents.TICK, event -> {
                     if (event.currentElement instanceof Toggle toggle) {
-                        if (toggle.getValue() != (transformGizmoMode == mode)) {
-                            toggle.setValue(transformGizmoMode == mode, false);
+                        if (toggle.getValue() != (transformGizmo.getMode() == mode)) {
+                            toggle.setValue(transformGizmo.getMode() == mode, false);
                         }
                     }
                 }).addClass("__editor-gizmo-bar-toggle__");

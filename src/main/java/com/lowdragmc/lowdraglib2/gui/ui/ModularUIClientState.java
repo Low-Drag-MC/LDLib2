@@ -18,6 +18,9 @@ final class ModularUIClientState {
     HoverTooltips hoverTooltips;
     @Nullable
     UIDebugger uiDebuggerCache;
+    /** A queued {@link ModularUIClientAccess#setDebuggerWindowed} — see {@code applyPendingDebuggerHost}. */
+    @Nullable
+    Boolean pendingDebuggerWindowed;
     @Getter
     private final ModularUIWidget widget;
     final List<Rect2i> extraAreas = new ArrayList<>();

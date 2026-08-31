@@ -48,6 +48,7 @@ import org.joml.Vector2f;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -325,6 +326,26 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         GraphChangeDescription result = currentChangeDescription;
         currentChangeDescription = new GraphChangeDescription();
         return result;
+    }
+
+    /**
+     * Runs {@code body} with the change description swapped for a throwaway one, so whatever it
+     * creates is not reported to the UI.
+     *
+     * <p>For work that has to build models in order to <em>ask</em> something rather than to change
+     * the graph — {@link CustomGraphModelImpl#detectSupportedTypes} instantiates every registered node
+     * class to harvest its port types. Those nodes are spawned orphaned and thrown away, but their
+     * ports still land in the change set, which then reports thousands of new models the view has no
+     * elements for.</p>
+     */
+    public <T> T withIsolatedChanges(Supplier<T> body) {
+        GraphChangeDescription saved = currentChangeDescription;
+        currentChangeDescription = new GraphChangeDescription();
+        try {
+            return body.get();
+        } finally {
+            currentChangeDescription = saved;
+        }
     }
 
     // ----------------------------

@@ -43,6 +43,7 @@ import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.level.ChunkPos;
@@ -52,7 +53,10 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.common.crafting.SizedIngredient;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.crafting.FluidIngredient;
+import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient;
 import org.jetbrains.annotations.Nullable;
 import org.joml.*;
 
@@ -435,7 +439,24 @@ public class AccessorRegistries {
                 .codec(UITemplate.CODEC)
                 .streamCodec(UITemplate.STREAM_CODEC)
                 .build());
-
+        registerAccessor(CustomDirectAccessor.builder(Ingredient.class)
+                .codec(Ingredient.CODEC)
+                .streamCodec(Ingredient.CONTENTS_STREAM_CODEC)
+                .build());
+        registerAccessor(CustomDirectAccessor.builder(FluidIngredient.class)
+                .codec(FluidIngredient.CODEC)
+                .streamCodec(FluidIngredient.STREAM_CODEC)
+                .build());
+        // NESTED_CODEC / CODEC, not 1.21's FLAT_CODEC: NeoForge dropped the flat shape on 26.1 and
+        // these are the only codecs left, so the ingredient sits under an "ingredient" key here.
+        registerAccessor(CustomDirectAccessor.builder(SizedIngredient.class)
+                .codec(SizedIngredient.NESTED_CODEC)
+                .streamCodec(SizedIngredient.STREAM_CODEC)
+                .build());
+        registerAccessor(CustomDirectAccessor.builder(SizedFluidIngredient.class)
+                .codec(SizedFluidIngredient.CODEC)
+                .streamCodec(SizedFluidIngredient.STREAM_CODEC)
+                .build());
 
         setPriority(1500);
 

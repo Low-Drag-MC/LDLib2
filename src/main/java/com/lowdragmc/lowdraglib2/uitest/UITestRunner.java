@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.uitest;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.client.LDLib2ClientRegistries;
 import com.lowdragmc.lowdraglib2.client.window.OsWindowHints;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.UISurface;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.CursorOverlay;
 import com.lowdragmc.lowdraglib2.uitest.capture.CaptureRequest;
 import com.lowdragmc.lowdraglib2.uitest.capture.FrameCapture;
@@ -129,6 +130,10 @@ public final class UITestRunner {
         if (config == null) return;
         // A pid-qualified id keeps two concurrent runs from sharing a world directory or an output dir.
         var runId = ProcessHandle.current().pid() + "_" + Integer.toHexString(System.identityHashCode(config));
+        if (config.isSharded()) {
+            // Only for reading logs and worlds back: the pid above is what actually makes it unique.
+            runId = "shard%d_%s".formatted(config.shardIndex(), runId);
+        }
         active = new UITestRunner(config, runId, null);
         active.begin();
     }
@@ -280,7 +285,19 @@ public final class UITestRunner {
                     }
                     phase = Phase.MP_CONNECT;
                 } else if (queue.isEmpty()) {
-                    LDLib2.LOGGER.error("[uitest] selection '{}' matched no scenarios", config.selection());
+                    // A shard legitimately gets nothing when there are more shards than scenarios, so
+                    // only a serial run can call this a failure. For a sharded one the question is
+                    // whether the selection matched anything *anywhere*, which only the merger can
+                    // answer - it has every shard's `known` list.
+                    if (config.isSharded()) {
+                        LDLib2.LOGGER.info("[uitest] shard {}/{} has no scenarios to run",
+                                config.shardIndex(), config.shardCount());
+                    } else {
+                        // Not just a log line: leaving the status alone let a typo'd -PldTest write an
+                        // empty report that verifyUiTest read as a pass, so the gate went green having
+                        // tested nothing at all.
+                        emptySelection();
+                    }
                     phase = Phase.FINISH;
                 } else {
                     phase = queue.stream().anyMatch(entry -> entry.options().requiresWorld())
@@ -564,6 +581,13 @@ public final class UITestRunner {
                 stepReport.index, stepReport, element));
     }
 
+    /** Queues a capture of a render target that is not the game's frame. See {@link CaptureRequest.Kind#SURFACE}. */
+    public void requestSurfaceCapture(ScenarioRun run, RunReport.StepReport stepReport, String label,
+                                      UISurface surface) {
+        enqueueCapture(new CaptureRequest(CaptureRequest.Kind.SURFACE, run.name, label,
+                stepReport.index, stepReport, null, surface));
+    }
+
     private void enqueueCapture(CaptureRequest request) {
         pendingCaptures.add(request);
         // The frame about to be rendered is the one this reads back, so the stand-in pointer has to go
@@ -577,7 +601,10 @@ public final class UITestRunner {
         NativeImage frame = null;
         NativeImage cropped = null;
         try {
-            frame = FrameCapture.grab();
+            // A window's own target, when asked for. It was last drawn into after this frame's step
+            // ran - windows are driven at the end of the frame, after the runner - so it holds the
+            // state the requesting step produced, which is the same promise a full capture makes.
+            frame = request.surface == null ? FrameCapture.grab() : FrameCapture.grab(request.surface.target());
             var fileName = "%02d_%s".formatted(request.stepIndex, sanitize(request.label));
             var directory = config.outDir().resolve("screenshots").resolve(sanitize(request.scenarioName));
 
@@ -672,6 +699,23 @@ public final class UITestRunner {
         if (exitCode == 0) return;
         Runtime.getRuntime().addShutdownHook(new Thread(
                 () -> Runtime.getRuntime().halt(exitCode), "ldlib2-uitest-exit-code"));
+    }
+
+    /**
+     * Records that the selection matched nothing, as an error rather than an empty pass.
+     *
+     * <p>Same verdict the multi-process merger already reaches for its own empty case: a mistyped
+     * selection must not be indistinguishable from a suite that passed.
+     */
+    private void emptySelection() {
+        var reason = "selection '" + config.selection() + "' matched no scenarios";
+        LDLib2.LOGGER.error("[uitest] {}", reason);
+        report.status = RunReport.Status.worst(report.status, RunReport.Status.ERROR);
+        var scenarioReport = new RunReport.ScenarioReport();
+        scenarioReport.name = "<selection>";
+        scenarioReport.status = RunReport.Status.ERROR;
+        scenarioReport.error = RunReport.ErrorInfo.of(new IllegalStateException(reason));
+        report.scenarios.add(scenarioReport);
     }
 
     private void fatal(String reason) {
@@ -933,12 +977,40 @@ public final class UITestRunner {
                     scenario, options, scenario.getClass()));
         }
         // Registry iteration order is priority-based and stable, but sorting by name makes a run's
-        // output diffable against another run regardless of what got registered in between.
+        // output diffable against another run regardless of what got registered in between. It is
+        // also what lets parallel shards agree on the split below without talking to each other.
         selected.sort(java.util.Comparator.comparing(ScenarioEntry::name));
-        queue.addAll(selected);
-        LDLib2.LOGGER.info("[uitest] selected {} scenario(s): {}", selected.size(),
-                selected.stream().map(ScenarioEntry::name).toList());
+        queue.addAll(applyShard(selected));
+        LDLib2.LOGGER.info("[uitest] selected {} scenario(s): {}", queue.size(),
+                queue.stream().map(ScenarioEntry::name).toList());
     }
+
+    /**
+     * Narrows a name-sorted selection to this process's slice of a parallel run, and records the
+     * whole selection in the report so the merger can prove nothing was lost.
+     *
+     * <p>No coordination: every shard runs {@link ShardPlan} over the identical list and keeps its
+     * own bucket. That is only sound while the lists really are identical, which is what
+     * {@link RunReport.ShardInfo#known} exists to check after the fact.
+     */
+    private List<ScenarioEntry> applyShard(List<ScenarioEntry> selected) {
+        if (!config.isSharded()) return selected;
+        var names = selected.stream().map(ScenarioEntry::name).toList();
+
+        var info = new RunReport.ShardInfo();
+        info.index = config.shardIndex();
+        info.count = config.shardCount();
+        info.known = names;
+        report.shard = info;
+
+        var mine = new java.util.HashSet<>(ShardPlan.shardOf(names, ShardWeights.read(config.weightsFile()),
+                config.shardCount(), config.shardIndex()));
+        var slice = selected.stream().filter(entry -> mine.contains(entry.name())).toList();
+        LDLib2.LOGGER.info("[uitest] shard {}/{} takes {} of {} scenario(s)",
+                config.shardIndex(), config.shardCount(), slice.size(), selected.size());
+        return slice;
+    }
+
 
     private static String sanitize(String name) {
         return name.replaceAll("[^A-Za-z0-9._-]+", "_");

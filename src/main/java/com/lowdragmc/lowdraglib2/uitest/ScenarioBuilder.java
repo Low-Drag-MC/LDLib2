@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.client.LDLib2ClientRegistries;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.MinecraftAccessor;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.UISurface;
 import com.lowdragmc.lowdraglib2.uitest.input.Keys;
 import com.lowdragmc.lowdraglib2.uitest.report.RunReport;
 import net.minecraft.client.Minecraft;
@@ -863,6 +864,18 @@ public final class ScenarioBuilder {
     public ScenarioBuilder screenshotElement(String label, String selector) {
         return add("screenshotElement " + label + " " + selector, StepKind.CAPTURE,
                 ctx -> ctx.screenshotElement(label, ctx.el(selector)));
+    }
+
+    /**
+     * Screenshots a UI drawn somewhere other than the game's frame — the off-screen target behind an
+     * operating-system window. The surface is resolved at step time, because the window it belongs to
+     * usually does not exist yet when the scenario is defined.
+     *
+     * @see TestContext#screenshotSurface
+     */
+    public ScenarioBuilder screenshotSurface(String label, Function<TestContext, UISurface> surface) {
+        return add("screenshotSurface " + label, StepKind.CAPTURE,
+                ctx -> ctx.screenshotSurface(label, surface.apply(ctx)));
     }
 
     // endregion

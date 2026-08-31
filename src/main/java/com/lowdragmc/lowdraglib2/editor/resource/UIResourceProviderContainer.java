@@ -20,6 +20,11 @@ public class UIResourceProviderContainer extends ResourceProviderContainer<UITem
 
     public UIResourceProviderContainer(IResourceProvider<UITemplate> provider) {
         super(provider);
+        // A built-in cannot be edited, but it is exactly the thing worth looking at: it is how a mod
+        // shows the way one of its UIs is put together, and the starting point for someone who wants
+        // their own. Opening is therefore always allowed; whether the view writes back is decided
+        // below, from the same canEdit answer.
+        setCanOpen(path -> true);
         setAddDefault(() -> UITemplate.of(new UIElement().layout(layout -> {
             layout.width(150);
             layout.height(150);
@@ -36,8 +41,11 @@ public class UIResourceProviderContainer extends ResourceProviderContainer<UITem
             if (template == null) return;
             var editor = container.getEditor();
             var uuid = UUID.randomUUID();
+            var editable = provider.canEdit(path);
 
-            var newView = new UIEditorView().loadTemplate(template, newTemplate -> {
+            // A null save handler is what makes the view read-only: UIEditorView only writes back
+            // when it has one, so a built-in can be opened and read without any way to change it.
+            var newView = new UIEditorView().loadTemplate(template, !editable ? null : newTemplate -> {
                 if (!openedViews.containsKey(uuid)) {
                     // invalid already.
                     return;
@@ -60,11 +68,12 @@ public class UIResourceProviderContainer extends ResourceProviderContainer<UITem
             newView.setCanRemove(true);
             newView.setIcon(Icons.WIDGET_BASIC);
             newView.setDynamicName(() -> {
-                if (openedViews.containsKey(uuid)) {
-                    return Component.literal(openedViews.get(uuid).getA().getResourceName());
-                } else {
-                    return Component.literal(pathCache.get().getResourceName());
-                }
+                var name = openedViews.containsKey(uuid)
+                        ? openedViews.get(uuid).getA().getResourceName()
+                        : pathCache.get().getResourceName();
+                // Said in the tab rather than left to be discovered: a view that silently discards
+                // edits is worse than one that will not take them.
+                return Component.literal(editable ? name : name + " (read-only)");
             });
             editor.placeView(newView, () -> editor.centerWindow.getLeftTop());
         });

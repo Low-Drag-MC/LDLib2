@@ -46,7 +46,12 @@ public class ConfiguratorAccessors {
             }
 
             if (Collection.class.isAssignableFrom(rawType)) {
-                var componentType = ((ParameterizedType) clazz).getActualTypeArguments()[0];
+                // A raw collection type — List.class rather than List<String> — carries no element
+                // type. That is an ordinary Type and arrives here from anything that describes a
+                // field or a port by its class alone, so it cannot be an unchecked cast: it used to
+                // throw ClassCastException all the way out of the screen's tick and take the editor
+                // down. Object is the only element type a raw collection can honestly claim.
+                var componentType = elementTypeOf(clazz);
                 var childAccessor = findByType(componentType);
                 var rawComponentType = ReflectionUtils.getRawType(componentType);
 
@@ -54,6 +59,18 @@ public class ConfiguratorAccessors {
             }
         }
         return IConfiguratorAccessor.DEFAULT;
+    }
+
+    /**
+     * The element type of a collection type, or {@link Object} when it does not name one — a raw
+     * {@code List.class}, or the pathological parameterised type with no arguments.
+     */
+    private static Type elementTypeOf(Type collectionType) {
+        if (collectionType instanceof ParameterizedType parameterized) {
+            var arguments = parameterized.getActualTypeArguments();
+            if (arguments.length > 0) return arguments[0];
+        }
+        return Object.class;
     }
 
     public static IConfiguratorAccessor<?> findByClass(Class<?> clazz) {
