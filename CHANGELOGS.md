@@ -1,4 +1,7 @@
 # ChangeLogs
+## v2.2.38.a
+* Added JEI latest APIs support
+
 ## v2.2.38
 * Added moving the UI debugger into its own window, and inspecting any window from it
 * Added parallel UI test runs across several client processes
