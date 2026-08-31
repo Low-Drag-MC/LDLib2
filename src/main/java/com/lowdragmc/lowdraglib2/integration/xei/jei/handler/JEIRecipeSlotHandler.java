@@ -94,6 +94,14 @@ public final class JEIRecipeSlotHandler {
             onDisplayedIngredientsUpdate();
         }
 
+        /**
+         * Whether LDLib has taken over the slot, i.e. whether JEI only sees the single ingredient
+         * LDLib renders instead of the complete alternatives.
+         */
+        public boolean hasDisplayOverride() {
+            return hasDisplayOverride;
+        }
+
         public void onDisplayedIngredientsUpdate() {
             var slot = this.slot;
             if (slot == null) return;

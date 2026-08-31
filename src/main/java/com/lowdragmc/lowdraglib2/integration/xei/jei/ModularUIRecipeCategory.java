@@ -46,11 +46,15 @@ public abstract class ModularUIRecipeCategory<T> implements IRecipeCategory<T> {
     public void setRecipe(IRecipeLayoutBuilder builder, T recipe, IFocusGroup focuses) {
         for (var binding : cachedRecipeUI.get(recipe).bindings()) {
             var area = LDLibJEIPlugin.getAreaLocal(binding.element(), true);
+            var tagLines = JEITagNameTooltip.resolve(binding);
             builder.addSlot(binding.role())
                     .addTypedIngredients(binding.ingredients())
                     .setSlotName(binding.name())
                     .setPosition(area.getX(), area.getY())
-                    .addRichTooltipCallback((slot, tooltip) -> appendAdditionalTooltip(binding, tooltip));
+                    .addRichTooltipCallback((slot, tooltip) -> {
+                        JEITagNameTooltip.append(binding, tagLines, slot, tooltip);
+                        appendAdditionalTooltip(binding, tooltip);
+                    });
         }
     }
 
