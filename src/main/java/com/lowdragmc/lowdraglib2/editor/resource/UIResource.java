@@ -30,17 +30,11 @@ public class UIResource extends Resource<UITemplate> {
         return "ui";
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Left to the base class rather than adding the global provider by hand, which is what this
-     * used to do: doing it here skipped the {@code built-in} provider every other resource gets, and
-     * skipped the {@code LoadBuiltin} event with it — so a mod had nowhere to contribute a UI it
-     * ships in code, which is the only way to ship one a dedicated server can also read.</p>
-     */
     @Override
     public void buildBuiltin(ResourceInstance<UITemplate> resourceInstance) {
-        super.buildBuiltin(resourceInstance);
+        var global = new FileResourceProvider<>(resourceInstance, new File(LDLib2.getAssetsDir(), "ldlib2/resources/global"));
+        global.setName("global");
+        resourceInstance.addBuiltinProvider(global);
     }
 
     @Nullable
