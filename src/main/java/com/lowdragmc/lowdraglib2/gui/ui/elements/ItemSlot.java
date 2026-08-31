@@ -261,7 +261,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     public ItemSlot xeiRecipeSlot(IngredientIO io, float chance) {
         // todo xei
         if (LDLib2.isJeiLoaded()) {
-            JEISupport.recipeSlot(this);
+            JEISupport.recipeSlot(this, io);
         }
 //        if (LDLib2.isReiLoaded()) {
 //            REISupport.recipeSlot(this, io);
@@ -275,7 +275,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     public ItemSlot xeiRecipeSlot(IngredientIO io, float chance, int amount, Supplier<Stream<ItemStack>> allPossibleItems) {
         // todo xei
         if (LDLib2.isJeiLoaded()) {
-            JEISupport.recipeSlot(this, allPossibleItems);
+            JEISupport.recipeSlot(this, io, allPossibleItems);
         }
 //        if (LDLib2.isReiLoaded()) {
 //            REISupport.recipeSlot(this, io, () -> allPossibleItems);
@@ -475,24 +475,18 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         public static void recipeIngredient(ItemSlot itemSlot, IngredientIO io, Supplier<Stream<ItemStack>> allPossibleItems) {
             LDLibJEIPlugin.recipeIngredient(itemSlot, io, () -> allPossibleItems.get()
                     .map(itemStack -> LDLibJEIPlugin.createTypedIngredient(VanillaTypes.ITEM_STACK, itemStack))
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .collect(Collectors.toList()));
+                    .flatMap(Optional::stream)
+                    .toList());
         }
 
-        public static void recipeSlot(ItemSlot itemSlot) {
-            recipeSlot(itemSlot, () -> Stream.of(itemSlot.getValue()));
+        public static void recipeSlot(ItemSlot itemSlot, IngredientIO io) {
+            recipeSlot(itemSlot, io, () -> Stream.of(itemSlot.getValue()));
         }
 
-        public static void recipeSlot(ItemSlot itemSlot, Supplier<Stream<ItemStack>> allPossibleItems) {
-            LDLibJEIPlugin.recipeSlot(itemSlot, () -> {
-                var item = itemSlot.getValue();
-                return item.isEmpty() ? null : LDLibJEIPlugin.createTypedIngredient(VanillaTypes.ITEM_STACK, item).orElse(null);
-            }, () -> allPossibleItems.get()
-                    .map(itemStack -> LDLibJEIPlugin.createTypedIngredient(VanillaTypes.ITEM_STACK, itemStack))
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .collect(Collectors.toList()));
+        public static void recipeSlot(ItemSlot itemSlot, IngredientIO io, Supplier<Stream<ItemStack>> allPossibleItems) {
+            itemSlot.registerValueListener(LDLibJEIPlugin.recipeSlot(
+                    itemSlot, io, VanillaTypes.ITEM_STACK, allPossibleItems,
+                    item -> itemSlot.setItem(item, false)));
         }
     }
 
