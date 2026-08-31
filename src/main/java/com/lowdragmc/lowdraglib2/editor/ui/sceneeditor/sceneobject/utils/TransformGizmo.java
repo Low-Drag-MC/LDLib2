@@ -23,6 +23,7 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import org.joml.AxisAngle4f;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -38,6 +39,18 @@ import org.jetbrains.annotations.Nullable;
  * always sits on the target, faces the chosen {@link Space}, and keeps a constant on-screen size. Dragging is
  * resolved geometrically against the mouse ray (closest-point-on-axis for translate/scale, ray-vs-plane angle
  * for rotate) so the handle tracks the cursor exactly and rotation is independent of camera distance.
+ *
+ * <h2>Rotating</h2>
+ * {@link Mode#ROTATE} follows Unreal's widget and offers four handles, in this pick order:
+ * <ul>
+ *   <li>the three coloured {@linkplain Handle#AXIS_X axis rings}, which constrain the turn to one axis;</li>
+ *   <li>the outer {@linkplain Handle#SCREEN screen ring}, which turns the target in the plane of the screen —
+ *       about the eye-to-gizmo direction, frozen when the drag starts;</li>
+ *   <li>the {@linkplain Handle#TRACKBALL ball} filling the rest of the gizmo, where a drag rolls the target
+ *       freely with the grabbed point following the cursor.</li>
+ * </ul>
+ * The rings are drawn as tubes rather than lines and picked analytically against an explicit tolerance that is
+ * wider than they are drawn, because a line three pixels across is not something anyone can aim at.
  */
 @OnlyIn(Dist.CLIENT)
 public class TransformGizmo extends SceneObject implements ISceneRendering, ISceneInteractable {
@@ -53,14 +66,32 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         GLOBAL
     }
 
-    /** Which handle a hover/drag is targeting. */
-    private enum Handle {
+    /**
+     * Which handle a hover/drag is targeting.
+     *
+     * <p>{@link #SCREEN} and {@link #TRACKBALL} belong to {@link Mode#ROTATE} only and have no axis of
+     * their own — both turn about the camera, so {@link #axis} is {@code -1} for them and
+     * {@link #isAxisAligned()} is how to ask rather than comparing the number.
+     */
+    public enum Handle {
         AXIS_X(0, false), AXIS_Y(1, false), AXIS_Z(2, false),
-        PLANE_X(0, true), PLANE_Y(1, true), PLANE_Z(2, true);
-        final int axis;      // 0=X, 1=Y, 2=Z
-        final boolean plane; // true = planar handle, false = axis handle
+        PLANE_X(0, true), PLANE_Y(1, true), PLANE_Z(2, true),
+        /** The outer ring: rotate in the plane of the screen, about the camera's view direction. */
+        SCREEN(-1, false),
+        /** Anywhere inside the ball: free rotation, the grabbed point following the cursor. */
+        TRACKBALL(-1, false);
+
+        public final int axis;      // 0=X, 1=Y, 2=Z, -1 = camera-relative
+        public final boolean plane; // true = planar handle, false = axis handle
+
         Handle(int axis, boolean plane) { this.axis = axis; this.plane = plane; }
+
+        /** Whether this handle is tied to one of the gizmo's three axes rather than to the camera. */
+        public boolean isAxisAligned() { return axis >= 0; }
     }
+
+    /** The axis handles by axis index, so a loop over X, Y, Z does not need a switch to name its answer. */
+    private static final Handle[] AXIS_HANDLES = {Handle.AXIS_X, Handle.AXIS_Y, Handle.AXIS_Z};
 
     // gizmo geometry, authored in gizmo-units (a constant screen scale is applied on top)
     private static final float BASE_SCALE = 0.23f;
@@ -72,8 +103,28 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     private static final float PLANE_MAX = 0.32f;
     private static final float SCALE_SHAFT_LENGTH = 0.9f;
     private static final float SCALE_BOX_HALF = 0.08f;
-    private static final float RING_RADIUS = 1.0f;
+    /** Radius of the three axis rotation rings. */
+    public static final float RING_RADIUS = 1.0f;
+    /**
+     * Radius of the outer, view-facing {@link Handle#SCREEN} ring. Far enough outside the axis rings that
+     * their projections cannot reach it, so aiming at it is never ambiguous.
+     */
+    public static final float SCREEN_RING_RADIUS = 1.28f;
+    /** Radius of the {@link Handle#TRACKBALL} ball; matches the axis rings, as it does in UE. */
+    public static final float TRACKBALL_RADIUS = RING_RADIUS;
+    /**
+     * Half the drawn thickness of a rotation ring. Rings are tubes rather than lines because a line's
+     * width is one shared setting on the render type, which is both too thin here and not ours to change.
+     */
+    private static final float RING_TUBE_RADIUS = 0.032f;
+    /**
+     * How far off a ring the cursor may be and still grab it. Several times wider than the ring is drawn,
+     * on purpose: a handle you have to hit exactly is what made rotating unpleasant, and the fix for that
+     * is a forgiving hit area rather than a fat ring covering the model.
+     */
+    private static final float RING_PICK_TOLERANCE = 0.09f;
     private static final int RING_SEGMENTS = 64;
+    private static final int RING_TUBE_SEGMENTS = 6;
     private static final int ARC_SEGMENTS = 48;
     private static final int SHAFT_SEGMENTS = 12;
 
@@ -88,12 +139,6 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     private static final VoxelShape yPlaneCollider = Shapes.box(0.1, 0, 0.1, 0.3, 0.01, 0.3);
     private static final VoxelShape zAxisCollider = Shapes.box(-0.1, -0.1, 0, 0.1, 0.1, 1.2);
     private static final VoxelShape zPlaneCollider = Shapes.box(0.1, 0.1, 0, 0.3, 0.3, 0.01);
-    private static final VoxelShape xRingCollider = createRingCollisionBox(
-            new Vector3f(0, 0, 0), new Vector3f(1, 0, 0), 1.0, 16, 0.1);
-    private static final VoxelShape yRingCollider = createRingCollisionBox(
-            new Vector3f(0, 0, 0), new Vector3f(0, 1, 0), 1.0, 16, 0.1);
-    private static final VoxelShape zRingCollider = createRingCollisionBox(
-            new Vector3f(0, 0, 0), new Vector3f(0, 0, 1), 1.0, 16, 0.1);
 
     /**
      * What is being dragged.
@@ -120,8 +165,10 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
 
     // runtime
     @Nullable
+    @Getter
     private Handle hoverHandle;
     @Nullable
+    @Getter
     private Handle dragHandle;
     // drag state, all captured at drag start (world space)
     private Vector3f dragAxis;          // unit world axis / plane normal
@@ -130,10 +177,14 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     private Vector3f dragStartScale;    // target local scale at grab
     private Vector3f dragGrabOffset;    // plane drag: grabbed hit - center
     private float dragStartParam;       // axis translate/scale: along-axis distance at grab
-    private Vector3f dragStartHandleDir; // rotate: unit grabbed direction from center (world)
+    @Nullable
+    private Vector3f dragStartHandleDir; // ring rotate: unit grabbed direction from center (world)
     private float dragRotateAccum;      // rotate: continuous accumulated angle (unwrapped, unsnapped)
     private float dragPrevRaw;          // rotate: previous frame's raw signed angle (for unwrapping)
     private float dragRotateAngle;      // rotate: applied/displayed angle (possibly snapped)
+    @Nullable
+    private Vector3f dragBallStart;     // trackball: unit grabbed point on the ball (world)
+    private float dragBallRadius;       // trackball: ball radius at grab, so the mapping cannot shift mid-drag
     @Nullable
     @Getter
     private String readoutText;         // transient HUD text shown while dragging
@@ -208,12 +259,35 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         return new Quaternionf();
     }
 
-    private float computeGizmoScale() {
+    /**
+     * World units per gizmo unit. Chosen so the gizmo keeps a constant size on screen, which also makes
+     * every length below — ring radii, pick tolerances — a fixed fraction of the viewport.
+     */
+    public float getGizmoScale() {
         if (targetTransform == null || !(getScene() instanceof SceneEditor editor)) return 1f;
         var renderer = editor.scene.getRenderer();
         if (renderer == null) return 1f;
         var distance = renderer.getEyePos().distance(targetTransform.position());
         return distance * (float) Math.tan(renderer.getFov() * 0.5f * Math.PI / 180) * BASE_SCALE;
+    }
+
+    /**
+     * The axis {@link Handle#SCREEN} and {@link Handle#TRACKBALL} turn about: the direction from the eye
+     * to the gizmo, so the outer ring reads as a true circle wherever the gizmo sits in the frame.
+     */
+    public Vector3f getScreenAxis() {
+        if (targetTransform != null && getScene() instanceof SceneEditor editor) {
+            var renderer = editor.scene.getRenderer();
+            if (renderer != null) {
+                // Under an orthographic camera every ray is parallel to the view direction, so aiming the
+                // ring at the eye would tilt it away from the screen plane wherever the gizmo is off centre.
+                var axis = editor.scene.isUseOrtho()
+                        ? new Vector3f(renderer.getLookAt()).sub(renderer.getEyePos())
+                        : new Vector3f(targetTransform.position()).sub(renderer.getEyePos());
+                if (axis.lengthSquared() > 1.0e-9f) return axis.normalize();
+            }
+        }
+        return new Vector3f(0, 0, 1);
     }
 
     /** translate(targetPos) * rotate(orientation) * scale(screenConstant); shared by render and picking. */
@@ -222,7 +296,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         return new Matrix4f()
                 .translate(targetTransform.position())
                 .rotate(orientation())
-                .scale(computeGizmoScale());
+                .scale(getGizmoScale());
     }
 
     private Vector3f localAxis(int idx) {
@@ -247,31 +321,99 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     }
 
     private void updateHover() {
-        hoverHandle = null;
-        if (!isActive() || !(getScene() instanceof SceneEditor editor)) return;
-        var worldRay = editor.getMouseRay().orElse(null);
-        if (worldRay == null) return;
+        hoverHandle = isActive() && getScene() instanceof SceneEditor editor
+                ? editor.getMouseRay().map(this::pickHandle).orElse(null)
+                : null;
+    }
+
+    /** The handle a world-space ray would grab, or {@code null} for none. */
+    @Nullable
+    public Handle pickHandle(Ray worldRay) {
+        if (!isActive()) return null;
+        if (mode == Mode.ROTATE) return pickRotateHandle(worldRay);
         var ray = toGizmoSpace(worldRay);
         if (mode == Mode.TRANSLATE) {
-            if (ray.clip(xPlaneCollider) != null) { hoverHandle = Handle.PLANE_X; return; }
-            if (ray.clip(yPlaneCollider) != null) { hoverHandle = Handle.PLANE_Y; return; }
-            if (ray.clip(zPlaneCollider) != null) { hoverHandle = Handle.PLANE_Z; return; }
+            if (ray.clip(xPlaneCollider) != null) return Handle.PLANE_X;
+            if (ray.clip(yPlaneCollider) != null) return Handle.PLANE_Y;
+            if (ray.clip(zPlaneCollider) != null) return Handle.PLANE_Z;
         }
-        VoxelShape xc, yc, zc;
-        if (mode == Mode.ROTATE) {
-            xc = xRingCollider; yc = yRingCollider; zc = zRingCollider;
-        } else { // TRANSLATE or SCALE
-            xc = xAxisCollider; yc = yAxisCollider; zc = zAxisCollider;
+        if (ray.clip(xAxisCollider) != null) return Handle.AXIS_X;
+        if (ray.clip(yAxisCollider) != null) return Handle.AXIS_Y;
+        if (ray.clip(zAxisCollider) != null) return Handle.AXIS_Z;
+        return null;
+    }
+
+    /**
+     * Picks a rotation handle analytically in world space, rather than against a faceted collider in
+     * gizmo space.
+     *
+     * <p>Two things this buys, both of which were the complaint about rotating: the grab band is an exact
+     * distance from the circle, so it can be widened without a segment count fighting it; and the winner
+     * is the ring <em>nearest the camera</em> instead of whichever of X, Y, Z was tested first — which is
+     * why grabbing a ring that visibly crossed in front of another used to take the one behind.
+     *
+     * <p>The order beyond that is UE's: rings before the ball, so the inside of the gizmo is free rotation
+     * and only its rim is constrained.
+     */
+    @Nullable
+    private Handle pickRotateHandle(Ray worldRay) {
+        if (targetTransform == null) return null;
+        var origin = worldRay.startPos();
+        var dir = worldRay.getDirection();
+        if (dir.lengthSquared() < 1.0e-12f) return null;
+        dir.normalize();
+        var center = targetTransform.position();
+        var scale = getGizmoScale();
+        var tolerance = RING_PICK_TOLERANCE * scale;
+
+        Handle best = null;
+        var bestDistance = Float.MAX_VALUE;
+        for (int idx = 0; idx < 3; idx++) {
+            var distance = ringHitDistance(origin, dir, center, worldAxis(idx), RING_RADIUS * scale, tolerance);
+            if (distance != null && distance < bestDistance) {
+                bestDistance = distance;
+                best = AXIS_HANDLES[idx];
+            }
         }
-        if (ray.clip(xc) != null) hoverHandle = Handle.AXIS_X;
-        else if (ray.clip(yc) != null) hoverHandle = Handle.AXIS_Y;
-        else if (ray.clip(zc) != null) hoverHandle = Handle.AXIS_Z;
+        var screenDistance = ringHitDistance(origin, dir, center, getScreenAxis(),
+                SCREEN_RING_RADIUS * scale, tolerance);
+        if (screenDistance != null && screenDistance < bestDistance) {
+            best = Handle.SCREEN;
+        }
+        if (best != null) return best;
+        return rayReachesSphere(origin, dir, center, TRACKBALL_RADIUS * scale) ? Handle.TRACKBALL : null;
+    }
+
+    /**
+     * Distance along a unit-direction ray at which it crosses the band around a circle, or {@code null}
+     * if it misses. A ring seen exactly edge-on has no crossing and is reported as a miss, which is also
+     * what it looks like.
+     */
+    @Nullable
+    private static Float ringHitDistance(Vector3f origin, Vector3f dir, Vector3f center, Vector3f normal,
+                                         float radius, float tolerance) {
+        var denom = dir.dot(normal);
+        if (Math.abs(denom) < 1.0e-6f) return null;
+        var distance = new Vector3f(center).sub(origin).dot(normal) / denom;
+        if (distance < 0) return null; // behind the camera
+        var hit = new Vector3f(origin).add(new Vector3f(dir).mul(distance));
+        return Math.abs(hit.distance(center) - radius) <= tolerance ? distance : null;
+    }
+
+    /** Whether a unit-direction ray passes through the sphere, i.e. lands inside its silhouette. */
+    private static boolean rayReachesSphere(Vector3f origin, Vector3f dir, Vector3f center, float radius) {
+        var toCenter = new Vector3f(center).sub(origin);
+        var along = toCenter.dot(dir);
+        if (along < 0) return false;
+        return toCenter.lengthSquared() - along * along <= radius * radius;
     }
 
     @Override
     public boolean onMouseClick(Ray mouseRay) {
         if (!isActive()) return false;
-        updateHover();
+        // the click's own ray, not the cursor's current one: they are the same in practice, and asking
+        // the handle directly is what lets a test drive the gizmo without moving a real mouse
+        hoverHandle = pickHandle(mouseRay);
         if (hoverHandle == null) return false;
         dragHandle = hoverHandle;
         beginDrag(mouseRay);
@@ -284,10 +426,14 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         dragStartPosition = new Vector3f(center);
         dragStartRotation = targetTransform.rotation();
         dragStartScale = new Vector3f(targetTransform.localScale());
-        dragAxis = worldAxis(dragHandle.axis);
+        // Frozen at the grab, camera-relative handles included: the axis must not drift under the drag
+        // even if the view changes, or the object would keep turning while the cursor stood still.
+        dragAxis = dragHandle.isAxisAligned() ? worldAxis(dragHandle.axis) : getScreenAxis();
         dragRotateAccum = 0;
         dragPrevRaw = 0;
         dragRotateAngle = 0;
+        dragStartHandleDir = null;
+        dragBallStart = null;
         readoutText = null;
 
         var origin = worldRay.startPos();
@@ -295,6 +441,9 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         if (dragHandle.plane) {
             var hit = rayPlaneIntersect(origin, dir, center, dragAxis);
             dragGrabOffset = hit == null ? new Vector3f() : new Vector3f(hit).sub(center);
+        } else if (dragHandle == Handle.TRACKBALL) {
+            dragBallRadius = TRACKBALL_RADIUS * getGizmoScale();
+            dragBallStart = ballPoint(origin, dir, center, dragBallRadius);
         } else if (mode == Mode.ROTATE) {
             var hit = rayPlaneIntersect(origin, dir, center, dragAxis);
             var handleDir = hit == null ? new Vector3f() : new Vector3f(hit).sub(center);
@@ -326,6 +475,8 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         dragRotateAccum = 0;
         dragPrevRaw = 0;
         dragRotateAngle = 0;
+        dragBallStart = null;
+        dragBallRadius = 0;
         readoutText = null;
     }
 
@@ -364,6 +515,19 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
                 readoutText = fmt(new Vector3f(newPos).sub(dragStartPosition));
                 changed = true;
             }
+        } else if (dragHandle == Handle.TRACKBALL) {
+            var unitDir = new Vector3f(dir);
+            if (unitDir.lengthSquared() > 1.0e-12f && dragBallStart != null) {
+                unitDir.normalize();
+                var current = ballPoint(origin, unitDir, dragStartPosition, dragBallRadius);
+                // Absolute, not accumulated per frame: the rotation is always "from where you grabbed to
+                // where you are", so dragging back to the start puts the object back exactly.
+                var delta = new Quaternionf().rotationTo(dragBallStart, current);
+                if (snap) delta = snapRotation(delta, SNAP_ROTATE);
+                targetTransform.rotation(delta.mul(dragStartRotation, new Quaternionf()));
+                readoutText = "%.1f°".formatted(Math.toDegrees(angleOf(delta)));
+                changed = true;
+            }
         } else if (mode == Mode.ROTATE) {
             var hit = rayPlaneIntersect(origin, dir, dragStartPosition, dragAxis);
             if (hit != null) {
@@ -396,7 +560,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         } else if (mode == Mode.SCALE) {
             var closest = Vector3fHelper.closestPointOnLine(origin, dir, dragStartPosition, dragAxis);
             var worldDelta = new Vector3f(closest).sub(dragStartPosition).dot(dragAxis) - dragStartParam;
-            var gizmoScale = computeGizmoScale();
+            var gizmoScale = getGizmoScale();
             var delta = gizmoScale > 1.0e-6f ? worldDelta / gizmoScale : worldDelta; // measure in gizmo-units
             var idx = dragHandle.axis;
             var newComp = dragStartScale.get(idx) + delta;
@@ -451,12 +615,19 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         }
     }
 
+    /**
+     * The infinite guide line along the axis being dragged, so a translate or scale drag shows what it is
+     * constrained to. Nothing is drawn for a planar or camera-relative handle: neither has a single axis,
+     * and reading {@code axis} on the latter would quietly draw the Z one.
+     */
+    private void drawDragAxisGuide(PoseStack poseStack, MultiBufferSource bufferSource) {
+        if (dragHandle == null || dragHandle.plane || !dragHandle.isAxisAligned()) return;
+        var line = bufferSource.getBuffer(LDLibRenderTypes.noDepthLines());
+        drawInfiniteAxisLine(poseStack, line, dragHandle.axis);
+    }
+
     private void drawTranslate(PoseStack poseStack, MultiBufferSource bufferSource) {
-        // guide line for the active axis while dragging
-        if (dragHandle != null && !dragHandle.plane) {
-            var line = bufferSource.getBuffer(LDLibRenderTypes.noDepthLines());
-            drawInfiniteAxisLine(poseStack, line, dragHandle.axis);
-        }
+        drawDragAxisGuide(poseStack, bufferSource);
         var buffer = bufferSource.getBuffer(LDLibRenderTypes.positionColorNoDepth());
         for (int idx = 0; idx < 3; idx++) {
             if (!isAxisVisible(idx)) continue;
@@ -479,10 +650,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     }
 
     private void drawScale(PoseStack poseStack, MultiBufferSource bufferSource) {
-        if (dragHandle != null && !dragHandle.plane) {
-            var line = bufferSource.getBuffer(LDLibRenderTypes.noDepthLines());
-            drawInfiniteAxisLine(poseStack, line, dragHandle.axis);
-        }
+        drawDragAxisGuide(poseStack, bufferSource);
         var buffer = bufferSource.getBuffer(LDLibRenderTypes.positionColorNoDepth());
         for (int idx = 0; idx < 3; idx++) {
             if (!isAxisVisible(idx)) continue;
@@ -498,27 +666,59 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         }
     }
 
+    /**
+     * The UE rotation widget: three axis rings, an outer ring for the screen plane, and a ball you can
+     * grab anywhere inside for free rotation.
+     *
+     * <p>Draw order is load-bearing. Depth testing is off for the whole gizmo, so what is submitted last
+     * to a buffer wins — the ball goes down first so the rings sit on top of it rather than being washed
+     * out by it.
+     */
     private void drawRotate(PoseStack poseStack, MultiBufferSource bufferSource) {
-        var line = bufferSource.getBuffer(LDLibRenderTypes.noDepthLines());
+        var buffer = bufferSource.getBuffer(LDLibRenderTypes.positionColorNoDepth());
+        if (isTrackballVisible()) {
+            // Faint on its own so it reads as a grabbable region without hiding the model inside it, and
+            // brighter under the cursor, which is the only feedback free rotation can give before it starts.
+            var alpha = activeHandle() == Handle.TRACKBALL ? 0.16f : 0.05f;
+            RenderBufferUtils.shapeSphere(poseStack, buffer, 0, 0, 0, TRACKBALL_RADIUS * 0.99f, 12, 24,
+                    1f, 1f, 1f, alpha);
+        }
         for (int idx = 0; idx < 3; idx++) {
             if (!isAxisVisible(idx)) continue;
             var c = axisColor(idx, isAxisHighlighted(idx));
-            RenderBufferUtils.drawCircleLine(poseStack, line, new Vector3f(0, 0, 0), localAxis(idx), RING_SEGMENTS,
-                    RING_RADIUS, c[0], c[1], c[2], c[3]);
+            RenderBufferUtils.shapeTorus(poseStack, buffer, new Vector3f(), localAxis(idx),
+                    RING_RADIUS, RING_TUBE_RADIUS, RING_SEGMENTS, RING_TUBE_SEGMENTS, c[0], c[1], c[2], c[3]);
         }
-        // world-space angle indicator while rotating
-        if (dragHandle != null && dragStartHandleDir != null) {
+        // The outer ring and the angle indicator face the camera, not the gizmo, so they are built in
+        // world space with the gizmo matrix undone.
+        if (!isScreenRingVisible() && !isRotateIndicatorVisible()) return;
+        poseStack.pushPose();
+        poseStack.mulPose(gizmoMatrix().invert());
+        if (isScreenRingVisible()) {
+            drawScreenRing(poseStack, bufferSource);
+        }
+        if (isRotateIndicatorVisible()) {
             drawRotateIndicator(poseStack, bufferSource);
         }
+        poseStack.popPose();
     }
 
-    /** Draws the translucent swept-angle sector + guide lines in world space (undoing the gizmo matrix). */
-    private void drawRotateIndicator(PoseStack poseStack, MultiBufferSource bufferSource) {
+    /** The view-facing outer ring, in world space. Rotating it turns the target in the plane of the screen. */
+    private void drawScreenRing(PoseStack poseStack, MultiBufferSource bufferSource) {
         if (targetTransform == null) return;
-        poseStack.pushPose();
-        poseStack.mulPose(gizmoMatrix().invert()); // back to world space
+        var scale = getGizmoScale();
+        var c = screenRingColor(activeHandle() == Handle.SCREEN);
+        var buffer = bufferSource.getBuffer(LDLibRenderTypes.positionColorNoDepth());
+        RenderBufferUtils.shapeTorus(poseStack, buffer, targetTransform.position(), getScreenAxis(),
+                SCREEN_RING_RADIUS * scale, RING_TUBE_RADIUS * scale, RING_SEGMENTS, RING_TUBE_SEGMENTS,
+                c[0], c[1], c[2], c[3]);
+    }
+
+    /** Draws the translucent swept-angle sector + guide lines. Expects a world-space pose. */
+    private void drawRotateIndicator(PoseStack poseStack, MultiBufferSource bufferSource) {
+        if (targetTransform == null || dragStartHandleDir == null) return;
         var center = targetTransform.position();
-        var radius = RING_RADIUS * computeGizmoScale();
+        var radius = draggedRingRadius() * getGizmoScale();
         var u = new Vector3f(dragStartHandleDir);
         var v = new Vector3f(dragAxis).cross(u, new Vector3f());
         if (v.lengthSquared() > 1.0e-9f) v.normalize();
@@ -533,7 +733,10 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         var endPt = new Vector3f(center).add(endDir.mul(radius));
         RenderBufferUtils.drawLine(poseStack.last(), line, center, startPt, 1f, 1f, 1f, 0.5f, 1f, 1f, 1f, 0.5f);
         RenderBufferUtils.drawLine(poseStack.last(), line, center, endPt, 1f, 1f, 0f, 1f, 1f, 1f, 0f, 1f);
-        poseStack.popPose();
+    }
+
+    private float draggedRingRadius() {
+        return dragHandle == Handle.SCREEN ? SCREEN_RING_RADIUS : RING_RADIUS;
     }
 
     private void drawInfiniteAxisLine(PoseStack poseStack, VertexConsumer buffer, int idx) {
@@ -579,6 +782,11 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         };
     }
 
+    /** As {@link #axisColor}, for the outer ring: neutral grey, since it belongs to no axis. */
+    private float[] screenRingColor(boolean highlight) {
+        return highlight ? new float[]{1f, 1f, 0f, 1f} : new float[]{0.85f, 0.85f, 0.85f, 1f};
+    }
+
     private Handle activeHandle() {
         return dragHandle != null ? dragHandle : hoverHandle;
     }
@@ -593,12 +801,32 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         return h != null && h.plane && h.axis == idx;
     }
 
+    /**
+     * While a handle is dragged the others are hidden, so nothing competes with the one in use — except
+     * under free rotation, where hiding the rings would take away the only reference for where the object
+     * has got to.
+     */
     private boolean isAxisVisible(int idx) {
-        return dragHandle == null || (!dragHandle.plane && dragHandle.axis == idx);
+        if (dragHandle == null || dragHandle == Handle.TRACKBALL) return true;
+        return !dragHandle.plane && dragHandle.axis == idx;
     }
 
     private boolean isPlaneVisible(int idx) {
         return dragHandle == null || (dragHandle.plane && dragHandle.axis == idx);
+    }
+
+    private boolean isScreenRingVisible() {
+        return mode == Mode.ROTATE
+                && (dragHandle == null || dragHandle == Handle.SCREEN || dragHandle == Handle.TRACKBALL);
+    }
+
+    private boolean isTrackballVisible() {
+        return mode == Mode.ROTATE && (dragHandle == null || dragHandle == Handle.TRACKBALL);
+    }
+
+    /** The swept-angle sector only exists for a drag around a ring, which is the only kind with a plane. */
+    private boolean isRotateIndicatorVisible() {
+        return dragHandle != null && dragStartHandleDir != null;
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -618,6 +846,42 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         return ref.cross(v).normalize();
     }
 
+    /**
+     * Where a ray grabs the trackball, as a unit vector from its centre.
+     *
+     * <p>A ray that misses the ball is pulled onto its silhouette rather than rejected. That is what keeps
+     * free rotation continuous once the cursor leaves the gizmo: instead of the drag dying at the rim, it
+     * carries on spinning about the view axis, which is the behaviour that makes it feel like a ball
+     * rather than a disc. {@code dir} must be normalized.
+     */
+    private static Vector3f ballPoint(Vector3f origin, Vector3f dir, Vector3f center, float radius) {
+        var toOrigin = new Vector3f(origin).sub(center);
+        var along = toOrigin.dot(dir);
+        var outside = toOrigin.lengthSquared() - radius * radius;
+        var discriminant = along * along - outside;
+        Vector3f point;
+        if (discriminant >= 0) { // through the ball: take the near surface point
+            var distance = -along - (float) Math.sqrt(discriminant);
+            point = new Vector3f(origin).add(new Vector3f(dir).mul(distance)).sub(center);
+        } else { // past it: the closest approach, which normalizing puts on the silhouette
+            point = new Vector3f(origin).add(new Vector3f(dir).mul(-along)).sub(center);
+        }
+        return point.lengthSquared() < 1.0e-9f ? new Vector3f(0, 0, 1) : point.normalize();
+    }
+
+    /** The rotation angle a quaternion carries, in radians. */
+    private static float angleOf(Quaternionf rotation) {
+        return new AxisAngle4f().set(rotation).angle;
+    }
+
+    /** The same rotation with its angle rounded to a multiple of {@code step}, keeping its axis. */
+    private static Quaternionf snapRotation(Quaternionf rotation, float step) {
+        var axisAngle = new AxisAngle4f().set(rotation);
+        var snapped = Math.round(axisAngle.angle / step) * step;
+        if (Math.abs(snapped) < 1.0e-6f) return new Quaternionf();
+        return new Quaternionf().fromAxisAngleRad(axisAngle.x, axisAngle.y, axisAngle.z, snapped);
+    }
+
     private static void snapVector(Vector3f v, float step) {
         v.set(Math.round(v.x / step) * step, Math.round(v.y / step) * step, Math.round(v.z / step) * step);
     }
@@ -626,6 +890,13 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         return "%.2f, %.2f, %.2f".formatted(v.x, v.y, v.z);
     }
 
+    /**
+     * A ring approximated by a chain of boxes.
+     *
+     * <p>No longer how the rotation rings are picked — that is {@link #ringHitDistance}, which is exact,
+     * takes an explicit tolerance and can rank hits by distance, none of which a {@link VoxelShape} can
+     * do. Kept because it is public and someone else may be building a collider out of it.
+     */
     public static VoxelShape createRingCollisionBox(Vector3f center, Vector3f normal, double radius, int segments, double thickness) {
         VoxelShape ringShape = Shapes.empty();
         double angleStep = 2 * Math.PI / segments;

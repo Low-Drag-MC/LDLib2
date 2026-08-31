@@ -976,6 +976,82 @@ public class RenderBufferUtils {
     }
 
     /**
+     * Solid torus — a tube bent into a circle — used as a gizmo rotation ring.
+     *
+     * <p>Unlike a line, this has a real thickness from every direction, so the ring stays as wide on screen
+     * whichever way the camera is turned and does not depend on the render type's line width (which is one
+     * shared setting for everything drawn with it). Emitted as TRIANGLES in both windings, so it is visible
+     * regardless of the render type's cull state.
+     *
+     * @param center       centre of the ring
+     * @param normal       the ring plane's normal; need not be normalized
+     * @param radius       centre of the ring to the centre of the tube
+     * @param tubeRadius   radius of the tube itself, i.e. half the drawn thickness
+     * @param segments     subdivisions around the ring
+     * @param tubeSegments subdivisions around the tube
+     */
+    public static void shapeTorus(PoseStack poseStack, VertexConsumer buffer, Vector3f center, Vector3f normal,
+                                  float radius, float tubeRadius, int segments, int tubeSegments,
+                                  float red, float green, float blue, float alpha) {
+        Matrix4f mat = poseStack.last().pose();
+        if (segments < 3) segments = 3;
+        if (tubeSegments < 3) tubeSegments = 3;
+        var n = new Vector3f(normal);
+        if (n.lengthSquared() < 1.0e-12f) return;
+        n.normalize();
+        var u = perpendicularTo(n);
+        var v = n.cross(u, new Vector3f()).normalize();
+
+        // Scratch vectors reused for every quad: a gizmo ring is rebuilt every frame, and allocating a
+        // fresh corner per vertex made this the noisiest allocator in the editor's render path.
+        var radial0 = new Vector3f();
+        var radial1 = new Vector3f();
+        var corners = new Vector3f[]{new Vector3f(), new Vector3f(), new Vector3f(), new Vector3f()};
+        float ringStep = (float) (2.0 * Math.PI / segments);
+        float tubeStep = (float) (2.0 * Math.PI / tubeSegments);
+        for (int i = 0; i < segments; i++) {
+            float a0 = i * ringStep, a1 = (i + 1) * ringStep;
+            // radial direction at each end of this ring segment; the tube's cross-section spans (radial, n)
+            radialAt(radial0, u, v, a0);
+            radialAt(radial1, u, v, a1);
+            for (int j = 0; j < tubeSegments; j++) {
+                float b0 = j * tubeStep, b1 = (j + 1) * tubeStep;
+                torusPoint(corners[0], center, radial0, n, radius, tubeRadius, b0);
+                torusPoint(corners[1], center, radial1, n, radius, tubeRadius, b0);
+                torusPoint(corners[2], center, radial1, n, radius, tubeRadius, b1);
+                torusPoint(corners[3], center, radial0, n, radius, tubeRadius, b1);
+                for (int corner : QUAD_BOTH_SIDES) {
+                    var p = corners[corner];
+                    buffer.addVertex(mat, p.x, p.y, p.z).setColor(red, green, blue, alpha);
+                }
+            }
+        }
+    }
+
+    /** A quad's four corners as two triangles, then the same two reversed — see {@link #shapeTorus}. */
+    private static final int[] QUAD_BOTH_SIDES = {0, 1, 2, 0, 2, 3, 2, 1, 0, 3, 2, 0};
+
+    private static void radialAt(Vector3f dest, Vector3f u, Vector3f v, float angle) {
+        float c = Mth.cos(angle), s = Mth.sin(angle);
+        dest.set(u.x * c + v.x * s, u.y * c + v.y * s, u.z * c + v.z * s);
+    }
+
+    private static void torusPoint(Vector3f dest, Vector3f center, Vector3f radial, Vector3f normal,
+                                   float radius, float tubeRadius, float tubeAngle) {
+        float outward = radius + tubeRadius * Mth.cos(tubeAngle);
+        float along = tubeRadius * Mth.sin(tubeAngle);
+        dest.set(center.x + radial.x * outward + normal.x * along,
+                center.y + radial.y * outward + normal.y * along,
+                center.z + radial.z * outward + normal.z * along);
+    }
+
+    /** Any unit vector perpendicular to {@code n}, which must be normalized. */
+    public static Vector3f perpendicularTo(Vector3f n) {
+        var ref = Math.abs(n.x) < 0.9f ? new Vector3f(1, 0, 0) : new Vector3f(0, 1, 0);
+        return ref.cross(n, new Vector3f()).normalize();
+    }
+
+    /**
      * Filled circular sector (pie slice), triangle-fan from {@code center}, laid out in the plane spanned by the
      * orthonormal vectors {@code u} and {@code v}. Sweeps {@code sweepAngle} radians from {@code startAngle}.
      * Emitted double-sided so it is visible from either side of the plane (e.g. the rotation angle indicator).
