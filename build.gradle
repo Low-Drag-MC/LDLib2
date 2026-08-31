@@ -173,7 +173,8 @@ dependencies {
     // JEI
     compileOnly("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}") { transitive = false }
     compileOnly("mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}") { transitive = false }
-    localImplementation("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
+    // only the api is on the compile classpath, the full mod is runtime only
+    runtimeOnly("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
 
     // REI
     compileOnly("me.shedaniel:RoughlyEnoughItems-default-plugin-neoforge:${rei_version}")
@@ -231,6 +232,7 @@ tasks.withType(ProcessResources).configureEach {
             "loader_version": loader_version,
             "forge_version": neo_version.split("\\.")[0], // only specify major version of forge
             "minecraft_version": minecraft_version,
+            "jei_version_range": jei_version_range,
             "mod_license": mod_license,
             "mod_name": mod_name,
             "mod_description": mod_description,
