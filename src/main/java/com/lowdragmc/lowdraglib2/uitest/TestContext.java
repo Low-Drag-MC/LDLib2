@@ -450,6 +450,18 @@ public final class TestContext {
         return run.options;
     }
 
+    /**
+     * Where this run writes its output.
+     *
+     * <p>Use this rather than reading {@code ldlib2.uitest.out} directly for a scenario that writes a
+     * file of its own. Under a parallel run each shard has a different output directory, and a
+     * hand-rolled default is how a file ends up in another shard's tree — or in a directory nothing
+     * ever collects.
+     */
+    public java.nio.file.Path outDir() {
+        return runner.config().outDir();
+    }
+
     public UITestRunner runner() {
         return runner;
     }

@@ -17,7 +17,6 @@ import com.lowdragmc.lowdraglib2.uitest.capture.FrameCapture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.mojang.blaze3d.platform.NativeImage;
 
-import java.nio.file.Path;
 import java.util.List;
 
 /**
@@ -83,8 +82,8 @@ public class FloatingSceneScenario implements UIScenario {
                 .step("record what the docked scene looks like", ctx -> {
                     var image = FrameCapture.grab();
                     try {
-                        var out = Path.of(System.getProperty("ldlib2.uitest.out", "build/ldlib2-uitest"),
-                                "screenshots", "floating_scene", "01_docked_scene.png");
+                        var out = ctx.outDir().resolve("screenshots").resolve("floating_scene")
+                                .resolve("01_docked_scene.png");
                         ctx.check("the docked scene drew something", !FrameCapture.write(image, out));
                     } catch (java.io.IOException e) {
                         throw new IllegalStateException("could not write the docked capture", e);
@@ -107,8 +106,8 @@ public class FloatingSceneScenario implements UIScenario {
                             ctx.require("the window has a surface", surface != null);
                             var image = FrameCapture.grab(surface.target());
                             try {
-                                var out = Path.of(System.getProperty("ldlib2.uitest.out", "build/ldlib2-uitest"),
-                                        "screenshots", "floating_scene", "02_float_window_contents.png");
+                                var out = ctx.outDir().resolve("screenshots").resolve("floating_scene")
+                                        .resolve("02_float_window_contents.png");
                                 FrameCapture.write(image, out);
                                 ctx.attach("float_window_capture", out.toString());
                                 // Deliberately NOT "is the whole image uniform": the window's title

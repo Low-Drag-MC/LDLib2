@@ -153,6 +153,9 @@ runs {
 // Kept in its own file so downstream mods can apply the identical block.
 apply from: rootProject.file('gradle/ldlib2-uitest.gradle')
 
+// Parallel UI test harness: runParTest splits the same scenarios across N client processes.
+apply from: rootProject.file('gradle/ldlib2-uitest-par.gradle')
+
 // Multi-process test harness: runMpTest orchestrates a dedicated server + N clients.
 apply from: rootProject.file('gradle/ldlib2-mptest.gradle')
 

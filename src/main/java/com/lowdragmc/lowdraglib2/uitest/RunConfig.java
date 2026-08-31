@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.uitest;
 
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
 import java.util.Locale;
@@ -23,6 +24,10 @@ public final class RunConfig {
     public static final String PROP_INPUT_MODE = "ldlib2.uitest.inputMode";
     public static final String PROP_WATCHDOG_SEC = "ldlib2.uitest.watchdogSec";
     public static final String PROP_KEEP_OPEN = "ldlib2.uitest.keepOpen";
+    /** {@code <index>/<count>} — which slice of the selection this process runs. See {@link ShardPlan}. */
+    public static final String PROP_SHARD = "ldlib2.uitest.shard";
+    /** Path to the previous run's scenario durations, used to balance the slices. Optional. */
+    public static final String PROP_WEIGHTS = "ldlib2.uitest.weights";
 
     private final String selection;
     private final String exclusion;
@@ -33,10 +38,15 @@ public final class RunConfig {
     private final InputMode inputMode;
     private final int watchdogSeconds;
     private final boolean keepOpen;
+    private final int shardIndex;
+    private final int shardCount;
+    @Nullable
+    private final Path weightsFile;
 
     private RunConfig(String selection, String exclusion, Path outDir, int guiScale,
                       int windowWidth, int windowHeight, InputMode inputMode,
-                      int watchdogSeconds, boolean keepOpen) {
+                      int watchdogSeconds, boolean keepOpen,
+                      int shardIndex, int shardCount, @Nullable Path weightsFile) {
         this.selection = selection;
         this.exclusion = exclusion;
         this.outDir = outDir;
@@ -46,6 +56,9 @@ public final class RunConfig {
         this.inputMode = inputMode;
         this.watchdogSeconds = watchdogSeconds;
         this.keepOpen = keepOpen;
+        this.shardIndex = shardIndex;
+        this.shardCount = shardCount;
+        this.weightsFile = weightsFile;
     }
 
     /** @return {@code null} when no selection was requested, i.e. this is an ordinary client launch */
@@ -75,6 +88,28 @@ public final class RunConfig {
         var inputMode = "REAL".equalsIgnoreCase(System.getProperty(PROP_INPUT_MODE, "SYNTHETIC"))
                 ? InputMode.REAL : InputMode.SYNTHETIC;
 
+        // "<index>/<count>", absent for an ordinary serial run, which is shard 0 of 1.
+        int shardIndex = 0;
+        int shardCount = 1;
+        var shard = System.getProperty(PROP_SHARD, "").trim();
+        int slash = shard.indexOf('/');
+        if (slash > 0) {
+            try {
+                shardIndex = Integer.parseInt(shard.substring(0, slash).trim());
+                shardCount = Math.max(1, Integer.parseInt(shard.substring(slash + 1).trim()));
+                if (shardIndex < 0 || shardIndex >= shardCount) {
+                    // Running everything would be far worse than running nothing here: N shards would
+                    // each run the whole suite, and the merged report would double-count silently.
+                    throw new IllegalArgumentException("shard index " + shardIndex
+                            + " is outside [0, " + shardCount + ")");
+                }
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("malformed " + PROP_SHARD + " '" + shard
+                        + "', expected <index>/<count>", e);
+            }
+        }
+        var weights = System.getProperty(PROP_WEIGHTS, "").trim();
+
         return new RunConfig(
                 selection,
                 System.getProperty(PROP_EXCLUDE, "").trim(),
@@ -89,7 +124,10 @@ public final class RunConfig {
                 windowHeight,
                 inputMode,
                 intProperty(PROP_WATCHDOG_SEC, 90),
-                Boolean.getBoolean(PROP_KEEP_OPEN));
+                Boolean.getBoolean(PROP_KEEP_OPEN),
+                shardIndex,
+                shardCount,
+                weights.isEmpty() ? null : Path.of(weights).toAbsolutePath());
     }
 
     /**
@@ -101,7 +139,7 @@ public final class RunConfig {
      */
     public static RunConfig interactive(String selection) {
         return new RunConfig(selection, "", Path.of("ldlib2-uitest").toAbsolutePath(),
-                2, 1280, 720, InputMode.SYNTHETIC, 90, true);
+                2, 1280, 720, InputMode.SYNTHETIC, 90, true, 0, 1, null);
     }
 
     /**
@@ -111,7 +149,7 @@ public final class RunConfig {
      */
     static RunConfig forMultiProcess(java.nio.file.Path outDir) {
         return new RunConfig("<multi-process>", "", outDir,
-                2, 0, 0, InputMode.SYNTHETIC, 180, false);
+                2, 0, 0, InputMode.SYNTHETIC, 180, false, 0, 1, null);
     }
 
     private static int intProperty(String key, int fallback) {
@@ -200,5 +238,26 @@ public final class RunConfig {
     /** Leaves the game running after the report is written. For watching a run interactively. */
     public boolean keepOpen() {
         return keepOpen;
+    }
+
+    /** Which slice of the selection this process runs; {@code 0} for a serial run. */
+    public int shardIndex() {
+        return shardIndex;
+    }
+
+    /** How many processes the selection is split across; {@code 1} for a serial run. */
+    public int shardCount() {
+        return shardCount;
+    }
+
+    /** {@code true} when this process is one of several sharing a selection. */
+    public boolean isSharded() {
+        return shardCount > 1;
+    }
+
+    /** Previous durations used to balance the slices, or {@code null} when there are none yet. */
+    @Nullable
+    public Path weightsFile() {
+        return weightsFile;
     }
 }
