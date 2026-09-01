@@ -61,7 +61,9 @@ tasks.register('runParTest', JavaExec) {
             '--out', ldParOutDir,
             '--weights', ldParWeights,
             '--selection', (project.findProperty('ldTest') ?: 'all').toString(),
-            '--jobs', (ldParJobs > 0 ? ldParJobs : 2).toString()
+            '--jobs', (ldParJobs > 0 ? ldParJobs : 2).toString(),
+            // Not inherited by the child builds this spawns; see ParallelTestOrchestrator#main.
+            '--headless', project.hasProperty('ldTestHeadless').toString()
     doFirst {
         if (ldParJobs <= 0) {
             // The shard runs are created at configuration time from this property, so it has to be

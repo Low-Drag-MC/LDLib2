@@ -23,7 +23,7 @@ Not everything here carries the same confidence. Worth knowing before you rely o
 
 | | |
 |---|---|
-| **Proven by real runs** | opening UIs, selector resolution, transform-correct bounds, hover/click/key/type/focus, the hit-test guard, full-frame and per-element screenshots, the report, failure path, exit codes, Gradle wiring, world bootstrap, scenario isolation, watchdog, background runs (window never focused, physical pointer never moved) |
+| **Proven by real runs** | opening UIs, selector resolution, transform-correct bounds, hover/click/key/type/focus, the hit-test guard, full-frame and per-element screenshots, the report, failure path, exit codes, Gradle wiring, world bootstrap, scenario isolation, watchdog, background runs (window never focused, physical pointer never moved), headless runs (no window shown, no monitor attached, triggered over SSH) |
 | **Written, not yet exercised** | `server(...)` and everything server-side (`useBlock`, `waitForSync`, `waitUntilServer`, `setBlock`, `withBlockEntity`, …), `drag`, `scroll`, `doubleClick`, `shiftClick`, `typeInto`, most `ElementQuery` filters, `/ldlib2_autotest` |
 | **Not built** | UI-tree JSON snapshots + baseline diff, golden-image diff, JUnit XML |
 
@@ -83,9 +83,10 @@ public class FurnaceUiScenario implements UIScenario {
 | `-PldTest=regex:.*_ui` | by pattern |
 | `-PldTestExclude=slow_one` | subtract from the selection |
 | `-PldTestKeepOpen` | leave the game running afterwards |
-| `-PldTestWindow=1280x720` | pin the window (default: maximise) |
+| `-PldTestWindow=1280x720` | pin the window (default: maximise; 1920x1080 when headless) |
 | `-PldTestGuiScale=3` | run-wide GUI scale (default 2; scenarios can override) |
 | `-PldTestInputMode=REAL` | drive the real OS cursor instead of the logical one (**foreground only**) |
+| `-PldTestHeadless` | no visible window; works with no monitor attached (see [Headless runs](#headless-runs)) |
 
 `verifyUiTest` is attached to `runClient` with `finalizedBy`, so it runs even if the client crashes,
 and **a missing report is itself a failure**.
@@ -118,6 +119,106 @@ Two things are worth knowing:
 
 `-PldTestInputMode=REAL` is the one exception and is foreground-only by definition: it warps the real
 cursor and waits for the OS to deliver the event, so it focuses the window and moves your mouse.
+
+### Headless runs
+
+`-PldTestHeadless` goes one step further than a background run: no window is ever shown, and the
+machine does not need a monitor at all. A run triggered over SSH, on a box with the display unplugged
+and nobody logged in at the console, produces the same report and the same screenshots.
+
+It is opt-in and leaves nothing behind. Without the flag every code path is the one that was there
+before — the window is maximised and shown exactly as it used to be, so a run you want to *watch*
+still behaves like one.
+
+```
+gradlew runClient  -PldTest=all   -PldTestHeadless
+gradlew runParTest -PldTest=all   -PldTestJobs=4 -PldTestHeadless
+gradlew runMpTest  -PldMpTest=all -PldTestHeadless
+```
+
+The parallel and multi-process harnesses need it passed explicitly like this, and their orchestrators
+forward it to the builds they spawn: a child build is a fresh Gradle invocation and inherits none of
+the parent's project properties.
+
+Almost nothing had to change, because the harness never depended on a visible window in the first
+place: captures download the main render target's colour texture rather than reading the swap chain,
+and `SYNTHETIC` input dispatches straight into `Screen`. What the flag actually does is stop the
+runner asking the window system for things a display-less machine cannot answer:
+
+- **The window is hidden** (`glfwHideWindow`) instead of maximised, and a size is pinned instead of
+  being read off the monitor — see [Resolution](#resolution) below.
+- **FML's early loading window is disabled.** It calls `glfwGetPrimaryMonitor` and treats `NULL` as
+  fatal, so it dies long before Minecraft is reached — behind a modal dialog nobody is there to
+  dismiss, so the run *hangs* rather than fails. Minecraft's own `Window` handles a null monitor
+  fine. NeoForge moved this setting into `FMLConfig`, which has no system-property override, so the
+  Gradle wiring writes `earlyWindowControl = false` into the run directory's `config/fml.toml` for
+  the duration of the run. That file is shared with ordinary interactive runs, so
+  `ldlib2RestoreEarlyWindow` — a finalizer, and therefore one that runs even when the client crashes
+  — puts back exactly what this build turned off. Kill Gradle itself and the restore is missed; it is
+  idempotent, so the cost is one later `runClient` without its loading window.
+- **Vsync is off.** The runner advances one step per rendered frame, so the frame rate is the clock
+  the whole run keeps, and what a hidden window's swap interval does is a driver decision.
+- **`-PldTestInputMode=REAL` is rejected**, not downgraded, and rejected at Gradle configuration time
+  so it costs nothing. Real input needs a focusable window; accepting it here would let a run pass
+  while testing nothing.
+
+The bullet above about the window taking focus once at launch does not apply — with the early window
+gone, nothing is ever shown or focused.
+
+#### Resolution
+
+Two numbers, and confusing them is the usual mistake:
+
+| | value | set by |
+|---|---|---|
+| **Framebuffer** — the pixel size of every screenshot | e.g. 3840x2160 | `-PldTestWindow=WxH` |
+| **Logical viewport** — the coordinate space the UI lays out in | 1920x1080 | framebuffer ÷ GUI scale |
+
+```
+-PldTestWindow given       -> that size, headless or not
+omitted, headless          -> 1920x1080
+omitted, not headless      -> maximise / fill the monitor work area (unchanged)
+```
+
+The headless default exists because maximising reads the primary monitor's work area and there may be
+no primary monitor. A malformed `WxH` falls back to it rather than aborting the run.
+
+- **A hidden window is not clamped to the desktop.** `-PldTestWindow=3840x2160` really does produce
+  3840x2160 PNGs on a machine with *no monitor at all* — verified, not assumed. The ceiling is
+  `GL_MAX_TEXTURE_SIZE` (Minecraft calls `glfwSetWindowSizeLimits` with it), not any display.
+- **Raising the resolution alone enlarges the layout, it does not sharpen it.** 4K at GUI scale 2
+  gives the UI a 1920x1080 logical viewport — a different layout from 1080p at scale 2, not a
+  crisper picture of the same one. For "same layout, more pixels" scale both:
+  `-PldTestWindow=3840x2160 -PldTestGuiScale=4`.
+- **Never let the GUI scale go auto.** Auto picks the largest scale the window supports, which on a
+  4K frame is 8 — a 480x257 viewport that collapses any full-screen UI. `-PldTestGuiScale` defaults
+  to 2 for exactly this reason; individual scenarios raise it via `ScenarioOptions#guiScale`.
+- **Pass `-PldTestWindow` explicitly whenever captures are compared between machines.** Left out, the
+  size is 1920x1080 headless but "whatever this monitor's work area is" otherwise, so the two do not
+  line up.
+- 4K costs time and memory: one RGBA frame is 32 MB and the readback is a synchronous GPU stall, so
+  capture-heavy scenarios slow down measurably (`snake_hud` went 2261 ms → 2755 ms).
+
+#### When it is not the harness
+
+None of this touches the graphics stack below GLFW. A headless run still needs a real GPU OpenGL 3.2
+core context, and on Windows the ICD is bound to a display device: RDP replaces the console session's
+display driver, and some drivers fall back to GDI Generic (OpenGL 1.1) with nothing attached, which
+Minecraft cannot start on.
+
+Check `GL_RENDERER` before blaming the harness. A dozen lines of LWJGL — `glfwInit`, Minecraft's own
+window hints, `glfwCreateWindow`, `GL.createCapabilities`, print `GL_RENDERER` — answers it in
+seconds, where a failing `runClient` takes minutes. Two things that probe should also tell you:
+
+- **Read back from an FBO, not the default framebuffer.** A hidden window's default framebuffer reads
+  back black, which is why captures go through the main render target. A probe that only checks the
+  default framebuffer will report failure on a machine that works fine.
+- `glfwGetPrimaryMonitor() == 0` and `glfwGetMonitors() == null` are **not** by themselves a problem.
+  On an NVIDIA + Windows 11 box in session 0 with zero monitors enumerated, a real 3.2 core context
+  comes back and the whole suite passes.
+
+If the context really is GDI Generic, a virtual display driver or an HDMI dummy plug fixes it and
+needs no code change here.
 
 ### Iterating
 

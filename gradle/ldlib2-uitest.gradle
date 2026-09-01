@@ -13,6 +13,37 @@
 // delegate rather than the project, so ldTestOutDir would not be visible where it is needed.
 def ldTestOutDir = layout.buildDirectory.dir('ldlib2-uitest').get().asFile.absolutePath
 
+// -PldTestHeadless: run without a visible window, on a machine that need not have a monitor at all.
+// For a display-less build box, a locked console, or a run triggered over SSH.
+//
+// Applied to every run rather than just the client's: headless is a property of the machine, so a
+// box that cannot show one window cannot show a shard's or a multi-process client's either. The
+// property is inert in a run that has no UI test runner in it.
+//
+// Keyed by task name because that is all the hook below has to go on; NeoGradle derives a run's task
+// name from the run's name, so this map is how a task finds its own working directory.
+def ldHeadlessRunDirs = [:]
+
+// The fml.toml files this build actually turned the early window off in, so the restore below puts
+// back only what it took away. A developer who disabled the early window for their own reasons keeps
+// it disabled.
+def ldHeadlessFlipped = [] as Set
+
+if (project.hasProperty('ldTestHeadless')) {
+    // Rejected here rather than in RunConfig so it costs nothing: the runner only reads its config
+    // from a frame hook, so the same guard down there turns a typo into a crash report several
+    // minutes into a launch. Real input needs a focusable window, and a hidden one has no focus to
+    // give, so this combination would pass while testing nothing.
+    if ('REAL'.equalsIgnoreCase(project.findProperty('ldTestInputMode')?.toString())) {
+        throw new GradleException("-PldTestInputMode=REAL cannot be combined with -PldTestHeadless: " +
+                "real input drives the OS cursor and needs the window focused.")
+    }
+    runs.configureEach { run ->
+        run.systemProperty 'ldlib2.uitest.headless', 'true'
+        ldHeadlessRunDirs['run' + run.name.capitalize()] = run.workingDirectory
+    }
+}
+
 if (project.hasProperty('ldTest')) {
     // System properties rather than program arguments: Minecraft's own argument parser owns the
     // command line and rejects what it does not recognise.
@@ -77,15 +108,77 @@ tasks.register('verifyUiTest') {
 // NeoGradle creates the run tasks after this script is evaluated, so runClient cannot be looked up
 // by name here - match it lazily instead.
 def ldTestOutDirFile = file(ldTestOutDir)
+
+// Clears last run's output before runClient starts. verifyUiTest reads whatever report.json is on
+// disk, so a client that dies before the runner even starts - an unresolvable class path, a crash
+// during mod loading - would otherwise be reported with the *previous* run's verdict. Removing it up
+// front is what makes "no report is a failure" actually fire.
+//
+// A task runClient depends on, and not a doFirst on runClient: Gradle resolves and snapshots a
+// task's inputs BEFORE it runs any of its actions, so a runtimeClasspath that does not resolve fails
+// the task with its doFirst never reached - and an unresolvable class path is one of the two cases
+// this exists for. Observed, not theorised: a run against an LDLib2 whose new JEI dependency was on
+// no configured repository failed in ':runClient' at resolution, and verifyUiTest went on to report
+// the previous run's "1/1 scenarios passed, 72/72 checks passed" as this run's result.
+tasks.register('ldlib2CleanUiTestReport') {
+    onlyIf { project.hasProperty('ldTest') }
+    doLast { ldTestOutDirFile.deleteDir() }
+}
+
 tasks.configureEach { task ->
     if (task.name == 'runClient') {
         task.finalizedBy 'verifyUiTest'
-        if (project.hasProperty('ldTest')) {
-            // Clear last run's output first. verifyUiTest reads whatever report.json is on disk, so a
-            // client that dies before the runner even starts - a bad class path, a crash during mod
-            // loading - would otherwise be reported with the *previous* run's verdict. Removing it up
-            // front is what makes "no report is a failure" actually fire.
-            task.doFirst { ldTestOutDirFile.deleteDir() }
+        task.dependsOn 'ldlib2CleanUiTestReport'
+    }
+    // FML's early loading window calls glfwGetPrimaryMonitor and treats NULL as fatal, so on a
+    // machine with no monitor it dies long before Minecraft is reached - and it dies behind a modal
+    // dialog nobody is there to dismiss, so the run hangs rather than fails. Minecraft's own Window
+    // handles a null monitor, so skipping the early window is all that is needed.
+    //
+    // A config file rather than a system property because NeoForge moved this setting into FMLConfig,
+    // which has no property override. That file is shared with ordinary interactive runs, which is
+    // why ldlib2RestoreEarlyWindow puts it back: leaving it off would silently cost every later
+    // `runClient` its loading window, and the setting also gates the GL features FML sets up.
+    if (project.hasProperty('ldTestHeadless') && task.name.startsWith('run')) {
+        task.finalizedBy 'ldlib2RestoreEarlyWindow'
+        task.doFirst {
+            def workingDir = ldHeadlessRunDirs[task.name]
+            if (workingDir == null) return
+            def dir = workingDir instanceof File ? workingDir : workingDir.get().asFile
+            def toml = new File(dir, 'config/fml.toml')
+            if (!toml.exists()) {
+                // A fresh run directory: FML writes this file during startup, so there is nothing to
+                // patch yet and the default (true) would take the client down. Seed just this one
+                // key - FML fills in every other default around it and leaves ours alone.
+                toml.parentFile.mkdirs()
+                toml.text = "earlyWindowControl = false\n"
+                ldHeadlessFlipped << toml
+                logger.lifecycle("LDLib2 UI test: seeded ${toml} with earlyWindowControl = false")
+            } else if (toml.text.contains('earlyWindowControl = true')) {
+                toml.text = toml.text.replace('earlyWindowControl = true', 'earlyWindowControl = false')
+                ldHeadlessFlipped << toml
+                logger.lifecycle("LDLib2 UI test: disabled the FML early window in ${toml}")
+            }
+        }
+    }
+}
+
+// Undoes the doFirst above, so -PldTestHeadless leaves nothing behind for the next interactive run.
+//
+// A finalizer rather than a doLast: finalizers run even when the finalized task fails, and a client
+// that crashed is exactly when the setting must still be restored. It cannot cover Gradle itself
+// being killed; the next headless run flips and restores again, so the worst case is one interactive
+// `runClient` without its loading window in between.
+//
+// Only ever reached as a finalizer of a run task, and only when -PldTestHeadless was given - nothing
+// else attaches it, and with no recorded flips it does nothing.
+tasks.register('ldlib2RestoreEarlyWindow') {
+    doLast {
+        ldHeadlessFlipped.each { toml ->
+            if (toml.exists() && toml.text.contains('earlyWindowControl = false')) {
+                toml.text = toml.text.replace('earlyWindowControl = false', 'earlyWindowControl = true')
+                logger.lifecycle("LDLib2 UI test: restored the FML early window in ${toml}")
+            }
         }
     }
 }

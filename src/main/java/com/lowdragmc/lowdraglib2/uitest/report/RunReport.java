@@ -80,6 +80,12 @@ public class RunReport {
         public int framebufferWidth;
         public int framebufferHeight;
         public String inputMode = "";
+        /**
+         * Whether the window was ever shown. Sits next to the frame size for the same reason: when
+         * two machines disagree about a capture, the mode the frame was produced in is the first
+         * thing worth ruling out.
+         */
+        public boolean headless;
     }
 
     /**

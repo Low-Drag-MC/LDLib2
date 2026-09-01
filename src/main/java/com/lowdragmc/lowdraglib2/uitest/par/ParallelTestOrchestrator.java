@@ -47,8 +47,13 @@ public final class ParallelTestOrchestrator {
         int jobs = Math.max(1, Integer.parseInt(options.getOrDefault("jobs", "2")));
         long timeoutMs = Long.parseLong(options.getOrDefault("timeoutSec", "1800")) * 1000L;
         long runStartedMs = System.currentTimeMillis();
+        // Headless has to be forwarded explicitly: a child build is a fresh Gradle invocation and
+        // inherits none of this one's project properties, so without this the shards would each try
+        // to open a window on a machine that has no display.
+        var headless = Boolean.parseBoolean(options.getOrDefault("headless", "false"));
 
-        log("parallel run: selection '" + selection + "' across " + jobs + " job(s)");
+        log("parallel run: selection '" + selection + "' across " + jobs + " job(s)"
+                + (headless ? ", headless" : ""));
         log("output: " + outDir);
         if (Files.isRegularFile(weightsFile)) {
             log("balancing from " + weightsFile);
@@ -64,10 +69,13 @@ public final class ParallelTestOrchestrator {
         var processes = new LinkedHashMap<String, Process>();
         int exitCode;
         try {
+            var childProperties = headless
+                    ? List.of("-PldTestJobs=" + jobs, "-PldTestHeadless")
+                    : List.of("-PldTestJobs=" + jobs);
             for (int shard = 0; shard < jobs; shard++) {
                 var name = shardName(shard);
                 processes.put(name, ChildBuilds.spawn(projectDir, SHARD_TASK_PREFIX + shard,
-                        List.of("-PldTestJobs=" + jobs), outDir.resolve(name).resolve("gradle.log")));
+                        childProperties, outDir.resolve(name).resolve("gradle.log")));
             }
             log("spawned " + jobs + " shard(s); waiting...");
 

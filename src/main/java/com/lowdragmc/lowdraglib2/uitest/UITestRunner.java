@@ -791,7 +791,18 @@ public final class UITestRunner {
     private void pinOptions(Minecraft minecraft) {
         var window = minecraft.getWindow();
         var mayTakeFocus = mayTakeFocus();
-        if (!config.maximizeWindow()) {
+        if (config.headless()) {
+            // Hide rather than move off-screen: an off-screen window still belongs to a desktop that
+            // may not exist here. The frame is unaffected either way - the game renders into the main
+            // render target and FrameCapture downloads that texture, never the swap chain - so the
+            // only thing lost is the ability of a human to watch, which is the point.
+            //
+            // It has to be hidden after creation, not with a GLFW_VISIBLE hint: the handle comes from
+            // FML's early loading window via ImmediateWindowHandler#setupMinecraftWindow, so
+            // Minecraft never passes hints of ours to glfwCreateWindow.
+            GLFW.glfwHideWindow(window.getWindow());
+            GLFW.glfwSetWindowSize(window.getWindow(), config.windowWidth(), config.windowHeight());
+        } else if (!config.maximizeWindow()) {
             GLFW.glfwSetWindowSize(window.getWindow(), config.windowWidth(), config.windowHeight());
         } else if (mayTakeFocus) {
             GLFW.glfwMaximizeWindow(window.getWindow());
@@ -816,9 +827,16 @@ public final class UITestRunner {
         // Hides the hotbar, crosshair and chat backlog. Screens still render, so this only removes
         // things that would sit in frame behind whatever the scenario is actually looking at.
         options.hideGui = true;
+        if (config.headless()) {
+            // The runner advances one step per rendered frame, so the frame rate is the clock the
+            // whole run keeps. What a hidden window's swap interval does is a driver decision; take
+            // it out of the loop rather than let it set the pace.
+            options.enableVsync().set(false);
+        }
         minecraft.resizeDisplay();
-        LDLib2.LOGGER.info("[uitest] window {}x{}, guiScale {}, focus {}",
-                window.getScreenWidth(), window.getScreenHeight(), window.getGuiScale(), mayTakeFocus);
+        LDLib2.LOGGER.info("[uitest] window {}x{}, guiScale {}, focus {}, headless {}",
+                window.getScreenWidth(), window.getScreenHeight(), window.getGuiScale(),
+                mayTakeFocus, config.headless());
     }
 
     /**
@@ -876,6 +894,7 @@ public final class UITestRunner {
         environment.framebufferWidth = window.getScreenWidth();
         environment.framebufferHeight = window.getScreenHeight();
         environment.inputMode = config.inputMode().name();
+        environment.headless = config.headless();
         // Worth recording: a dev runtime loads the whole localImplementation set, and any of those
         // can change layout or the render pipeline under a capture.
         ModList.get().forEachModContainer((id, container) ->
