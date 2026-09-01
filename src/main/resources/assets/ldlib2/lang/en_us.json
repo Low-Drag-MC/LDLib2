@@ -546,6 +546,7 @@
   "structured_tag_editor": "Structured Tag Editor",
   "graph.name": "Name",
   "graph.color": "Color",
+  "graph.options": "Options",
   "graph.color.reset": "Reset Color",
 
   "graph.commands.create_placemat": "Create Placemat",

@@ -1,6 +1,10 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node;
 
+import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.HeaderConfigurator;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
@@ -23,6 +27,7 @@ import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.Objects;
 
 public class NodeElement extends GraphElement<AbstractNodeModel> {
@@ -185,7 +190,43 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
     protected void onSelectionInspect(GraphInspector inspector) {
         super.onSelectionInspect(inspector);
         if (graphView != null) inspector.setHistoryStack(graphView.getHistoryStack());
-        inspector.inspect(RenameColorConfigurableHelper.build(getModel(), graphView));
+        // GraphInspector#inspect clears and replaces, so the node's identity (name / colour) and its
+        // options have to arrive as one configurable rather than two calls.
+        inspector.inspect(IConfigurable.create(group -> {
+            RenameColorConfigurableHelper.build(getModel(), graphView).buildConfigurator(group);
+            buildOptionConfigurators(group);
+        }));
+    }
+
+    /**
+     * Adds a row per node option, which is what makes {@code IOptionBuilder#showInInspectorOnly()}
+     * mean anything: an option hidden from the node body has nowhere else to be edited.
+     *
+     * <p>Every option is listed, not only the inspector-only ones — the inspector is the node's full
+     * configuration, and an option drawn in the node body stays editable from both places.
+     */
+    protected void buildOptionConfigurators(ConfiguratorGroup group) {
+        if (!(getModel() instanceof InputOutputPortsNodeModel ioNode)) return;
+        var rows = new ArrayList<Configurator>();
+        for (var nodeOption : ioNode.getNodeOptions()) {
+            var portModel = nodeOption.getPortModel();
+            // Builds into a scratch group first because the configurators come back unlabelled: in the
+            // node body FieldValueInspector draws the name itself, so IFieldConstantConfigurable
+            // creates them with an empty label. Here there is no separate label to rely on.
+            var optionGroup = new ConfiguratorGroup();
+            portModel.buildConfigurator(optionGroup); // no-op when the option opted out of a configurator
+            for (var configurator : optionGroup.getConfigurators()) {
+                configurator.setLabel(portModel.getDisplayName());
+                rows.add(configurator);
+            }
+        }
+        // A flat bold heading rather than a nested ConfiguratorGroup: a group indents and pads its
+        // container, and the inspector is a narrow panel where that width is worth more than the
+        // collapse affordance. Added only when there is something under it, so a node with no
+        // options - or whose options all opted out of a configurator - gets no empty section.
+        if (rows.isEmpty()) return;
+        group.addConfigurator(new HeaderConfigurator("graph.options", 5));
+        rows.forEach(group::addConfigurator);
     }
 
     // region LOD
