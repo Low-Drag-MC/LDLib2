@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib2.uitest.report.RunReport;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -71,17 +72,15 @@ public final class ParallelTestOrchestrator {
      * {@code regex:} selection containing spaces or {@code &} would not survive it. Selections of
      * that shape have to be given to a serial run.
      */
-    static List<String> childProperties(String selection, String exclude, int jobs, boolean headless,
-                                        String window, String guiScale, String inputMode,
-                                        String watchdogSec) {
-        var properties = new java.util.ArrayList<String>();
+    static List<String> childProperties(Map<String, String> options, int jobs, boolean headless) {
+        var properties = new ArrayList<String>();
         properties.add("-PldTestJobs=" + jobs);
-        properties.add("-PldTest=" + selection);
-        addIfGiven(properties, "-PldTestExclude", exclude);
-        addIfGiven(properties, "-PldTestWindow", window);
-        addIfGiven(properties, "-PldTestGuiScale", guiScale);
-        addIfGiven(properties, "-PldTestInputMode", inputMode);
-        addIfGiven(properties, "-PldTestWatchdogSec", watchdogSec);
+        properties.add("-PldTest=" + options.getOrDefault("selection", "all"));
+        forward(properties, options, "exclude", "-PldTestExclude");
+        forward(properties, options, "window", "-PldTestWindow");
+        forward(properties, options, "guiScale", "-PldTestGuiScale");
+        forward(properties, options, "inputMode", "-PldTestInputMode");
+        forward(properties, options, "watchdogSec", "-PldTestWatchdogSec");
         if (headless) {
             properties.add("-PldTestHeadless");
         }
@@ -89,9 +88,11 @@ public final class ParallelTestOrchestrator {
     }
 
     /** ⚠️ Absent rather than empty — see {@link #childProperties}. */
-    private static void addIfGiven(List<String> into, String name, String value) {
+    private static void forward(List<String> into, Map<String, String> options, String option,
+                                String property) {
+        var value = options.get(option);
         if (value != null && !value.isBlank()) {
-            into.add(name + "=" + value);
+            into.add(property + "=" + value);
         }
     }
 
@@ -101,7 +102,6 @@ public final class ParallelTestOrchestrator {
         var outDir = Path.of(options.get("out")).toAbsolutePath();
         var weightsFile = Path.of(options.get("weights")).toAbsolutePath();
         var selection = options.getOrDefault("selection", "all");
-        var exclude = options.getOrDefault("exclude", "");
         int jobs = Math.max(1, Integer.parseInt(options.getOrDefault("jobs", "2")));
         long timeoutMs = Long.parseLong(options.getOrDefault("timeoutSec", "1800")) * 1000L;
         long runStartedMs = System.currentTimeMillis();
@@ -127,11 +127,7 @@ public final class ParallelTestOrchestrator {
         var processes = new LinkedHashMap<String, Process>();
         int exitCode;
         try {
-            var childProperties = childProperties(selection, exclude, jobs, headless,
-                options.getOrDefault("window", ""),
-                options.getOrDefault("guiScale", ""),
-                options.getOrDefault("inputMode", ""),
-                options.getOrDefault("watchdogSec", ""));
+            var childProperties = childProperties(options, jobs, headless);
             for (int shard = 0; shard < jobs; shard++) {
                 var name = shardName(shard);
                 processes.put(name, ChildBuilds.spawn(projectDir, SHARD_TASK_PREFIX + shard,
