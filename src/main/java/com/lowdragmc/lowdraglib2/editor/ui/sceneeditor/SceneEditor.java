@@ -17,6 +17,7 @@ import com.lowdragmc.lowdraglib2.math.ITransform;
 import com.lowdragmc.lowdraglib2.math.Transform;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.IScene;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneInteractable;
+import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.utils.ScenePicking;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneObject;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.ISceneRendering;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.utils.TransformGizmo;
@@ -331,18 +332,14 @@ public class SceneEditor extends UIElement implements IScene {
     protected void onMouseDown(UIEvent event) {
         if (event.button == 0 && event.target == scene) {
             if (getMouseRay().map(ray -> {
-                var result = new AtomicBoolean(false);
-                for (ISceneObject sceneObject : sceneObjects.values()) {
-                    sceneObject.executeAll(so -> {
-                        if (so instanceof ISceneInteractable sceneInteractable) {
-                            result.set(result.get() | sceneInteractable.onMouseClick(ray));
-                        }
-                    });
+                // ⚠️ The gizmo first, and on its own: it is drawn over everything and a drag on a
+                // handle must not be stolen by whatever the ray continues into behind it.
+                if (transformGizmo.isActive() && transformGizmo.onMouseClick(ray)) {
+                    return true;
                 }
-                if (transformGizmo.isActive()) {
-                    result.set(result.get() | transformGizmo.onMouseClick(ray));
-                }
-                return result.get();
+                // and the rest nearest-first, stopping at the first that consumes — which is what
+                // ISceneInteractable#onMouseClick has always said its return value means
+                return ScenePicking.click(sceneObjects.values(), ray);
             }).orElse(false)) {
                 // block scene event
                 startDrag(SCENE_OBJECT_DRAGGING, null);
