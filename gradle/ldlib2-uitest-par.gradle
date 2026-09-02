@@ -61,8 +61,11 @@ tasks.register('runParTest', JavaExec) {
             '--out', ldParOutDir,
             '--weights', ldParWeights,
             '--selection', (project.findProperty('ldTest') ?: 'all').toString(),
+            '--exclude', (project.findProperty('ldTestExclude') ?: '').toString(),
             '--jobs', (ldParJobs > 0 ? ldParJobs : 2).toString(),
-            // Not inherited by the child builds this spawns; see ParallelTestOrchestrator#main.
+            // None of these are inherited by the child builds this spawns, which is why they are
+            // arguments rather than something the shards read for themselves — see
+            // ParallelTestOrchestrator#childProperties.
             '--headless', project.hasProperty('ldTestHeadless').toString()
     doFirst {
         if (ldParJobs <= 0) {

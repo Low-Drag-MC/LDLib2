@@ -38,12 +38,49 @@ public final class ParallelTestOrchestrator {
 
     private static final String SHARD_TASK_PREFIX = "runUiTestShard";
 
+    /**
+     * <b>The project properties each shard build is launched with.</b>
+     *
+     * <p>⚠️⚠️ <b>A child build inherits none of this one's project properties</b> — it is a fresh
+     * {@code gradlew} invocation — so everything the shard's run configuration reads from
+     * {@code project.findProperty} has to be handed over here, by name.
+     *
+     * <p>That was known for {@code -PldTestHeadless} and missed for the two that decide <i>what
+     * runs</i>. Without them a shard's {@code ldlib2.uitest.run} falls back to its default of
+     * {@code all}, so {@code runParTest -PldTest=group:mine} ran every scenario in the workspace
+     * while the parent process printed the selection it had been given — the one place a reader
+     * would look to check. The symptom is a scenario count that is too large and nothing else.
+     *
+     * <p>{@code -PldTestExclude} is passed only when there is one: an empty
+     * {@code -PldTestExclude=} would still make {@code project.hasProperty} true downstream, which
+     * is a different thing from not asking to exclude anything.
+     *
+     * <p>⚠️ Each of these is one argument to {@code ProcessBuilder}, so a value needs no quoting —
+     * but on Windows the child goes through {@code cmd.exe /c}, which does its own parsing, and a
+     * {@code regex:} selection containing spaces or {@code &} would not survive it. Selections of
+     * that shape have to be given to a serial run.
+     */
+    static List<String> childProperties(String selection, String exclude, int jobs,
+                                        boolean headless) {
+        var properties = new java.util.ArrayList<String>();
+        properties.add("-PldTestJobs=" + jobs);
+        properties.add("-PldTest=" + selection);
+        if (exclude != null && !exclude.isBlank()) {
+            properties.add("-PldTestExclude=" + exclude);
+        }
+        if (headless) {
+            properties.add("-PldTestHeadless");
+        }
+        return List.copyOf(properties);
+    }
+
     public static void main(String[] args) throws Exception {
         var options = parseArgs(args);
         var projectDir = Path.of(options.get("projectDir")).toAbsolutePath();
         var outDir = Path.of(options.get("out")).toAbsolutePath();
         var weightsFile = Path.of(options.get("weights")).toAbsolutePath();
         var selection = options.getOrDefault("selection", "all");
+        var exclude = options.getOrDefault("exclude", "");
         int jobs = Math.max(1, Integer.parseInt(options.getOrDefault("jobs", "2")));
         long timeoutMs = Long.parseLong(options.getOrDefault("timeoutSec", "1800")) * 1000L;
         long runStartedMs = System.currentTimeMillis();
@@ -69,9 +106,7 @@ public final class ParallelTestOrchestrator {
         var processes = new LinkedHashMap<String, Process>();
         int exitCode;
         try {
-            var childProperties = headless
-                    ? List.of("-PldTestJobs=" + jobs, "-PldTestHeadless")
-                    : List.of("-PldTestJobs=" + jobs);
+            var childProperties = childProperties(selection, exclude, jobs, headless);
             for (int shard = 0; shard < jobs; shard++) {
                 var name = shardName(shard);
                 processes.put(name, ChildBuilds.spawn(projectDir, SHARD_TASK_PREFIX + shard,
