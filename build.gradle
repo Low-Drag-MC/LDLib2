@@ -19,9 +19,16 @@ configurations {
     libraries
     api.extendsFrom libraries
 
+    // dev-only dependencies: on this project's classpaths, never published, so downstream
+    // consumers do not have to add the matching repositories to resolve our pom
     localImplementation
     runtimeClasspath.extendsFrom localImplementation
     compileOnly.extendsFrom localImplementation
+
+    // the runtime-only flavour of the above: present when we run the game, absent from
+    // the compile classpath and from the published metadata
+    localRuntime
+    runtimeClasspath.extendsFrom localRuntime
 }
 
 repositories {
@@ -173,8 +180,10 @@ dependencies {
     // JEI
     compileOnly("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}") { transitive = false }
     compileOnly("mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}") { transitive = false }
-    // only the api is on the compile classpath, the full mod is runtime only
-    runtimeOnly("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
+    // only the api is on the compile classpath, the full mod is runtime only.
+    // localRuntime rather than runtimeOnly: runtimeOnly is published, and that would make
+    // every downstream mod declare JEI's maven just to resolve us
+    localRuntime("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
 
     // REI
     compileOnly("me.shedaniel:RoughlyEnoughItems-default-plugin-neoforge:${rei_version}")
