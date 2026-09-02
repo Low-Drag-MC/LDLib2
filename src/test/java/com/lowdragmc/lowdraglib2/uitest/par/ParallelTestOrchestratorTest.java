@@ -27,7 +27,7 @@ class ParallelTestOrchestratorTest {
     @DisplayName("the selection reaches the shards, or they each run everything")
     void theSelectionIsForwarded() {
         List<String> properties =
-                ParallelTestOrchestrator.childProperties("group:mine", "", 4, false);
+                ParallelTestOrchestrator.childProperties("group:mine", "", 4, false, "", "", "", "");
 
         assertTrue(properties.contains("-PldTest=group:mine"),
                 "a shard with no -PldTest defaults to 'all': " + properties);
@@ -39,7 +39,7 @@ class ParallelTestOrchestratorTest {
     @DisplayName("so does an exclusion, which is half of what a selection means")
     void theExclusionIsForwarded() {
         List<String> properties =
-                ParallelTestOrchestrator.childProperties("all", "es_bench", 2, false);
+                ParallelTestOrchestrator.childProperties("all", "es_bench", 2, false, "", "", "", "");
 
         assertTrue(properties.contains("-PldTestExclude=es_bench"), properties.toString());
     }
@@ -54,20 +54,20 @@ class ParallelTestOrchestratorTest {
     @DisplayName("but an empty exclusion is not passed at all")
     void anEmptyExclusionIsOmitted() {
         List<String> properties =
-                ParallelTestOrchestrator.childProperties("all", "", 2, false);
+                ParallelTestOrchestrator.childProperties("all", "", 2, false, "", "", "", "");
 
         assertTrue(properties.stream().noneMatch(p -> p.startsWith("-PldTestExclude")),
                 properties.toString());
-        assertTrue(ParallelTestOrchestrator.childProperties("all", "   ", 2, false).stream()
+        assertTrue(ParallelTestOrchestrator.childProperties("all", "   ", 2, false, "", "", "", "").stream()
                 .noneMatch(p -> p.startsWith("-PldTestExclude")), "blank counts as empty");
     }
 
     @Test
     @DisplayName("headless is only asked for when it was asked for")
     void headlessIsOptional() {
-        assertFalse(ParallelTestOrchestrator.childProperties("all", "", 2, false)
+        assertFalse(ParallelTestOrchestrator.childProperties("all", "", 2, false, "", "", "", "")
                 .contains("-PldTestHeadless"));
-        assertTrue(ParallelTestOrchestrator.childProperties("all", "", 2, true)
+        assertTrue(ParallelTestOrchestrator.childProperties("all", "", 2, true, "", "", "", "")
                 .contains("-PldTestHeadless"));
     }
 
@@ -79,9 +79,38 @@ class ParallelTestOrchestratorTest {
     @DisplayName("a selection is passed as one argument, punctuation and all")
     void aSelectionIsOneArgument() {
         List<String> properties =
-                ParallelTestOrchestrator.childProperties("a,b,group:c", "", 2, false);
+                ParallelTestOrchestrator.childProperties("a,b,group:c", "", 2, false, "", "", "", "");
 
         assertEquals(1, properties.stream().filter(p -> p.startsWith("-PldTest=")).count());
         assertTrue(properties.contains("-PldTest=a,b,group:c"), properties.toString());
+    }
+
+    /**
+     * ⚠️⚠️ <b>The window, above all.</b> A shard that does not get it falls back to the headless
+     * default, so a parallel run lays every scenario out at a different size from the serial run of
+     * the same selection — and what that produces is not an error but clicks that land beside the
+     * thing they were aimed at.
+     */
+    @Test
+    @DisplayName("the window and the gui scale reach the shards, or the layout is a different size")
+    void theViewportIsForwarded() {
+        List<String> properties = ParallelTestOrchestrator.childProperties(
+                "all", "", 2, true, "3840x2160", "2", "SYNTHETIC", "180");
+
+        assertTrue(properties.contains("-PldTestWindow=3840x2160"), properties.toString());
+        assertTrue(properties.contains("-PldTestGuiScale=2"), properties.toString());
+        assertTrue(properties.contains("-PldTestInputMode=SYNTHETIC"), properties.toString());
+        assertTrue(properties.contains("-PldTestWatchdogSec=180"), properties.toString());
+    }
+
+    /** Not given is not the same as given empty — a blank window must not override anything. */
+    @Test
+    @DisplayName("and none of them is passed blank")
+    void blankViewportOptionsAreOmitted() {
+        List<String> properties =
+                ParallelTestOrchestrator.childProperties("all", "", 2, false, "", "", "", "");
+
+        assertTrue(properties.stream().noneMatch(p -> p.startsWith("-PldTestWindow")), properties.toString());
+        assertTrue(properties.stream().noneMatch(p -> p.startsWith("-PldTestGuiScale")), properties.toString());
     }
 }

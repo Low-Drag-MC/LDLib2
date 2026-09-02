@@ -62,6 +62,10 @@ tasks.register('runParTest', JavaExec) {
             '--weights', ldParWeights,
             '--selection', (project.findProperty('ldTest') ?: 'all').toString(),
             '--exclude', (project.findProperty('ldTestExclude') ?: '').toString(),
+            '--window', (project.findProperty('ldTestWindow') ?: '').toString(),
+            '--guiScale', (project.findProperty('ldTestGuiScale') ?: '').toString(),
+            '--inputMode', (project.findProperty('ldTestInputMode') ?: '').toString(),
+            '--watchdogSec', (project.findProperty('ldTestWatchdogSec') ?: '').toString(),
             '--jobs', (ldParJobs > 0 ? ldParJobs : 2).toString(),
             // None of these are inherited by the child builds this spawns, which is why they are
             // arguments rather than something the shards read for themselves — see
