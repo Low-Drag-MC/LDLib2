@@ -14,7 +14,7 @@ import com.lowdragmc.lowdraglib2.uitest.ScenarioBuilder;
 import com.lowdragmc.lowdraglib2.uitest.ScenarioOptions;
 import com.lowdragmc.lowdraglib2.uitest.TestContext;
 import com.lowdragmc.lowdraglib2.uitest.UIScenario;
-import com.lowdragmc.lowdraglib2.uitest.input.Keys;
+import org.jetbrains.annotations.Nullable;
 import net.minecraft.util.Mth;
 import org.joml.AxisAngle4f;
 import org.joml.Quaternionf;
@@ -129,6 +129,26 @@ public class GizmoRotateScenario implements UIScenario {
                         .check("a near miss still grabs the X ring",
                                 ctx -> gizmo(ctx).getHoverHandle() == TransformGizmo.Handle.AXIS_X)
 
+                        // Only the near half of a ring is drawn, so only the near half answers. The far
+                        // half is still geometrically a ring and would still be hit by the old
+                        // plane-and-radius test, which is exactly the "I grabbed the arc I could see and
+                        // got the one behind it" complaint. Something has to answer here — the far half
+                        // of a ring is inside the ball's silhouette — it just must not be that ring.
+                        .step("aim at the far side of the X ring, behind the ball",
+                                ctx -> moveTo(ctx, ringPoint(ctx, 0, (float) Math.PI)))
+                        .frames(HOVER_FRAMES)
+                        .check("the half of the ring behind the ball is not grabbable", ctx -> {
+                            var hover = gizmo(ctx).getHoverHandle();
+                            ctx.log("the far side of the X ring answers " + hover);
+                            return hover != null && hover != TransformGizmo.Handle.AXIS_X;
+                        })
+
+                        // Back to the near side, and let the scene catch up before pressing: a click is
+                        // answered with the ray from the last rendered frame, so pressing straight after
+                        // the step above would grab whatever the far side was over.
+                        .step("aim at the near side again", ctx -> moveTo(ctx, ringPoint(ctx, 0, 0)))
+                        .frames(HOVER_FRAMES)
+
                         .step("press on the X ring", ctx -> {
                             rememberRotation(ctx);
                             press(ctx, ringPoint(ctx, 0, 0));
@@ -139,6 +159,7 @@ public class GizmoRotateScenario implements UIScenario {
                         .step("drag 40 degrees round the ring",
                                 ctx -> drag(ctx, ringPoint(ctx, 0, DRAG_ANGLE)))
                         .frames(2)
+                        .screenshot("02_rotate_drag")
                         .step("release", ctx -> release(ctx, ringPoint(ctx, 0, DRAG_ANGLE)))
                         .check("the drag ended", ctx -> gizmo(ctx).getDragHandle() == null)
                         .check("the target turned about X, by about the angle dragged",
@@ -308,73 +329,29 @@ public class GizmoRotateScenario implements UIScenario {
     }
 
     private static com.lowdragmc.lowdraglib2.client.scene.WorldSceneRenderer renderer(TestContext ctx) {
-        var renderer = editor(ctx).scene.getRenderer();
-        if (renderer == null) throw new IllegalStateException("the scene has no renderer");
-        return renderer;
+        return SceneAiming.renderer(editor(ctx).scene);
     }
 
-    // ---- driving the cursor at a world point ----
+    // ---- driving the cursor at a world point; see SceneAiming for why it is done this way ----
 
-    /**
-     * A world point as a gui-scaled screen point.
-     *
-     * <p>Deliberately not {@code SceneEditor#project}: that one reads the modelview, projection and
-     * viewport straight out of the live GL state, so it is only meaningful <em>inside</em> the scene's
-     * own render pass. Called from a scenario step it silently hands back the caller's own x and y,
-     * which is exactly how the first version of this test moved the cursor off screen and then reported
-     * that nothing was hovered. Recomputed here from the camera the scene was set up with, which is the
-     * same perspective {@code setupCamera} builds: {@code lookAt(eye, target, worldUp)} and a vertical
-     * field of view over the element's aspect ratio.
-     */
+    @Nullable
     private static Vector2f project(TestContext ctx, Vector3f world) {
-        var scene = editor(ctx).scene;
-        var renderer = renderer(ctx);
-        var eye = renderer.getEyePos();
-        var forward = new Vector3f(renderer.getLookAt()).sub(eye);
-        var right = new Vector3f();
-        var up = new Vector3f();
-        if (forward.lengthSquared() < 1.0e-9f) return null;
-        forward.normalize().cross(renderer.getWorldUp(), right);
-        if (right.lengthSquared() < 1.0e-9f) return null;
-        right.normalize().cross(forward, up);
-        up.normalize();
-
-        var offset = new Vector3f(world).sub(eye);
-        var depth = offset.dot(forward);
-        if (depth <= 1.0e-4f) return null; // behind the camera
-        var width = scene.getContentWidth();
-        var height = scene.getPaddingHeight();
-        if (width <= 0 || height <= 0) return null;
-        var tanHalfFov = (float) Math.tan(Math.toRadians(renderer.getFov() * 0.5));
-        var ndcX = offset.dot(right) / (depth * tanHalfFov * (width / height));
-        var ndcY = offset.dot(up) / (depth * tanHalfFov);
-        return new Vector2f(scene.getContentX() + (ndcX * 0.5f + 0.5f) * width,
-                scene.getContentY() + (0.5f - ndcY * 0.5f) * height);
-    }
-
-    private static Vector2f require(TestContext ctx, Vector3f world) {
-        var screen = project(ctx, world);
-        if (screen == null) throw new IllegalStateException("could not project " + world + " onto the screen");
-        return screen;
+        return SceneAiming.project(editor(ctx).scene, world);
     }
 
     private static void moveTo(TestContext ctx, Vector3f world) {
-        var screen = require(ctx, world);
-        ctx.input().moveTo(screen.x, screen.y);
+        SceneAiming.moveTo(ctx, editor(ctx).scene, world);
     }
 
     private static void press(TestContext ctx, Vector3f world) {
-        var screen = require(ctx, world);
-        ctx.input().mouseDown(screen.x, screen.y, Keys.MOUSE_LEFT);
+        SceneAiming.press(ctx, editor(ctx).scene, world);
     }
 
     private static void drag(TestContext ctx, Vector3f world) {
-        var screen = require(ctx, world);
-        ctx.input().dragTo(screen.x, screen.y, Keys.MOUSE_LEFT);
+        SceneAiming.drag(ctx, editor(ctx).scene, world);
     }
 
     private static void release(TestContext ctx, Vector3f world) {
-        var screen = require(ctx, world);
-        ctx.input().mouseUp(screen.x, screen.y, Keys.MOUSE_LEFT);
+        SceneAiming.release(ctx, editor(ctx).scene, world);
     }
 }

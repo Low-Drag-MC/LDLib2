@@ -51,6 +51,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class SceneEditor extends UIElement implements IScene {
     public static final Object SCENE_OBJECT_DRAGGING = new Object();
     public static final Object CAMERA_MOVING = new Object();
+    /**
+     * How far behind the cursor's hit point an orthographic pick ray starts, in blocks, before the ortho
+     * box's own depth is taken into account. Only has to clear whatever a scene puts in front of that
+     * point; it is not a range limit, because the ray is anchored on the hit rather than aimed at it.
+     */
+    private static final float ORTHO_RAY_PULLBACK = 256f;
     public final UIElement topBar;
     public final Scene scene;
     public final UIElement gizmoBar;
@@ -257,16 +263,36 @@ public class SceneEditor extends UIElement implements IScene {
     }
 
 
+    /**
+     * The world-space ray under the cursor, ending at the point it hit.
+     *
+     * <p>The two projections need different rays and the difference is not a detail. Under perspective
+     * every ray leaves the eye, so eye → hit is the cursor's line at every depth. Under an orthographic
+     * camera there is no eye to leave — the rays are parallel — and the renderer's eye sits a tenth of a
+     * block from what it looks at, because nothing about the picture depends on where along the view
+     * direction it is. Firing at the hit from a long way behind that point, which is what this used to
+     * do, gives a ray that agrees with the cursor at the depth it hit something and leans away from it at
+     * every other depth. Anything drawn over the world — the transform gizmo above all — is picked at a
+     * different depth than the world behind it, and so was picked several handles off.
+     */
     public Optional<Ray> getMouseRay() {
         var renderer = scene.getRenderer();
         if (renderer == null) return Optional.empty();
         var lastHit = renderer.getLastHit();
-        var startPos = renderer.getEyePos();
-        if (scene.isUseOrtho()) {
-            var lookAt = renderer.getLookAt();
-            startPos = new Vector3f(startPos).add(new Vector3f(startPos.x - lookAt.x(), startPos.y - lookAt.y(), startPos.z - lookAt.z()).mul(500, 500, 500));
+        if (lastHit == null) return Optional.empty();
+        var endPos = new Vector3f(lastHit);
+        if (renderer.isOrtho()) {
+            var view = new Vector3f(renderer.getLookAt()).sub(renderer.getEyePos());
+            if (view.lengthSquared() > 1.0e-9f) {
+                // Parallel to the view and anchored on the hit, so it is the cursor's line at every depth.
+                // The pullback has to clear the whole ortho box, which grows with the zoom — a fixed one
+                // starts the ray in front of the gizmo as soon as the scene is zoomed out past it.
+                var pullback = Math.max(ORTHO_RAY_PULLBACK, scene.getRange() * scene.getZoom() * 2);
+                var startPos = new Vector3f(endPos).sub(view.normalize().mul(pullback));
+                return Optional.of(Ray.create(startPos, endPos));
+            }
         }
-        return lastHit == null ? Optional.empty() : Optional.of(Ray.create(startPos, lastHit));
+        return Optional.of(Ray.create(new Vector3f(renderer.getEyePos()), endPos));
     }
 
     public Optional<Ray> unProject(int mouseX, int mouseY) {

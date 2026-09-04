@@ -169,6 +169,12 @@ public abstract class WorldSceneRenderer {
     @Setter
     private float fov = 60f;
     private float minX, maxX, minY, maxY, minZ, maxZ;
+    /**
+     * The viewport aspect ratio {@link #setupCamera} last built the projection with. Kept because only
+     * the projection knows it — it comes from the viewport rather than from any camera setting — and
+     * {@link #getViewHalfHeight} cannot answer for an orthographic camera without it.
+     */
+    private float lastAspectRatio = 1f;
 
     public WorldSceneRenderer(Level world) {
         this.world = world;
@@ -429,6 +435,31 @@ public abstract class WorldSceneRenderer {
         this.maxZ = maxZ;
     }
 
+    /** Whether the scene is drawn through an orthographic projection rather than a perspective one. */
+    public boolean isOrtho() {
+        return ortho;
+    }
+
+    /**
+     * Half the world-space height the viewport spans {@code distance} in front of the eye — the length
+     * that fills half the view vertically, and so the unit for anything that wants to keep a constant
+     * size on screen.
+     *
+     * <p>⚠️ The distance is <b>ignored</b> under an orthographic camera, where it genuinely changes
+     * nothing: that projection has no foreshortening, so the answer is the ortho box's own height however
+     * far away the thing being measured is. Working out {@code distance * tan(fov / 2)} at the call site
+     * instead is right in perspective and badly wrong here — {@link #getEyePos()} in ortho is usually
+     * parked a fraction of a block from what it looks at, because nothing about the picture depends on
+     * where along the view direction it sits, and a caller scaling by that gets something invisible.
+     */
+    public float getViewHalfHeight(float distance) {
+        if (ortho) {
+            // matching setupCamera, which divides the vertical ortho bounds by the aspect ratio
+            return (maxY - minY) * 0.5f / lastAspectRatio;
+        }
+        return distance * (float) Math.tan(fov * 0.5f * Math.PI / 180);
+    }
+
     public PositionedRect getPositionedRect(int x, int y, int width, int height) {
         return PositionedRect.of(Position.of(x, y), Size.of(width, height));
     }
@@ -461,6 +492,9 @@ public abstract class WorldSceneRenderer {
 
         Minecraft mc = Minecraft.getInstance();
         float aspectRatio = width / (height * 1.0f);
+        if (Float.isFinite(aspectRatio) && aspectRatio > 0) {
+            this.lastAspectRatio = aspectRatio;
+        }
         camera.setup(world, cameraEntity, false, false, mc.getTimer().getGameTimeDeltaPartialTick(false));
         if (ortho) {
             RenderSystem.setProjectionMatrix(new Matrix4f().setOrtho(minX, maxX, minY / aspectRatio, maxY / aspectRatio, minZ, maxZ), VertexSorting.byDistance(camera.getPosition().toVector3f()));
