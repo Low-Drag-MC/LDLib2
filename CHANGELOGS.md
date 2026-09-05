@@ -1,4 +1,19 @@
 # ChangeLogs
+## v26.1.2.39
+* Added six themes — dusk, carbon, mint, plum, paper and latte — one design over four dark palettes and two light
+* Added free movement and uniform scaling from the transform gizmo's centre box
+* Added planar scale handles that scale the two axes they span
+* Added headless UI test runs
+* Added more builtin lss
+* Improved the rotation gizmo to draw only the near half of each ring, over a faint ball outline
+* Improved the planar handles by moving them further out from the centre
+* Fixed the transform gizmo's size and picking under an orthographic camera
+* Fixed a scene click being broadcast to every interactable instead of the nearest one
+* Fixed an option being invisible in the inspector
+* Fixed JEI leaking into the published pom as a runtime dependency
+* Fixed datagen crashing because it reached for a Minecraft instance it never has
+* Fixed a class-path failure reporting the previous run's result as a pass
+
 ## v26.1.2.38
 * Added moving the UI debugger into its own window, and inspecting any window from it
 * Added parallel UI test runs across several client processes
