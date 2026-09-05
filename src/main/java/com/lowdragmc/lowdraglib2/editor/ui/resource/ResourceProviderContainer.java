@@ -70,6 +70,17 @@ public class ResourceProviderContainer<T> extends UIElement {
     protected Predicate<IResourcePath> canRename;
     @Setter @Getter
     protected Predicate<IResourcePath> canEdit;
+    /**
+     * Whether double-clicking a resource opens it at all, as opposed to opening it <em>for editing</em>.
+     *
+     * <p>Defaults to {@link #canEdit} — for a resource type whose editor has no viewing mode, "cannot
+     * edit" and "cannot open" are the same thing, and opening one would offer a Save that writes into a
+     * provider that refuses writes. A container whose editor can open read-only (see
+     * {@link com.lowdragmc.lowdraglib2.nodegraphtookit.editor.GraphResourceProviderContainer}) widens
+     * this to everything, which is what lets a built-in resource be read without being changed.</p>
+     */
+    @Setter @Getter
+    protected Predicate<IResourcePath> canOpen;
     @Setter @Getter
     protected Predicate<IResourcePath> canCopy;
     @Setter @Getter
@@ -140,6 +151,7 @@ public class ResourceProviderContainer<T> extends UIElement {
         this.canRemove = resourceProvider::canRemove;
         this.canRename = resourceProvider::canRename;
         this.canEdit = resourceProvider::canEdit;
+        this.canOpen = path -> canEdit.test(path);
         this.canCopy = resourceProvider::canCopy;
         this.supportAdd = resourceProvider::supportAdd;
         this.onDragProvider = resourceProvider::getResource;
@@ -522,8 +534,11 @@ public class ResourceProviderContainer<T> extends UIElement {
                     ClipboardManager.INSTANCE.copyDirect(selected.getPathWithType())
             );
         }
-        if (selected != null && canEdit.test(selected) && onEdit != null) {
-            menu.leaf(Icons.EDIT_FILE, "ldlib.gui.editor.menu.edit", () -> editResource(selected));
+        if (selected != null && canOpen.test(selected) && onEdit != null) {
+            // Same action, honest label: a read-only resource opens, it does not become editable.
+            menu.leaf(Icons.EDIT_FILE, canEdit.test(selected)
+                            ? "ldlib.gui.editor.menu.edit" : "ldlib.gui.editor.menu.view",
+                    () -> editResource(selected));
         }
         if (selected != null && canRename.test(selected)) {
             menu.leaf("ldlib.gui.editor.menu.rename", () -> renameResource(selected));
@@ -579,29 +594,146 @@ public class ResourceProviderContainer<T> extends UIElement {
                 () -> addResourceInternal(value, finalKey), () -> removeResourceInternal(finalKey)));
     }
 
-    public void copyResource(IResourcePath key) {
-        if (key != null && canCopy.test(key)) {
-            var value = resourceProvider.getResource(key);
-            if (value != null) {
-                var tag = resourceProvider.getResourceInstance().resource.serializeResource(value, Platform.getFrozenRegistry());
-                if (tag != null) {
-                    var copied = resourceProvider.getResourceInstance().resource.deserializeResource(tag, Platform.getFrozenRegistry());
-                    if (copied != null) {
-                        var count = 1;
-                        var newKey = resourceProvider.createSubPath(resourceProvider.getResourceName(key) + "_copy");
-                        while(resourceProvider.hasResource(newKey)) {
-                            newKey = resourceProvider.createSubPath(resourceProvider.getResourceName(key) + "_copy_" + count);
-                            count++;
-                        }
-                        IResourcePath finalNewKey = newKey;
-                        editor.historyView.pushHistory(Component.translatable("editor.copy_resource"), EditAction.of(
-                                () -> addResourceInternal(copied, finalNewKey),
-                                () -> removeResourceInternal(finalNewKey)));
+    /**
+     * Asks where the copy should go and what it should be called, then makes it.
+     *
+     * <p>Copying used to land beside the original under a {@code _copy} suffix, which cannot express
+     * the case that matters most: a resource in a read-only builtin library, where "beside the
+     * original" is nowhere you are allowed to write. So the destination is a choice — over every
+     * writable provider of this resource type, not just this container's — and the name comes with it,
+     * because a copy you are about to put somewhere else is a copy you already have a name for.</p>
+     */
+    /**
+     * Copies a resource into this same provider under a {@code _copy} name, with no prompt.
+     *
+     * <p>"Duplicate this, here" — the behaviour {@link #copyResource} used to have, kept as its own
+     * method because callers depend on it being <em>synchronous</em>: the asset browser rebuilds its
+     * grid on the next line, which a dialog-driven copy would do before the user had answered.</p>
+     */
+    public void duplicateResource(IResourcePath key) {
+        if (key == null || !canCopy.test(key)) return;
+        var copied = detachedCopy(key);
+        if (copied == null) return;
+        copyResourceTo(copied, resourceProvider, resourceProvider.getResourceName(key) + "_copy");
+    }
 
-                    }
-                }
-            }
+    /**
+     * Asks where a copy should go and what to call it, then makes it.
+     *
+     * @see #duplicateResource for the in-place version
+     */
+    public void copyResource(IResourcePath key) {
+        if (key == null || !canCopy.test(key)) return;
+        var instance = resourceProvider.getResourceInstance();
+        var copied = detachedCopy(key);
+        if (copied == null) return;
+
+        var targets = instance.listWritableProviders();
+        if (targets.isEmpty()) {
+            Dialog.showNotification("ldlib.gui.editor.menu.copy", "editor.copy.no_target", null).show(this);
+            return;
         }
+        // The current provider when it can take the copy — the old behaviour, still the common case.
+        var defaultTarget = targets.contains(resourceProvider) ? resourceProvider : targets.getFirst();
+        showCopyDialog(targets, defaultTarget, resourceProvider.getResourceName(key) + "_copy",
+                (target, name) -> copyResourceTo(copied, target, name));
+    }
+
+    /** A detached duplicate of a resource: serialized and read back, so the two share no state. */
+    @Nullable
+    protected T detachedCopy(IResourcePath key) {
+        var resource = resourceProvider.getResourceInstance().resource;
+        var value = resourceProvider.getResource(key);
+        if (value == null) return null;
+        var tag = resource.serializeResource(value, Platform.getFrozenRegistry());
+        if (tag == null) return null;
+        return resource.deserializeResource(tag, Platform.getFrozenRegistry());
+    }
+
+    /**
+     * The "copy to" prompt: which provider, under what name.
+     *
+     * @param onConfirm receives the chosen provider and the typed name, which is not yet known to be
+     *                  free — {@link #copyResourceTo} is what makes it unique.
+     */
+    protected void showCopyDialog(List<IResourceProvider<T>> targets, IResourceProvider<T> defaultTarget,
+                                  String defaultName, BiConsumer<IResourceProvider<T>, String> onConfirm) {
+        // Null-safe mappers: Selector renders its preview through the same provider, and does so once
+        // while it still has no value — setCandidates forces a refresh before anything is selected.
+        var selector = new Selector<IResourceProvider<T>>()
+                .setCandidateUIProvider(UIElementProvider.iconText(
+                        provider -> provider == null ? IGuiTexture.EMPTY : provider.getType().getIcon(),
+                        provider -> Component.literal(provider == null ? "" : provider.getName())))
+                .setCandidates(targets)
+                .setSelected(defaultTarget, false);
+        selector.getLayout().widthPercent(100);
+        var nameField = new TextField().setText(defaultName, false)
+                .setCharValidator(Identifier::isAllowedInIdentifier);
+        nameField.getLayout().widthPercent(100);
+        // Named so a stylesheet or a UI test can reach it — an editor screen holds dozens of text
+        // fields and "the one in the dialog" is not something a selector can otherwise express.
+        nameField.addClass("__copy-name-field__");
+        selector.addClass("__copy-target-selector__");
+
+        var dialog = new Dialog().setTitle("ldlib.gui.editor.menu.copy_to");
+        dialog.addContent(new UIElement().layout(layout -> {
+            layout.widthPercent(100);
+            layout.heightAuto();
+            layout.flexDirection(FlexDirection.COLUMN);
+            layout.gapAll(2);
+        }).addChildren(
+                new Label().setText(Component.translatable("editor.copy.target")),
+                selector,
+                new Label().setText(Component.translatable("editor.copy.name")),
+                nameField));
+        // The selector's dropdown is anchored on the root element, so a click in it is a click outside
+        // the dialog unless the dialog is told otherwise.
+        dialog.addExternalElement(selector.dialog);
+        dialog.addButton(new Button().setOnClick(e -> {
+            var target = selector.getValue();
+            var name = nameField.getText().trim();
+            dialog.close();
+            if (target != null && !name.isEmpty()) {
+                onConfirm.accept(target, name);
+            }
+        }).setText("ldlib.gui.tips.confirm").addClass("__confirm-button__"));
+        dialog.addButton(new Button().setOnClick(e -> dialog.close())
+                .setText("ldlib.gui.tips.cancel").addClass("__cancel-button__"));
+        dialog.show(this);
+    }
+
+    /**
+     * Writes {@code value} into {@code target} under {@code name}, suffixed until the name is free.
+     *
+     * <p>Undoable, like every other resource write here. Only a copy landing in <em>this</em> container
+     * touches the cell grid; one sent elsewhere is picked up by that provider's own container when it
+     * is next shown, which is also how a resource added to a watched folder from outside the game
+     * appears.</p>
+     */
+    protected void copyResourceTo(T value, IResourceProvider<T> target, String name) {
+        var key = target.createSubPath(name);
+        var count = 1;
+        while (target.hasResource(key)) {
+            key = target.createSubPath(name + "_" + count);
+            count++;
+        }
+        var finalKey = key;
+        var isHere = target == resourceProvider;
+        editor.historyView.pushHistory(Component.translatable("editor.copy_resource"), EditAction.of(
+                () -> {
+                    if (isHere) {
+                        addResourceInternal(value, finalKey);
+                    } else {
+                        target.addResource(finalKey, value);
+                    }
+                },
+                () -> {
+                    if (isHere) {
+                        removeResourceInternal(finalKey);
+                    } else {
+                        target.removeResource(finalKey);
+                    }
+                }));
     }
 
     public void removeResource(IResourcePath key, boolean confirm) {
@@ -642,8 +774,13 @@ public class ResourceProviderContainer<T> extends UIElement {
         notifyInvalidated(key);
     }
 
+    /**
+     * Opens a resource — for editing when the provider allows it, read-only otherwise. Whether the
+     * opened view is editable is the {@link #onEdit} handler's call, made from the same
+     * {@link IResourceProvider#canEdit} answer this class uses for its menu.
+     */
     public void editResource(IResourcePath key) {
-        if (key != null && canEdit.test(key) && onEdit != null) {
+        if (key != null && canOpen.test(key) && onEdit != null) {
             onEdit.accept(this, key);
         }
     }

@@ -231,6 +231,12 @@ public abstract class WorldSceneRenderer {
     @Getter @Setter
     private float fov = 60f;
     private float minX, maxX, minY, maxY, minZ, maxZ;
+    /**
+     * The viewport aspect ratio {@link #setupCamera} last built the projection with. Kept because only
+     * the projection knows it — it comes from the viewport rather than from any camera setting — and
+     * {@link #getViewHalfHeight} cannot answer for an orthographic camera without it.
+     */
+    private float lastAspectRatio = 1f;
 
     public WorldSceneRenderer(Level world) {
         this.world = world;
@@ -616,6 +622,31 @@ public abstract class WorldSceneRenderer {
         this.maxZ = maxZ;
     }
 
+    /** Whether the scene is drawn through an orthographic projection rather than a perspective one. */
+    public boolean isOrtho() {
+        return ortho;
+    }
+
+    /**
+     * Half the world-space height the viewport spans {@code distance} in front of the eye — the length
+     * that fills half the view vertically, and so the unit for anything that wants to keep a constant
+     * size on screen.
+     *
+     * <p>⚠️ The distance is <b>ignored</b> under an orthographic camera, where it genuinely changes
+     * nothing: that projection has no foreshortening, so the answer is the ortho box's own height however
+     * far away the thing being measured is. Working out {@code distance * tan(fov / 2)} at the call site
+     * instead is right in perspective and badly wrong here — {@link #getEyePos()} in ortho is usually
+     * parked a fraction of a block from what it looks at, because nothing about the picture depends on
+     * where along the view direction it sits, and a caller scaling by that gets something invisible.
+     */
+    public float getViewHalfHeight(float distance) {
+        if (ortho) {
+            // matching setupCamera, which divides the vertical ortho bounds by the aspect ratio
+            return (maxY - minY) * 0.5f / lastAspectRatio;
+        }
+        return distance * (float) Math.tan(fov * 0.5f * Math.PI / 180);
+    }
+
     public PositionedRect getPositionedRect(int x, int y, int width, int height) {
         return PositionedRect.of(Position.of(x, y), Size.of(width, height));
     }
@@ -655,6 +686,9 @@ public abstract class WorldSceneRenderer {
         RenderSystem.backupProjectionMatrix();
 
         float aspectRatio = width / (height * 1.0f);
+        if (Float.isFinite(aspectRatio) && aspectRatio > 0) {
+            this.lastAspectRatio = aspectRatio;
+        }
         // 26.2 uses reversed-Z: the world depth buffer is cleared to 0.0 and all pipelines test with
         // GREATER_THAN_OR_EQUAL (near plane -> depth 1, far plane -> depth 0). Vanilla's Projection
         // builds this by swapping near/far into setPerspective/setOrtho and passing the device's

@@ -84,6 +84,8 @@ public class NodeTitleElement extends ModelElement {
     public void startInlineRename() {
         if (inlineRenameField != null) return;
         if (!(nodeModel instanceof IHasName named) || !nodeModel.isRenamable()) return;
+        // The rename command would be refused, so the field would only take the keystrokes and lose them.
+        if (isGraphReadOnly()) return;
 
         var initial = named.getName();
         Style.importantPipeline(nodeTittle.getLayout(), layout -> layout.display(TaffyDisplay.NONE));

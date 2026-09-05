@@ -24,9 +24,16 @@ configurations {
     libraries
     api.extendsFrom libraries
 
+    // dev-only dependencies: on this project's classpaths, never published, so downstream
+    // consumers do not have to add the matching repositories to resolve our pom
     localImplementation
     runtimeClasspath.extendsFrom localImplementation
     compileOnly.extendsFrom localImplementation
+
+    // the runtime-only flavour of the above: present when we run the game, absent from
+    // the compile classpath and from the published metadata
+    localRuntime
+    runtimeClasspath.extendsFrom localRuntime
 }
 
 repositories {
@@ -176,6 +183,9 @@ neoForge {
 // Kept in its own file so downstream mods can apply the identical block.
 apply from: rootProject.file('gradle/ldlib2-uitest.gradle')
 
+// Parallel UI test harness: runParTest splits the same scenarios across N client processes.
+apply from: rootProject.file('gradle/ldlib2-uitest-par.gradle')
+
 // -PgraphicsBackend=vulkan|opengl pins the renderer backend, which is otherwise a video option that
 // defaults to trying OpenGL first. LDLib2 presents its OS-level windows through a different path on
 // each, so both have to be runnable on demand.
@@ -184,6 +194,10 @@ apply from: rootProject.file('gradle/ldlib2-uitest.gradle')
 // length: ModDev serialises a run definition to build/moddev/clientRunProgramArgs.txt, and the IDE
 // run configuration reads that same file with no Gradle task in front of it — so one `-PgraphicsBackend`
 // invocation would silently pin the backend for every later launch from the IDE.
+//
+// Only `runClient` here. The other client runs belong to the two harness scripts above, and each pins
+// its own — a parallel run's shards and a multi-process run's clients — because they also have to hand
+// the property to the child Gradle builds they spawn, which inherit none of this invocation's.
 def graphicsBackendArgs = project.hasProperty('graphicsBackend')
         ? ['--graphicsBackend', project.property('graphicsBackend').toString()]
         : []
@@ -216,7 +230,10 @@ dependencies {
     // JEI
     compileOnly("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}") { transitive = false }
     compileOnly("mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}") { transitive = false }
-    runtimeOnly("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
+    // only the api is on the compile classpath, the full mod is runtime only.
+    // localRuntime rather than runtimeOnly: runtimeOnly is published, and that would make
+    // every downstream mod declare JEI's maven just to resolve us
+    localRuntime("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
 //
 //    // REI
 //    compileOnly("me.shedaniel:RoughlyEnoughItems-default-plugin-neoforge:${rei_version}")

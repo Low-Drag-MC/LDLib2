@@ -46,6 +46,10 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
 
         setAddDefault(this::serializeDefaultGraph);
 
+        // A graph editor has a viewing mode, so "not editable" is no reason not to open it: a built-in
+        // blueprint is meant to be read — that is most of what makes it a worked example.
+        setCanOpen(path -> true);
+
         setUiSupplier(path -> new UIElement().layout(layout -> {
             layout.widthPercent(100);
             layout.heightPercent(100);
@@ -88,7 +92,12 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
         var editor = container.getEditor();
         var uuid = UUID.randomUUID();
 
-        var newView = createEditorView().loadGraph(graph, savedTag -> {
+        // Read-only-ness comes from the provider, not from this container: the same blueprint opened
+        // out of the built-in library and out of a copy in the user's folder is the same graph, and
+        // only the provider knows which of the two this path is.
+        var editorView = createEditorView();
+        editorView.setReadOnly(!resourceProvider.canEdit(path));
+        var newView = editorView.loadGraph(graph, savedTag -> {
             if (!openedViews.containsKey(uuid)) return;
             var realPath = openedViews.get(uuid).left();
             resourceProvider.addResource(realPath, savedTag);

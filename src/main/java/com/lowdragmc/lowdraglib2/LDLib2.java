@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.util.RandomSource;
 import net.minecraft.resources.Identifier;
 import net.neoforged.fml.loading.FMLEnvironment;
@@ -88,10 +87,8 @@ public class LDLib2 {
     }
 
     public static boolean isRemote() {
-        if (isClient()) {
-            return Minecraft.getInstance().isSameThread();
-        }
-        return false;
+        var minecraft = Platform.getMinecraftClient();
+        return minecraft != null && minecraft.isSameThread();
     }
 
     public static boolean isServer() {

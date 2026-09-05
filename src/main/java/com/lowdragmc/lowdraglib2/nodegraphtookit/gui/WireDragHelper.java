@@ -136,6 +136,9 @@ public class WireDragHelper {
 
     public boolean handleMouseDown(UIEvent event, @Nullable Predicate<PortModel> compatiblePortsFilter) {
         var mousePosition = new Vector2f(event.x, event.y);
+        // No wire can be created or moved on a read-only graph, so never start the drag: the ghost
+        // wire and the highlighted compatible ports would promise a connection that cannot happen.
+        if (graphView.isReadOnly()) return false;
         if (draggedPort == null || wireCandidateModel == null || wireCandidate == null
                 || draggedPort.getPortType() == PortType.MISSING_PORT || draggedPort.getDataTypeHandle().equals(TypeHandles.MISSING_PORT)) {
             return false;

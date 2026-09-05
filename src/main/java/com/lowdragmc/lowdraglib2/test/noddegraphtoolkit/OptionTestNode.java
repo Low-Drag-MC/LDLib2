@@ -32,6 +32,10 @@ public class OptionTestNode extends Node {
         context.addOption("color", TypeHandles.COLOR);
         context.addOption("block", Block.class);
         context.addOption("stack", ItemStack.class);
+        // never drawn in the node body - only in the inspector, once the node is selected
+        context.addOption("inspector_only", String.class)
+                .withDefaultValue("only in the inspector")
+                .showInInspectorOnly();
     }
 
     @Override

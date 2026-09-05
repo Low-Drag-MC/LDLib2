@@ -17,6 +17,7 @@ import net.neoforged.neoforge.data.loading.DatagenModLoader;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -38,7 +39,8 @@ public class Platform {
     // @return true if the ServerLevel is not safe to access, otherwise false.
     public static boolean isServerNotSafe() {
         if (Platform.isClient()) {
-            return Minecraft.getInstance().getConnection() == null;
+            var minecraft = getMinecraftClient();
+            return minecraft == null || minecraft.getConnection() == null;
         } else {
             var server = getMinecraftServer();
             return !serverSafe(server) || server.isCurrentlySaving();
@@ -87,6 +89,16 @@ public class Platform {
         return ServerLifecycleHooks.getCurrentServer();
     }
 
+    /**
+     * The client instance, or null when there is none. {@link #isClient()} only tells you which dist we are on:
+     * datagen runs on the client dist without ever constructing a {@link Minecraft}, so everything that reaches
+     * for the client during mod loading has to cope with a null here.
+     */
+    @Nullable
+    public static Minecraft getMinecraftClient() {
+        return isClient() ? Minecraft.getInstance() : null;
+    }
+
     public ResourceManager getResourceProvider() {
         return ResourceHelper.getResourceManager();
     }
@@ -123,8 +135,9 @@ public class Platform {
         if (LDLib2.isServer()) {
             return serverRegistryAccess == null ? getBLANK_REGISTRY_ACCESS() : serverRegistryAccess;
         } else if (LDLib2.isRemote()) {
-            if (Minecraft.getInstance().getConnection() != null) {
-                return getRegistryFromMultipleSources(Minecraft.getInstance().getConnection().registryAccess(), serverRegistryAccess);
+            var minecraft = getMinecraftClient();
+            if (minecraft != null && minecraft.getConnection() != null) {
+                return getRegistryFromMultipleSources(minecraft.getConnection().registryAccess(), serverRegistryAccess);
             }
         }
         return serverRegistryAccess == null ? getClientRegistryAccess() : serverRegistryAccess;
@@ -135,10 +148,9 @@ public class Platform {
     }
 
     public static RegistryAccess getClientRegistryAccess() {
-        if (LDLib2.isClient()) {
-            if (Minecraft.getInstance().getConnection() != null) {
-                return Minecraft.getInstance().getConnection().registryAccess();
-            }
+        var minecraft = getMinecraftClient();
+        if (minecraft != null && minecraft.getConnection() != null) {
+            return minecraft.getConnection().registryAccess();
         }
         return SERVER_REGISTRY_ACCESS == null ? getBLANK_REGISTRY_ACCESS() : SERVER_REGISTRY_ACCESS;
     }
@@ -164,8 +176,9 @@ public class Platform {
     }
 
     public static void executeOnClient(Runnable runnable) {
-        if (Platform.isClient()) {
-            Minecraft.getInstance().execute(runnable);
+        var minecraft = getMinecraftClient();
+        if (minecraft != null) {
+            minecraft.execute(runnable);
         }
     }
 

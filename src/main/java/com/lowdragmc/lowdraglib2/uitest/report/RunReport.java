@@ -29,6 +29,8 @@ public class RunReport {
     public Environment environment = new Environment();
     public Totals totals = new Totals();
     public List<ScenarioReport> scenarios = new ArrayList<>();
+    /** Set only by a process running one slice of a parallel run; {@code null} for a serial one. */
+    public ShardInfo shard;
 
     /** Statuses shared by runs, scenarios and steps so a consumer only learns one vocabulary. */
     public static final class Status {
@@ -78,6 +80,27 @@ public class RunReport {
         public int framebufferWidth;
         public int framebufferHeight;
         public String inputMode = "";
+        /**
+         * Whether the window was ever shown. Sits next to the frame size for the same reason: when
+         * two machines disagree about a capture, the mode the frame was produced in is the first
+         * thing worth ruling out.
+         */
+        public boolean headless;
+    }
+
+    /**
+     * One process's view of a parallel run.
+     *
+     * <p>{@link #known} is the whole selection <em>this</em> process resolved, not the slice it ran,
+     * and it is the only thing that makes a lost scenario detectable. Shards agree on who runs what
+     * by each computing the same split rather than by being told, so the failure to guard against is
+     * two processes computing different splits — which drops a scenario from the run entirely and
+     * still reports green. The merger compares these lists and refuses a run where they disagree.
+     */
+    public static class ShardInfo {
+        public int index;
+        public int count;
+        public List<String> known = new ArrayList<>();
     }
 
     public static class Totals {

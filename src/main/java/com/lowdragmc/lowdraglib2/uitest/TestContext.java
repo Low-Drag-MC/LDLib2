@@ -1,13 +1,14 @@
 package com.lowdragmc.lowdraglib2.uitest;
 
-import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.UISurface;
+import com.lowdragmc.lowdraglib2.gui.ui.window.ModularUIWindow;
 import com.lowdragmc.lowdraglib2.uitest.input.InputDriver;
+import com.lowdragmc.lowdraglib2.uitest.input.WindowInput;
 import com.lowdragmc.lowdraglib2.uitest.report.RunReport;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
@@ -17,6 +18,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -238,6 +240,22 @@ public final class TestContext {
         return new ElementQuery(requireUI()).select(selector);
     }
 
+    /**
+     * Starts a query against a UI other than the open screen's.
+     *
+     * <p>Everything above resolves through {@link #requireUI()}, which is the UI behind
+     * {@code Minecraft#screen} — and a UI hosted in its own operating-system window is not behind any
+     * screen at all. Without this, the contents of such a window can be reached only by walking its
+     * element tree by hand, which is exactly the sort of thing selectors exist to avoid.
+     */
+    public ElementQuery in(ModularUI ui) {
+        return new ElementQuery(ui);
+    }
+
+    public ElementQuery in(ModularUI ui, String selector) {
+        return new ElementQuery(ui).select(selector);
+    }
+
     /** Resolves a stable structural path from a report back to a live element. */
     @Nullable
     public ElementRef byPath(String path) {
@@ -396,14 +414,53 @@ public final class TestContext {
         runner.requestElementCapture(run, stepReport, label, element);
     }
 
+    /**
+     * Screenshots a render target that is not the game's frame — a UI hosted in its own
+     * operating-system window, whose pixels are blitted straight into that window and so never appear
+     * in {@link #screenshot}.
+     */
+    public void screenshotSurface(String label, UISurface surface) {
+        runner.requestSurfaceCapture(run, stepReport, label, surface);
+    }
+
     // endregion
 
     public InputDriver input() {
         return runner.input();
     }
 
+    /**
+     * Input for a UI in its own operating-system window, which {@link #input()} cannot reach — see
+     * {@link WindowInput}.
+     *
+     * <p>One driver per window for the whole scenario, not one per call: it remembers where it last
+     * aimed, and a gesture is spread over several steps by design. A fresh driver each time would
+     * forget between the aim and the press.
+     */
+    public WindowInput input(ModularUIWindow window) {
+        @SuppressWarnings("unchecked")
+        var drivers = (Map<ModularUIWindow, WindowInput>) run.state
+                .computeIfAbsent(WINDOW_INPUTS, key -> new IdentityHashMap<ModularUIWindow, WindowInput>());
+        return drivers.computeIfAbsent(window, WindowInput::of);
+    }
+
+    /** Scratch key for {@link #input(ModularUIWindow)}'s per-window drivers. */
+    private static final String WINDOW_INPUTS = "ldlib2:window_inputs";
+
     public ScenarioOptions options() {
         return run.options;
+    }
+
+    /**
+     * Where this run writes its output.
+     *
+     * <p>Use this rather than reading {@code ldlib2.uitest.out} directly for a scenario that writes a
+     * file of its own. Under a parallel run each shard has a different output directory, and a
+     * hand-rolled default is how a file ends up in another shard's tree — or in a directory nothing
+     * ever collects.
+     */
+    public java.nio.file.Path outDir() {
+        return runner.config().outDir();
     }
 
     public UITestRunner runner() {

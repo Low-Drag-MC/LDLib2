@@ -26,6 +26,24 @@ public final class StylesheetManager implements ResourceManagerReloadListener {
     public static final Identifier MC_MERGED = LDLib2.id(PATH + "/mc");
     public static final Identifier MODERN = LDLib2.id(PATH + "/modern.lss");
     public static final Identifier MODERN_MERGED = LDLib2.id(PATH + "/modern");
+    /**
+     * One design in six palettes — four dark ({@code dusk} blue-grey, {@code carbon} graphite,
+     * {@code mint} green, {@code plum} violet) and two light ({@code paper} cool, {@code latte} warm).
+     * They share every selector, so a component styled in one is styled in all six, and a caller can
+     * offer the set as a light/dark choice rather than as six unrelated looks.
+     */
+    public static final Identifier DUSK = LDLib2.id(PATH + "/dusk.lss");
+    public static final Identifier DUSK_MERGED = LDLib2.id(PATH + "/dusk");
+    public static final Identifier CARBON = LDLib2.id(PATH + "/carbon.lss");
+    public static final Identifier CARBON_MERGED = LDLib2.id(PATH + "/carbon");
+    public static final Identifier MINT = LDLib2.id(PATH + "/mint.lss");
+    public static final Identifier MINT_MERGED = LDLib2.id(PATH + "/mint");
+    public static final Identifier PLUM = LDLib2.id(PATH + "/plum.lss");
+    public static final Identifier PLUM_MERGED = LDLib2.id(PATH + "/plum");
+    public static final Identifier PAPER = LDLib2.id(PATH + "/paper.lss");
+    public static final Identifier PAPER_MERGED = LDLib2.id(PATH + "/paper");
+    public static final Identifier LATTE = LDLib2.id(PATH + "/latte.lss");
+    public static final Identifier LATTE_MERGED = LDLib2.id(PATH + "/latte");
 
     private final Map<Identifier, Stylesheet> builtinStylesheets = new ConcurrentHashMap<>();
     private final Map<Identifier, Stylesheet> packStylesheets = new ConcurrentHashMap<>();

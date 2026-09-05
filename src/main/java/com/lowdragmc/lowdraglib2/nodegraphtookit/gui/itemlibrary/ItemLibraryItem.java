@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.itemlibrary;
 
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.ILibraryItem;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -9,7 +10,7 @@ import net.minecraft.network.chat.Component;
 
 @Accessors(chain = true)
 @ToString(onlyExplicitlyIncluded = true)
-public class ItemLibraryItem {
+public class ItemLibraryItem implements ILibraryItem {
     @Getter @Setter
     protected String path = "";
     @Getter @Setter

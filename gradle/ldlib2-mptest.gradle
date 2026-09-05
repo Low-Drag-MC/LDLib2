@@ -15,6 +15,10 @@
 
 def ldMpOutDir = layout.buildDirectory.dir('ldlib2-mptest').get().asFile.absolutePath
 def ldMpHub = (project.findProperty('ldMpHub') ?: '').toString()
+// -PgraphicsBackend pins the renderer. Applied below to the clients only: --graphicsBackend is
+// parsed by the *client* Main, and the dedicated server's option parser rejects what it does not
+// recognise - so handing it to runMpServer would fail the run rather than configure it.
+def ldMpGraphicsBackend = (project.findProperty('graphicsBackend') ?: '').toString()
 
 // Explicit type, because a run created from a separate script cannot borrow a type from its name
 // the way `runs { client { } }` in build.gradle does.
@@ -68,6 +72,14 @@ neoForge {
     }
 }
 
+// On the task rather than on the run definition, for the reason the run definitions above are
+// disableIdeRun: what goes on a definition is serialised to build/moddev/<name>RunProgramArgs.txt
+// and read back by every later IDE launch.
+tasks.configureEach { task ->
+    if (ldMpGraphicsBackend.isEmpty() || !task.name.startsWith('runMpClient')) return
+    task.args '--graphicsBackend', ldMpGraphicsBackend
+}
+
 tasks.register('runMpTest', JavaExec) {
     group = 'verification'
     description = 'Runs LDLib2 multi-process test scenarios (dedicated server + N clients).'
@@ -90,7 +102,10 @@ tasks.register('runMpTest', JavaExec) {
     args '--projectDir', project.projectDir.absolutePath,
             '--out', ldMpOutDir,
             '--selection', (project.findProperty('ldMpTest') ?: 'all').toString(),
-            '--clients', (project.findProperty('ldMpClients') ?: 'A,B').toString()
+            '--clients', (project.findProperty('ldMpClients') ?: 'A,B').toString(),
+            // Not inherited by the child builds this spawns; see MPTestOrchestrator#spawnChild.
+            '--headless', project.hasProperty('ldTestHeadless').toString(),
+            '--graphicsBackend', ldMpGraphicsBackend
     // The exit code is informative only; verifyMpTest below is authoritative - it also catches the
     // orchestrator dying before it could write a report at all.
     ignoreExitValue = true

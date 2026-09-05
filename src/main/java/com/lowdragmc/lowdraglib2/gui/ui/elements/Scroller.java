@@ -158,6 +158,19 @@ public abstract class Scroller extends BindableUIElement<Float> {
         setNormalizedValue(getNormalizedValue() + clampNormalizedValue.apply(normalizedValue));
     }
 
+    /**
+     * Scrolls one notch in the direction {@code delta} implies, or not at all when it is zero.
+     *
+     * <p>Takes a raw wheel delta rather than the event, so that the caller decides which axis of the
+     * wheel drives this scroller. That is not always the obvious one — see {@code ScrollerView}, where
+     * holding shift swaps them.
+     */
+    public void scrollByWheel(double delta) {
+        if (delta == 0) return;
+        var step = getScrollerStyle().scrollDelta();
+        scrollValue(delta > 0 ? -step : step);
+    }
+
     @ConfigSetter(field = "minValue")
     public Scroller setMinValue(float minValue) {
         return setRange(minValue, maxValue);
@@ -334,7 +347,7 @@ public abstract class Scroller extends BindableUIElement<Float> {
 
         @Override
         protected void onScrollWheel(UIEvent event) {
-            if (event.deltaY != 0) scrollValue(event.deltaY > 0 ? -getScrollerStyle().scrollDelta() : getScrollerStyle().scrollDelta());
+            scrollByWheel(event.deltaY);
         }
     }
 
@@ -403,9 +416,9 @@ public abstract class Scroller extends BindableUIElement<Float> {
 
         @Override
         protected void onScrollWheel(UIEvent event) {
-            var delta = getScrollerStyle().scrollDelta();
-            if (event.deltaX != 0) scrollValue(event.deltaX > 0 ? -delta : delta);
-            else if (event.deltaY != 0) scrollValue(event.deltaY > 0 ? -delta : delta);
+            // Falls back to the vertical wheel, because almost no mouse has a horizontal one and a
+            // scroller on its own would otherwise be unreachable by wheel at all.
+            scrollByWheel(event.deltaX != 0 ? event.deltaX : event.deltaY);
         }
     }
 

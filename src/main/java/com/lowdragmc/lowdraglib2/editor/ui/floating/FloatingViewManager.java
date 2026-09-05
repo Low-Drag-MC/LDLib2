@@ -5,10 +5,13 @@ import com.lowdragmc.lowdraglib2.client.window.OsWindowManager;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.editor.ui.EditorLayout;
 import com.lowdragmc.lowdraglib2.editor.ui.View;
-import com.lowdragmc.lowdraglib2.editor.ui.ViewContainer;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
+import com.lowdragmc.lowdraglib2.gui.ui.window.WindowBounds;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -39,6 +42,13 @@ public class FloatingViewManager {
      * Views hosted in the in-game fallback panel, and the panel hosting them.
      */
     private final Map<View, Dialog> panels = new LinkedHashMap<>();
+    /**
+     * Where each view's window was last left, by view name.
+     *
+     * <p>Keyed by name rather than by identity so it survives the editor being closed and rebuilt,
+     * which is the same key {@link FloatingLayout} and {@link #findDockedView} already use.
+     */
+    private final Map<String, WindowBounds> rememberedBounds = new LinkedHashMap<>();
 
     public FloatingViewManager(Editor editor) {
         this.editor = editor;
@@ -54,18 +64,84 @@ public class FloatingViewManager {
         var title = view.getViewNameComponent();
         if (OsWindowManager.isAvailable()) {
             var window = new FloatingViewWindow(editor, title);
-            var offset = CASCADE_STEP * windows.size();
-            if (window.open(Integer.MIN_VALUE, Integer.MIN_VALUE, DEFAULT_WIDTH, DEFAULT_HEIGHT, false)) {
-                if (offset > 0) {
-                    var os = window.window();
-                    os.setPosition(os.getPositionX() + offset, os.getPositionY() + offset);
-                }
+            var bounds = initialBounds(view);
+            if (window.open(bounds.x(), bounds.y(), bounds.width(), bounds.height(), false)) {
                 attach(window);
                 window.dock(view);
                 return true;
             }
         }
         return openFallbackPanel(view, title);
+    }
+
+    /**
+     * Where {@code view}'s window should open.
+     *
+     * <p>Where it was last time, if it has been floated before. Otherwise over the pane it is being
+     * torn out of, at the same size and nudged clear of it — so the window appears to come off the
+     * spot the user clicked rather than materialising somewhere unrelated at a stock size. The nudge
+     * grows with the number of windows already open, so tearing out two tabs of the same pane does
+     * not stack them exactly.
+     */
+    private WindowBounds initialBounds(View view) {
+        var remembered = rememberedBounds.get(view.getName());
+        if (remembered != null) return remembered.atLeastMinimum();
+
+        var pane = paneBounds(view);
+        if (pane == null) {
+            // Nothing laid out to measure — a view floated before the editor has drawn a frame. Let
+            // the platform place it.
+            return new WindowBounds(Integer.MIN_VALUE, Integer.MIN_VALUE, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+        }
+        var nudge = CASCADE_STEP * (windows.size() + 1);
+        return pane.offsetBy(nudge, nudge).atLeastMinimum();
+    }
+
+    /**
+     * The rectangle {@code view} currently occupies on the desktop, or {@code null} if it has no size
+     * to measure.
+     *
+     * <p>Three coordinate spaces meet here. The pane's rectangle is in the element tree's local
+     * space, {@code getWorldMouse} lifts it into the game window's GUI space, multiplying by the GUI
+     * scale gives game-window pixels, and the game window's own desktop position turns those into the
+     * virtual-screen pixels a window is positioned in. Skipping any one of them puts the window
+     * somewhere plausible-looking and wrong.
+     *
+     * <p>The container rather than the view: the view is the tab's contents, and what the user sees
+     * themselves tearing out is the pane around it.
+     */
+    @Nullable
+    private WindowBounds paneBounds(View view) {
+        UIElement pane = view.getViewContainer() != null ? view.getViewContainer() : view;
+        if (pane.getSizeWidth() <= 0 || pane.getSizeHeight() <= 0) return null;
+        var topLeft = pane.getWorldMouse(pane.getPositionX(), pane.getPositionY());
+        var bottomRight = pane.getWorldMouse(pane.getPositionX() + pane.getSizeWidth(),
+                pane.getPositionY() + pane.getSizeHeight());
+
+        var gameWindow = Minecraft.getInstance().getWindow();
+        var scale = gameWindow.getGuiScale();
+        var originX = new int[1];
+        var originY = new int[1];
+        GLFW.glfwGetWindowPos(gameWindow.handle(), originX, originY);
+        return new WindowBounds(
+                originX[0] + (int) (topLeft.x * scale),
+                originY[0] + (int) (topLeft.y * scale),
+                (int) ((bottomRight.x - topLeft.x) * scale),
+                (int) ((bottomRight.y - topLeft.y) * scale));
+    }
+
+    /**
+     * Records where {@code window} is, against every view it currently holds.
+     *
+     * <p>Called on the way out rather than every frame: a view leaves a floating window by being
+     * docked back or by the window closing, and both of those come through here.
+     */
+    private void rememberBounds(FloatingViewWindow window) {
+        var bounds = window.restoredBounds();
+        if (bounds == null) return;
+        for (var view : window.views()) {
+            rememberedBounds.put(view.getName(), bounds);
+        }
     }
 
     private void attach(FloatingViewWindow window) {
@@ -121,6 +197,9 @@ public class FloatingViewManager {
         }
         for (var window : List.copyOf(windows)) {
             if (!window.views().contains(view)) continue;
+            // Before it leaves: once it is docked back the window no longer lists it, and a window
+            // with other tabs left in it will not pass through closeWindow at all.
+            rememberBounds(window);
             editor.redockView(view);
             if (window.isEmpty()) {
                 closeWindow(window);
@@ -134,6 +213,7 @@ public class FloatingViewManager {
      */
     public void closeWindow(FloatingViewWindow window) {
         if (!windows.remove(window)) return;
+        rememberBounds(window);
         for (var view : window.views()) {
             editor.redockView(view);
         }
@@ -185,6 +265,26 @@ public class FloatingViewManager {
                             EditorLayout.captureSlots(window.rootWindow()))));
         }
         return layouts;
+    }
+
+    /**
+     * Every remembered rectangle, including the windows still open right now.
+     *
+     * <p>Saved alongside the layout so that floating a view, docking it back and quitting does not
+     * throw the arrangement away. Without it the memory would be oddly half-persistent: a window
+     * left open when the editor closes is restored by {@link #capture()}, but one docked back an
+     * hour earlier would open at a stock size next session.
+     */
+    public Map<String, WindowBounds> captureBounds() {
+        for (var window : windows) {
+            rememberBounds(window);
+        }
+        return Map.copyOf(rememberedBounds);
+    }
+
+    /** Seeds the remembered rectangles from a saved layout. */
+    public void restoreBounds(Map<String, WindowBounds> bounds) {
+        rememberedBounds.putAll(bounds);
     }
 
     /**

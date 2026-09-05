@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.uitest;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.client.LDLib2ClientRegistries;
 import com.lowdragmc.lowdraglib2.client.window.OsWindowHints;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.UISurface;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.CursorOverlay;
 import com.lowdragmc.lowdraglib2.uitest.capture.CaptureRequest;
 import com.lowdragmc.lowdraglib2.uitest.capture.FrameCapture;
@@ -20,6 +21,8 @@ import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.multiplayer.resolver.ServerAddress;
 import net.neoforged.fml.ModList;
+import net.neoforged.fml.ModLoader;
+import net.neoforged.neoforge.client.gui.LoadingErrorScreen;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
@@ -129,6 +132,10 @@ public final class UITestRunner {
         if (config == null) return;
         // A pid-qualified id keeps two concurrent runs from sharing a world directory or an output dir.
         var runId = ProcessHandle.current().pid() + "_" + Integer.toHexString(System.identityHashCode(config));
+        if (config.isSharded()) {
+            // Only for reading logs and worlds back: the pid above is what actually makes it unique.
+            runId = "shard%d_%s".formatted(config.shardIndex(), runId);
+        }
         active = new UITestRunner(config, runId, null);
         active.begin();
     }
@@ -243,6 +250,25 @@ public final class UITestRunner {
                     minecraft.options.onboardAccessibility = false;
                     minecraft.options.save();
                     minecraft.gui.setScreen(new TitleScreen());
+                } else if (screen instanceof LoadingErrorScreen) {
+                    // NeoForge parks here until somebody presses Continue, so neither branch below
+                    // gains anything by waiting out the timeout first.
+                    //
+                    // The issues are named either way, and that matters more than it looks: this
+                    // screen is the only place they are ever shown — `showLoadWarnings` being on is
+                    // exactly what stops ClientModLoader logging them — and a headless run has no
+                    // screen for anyone to read.
+                    if (ModLoader.hasErrors()) {
+                        fatal("mod loading failed: " + loadingIssues());
+                    } else {
+                        // Warnings only, and a dev runtime is full of other people's mods: any one of
+                        // them raising a warning would otherwise wedge every automated run before the
+                        // first scenario. Continued the way the onboarding screen above is, rather
+                        // than by driving the screen's own Continue button, whose action is private.
+                        LDLib2.LOGGER.warn("[uitest] continuing past mod loading warnings: {}",
+                                loadingIssues());
+                        minecraft.gui.setScreen(new TitleScreen());
+                    }
                 } else if (elapsedMsSince(runStartedNanos) > 180_000) {
                     fatal("never reached the title screen (stuck on "
                             + (screen == null ? "no screen" : screen.getClass().getName()) + ")");
@@ -281,7 +307,19 @@ public final class UITestRunner {
                     }
                     phase = Phase.MP_CONNECT;
                 } else if (queue.isEmpty()) {
-                    LDLib2.LOGGER.error("[uitest] selection '{}' matched no scenarios", config.selection());
+                    // A shard legitimately gets nothing when there are more shards than scenarios, so
+                    // only a serial run can call this a failure. For a sharded one the question is
+                    // whether the selection matched anything *anywhere*, which only the merger can
+                    // answer - it has every shard's `known` list.
+                    if (config.isSharded()) {
+                        LDLib2.LOGGER.info("[uitest] shard {}/{} has no scenarios to run",
+                                config.shardIndex(), config.shardCount());
+                    } else {
+                        // Not just a log line: leaving the status alone let a typo'd -PldTest write an
+                        // empty report that verifyUiTest read as a pass, so the gate went green having
+                        // tested nothing at all.
+                        emptySelection();
+                    }
                     phase = Phase.FINISH;
                 } else {
                     phase = queue.stream().anyMatch(entry -> entry.options().requiresWorld())
@@ -565,6 +603,13 @@ public final class UITestRunner {
                 stepReport.index, stepReport, element));
     }
 
+    /** Queues a capture of a render target that is not the game's frame. See {@link CaptureRequest.Kind#SURFACE}. */
+    public void requestSurfaceCapture(ScenarioRun run, RunReport.StepReport stepReport, String label,
+                                      UISurface surface) {
+        enqueueCapture(new CaptureRequest(CaptureRequest.Kind.SURFACE, run.name, label,
+                stepReport.index, stepReport, null, surface));
+    }
+
     private void enqueueCapture(CaptureRequest request) {
         pendingCaptures.add(request);
         // The frame about to be rendered is the one this reads back, so the stand-in pointer has to go
@@ -578,7 +623,10 @@ public final class UITestRunner {
         NativeImage frame = null;
         NativeImage cropped = null;
         try {
-            frame = FrameCapture.grab();
+            // A window's own target, when asked for. It was last drawn into after this frame's step
+            // ran - windows are driven at the end of the frame, after the runner - so it holds the
+            // state the requesting step produced, which is the same promise a full capture makes.
+            frame = request.surface == null ? FrameCapture.grab() : FrameCapture.grab(request.surface.target());
             var fileName = "%02d_%s".formatted(request.stepIndex, sanitize(request.label));
             var directory = config.outDir().resolve("screenshots").resolve(sanitize(request.scenarioName));
 
@@ -675,6 +723,41 @@ public final class UITestRunner {
                 () -> Runtime.getRuntime().halt(exitCode), "ldlib2-uitest-exit-code"));
     }
 
+    /**
+     * Records that the selection matched nothing, as an error rather than an empty pass.
+     *
+     * <p>Same verdict the multi-process merger already reaches for its own empty case: a mistyped
+     * selection must not be indistinguishable from a suite that passed.
+     */
+    private void emptySelection() {
+        var reason = "selection '" + config.selection() + "' matched no scenarios";
+        LDLib2.LOGGER.error("[uitest] {}", reason);
+        report.status = RunReport.Status.worst(report.status, RunReport.Status.ERROR);
+        var scenarioReport = new RunReport.ScenarioReport();
+        scenarioReport.name = "<selection>";
+        scenarioReport.status = RunReport.Status.ERROR;
+        scenarioReport.error = RunReport.ErrorInfo.of(new IllegalStateException(reason));
+        report.scenarios.add(scenarioReport);
+    }
+
+    /**
+     * Everything mod loading complained about, as one line — key and arguments rather than the
+     * translated text, because a run has no reason to hold the language the reader speaks.
+     */
+    private static String loadingIssues() {
+        var issues = ModLoader.getLoadingIssues();
+        if (issues.isEmpty()) {
+            return "none reported, which means something other than mod loading opened that screen";
+        }
+        var joined = new StringBuilder();
+        for (var issue : issues) {
+            if (!joined.isEmpty()) joined.append(" | ");
+            joined.append(issue.severity()).append(' ').append(issue.translationKey())
+                    .append(' ').append(issue.translationArgs());
+        }
+        return joined.toString();
+    }
+
     private void fatal(String reason) {
         LDLib2.LOGGER.error("[uitest] fatal: {}", reason);
         report.status = RunReport.Status.ERROR;
@@ -750,7 +833,18 @@ public final class UITestRunner {
             windowResizeRequested = true;
             windowResizeDeadlineNanos = System.nanoTime() + WINDOW_RESIZE_TIMEOUT_NANOS;
             var mayTakeFocus = mayTakeFocus();
-            if (!config.maximizeWindow()) {
+            if (config.headless()) {
+                // Hide rather than move off-screen: an off-screen window still belongs to a desktop that
+                // may not exist here. The frame is unaffected either way - the game renders into the main
+                // render target and FrameCapture downloads that texture, never the swap chain - so the
+                // only thing lost is the ability of a human to watch, which is the point.
+                //
+                // It has to be hidden after creation, not with a GLFW_VISIBLE hint: the handle comes from
+                // FML's early loading window via ImmediateWindowHandler#setupMinecraftWindow, so
+                // Minecraft never passes hints of ours to glfwCreateWindow.
+                GLFW.glfwHideWindow(window.handle());
+                GLFW.glfwSetWindowSize(window.handle(), config.windowWidth(), config.windowHeight());
+            } else if (!config.maximizeWindow()) {
                 GLFW.glfwSetWindowSize(window.handle(), config.windowWidth(), config.windowHeight());
             } else if (mayTakeFocus) {
                 GLFW.glfwMaximizeWindow(window.handle());
@@ -763,6 +857,8 @@ public final class UITestRunner {
             }
             if (mayTakeFocus) {
                 // Without focus, GLFW never delivers cursor callbacks, so real-mode input goes nowhere.
+                // Never reached headless - RunConfig refuses REAL input there, because a hidden window
+                // has no focus to give.
                 GLFW.glfwFocusWindow(window.handle());
             }
             return false;
@@ -786,6 +882,12 @@ public final class UITestRunner {
         if (!minecraft.gui.hud.isHidden()) {
             minecraft.gui.hud.toggle();
         }
+        if (config.headless()) {
+            // The runner advances one step per rendered frame, so the frame rate is the clock the
+            // whole run keeps. What a hidden window's swap interval does is a driver decision; take
+            // it out of the loop rather than let it set the pace.
+            options.enableVsync().set(false);
+        }
         minecraft.resizeGui();
         // resizeGui only recalculates the gui scale and relays out the screen. What actually follows
         // the window is GameRenderer#resize, and the game only calls it on a frame where
@@ -796,10 +898,11 @@ public final class UITestRunner {
         minecraft.gameRenderer.resize(window.getWidth(), window.getHeight());
 
         var mainTarget = minecraft.gameRenderer.mainRenderTarget();
-        LDLib2.LOGGER.info("[uitest] window {}x{} (gui {}x{} @{}), render target {}x{}",
+        LDLib2.LOGGER.info("[uitest] window {}x{} (gui {}x{} @{}), render target {}x{}, focus {}, headless {}",
                 window.getWidth(), window.getHeight(),
                 window.getGuiScaledWidth(), window.getGuiScaledHeight(), window.getGuiScale(),
-                mainTarget.width, mainTarget.height);
+                mainTarget.width, mainTarget.height,
+                mayTakeFocus(), config.headless());
         return true;
     }
 
@@ -891,6 +994,7 @@ public final class UITestRunner {
         environment.framebufferWidth = window.getScreenWidth();
         environment.framebufferHeight = window.getScreenHeight();
         environment.inputMode = config.inputMode().name();
+        environment.headless = config.headless();
         // Worth recording: a dev runtime loads the whole localImplementation set, and any of those
         // can change layout or the render pipeline under a capture.
         ModList.get().forEachModContainer((id, container) ->
@@ -937,12 +1041,40 @@ public final class UITestRunner {
                     scenario, options, scenario.getClass()));
         }
         // Registry iteration order is priority-based and stable, but sorting by name makes a run's
-        // output diffable against another run regardless of what got registered in between.
+        // output diffable against another run regardless of what got registered in between. It is
+        // also what lets parallel shards agree on the split below without talking to each other.
         selected.sort(java.util.Comparator.comparing(ScenarioEntry::name));
-        queue.addAll(selected);
-        LDLib2.LOGGER.info("[uitest] selected {} scenario(s): {}", selected.size(),
-                selected.stream().map(ScenarioEntry::name).toList());
+        queue.addAll(applyShard(selected));
+        LDLib2.LOGGER.info("[uitest] selected {} scenario(s): {}", queue.size(),
+                queue.stream().map(ScenarioEntry::name).toList());
     }
+
+    /**
+     * Narrows a name-sorted selection to this process's slice of a parallel run, and records the
+     * whole selection in the report so the merger can prove nothing was lost.
+     *
+     * <p>No coordination: every shard runs {@link ShardPlan} over the identical list and keeps its
+     * own bucket. That is only sound while the lists really are identical, which is what
+     * {@link RunReport.ShardInfo#known} exists to check after the fact.
+     */
+    private List<ScenarioEntry> applyShard(List<ScenarioEntry> selected) {
+        if (!config.isSharded()) return selected;
+        var names = selected.stream().map(ScenarioEntry::name).toList();
+
+        var info = new RunReport.ShardInfo();
+        info.index = config.shardIndex();
+        info.count = config.shardCount();
+        info.known = names;
+        report.shard = info;
+
+        var mine = new java.util.HashSet<>(ShardPlan.shardOf(names, ShardWeights.read(config.weightsFile()),
+                config.shardCount(), config.shardIndex()));
+        var slice = selected.stream().filter(entry -> mine.contains(entry.name())).toList();
+        LDLib2.LOGGER.info("[uitest] shard {}/{} takes {} of {} scenario(s)",
+                config.shardIndex(), config.shardCount(), slice.size(), selected.size());
+        return slice;
+    }
+
 
     private static String sanitize(String name) {
         return name.replaceAll("[^A-Za-z0-9._-]+", "_");

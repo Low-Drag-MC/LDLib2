@@ -207,6 +207,17 @@ public final class OsWindow {
      * difference and the whole dispatch path is exercised rather than bypassed.
      */
     public void post(OsWindowEvent event) {
+        // A cursor move updates the cached position as well as queueing, exactly as the platform's own
+        // callback does. Without that, a posted click - which re-reads the cursor rather than trusting
+        // the last event, see ModularUIWindow#handleEvent - would land wherever the physical pointer
+        // happens to be rather than where the caller just moved to.
+        if (event instanceof OsWindowEvent.CursorPos cursor) {
+            if (destroyed) return;
+            cursorX = cursor.x();
+            cursorY = cursor.y();
+            enqueueCursorPos(cursor.x(), cursor.y());
+            return;
+        }
         enqueue(event);
     }
 
@@ -290,6 +301,34 @@ public final class OsWindow {
 
     public boolean isIconified() {
         return !destroyed && GLFW.glfwGetWindowAttrib(handle, GLFW.GLFW_ICONIFIED) == GLFW.GLFW_TRUE;
+    }
+
+    /**
+     * Whether this platform lets a window pin itself above the others.
+     *
+     * <p>Wayland does not, on principle: a client there cannot raise or stack its own windows, and
+     * asking anyway is a {@code GLFW_FEATURE_UNAVAILABLE} that surfaces through Minecraft's error
+     * callback as what looks like a crash. Callers should hide the control rather than offer one that
+     * silently does nothing.
+     */
+    public static boolean supportsAlwaysOnTop() {
+        return GLFW.glfwGetPlatform() != GLFW.GLFW_PLATFORM_WAYLAND;
+    }
+
+    /**
+     * Keeps the window above every other window, including the game's own.
+     *
+     * <p>The reason a second window is worth having at all is that it can sit beside the UI it is
+     * about; on a single monitor, "beside" means "on top", because the game window is normally
+     * maximised underneath.
+     */
+    public void setAlwaysOnTop(boolean onTop) {
+        if (destroyed || !supportsAlwaysOnTop()) return;
+        GLFW.glfwSetWindowAttrib(handle, GLFW.GLFW_FLOATING, onTop ? GLFW.GLFW_TRUE : GLFW.GLFW_FALSE);
+    }
+
+    public boolean isAlwaysOnTop() {
+        return !destroyed && GLFW.glfwGetWindowAttrib(handle, GLFW.GLFW_FLOATING) == GLFW.GLFW_TRUE;
     }
 
     public boolean isMaximized() {

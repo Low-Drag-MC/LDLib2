@@ -87,6 +87,15 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
 
     @Override
     public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean doubleClick) {
+        // Picking comes first and swallows the press: in focus mode the pointer is an inspector,
+        // and inspecting a button is not supposed to also press it. Handled here rather than in
+        // whatever host is showing this UI, because since the debugger became a window of its own
+        // it need not be the same host - and both paths arrive through this method.
+        var picking = ModularUIClientAccess.pickingDebugger(modularUI);
+        if (picking != null) {
+            picking.pickHovered();
+            return true;
+        }
         modularUI.lastMouseDownX = (float) mouseButtonEvent.x();
         modularUI.lastMouseDownY = (float) mouseButtonEvent.y();
         modularUI.lastMouseDownButton = mouseButtonEvent.button();
@@ -127,6 +136,11 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
 
     @Override
     public boolean mouseReleased(MouseButtonEvent mouseButtonEvent) {
+        // The other half of the swallowed press. Without it the release still lands, and against
+        // whatever element the last real click remembered — which fires a CLICK on it, so
+        // inspecting a button you had already pressed once would press it again. Ahead of the
+        // double-dispatch guard below, so both of the two calls answer the same way.
+        if (ModularUIClientAccess.pickingDebugger(modularUI) != null) return true;
         if (ModularUIClientAccess.getScreen(getModularUI()) instanceof IAbstractContainerScreenExt ext) {
             if (ext.getLdlib2$mouseReleasedMark() == lastMouseReleasedMark) {
                 return lastMouseReleasedResult;
@@ -292,6 +306,20 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
         var modifiers = keyEvent.modifiers();
         if (modularUI.isAllowDebugMode() && keyCode == GLFW.GLFW_KEY_F12) {
             ModularUIClientAccess.enableDebugger(modularUI, !modularUI.isDebugMode());
+        }
+        // The debugger's own chords, handled here so they work with the pointer over the UI being
+        // inspected — which, now that the debugger is a window of its own, is not where its
+        // keyboard is. Live only while it is open, so a UI's own F1 is untouched otherwise.
+        var debugger = ModularUIClientAccess.activeDebugger(modularUI);
+        if (debugger != null) {
+            if (keyCode == GLFW.GLFW_KEY_F1) {
+                debugger.setFocusMode(!debugger.isFocusMode());
+                return true;
+            }
+            if (keyCode == GLFW.GLFW_KEY_F4) {
+                debugger.setRenderUIShaping(!debugger.isRenderUIShaping());
+                return true;
+            }
         }
         modularUI.lastPressedKeyCode = keyCode;
         modularUI.lastPressedScanCode = scanCode;
@@ -465,6 +493,13 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
         }
 
         context.callPostRendering();
+
+        // Above the UI's own content, below its tooltips - and drawn here, in the inspected UI's
+        // frame, because the debugger showing these outlines may well be in a different window.
+        var debugger = ModularUIClientAccess.activeDebugger(modularUI);
+        if (debugger != null) {
+            debugger.renderHostOverlay(context, guiGraphics, mouseX, mouseY);
+        }
 
         if (ModularUIClientAccess.getScreen(modularUI) instanceof AbstractContainerScreen<?> containerScreen
                 && !containerScreen.getMenu().getCarried().isEmpty()) {

@@ -1672,6 +1672,23 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return this;
     }
 
+    /**
+     * The server-side listeners registered for one event type, or an empty list.
+     *
+     * <p>The read that {@link #addServerEventListener} and {@link #removeServerEventListener} were
+     * missing. Normally these only ever run because a client sent the matching RPC, which leaves the
+     * server half of an element's behaviour untestable without a client — and for a UI assembled by
+     * something other than hand-written code, that half is exactly the part worth checking. Handing
+     * back the listeners lets a caller run them directly.</p>
+     *
+     * <p>Unmodifiable: adding through here would skip registering the RPC the client needs to reach
+     * the listener, leaving one that can only ever be called locally.</p>
+     */
+    public List<UIEventListener> getServerEventListeners(String eventType, boolean useCapture) {
+        var pair = (useCapture ? serverCaptureEventListeners : serverBaubleEventListeners).get(eventType);
+        return pair == null ? List.of() : Collections.unmodifiableList(pair.getB());
+    }
+
     @Nullable
     public RPCEvent getCaptureServerEvent(String eventType) {
         var pair = serverCaptureEventListeners.get(eventType);

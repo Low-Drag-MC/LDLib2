@@ -31,13 +31,25 @@ public class RenderUtils {
     );
 
     /**
-     * 26.2 immediate-draw replacement for the removed {@code MultiBufferSource.BufferSource}: collects
-     * geometry per {@link RenderType} into its own {@link BufferBuilder}, then on {@link #flush()}
-     * uploads each mesh to a transient {@link GpuBuffer} and draws it via
-     * {@code RenderType.prepare().drawFromBuffer(...)} — which captures the current model-view/projection
-     * and honors {@code RenderSystem.outputColor/DepthTextureOverride} (so scene-FBO draws land correctly).
-     * Each RenderType gets its own backing {@link ByteBufferBuilder} so interleaved {@code getBuffer}
-     * calls don't clobber each other.
+     * Immediate-mode drawing for a handful of render types at once: geometry is collected per
+     * {@link RenderType} into its own {@link BufferBuilder}, and on {@link #flush()} each mesh is
+     * uploaded to a transient {@link GpuBuffer} and drawn through
+     * {@code RenderType.prepare().drawFromBuffer(...)} — which captures the current
+     * model-view/projection and honours {@code RenderSystem.outputColor/DepthTextureOverride}, so a
+     * draw into a scene FBO lands where it should. Each render type gets its own backing
+     * {@link ByteBufferBuilder}, so interleaved {@link #getBuffer} calls cannot clobber each other.
+     *
+     * <p><b>Submission order is preserved, and callers may rely on it.</b> Within a render type,
+     * because a {@link BufferBuilder} appends in call order and the mesh is drawn in that order;
+     * across render types, because {@code builders} is insertion-ordered and {@link #flush()} walks
+     * it. That is what makes this usable for translucent geometry drawn with the depth test off,
+     * where back-to-front is the caller's to choose — see
+     * {@code TransformGizmo#POSITION_COLOR_NO_DEPTH}.
+     *
+     * <p>⚠️ Consequently {@code RenderType.sortOnUpload()} is <b>not</b> honoured here. Vanilla's
+     * batching sorts quads by distance from the origin of the space the vertices were written in,
+     * which is only meaningful when that space is the camera's; for world-space geometry it reorders
+     * by a number that means nothing. A render type drawn through this class should not ask for it.
      */
     public static final class ImmediateDraw implements AutoCloseable {
         private final Map<RenderType, BufferBuilder> builders = new LinkedHashMap<>();

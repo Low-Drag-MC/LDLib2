@@ -1,6 +1,8 @@
 package com.lowdragmc.lowdraglib2.gui.ui.debugger;
 
+import com.lowdragmc.lowdraglib2.client.window.OsWindowManager;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
+import com.lowdragmc.lowdraglib2.client.font.LDFonts;
 import com.lowdragmc.lowdraglib2.gui.editor.view.UIHierarchy;
 import com.lowdragmc.lowdraglib2.gui.editor.view.UITreeNode;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
@@ -8,6 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.SDFRectTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
@@ -22,6 +25,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Stylesheet;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.HistoryStack;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.gui.util.WindowDragHelper;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import dev.vfyjxf.taffy.style.AlignContent;
@@ -30,6 +34,7 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector2f;
@@ -43,6 +48,11 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class UIDebugger extends UIElement {
     public final UIElement titleBar;
+    /**
+     * Moves the debugger between its two hosts: layered over the game, or in an OS window of its own.
+     * Hidden when the platform will not give us a second window at all.
+     */
+    public final Toggle windowModeToggle;
     public final Label title;
     public final UIElement container;
     public final ModularUI modularUI;
@@ -64,16 +74,27 @@ public class UIDebugger extends UIElement {
     private boolean focusMode;
     @Getter @Setter
     private boolean renderUIShaping = true;
+    /**
+     * Whether the debugger floats over the UI it inspects, or fills a host of its own.
+     *
+     * <p>Floating is how it opens: a 200x200 panel the user drags around by its title and resizes by
+     * its edges, laid out over the very UI being inspected. Hosted in an OS window none of that
+     * applies — the window is moved and resized by <em>its</em> edges, and a second set of handles
+     * inside the client area only fights them.
+     */
+    @Getter
+    private boolean floating = true;
     protected boolean isResizing = false;
 
     public UIDebugger(ModularUI modularUI) {
         this.modularUI = modularUI;
-        getLayout().positionType(TaffyPosition.ABSOLUTE).width(200).height(200);
+        applyHostLayout();
 
         this.title = new Label();
         this.title.getLayout().flexGrow(1).heightPercent(100);
         this.title.getTextStyle().textAlignVertical(Vertical.CENTER);
         this.title.setText("Debugger").setOverflowVisible(false);
+        this.windowModeToggle = buildWindowModeToggle();
         this.titleBar = new UIElement().layout(layout -> layout.paddingAll(4).alignItems(AlignItems.CENTER).flexDirection(FlexDirection.ROW))
                 .addChildren(
                         title,
@@ -131,7 +152,8 @@ public class UIDebugger extends UIElement {
                                             layout.heightPercent(100);
                                             layout.setAspectRatio(1f);
                                         })
-                                        .style(style -> style.tooltips("debugger.ui_shaping.0"))
+                                        .style(style -> style.tooltips("debugger.ui_shaping.0")),
+                                windowModeToggle
                         )
                 );
         this.titleBar.addClass("__editor_top__");
@@ -195,9 +217,11 @@ public class UIDebugger extends UIElement {
                         .layout(layout -> layout.widthPercent(100).heightPercent(100)));
         codeEditor.setLanguage(Languages.LSS);
 
-        WindowDragHelper.setDragMove(this.title, this, null, null);
+        // Gated on the predicates rather than only installed when floating: the host can change while
+        // the debugger element lives on, and a listener already added cannot be taken back off.
+        WindowDragHelper.setDragMove(this.title, this, e -> floating, null);
         WindowDragHelper.setBorderResize(this, this, 4, new Vector2f(40), new Vector2f(Float.MAX_VALUE),
-                null, (e, handle) -> {
+                e -> floating, (e, handle) -> {
                     isResizing = true;
                     return true;
                 }, e -> isResizing = false);
@@ -205,6 +229,64 @@ public class UIDebugger extends UIElement {
         addChildren(titleBar, container);
 
         internalSetup();
+    }
+
+    /**
+     * The control that moves the debugger between its two hosts.
+     *
+     * <p>Built here rather than in {@code UIDebuggerWindow} because it has to be reachable from both:
+     * the point of it is that you can leave the window as easily as you entered it.
+     */
+    private Toggle buildWindowModeToggle() {
+        return (Toggle) new Toggle()
+                .setText("")
+                .setOn(false, false)
+                .toggleButton(button -> button.layout(layout -> {
+                    layout.widthPercent(100);
+                    layout.heightPercent(100);
+                }))
+                // Requested, not applied: the switch reparents this toggle's own ancestor, which is
+                // not something to do from inside its click dispatch. See ModularUIClientAccess.
+                .setOnToggleChanged(windowed -> ModularUIClientAccess.requestDebuggerWindowed(modularUI, windowed))
+                .toggleStyle(style -> {
+                    style.setPipelineState(StyleOrigin.DEFAULT);
+                    style.baseTexture(Sprites.BORDER1_RT1_DARK);
+                    style.hoverTexture(Sprites.BORDER1_RT1);
+                    style.setPipelineState(StyleOrigin.INLINE);
+                    // The icon says where clicking takes you, not where you are.
+                    style.unmarkTexture(Icons.FLOAT.copy().setColor(ColorPattern.GRAY.color).scale(0.8f));
+                    style.markTexture(Icons.SCREEN.copy().scale(0.8f));
+                })
+                .bindDataSource(SupplierDataSource.of(() -> ModularUIClientAccess.isDebuggerWindowed(modularUI)))
+                .layout(layout -> {
+                    layout.paddingAll(0);
+                    layout.heightPercent(100);
+                    layout.setAspectRatio(1f);
+                })
+                .style(style -> style.tooltips("debugger.window_mode.0", "debugger.window_mode.1"));
+    }
+
+    /**
+     * Switches between floating over the inspected UI and filling a host of its own.
+     *
+     * @see #isFloating()
+     */
+    public UIDebugger setFloating(boolean floating) {
+        if (this.floating == floating) return this;
+        this.floating = floating;
+        applyHostLayout();
+        return this;
+    }
+
+    private void applyHostLayout() {
+        if (floating) {
+            getLayout().positionType(TaffyPosition.ABSOLUTE).width(200).height(200);
+        } else {
+            // left/top back to auto, not zero: a previous floating session moved them, and an inset on
+            // a relative box offsets it out of its host rather than being ignored.
+            getLayout().positionType(TaffyPosition.RELATIVE).leftAuto().topAuto()
+                    .widthPercent(100).heightPercent(100);
+        }
     }
 
     private void onNodeSelected(Set<UITreeNode> uiTreeNodes) {
@@ -276,6 +358,79 @@ public class UIDebugger extends UIElement {
         return null;
     }
 
+    // ------------------------------------------------------------------ drawing into the inspected UI
+
+    /**
+     * Selects whatever the pointer is over in the inspected UI, if focus mode is on.
+     *
+     * <p>Called from the inspected UI's own click handling — which is the only place that knows the
+     * pointer landed there — before anything else sees the press. That press is swallowed by the
+     * caller either way, which is why nothing is reported back: picking an element must not also
+     * press the button it picked, and that has to hold when the pointer is over nothing selectable
+     * too.
+     */
+    public void pickHovered() {
+        if (!focusMode) return;
+        var hovered = modularUI.getLastHoveredElement();
+        if (hovered != null) {
+            focusElement(hovered);
+        }
+    }
+
+    /**
+     * The element whose box the overlay is outlining, or {@code null} for none.
+     *
+     * <p>Focus mode follows the pointer over the inspected UI; otherwise it follows the hierarchy
+     * row the pointer is over, so hovering a row in the tree lights the element up on screen.
+     */
+    @Nullable
+    public UIElement getShapingElement() {
+        if (focusMode) {
+            return modularUI.getLastHoveredElement();
+        }
+        if (renderUIShaping && hierarchy.treeList.getHoveredNode() != null) {
+            return hierarchy.treeList.getHoveredNode().key;
+        }
+        return null;
+    }
+
+    /**
+     * Draws the debugger's overlay — the box model of the highlighted element, its vitals, and in
+     * focus mode a crosshair — into whichever host is showing the inspected UI.
+     *
+     * <p>This runs as part of the <em>inspected</em> UI's frame, not the debugger's own, because the
+     * two need not be in the same window any more: the debugger can sit in an OS window of its own
+     * while its target is drawn in the game window or in a third one. Coordinates here are that
+     * host's, which is exactly what the element transforms and the mouse position already are.
+     *
+     * <p>No depth juggling, unlike 1.21: the gui renderer is deferred, so these outlines are appended
+     * to the host's render state after the UI content it already contributed and sort above it by
+     * construction. There is no depth state left switched off for the tooltips and drag ghost that
+     * follow to trip over.
+     */
+    public void renderHostOverlay(GUIContext context, GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        var shaping = getShapingElement();
+        // Nothing highlighted means nothing to draw — including the crosshair, which in focus mode is
+        // shown exactly when there is something under the pointer to pick.
+        if (shaping == null) return;
+
+        ModularUIClientAccess.getWidget(modularUI).renderUISpacing(context, shaping, graphics);
+        var font = LDFonts.font();
+        // Only while picking: outside focus mode the inspected UI is live and fully clickable, and
+        // a crosshair over it would be noise rather than an affordance.
+        if (focusMode) {
+            DrawerHelperClient.drawSolidRect(context, 0, mouseY - 1, modularUI.getScreenWidth(), 1, 0xffff0000);
+            DrawerHelperClient.drawSolidRect(context, mouseX - 1, 0, 1, modularUI.getScreenHeight(), 0xffff0000);
+            LDFonts.drawText(context, font, "pos(%d, %d)".formatted(mouseX, mouseY),
+                    mouseX, Math.max(0, mouseY - 10), ColorPattern.YELLOW.color, true);
+        }
+        var y = 0;
+        for (var info : shaping.getDebugInfo()) {
+            LDFonts.drawText(context, font, info, 0, y, -1, true);
+            y += 10;
+        }
+    }
+
     @Override
     public boolean isEditorVisible() {
         return false;
@@ -284,6 +439,9 @@ public class UIDebugger extends UIElement {
     @Override
     public void screenTick() {
         super.screenTick();
+        // Re-checked rather than set once: whether a second window can be opened depends on native
+        // fullscreen, which the user can turn on and off with the debugger already open.
+        windowModeToggle.setDisplay(OsWindowManager.isAvailable() || ModularUIClientAccess.isDebuggerWindowed(modularUI));
         hierarchy.getSelectedOne().ifPresentOrElse(e -> {
             var layout = e.getTaffyLayout();
             margin.setValue(layout.margin());
@@ -304,7 +462,7 @@ public class UIDebugger extends UIElement {
         if (!(guiContext instanceof GUIContext context)) return;
         super.drawBackgroundAdditional(context);
 
-        if (isSelfOrChildHover() && !isResizing) {
+        if (floating && isSelfOrChildHover() && !isResizing) {
             WindowDragHelper.drawResizeIcon(context, this, 4);
         }
     }
