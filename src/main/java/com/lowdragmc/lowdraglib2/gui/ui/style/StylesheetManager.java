@@ -25,6 +25,24 @@ public final class StylesheetManager implements ResourceManagerReloadListener {
     public static final ResourceLocation MC_MERGED = LDLib2.id(PATH + "/mc");
     public static final ResourceLocation MODERN = LDLib2.id(PATH + "/modern.lss");
     public static final ResourceLocation MODERN_MERGED = LDLib2.id(PATH + "/modern");
+    /**
+     * One design in six palettes — four dark ({@code dusk} blue-grey, {@code carbon} graphite,
+     * {@code mint} green, {@code plum} violet) and two light ({@code paper} cool, {@code latte} warm).
+     * They share every selector, so a component styled in one is styled in all six, and a caller can
+     * offer the set as a light/dark choice rather than as six unrelated looks.
+     */
+    public static final ResourceLocation DUSK = LDLib2.id(PATH + "/dusk.lss");
+    public static final ResourceLocation DUSK_MERGED = LDLib2.id(PATH + "/dusk");
+    public static final ResourceLocation CARBON = LDLib2.id(PATH + "/carbon.lss");
+    public static final ResourceLocation CARBON_MERGED = LDLib2.id(PATH + "/carbon");
+    public static final ResourceLocation MINT = LDLib2.id(PATH + "/mint.lss");
+    public static final ResourceLocation MINT_MERGED = LDLib2.id(PATH + "/mint");
+    public static final ResourceLocation PLUM = LDLib2.id(PATH + "/plum.lss");
+    public static final ResourceLocation PLUM_MERGED = LDLib2.id(PATH + "/plum");
+    public static final ResourceLocation PAPER = LDLib2.id(PATH + "/paper.lss");
+    public static final ResourceLocation PAPER_MERGED = LDLib2.id(PATH + "/paper");
+    public static final ResourceLocation LATTE = LDLib2.id(PATH + "/latte.lss");
+    public static final ResourceLocation LATTE_MERGED = LDLib2.id(PATH + "/latte");
 
     private final Map<ResourceLocation, Stylesheet> builtinStylesheets = new ConcurrentHashMap<>();
     private final Map<ResourceLocation, Stylesheet> packStylesheets = new ConcurrentHashMap<>();

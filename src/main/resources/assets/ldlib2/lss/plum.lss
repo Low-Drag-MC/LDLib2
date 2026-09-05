@@ -1,0 +1,651 @@
+// ─────────────────────────────────────────────────────────────────────────────
+//  Plum — a dark theme with a violet cast to its greys and a fuchsia accent.
+//
+//  One of six themes that share every selector and differ only in palette:
+//  dusk, carbon, mint, paper, latte. Keep them in step when adding a component.
+//
+//  PALETTE                                    GEOMETRY
+//  bg        #120f16  canvas, wells           radius  3  slots, bars, tracks
+//  surface   #1a1621  panels, menus           radius  5  controls
+//  raised    #251f2e  controls at rest        radius  7  surfaces
+//  hovered   #31293c  controls under cursor   border  1  hairline, never heavier
+//  sunken    #0d0a11  inputs, viewports       height 16  controls
+//  line      #16ffffff  hairline (9% white)
+//  line+     #2effffff  emphasis (18% white)
+//  text      #ece7f2    dim #a89ab4    faint #776b82
+//  accent    #e879f9    hover #f0a0ff  press #c65ad6   wash #3de879f9
+//
+//  ⚠️ Corner radii here read (bottom-left, bottom-right, top-right, top-left) —
+//  the reverse of the CSS order. A title bar wants "0 0 r r", a footer "r r 0 0".
+//  1.21 keeps the old order for compatibility; 26.1+ turns it the right way round.
+//
+//  An accent is a statement, so it is spent only where the UI has something to
+//  say: focus, selection, an on switch, a filled bar. Everything else is grey,
+//  and stays out of the way.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── surfaces ─────────────────────────────────────────────────────────────────
+.panel_bg {
+  background: sdf(#f21a1621, 7, 1, #16ffffff);
+  padding-all: 6;
+  gap-all: 5;
+}
+
+.preview_bg {
+  background: sdf(#120f16, 6, 1, #16ffffff);
+  padding-all: 4;
+}
+
+.configurator_preview_bg {
+  background: sdf(#0d0a11, 6, 1, #16ffffff);
+  padding-all: 4;
+}
+
+// ── type ─────────────────────────────────────────────────────────────────────
+text, label {
+  text-shadow: false;
+  text-color: #ece7f2;
+  font: ldlib2:jetbrains_mono_bold;
+}
+
+// ── button ───────────────────────────────────────────────────────────────────
+// Neutral by default. A screen full of accent-coloured buttons reads as a toy;
+// the accent is kept for the confirm button, where it means something.
+button:host {
+  base-background: sdf(#251f2e, 5, 1, #16ffffff);
+  hover-background: sdf(#31293c, 5, 1, #2effffff);
+  pressed-background: sdf(#1e1926, 5, 1, #2effffff);
+  padding-all: 3;
+  height: 16;
+}
+
+button:host .__button_text__ {
+  text-color: #ece7f2;
+  text-shadow: false;
+}
+
+button:disabled:host {
+  base-background: sdf(#181420, 5, 1, #0dffffff);
+}
+
+button:disabled:host .__button_text__ {
+  text-color: #776b82;
+  text-shadow: false;
+}
+
+.__confirm-button__ {
+  base-background: sdf(#e879f9, 5);
+  hover-background: sdf(#f0a0ff, 5);
+  pressed-background: sdf(#c65ad6, 5);
+}
+
+.__confirm-button__ .__button_text__ {
+  text-color: #120f16;
+}
+
+.__reject-button__ {
+  base-background: sdf(#e5484d, 5);
+  hover-background: sdf(#ec6165, 5);
+  pressed-background: sdf(#cc3d42, 5);
+}
+
+.__reject-button__ .__button_text__ {
+  text-color: #120f16;
+}
+
+// ── text input ───────────────────────────────────────────────────────────────
+// ⚠️ Fields draw their own text, so `text, label` never reaches it, and TEXT_COLOR
+// defaults to white with CURSOR_COLOR near it. Set without :host on purpose: that
+// pseudo matches only elements which are not internal to another component, so a
+// colour selector's own fields are outside it — which is how they came out white
+// on white. Only the colours are set here; the frame stays with the rules below,
+// which are :host so that a component styling its own field keeps control of it.
+text-field, text-area {
+  text-color: #ece7f2;
+  cursor-color: #ece7f2;
+  text-shadow: false;
+}
+
+text-field:host,
+.__tag-field_text-field__,
+.__search-component_text-field__ {
+  background: sdf(#0d0a11, 5, 1, #16ffffff);
+  focus-overlay: sdf(#00000000, 5, 1, #e879f9);
+  padding-all: 3;
+  font: ldlib2:jetbrains_mono_bold;
+}
+
+search-component:host {
+  background: sdf(#0d0a11, 5, 1, #16ffffff);
+  focus-overlay: sdf(#00000000, 5, 1, #e879f9);
+  height: 16;
+}
+
+// ── switch ───────────────────────────────────────────────────────────────────
+switch:host {
+  base-background: sdf(#31293c, 6);
+  pressed-background: sdf(#e879f9, 6);
+  unmark-background: sdf(#a89ab4, 5);
+  mark-background: sdf(#120f16, 5);
+  height: 12;
+  width: 22;
+  padding-all: 1;
+}
+
+// ── selector ─────────────────────────────────────────────────────────────────
+selector:host {
+  background: sdf(#251f2e, 5, 1, #16ffffff);
+  focus-overlay: sdf(#00000000, 5, 1, #e879f9);
+  height: 16;
+}
+
+selector:host:hovered {
+  background: sdf(#31293c, 5, 1, #2effffff);
+}
+
+.__selector_button-icon__ {
+  background: sprite(ldlib2:textures/gui/down.png) scale(0.55) color(#a89ab4);
+}
+
+.__selector_dialog__, .__search-component_dialog__ {
+  background: sdf(#f71a1621, 7, 1, #2effffff);
+  padding-all: 3;
+}
+
+// ── progress bar ─────────────────────────────────────────────────────────────
+progress-bar:host {
+  height: 8;
+}
+
+progress-bar:host label {
+  font-size: 6;
+  text-color: #ece7f2;
+  font: ldlib2:jetbrains_mono_bold;
+}
+
+.__progress-bar_bar-container__ {
+  background: sdf(#0d0a11, 4, 1, #16ffffff);
+  padding-all: 0;
+}
+
+.__progress-bar_bar__ {
+  background: sdf(#e879f9, 4);
+  padding-all: 0;
+}
+
+// ── slots ────────────────────────────────────────────────────────────────────
+item-slot, .item-slot_bg {
+  background: sdf(#0d0a11, 4, 1, #16ffffff);
+  hover-overlay: sdf(#26ffffff, 4);
+}
+
+fluid-slot, .fluid-slot_bg {
+  background: sdf(#0d0a11, 4, 1, #16ffffff);
+}
+
+// ── colour selector ──────────────────────────────────────────────────────────
+color-selector:host text-field {
+  background: sdf(#0d0a11, 5, 1, #16ffffff);
+  focus-overlay: sdf(#00000000, 5, 1, #e879f9);
+  padding-all: 3;
+  font: ldlib2:jetbrains_mono_bold;
+}
+
+color-selector:host button {
+  base-background: sdf(#251f2e, 4, 1, #16ffffff);
+  hover-background: sdf(#31293c, 4, 1, #2effffff);
+  pressed-background: sdf(#1e1926, 4, 1, #2effffff);
+}
+
+color-selector:host .__color-selector_alpha-slider__ {
+  background: sdf(#0d0a11, 4, 1, #16ffffff);
+  margin-right: 3;
+  padding-all: 2;
+}
+
+color-selector:host .__color-selector_color-slider__ {
+  background: sdf(#0d0a11, 4, 1, #16ffffff);
+  margin-bottom: 3;
+  padding-all: 2;
+}
+
+color-selector:host .__color-selector_color-preview__ {
+  background: sdf(#0d0a11, 4, 1, #16ffffff);
+  margin-right: 3;
+  margin-bottom: 3;
+  padding-all: 2;
+}
+
+// ── toggle ───────────────────────────────────────────────────────────────────
+toggle:host {
+  mark-background: sdf(#3de879f9, 4, 1, #e879f9);
+  height: 14;
+}
+
+.__toggle_button__ {
+  base-background: sdf(#251f2e, 4, 1, #16ffffff);
+  hover-background: sdf(#31293c, 4, 1, #2effffff);
+  pressed-background: sdf(#1e1926, 4, 1, #2effffff);
+}
+
+toggle:on .__toggle_button__ {
+  base-background: sdf(#3de879f9, 4, 1, #e879f9);
+  hover-background: sdf(#55e879f9, 4, 1, #f0a0ff);
+  pressed-background: sdf(#3dc65ad6, 4, 1, #e879f9);
+}
+
+.__toggle_mark-icon__ {
+  margin-all: 2;
+  width: auto;
+  height: auto;
+  flex: 1;
+}
+
+// ── text area ────────────────────────────────────────────────────────────────
+text-area {
+  scroller-view-margin: 8;
+  font: ldlib2:jetbrains_mono_bold;
+}
+
+text-area:host {
+  focus-overlay: sdf(#00000000, 5, 1, #e879f9);
+}
+
+// The tree's arrows ship as white sprites, so on a light palette they disappear
+// into the row. Re-pointed at the same atlas cells and tinted with the theme.
+tree-list {
+  collapse-icon: sprite(ldlib2:textures/gui/icon/gdp_icons.png, 188, 240, 5, 5) color(#a89ab4);
+  expand-icon: sprite(ldlib2:textures/gui/icon/gdp_icons.png, 132, 230, 5, 5) color(#a89ab4);
+}
+
+.__text-area_content-view__ {
+  background: sdf(#0d0a11, 5, 1, #16ffffff);
+  padding-all: 3;
+}
+
+.__text-area_horizontal-scroller__ {
+  height: 5;
+  margin-top: 2;
+}
+
+.__text-area_vertical-scroller__ {
+  width: 5;
+  margin-left: 2;
+}
+
+// ── scrollers ────────────────────────────────────────────────────────────────
+// Rail and thumb only. The end buttons are gone: nobody has clicked a scrollbar
+// arrow since the mouse wheel, and they cost two chunks of every scroller.
+scroller-horizontal:host {
+  height: 5;
+}
+
+scroller-vertical:host {
+  width: 5;
+}
+
+.__scroller_scroll_container__ {
+  background: sdf(#0d0a11, 3);
+  padding-all: 0;
+}
+
+scroller-horizontal .__scroller_scroll_bar__,
+scroller-vertical .__scroller_scroll_bar__ {
+  base-background: sdf(#3affffff, 3);
+  hover-background: sdf(#66ffffff, 3);
+  pressed-background: sdf(#e879f9, 3);
+}
+
+.__scroller_head_button__, .__scroller_tail_button__ {
+  display: none;
+}
+
+scroller-view {
+  scroller-view-margin: 8;
+}
+
+.__scroller_view_view-port__ {
+  background: sdf(#0d0a11, 5, 1, #16ffffff);
+  padding-all: 3;
+}
+
+.__scroller_view_horizontal-scroller__ {
+  height: 5;
+  margin-top: 2;
+}
+
+.__scroller_view_vertical-scroller__ {
+  width: 5;
+  margin-left: 2;
+}
+
+// ── slider ───────────────────────────────────────────────────────────────────
+slider-horizontal:host {
+  height: 10;
+}
+
+slider-vertical:host {
+  width: 10;
+}
+
+slider-horizontal, slider-vertical {
+  slider-track-size: 3;
+  slider-handle-size: 5;
+}
+
+.__slider_track__ {
+  background: sdf(#0d0a11, 2, 1, #16ffffff);
+}
+
+.__slider_fill__ {
+  background: sdf(#e879f9, 2);
+}
+
+.__slider_handle__ {
+  base-background: sdf(#ece7f2, 3);
+  hover-background: sdf(#ffffff, 3);
+  pressed-background: sdf(#e879f9, 3);
+}
+
+// ── tabs ─────────────────────────────────────────────────────────────────────
+// The header is the same surface as the content, joined by one seam, so a tab
+// strip reads as one card rather than as a lid resting on a box.
+.__tab-view_tab_header_container__ {
+  background: sdf(#0d0a11, 0 0 7 7, 1, #16ffffff);
+  margin-bottom: -1;
+  padding-all: 3;
+}
+
+.__tab-view_tab_header_container__ .__scroller_view_view-container__ {
+  gap-all: 3;
+}
+
+.__tab-view_tab_content_container__ {
+  background: sdf(#1a1621, 7 7 0 0, 1, #16ffffff);
+}
+
+tab-view .__tab-view_tab_scroller__ {
+  margin-bottom: 0;
+}
+
+tab:host {
+  base-background: empty;
+  hover-background: sdf(#16ffffff, 5);
+  pressed-background: sdf(#3de879f9, 5);
+  padding-all: 3;
+  height: 16;
+}
+
+tab:host:selected {
+  base-background: sdf(#1a1621, 0 0 5 5);
+  hover-background: sdf(#1a1621, 0 0 5 5);
+  pressed-background: sdf(#1a1621, 0 0 5 5);
+}
+
+tab:host:not(tab:selected) label {
+  text-color: #a89ab4;
+  text-shadow: false;
+}
+
+// ── dialog ───────────────────────────────────────────────────────────────────
+.__dialog_title__ {
+  background: sdf(#251f2e, 0 0 7 7, 1, #2effffff);
+  transform: translateY(1);
+}
+
+.__dialog_title__ > label {
+  text-color: #ece7f2;
+}
+
+.__dialog_content-container__ {
+  background: sdf(#f71a1621, 0, 1, #2effffff);
+}
+
+.__dialog_button-container__ {
+  background: sdf(#f71a1621, 7 7 0 0, 1, #2effffff);
+  transform: translateY(-1);
+}
+
+// ── menu ─────────────────────────────────────────────────────────────────────
+menu {
+  background: sdf(#f71a1621, 6, 1, #2effffff);
+  arrow: sprite(ldlib2:textures/gui/right.png) scale(0.55) color(#a89ab4);
+}
+
+// ── editor ───────────────────────────────────────────────────────────────────
+.__editor__ code-editor {
+  background: sdf(#0d0a11, 6, 1, #16ffffff);
+}
+
+.__editor_top__ {
+  background: sdf(#251f2e, 0 0 6 6);
+}
+
+.__editor__ button:host {
+  base-background: sdf(#00000000, 5, 1, #16ffffff);
+  hover-background: sdf(#16ffffff, 5, 1, #2effffff);
+  pressed-background: sdf(#3de879f9, 5, 1, #e879f9);
+}
+
+.__editor__ tab:host {
+  height: 15;
+}
+
+.__editor-gizmo-bar__ {
+  background: sdf(#f21a1621, 6, 1, #2effffff);
+}
+
+.__view-container__ {
+  background: sdf(#120f16);
+}
+
+.__view-container_tab-view__ .__tab-view_tab_content_container__ {
+  padding-all: 3;
+}
+
+.__view-container_collapse-button__ {
+  height: 14;
+  width: 14;
+}
+
+ResourceView .__tab-view_tab_header_container__ .__scroller_view_view-container__ {
+  gap-all: 2;
+}
+
+ResourceView tab:host {
+  base-background: empty;
+  hover-background: sdf(#16ffffff, 5) scale(0.92);
+  pressed-background: sdf(#3de879f9, 5) scale(0.92);
+}
+
+ResourceView tab:host:selected {
+  base-background: sdf(#1a1621, 5) scale(0.92);
+  hover-background: sdf(#251f2e, 5) scale(0.92);
+  pressed-background: sdf(#251f2e, 5) scale(0.92);
+}
+
+ResourceView .__tab-view_tab_header_container__ {
+  background: sdf(#120f16, 7 0 0 7, 1, #16ffffff);
+  transform: translate(1, 0);
+}
+
+ResourceView .__tab-view_tab_content_container__ {
+  background: sdf(#1a1621, 0 7 7 0, 1, #16ffffff);
+}
+
+.__ui-editor-view_header__ {
+  background: sdf(#1a1621);
+}
+
+.__ui-editor-view_header__ button {
+  height: 14;
+}
+
+.__ui-editor-view_header__ .__toggle_button__ {
+  base-background: sdf(#00000000, 4, 1, #16ffffff);
+  hover-background: sdf(#16ffffff, 4, 1, #2effffff);
+  pressed-background: sdf(#3de879f9, 4, 1, #e879f9);
+}
+
+.__ui-editor-view_canvas__ {
+  background: #0d0a11;
+}
+
+.__ui-editor-view_builtin-styles-toggle__ {
+  height: 14;
+  padding-all: 0;
+  mark-background: sdf(#00000000, 4, 1, #e879f9);
+}
+
+.__ui-editor-view_builtin-styles-toggle__ .__toggle_button__ {
+  base-background: sdf(#00000000, 4, 1, #16ffffff);
+  hover-background: sdf(#16ffffff, 4, 1, #2effffff);
+}
+
+.__ui-editor-view_builtin-styles-toggle__ .__toggle_mark-icon__ {
+  margin-all: 0;
+}
+
+.__ui-editor-view_style-view__ {
+  background: empty;
+  gap-all: 3;
+}
+
+.__editor-window_active__ {
+  background: #e879f9;
+}
+
+.__editor-window_inactive__ {
+  background: #251f2e;
+}
+
+// ── configurator ─────────────────────────────────────────────────────────────
+.__configurator-group__ .__configurator-group_container__ {
+  background: sdf(#1a1621, 6 6 6 0, 1, #16ffffff);
+}
+
+.__configurator-group__ > .__configurator_line__ {
+  background: sdf(#120f16, 5, 1, #16ffffff);
+}
+
+.__configurator-group__ > .__configurator_line__:hovered:not(:disabled) {
+  background: sdf(#251f2e, 5, 1, #2effffff);
+}
+
+.__configurator-group__ > .__configurator_line__ > .__configurator_label__ {
+  text-color: #a89ab4;
+  text-shadow: false;
+}
+
+ToggleSelectorConfigurator .__toggle_mark-icon__ {
+  margin-all: 0;
+}
+
+ToggleSelectorConfigurator .__toggle_button__ {
+  base-background: sdf(#00000000, 4, 1, #16ffffff);
+  hover-background: sdf(#16ffffff, 4, 1, #2effffff);
+  pressed-background: sdf(#3de879f9, 4, 1, #e879f9);
+}
+
+.__array-configurator_button-group__ {
+  background: sdf(#00000000, 5, 1, #16ffffff);
+  padding-all: 2;
+}
+
+.__array-configurator_item_selected__ {
+  background: sdf(#3de879f9, 4, 1, #e879f9);
+}
+
+// ── node graph ───────────────────────────────────────────────────────────────
+.__blackboard-var-prop_title-bar__ {
+  background: sdf(#251f2e, 0 0 6 6, 1, #16ffffff);
+}
+
+.__blackboard-var-prop_content__ {
+  background: sdf(#1a1621, 6 6 0 0, 1, #16ffffff);
+}
+
+.__node-graph-view_canvas__ {
+  background: #0d0a11;
+}
+
+.__node-graph-view_canvas-view__ {
+  color: #241d2b;
+}
+
+.__node-element__ {
+  background: sdf(#f21a1621, 6, 1, #2effffff);
+}
+
+.__node-title-element__ {
+  background: sdf(#251f2e, 0 0 6 6, 1, #16ffffff);
+  padding-bottom: 4;
+}
+
+.__node-port-container__ {
+  background: sdf(#00000000, 6 6 0 0);
+}
+
+.__in-out-port-container_input__ {
+  background: sdf(#00000000);
+  margin-all: 1;
+}
+
+.__in-out-port-container_output__ {
+  background: sdf(#14000000);
+  margin-all: 1;
+}
+
+.__capsule-node__ {
+  background: sdf(#f2251f2e, 8, 1, #2effffff);
+}
+
+.__capsule-node__ .__node-title-element__ {
+  background: empty;
+  padding-bottom: 0;
+}
+
+.__capsule-node__ .__node-port-container__ {
+  background: empty;
+}
+
+.__context-node__ > .__node-title-element__ {
+  height: 30;
+  gap-all: 5;
+}
+
+.__block-node__ > .__node-title-element__ {
+  background: sdf(#3de879f9, 0 0 6 6, 1, #e879f9);
+}
+
+.__block-list-container__ {
+  background: sdf(#0d0a11, 6);
+}
+
+.__subgraph-node__ .__node-title-element__ {
+  background: sdf(#31293c, 0 0 6 6, 1, #2effffff);
+}
+
+.__vertical-port-container__ {
+  padding-all: 2;
+  gap-all: 4;
+}
+
+.__vertical-port__ {
+  padding-all: 1;
+}
+
+.__node-preview__ {
+  background: sdf(#0d0a11, 6 6 0 0, 1, #16ffffff);
+  padding-all: 3;
+}
+
+.__item-library__ {
+  background: sdf(#f71a1621, 7, 1, #e879f9);
+}
+
+.__item-library_description-panel__ {
+  background: sdf(#f21a1621, 7, 1, #16ffffff);
+  padding-all: 6;
+  gap-all: 5;
+}
