@@ -26,15 +26,6 @@ def ldParJobs = (project.findProperty('ldTestJobs') ?: '0').toString().toInteger
 // ldlib2-uitest.gradle captures its own output directory up front.
 def ldParOutDirFile = file(ldParOutDir)
 
-// The -PldTest* flags this invocation was given, forwarded verbatim to each shard build. A child
-// build is a fresh Gradle invocation with none of them, and the shard run definitions below read
-// them through findProperty - so anything not forwarded silently falls back to the default here
-// rather than being merely absent. -PldTestJobs is added by the orchestrator itself.
-def ldParChildFlags = ['ldTest', 'ldTestExclude', 'ldTestGuiScale', 'ldTestWindow', 'ldTestInputMode',
-                       'ldTestWatchdogSec']
-        .findAll { project.hasProperty(it) }
-        .collect { "-P$it=${project.property(it)}".toString() }
-
 // The shard runs exist only while a parallel run is being set up. Both the parent invocation and
 // each child build see the same -PldTestJobs, so they agree on how many there are.
 //
@@ -86,13 +77,20 @@ tasks.register('runParTest', JavaExec) {
                 it.name.contains('gson') || it.name.startsWith('ldlib2')
             })
     mainClass = 'com.lowdragmc.lowdraglib2.uitest.par.ParallelTestOrchestrator'
-    // The --key value options first, then the shard flags: the orchestrator reads everything past
-    // its own options as arguments to hand each child build.
-    args(['--projectDir', project.projectDir.absolutePath,
-          '--out', ldParOutDir,
-          '--weights', ldParWeights,
-          '--selection', (project.findProperty('ldTest') ?: 'all').toString(),
-          '--jobs', (ldParJobs > 0 ? ldParJobs : 2).toString()] + ldParChildFlags)
+    args '--projectDir', project.projectDir.absolutePath,
+            '--out', ldParOutDir,
+            '--weights', ldParWeights,
+            '--selection', (project.findProperty('ldTest') ?: 'all').toString(),
+            '--exclude', (project.findProperty('ldTestExclude') ?: '').toString(),
+            '--window', (project.findProperty('ldTestWindow') ?: '').toString(),
+            '--guiScale', (project.findProperty('ldTestGuiScale') ?: '').toString(),
+            '--inputMode', (project.findProperty('ldTestInputMode') ?: '').toString(),
+            '--watchdogSec', (project.findProperty('ldTestWatchdogSec') ?: '').toString(),
+            '--jobs', (ldParJobs > 0 ? ldParJobs : 2).toString(),
+            // None of these are inherited by the child builds this spawns, which is why they are
+            // arguments rather than something the shards read for themselves - see
+            // ParallelTestOrchestrator#childProperties.
+            '--headless', project.hasProperty('ldTestHeadless').toString()
     doFirst {
         if (ldParJobs <= 0) {
             // The shard runs are created at configuration time from this property, so it has to be

@@ -13,6 +13,7 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import oshi.util.tuples.Pair;
 
 import javax.annotation.Nonnull;
+import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class RenderBufferUtils {
@@ -842,13 +843,38 @@ public class RenderBufferUtils {
     public static void shapeTorus(PoseStack poseStack, VertexConsumer buffer, Vector3f center, Vector3f normal,
                                   float radius, float tubeRadius, int segments, int tubeSegments,
                                   float red, float green, float blue, float alpha) {
+        shapeTorusArc(poseStack, buffer, center, normal, null, radius, tubeRadius,
+                0, (float) (2.0 * Math.PI), segments, tubeSegments, red, green, blue, alpha);
+    }
+
+    /**
+     * An arc of a {@link #shapeTorus}, swept from a direction you choose.
+     *
+     * <p>Angles are measured about {@code normal} from {@code reference}, so that a caller drawing part of
+     * a ring can say where that part is in terms of something meaningful — the direction of the camera,
+     * say — rather than in terms of whichever perpendicular this happened to pick.
+     *
+     * @param reference where angle zero points; the part of it lying in the ring's plane is what counts,
+     *                  and {@code null} (or a reference along the normal, which leaves nothing in the
+     *                  plane) means any perpendicular will do, as it does for a whole ring
+     * @param sweepAngle how much of the ring to draw, in radians
+     */
+    public static void shapeTorusArc(PoseStack poseStack, VertexConsumer buffer, Vector3f center, Vector3f normal,
+                                     @Nullable Vector3f reference, float radius, float tubeRadius,
+                                     float startAngle, float sweepAngle, int segments, int tubeSegments,
+                                     float red, float green, float blue, float alpha) {
         Matrix4f mat = poseStack.last().pose();
         if (segments < 3) segments = 3;
         if (tubeSegments < 3) tubeSegments = 3;
         var n = new Vector3f(normal);
         if (n.lengthSquared() < 1.0e-12f) return;
         n.normalize();
-        var u = perpendicularTo(n);
+        var u = reference == null ? new Vector3f() : new Vector3f(reference).sub(new Vector3f(n).mul(reference.dot(n)));
+        if (u.lengthSquared() < 1.0e-12f) {
+            u = perpendicularTo(n);
+        } else {
+            u.normalize();
+        }
         var v = n.cross(u, new Vector3f()).normalize();
 
         // Scratch vectors reused for every quad: a gizmo ring is rebuilt every frame, and allocating a
@@ -856,10 +882,10 @@ public class RenderBufferUtils {
         var radial0 = new Vector3f();
         var radial1 = new Vector3f();
         var corners = new Vector3f[]{new Vector3f(), new Vector3f(), new Vector3f(), new Vector3f()};
-        float ringStep = (float) (2.0 * Math.PI / segments);
+        float ringStep = sweepAngle / segments;
         float tubeStep = (float) (2.0 * Math.PI / tubeSegments);
         for (int i = 0; i < segments; i++) {
-            float a0 = i * ringStep, a1 = (i + 1) * ringStep;
+            float a0 = startAngle + i * ringStep, a1 = startAngle + (i + 1) * ringStep;
             // radial direction at each end of this ring segment; the tube's cross-section spans (radial, n)
             radialAt(radial0, u, v, a0);
             radialAt(radial1, u, v, a1);

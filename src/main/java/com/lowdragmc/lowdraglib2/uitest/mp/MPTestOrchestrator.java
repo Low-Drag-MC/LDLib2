@@ -54,8 +54,10 @@ public final class MPTestOrchestrator {
                 projectDir.resolve("runs").resolve("mpServer").toString()));
         long timeoutMs = Long.parseLong(options.getOrDefault("timeoutSec", "1500")) * 1000L;
         long serverStartTimeoutMs = Long.parseLong(options.getOrDefault("serverStartTimeoutSec", "420")) * 1000L;
+        var headless = Boolean.parseBoolean(options.getOrDefault("headless", "false"));
 
-        log("multi-process run: selection '" + selection + "', clients " + clients);
+        log("multi-process run: selection '" + selection + "', clients " + clients
+                + (headless ? ", headless" : ""));
         log("output: " + outDir);
 
         deleteRecursively(outDir);
@@ -72,7 +74,7 @@ public final class MPTestOrchestrator {
             log("control hub listening on 127.0.0.1:" + hub.port());
 
             processes.put(MPMessages.SERVER_ROLE,
-                    spawnChild(projectDir, SERVER_TASK, hub.port(), outDir.resolve("server")));
+                    spawnChild(projectDir, SERVER_TASK, hub.port(), outDir.resolve("server"), headless));
             log("spawned the dedicated server (" + SERVER_TASK + "); waiting for it to come up...");
 
             if (!waitUntil(() -> hub.serverReady, Math.min(serverStartTimeoutMs, deadline - System.currentTimeMillis()),
@@ -84,7 +86,7 @@ public final class MPTestOrchestrator {
             log("server ready; spawning " + clients.size() + " client(s)...");
             for (var role : clients) {
                 processes.put(role, spawnChild(projectDir, CLIENT_TASK_PREFIX + role, hub.port(),
-                        outDir.resolve("client" + role)));
+                        outDir.resolve("client" + role), headless));
             }
 
             // From here the children run the show; this side just enforces the global deadline.
@@ -112,9 +114,15 @@ public final class MPTestOrchestrator {
 
     // region child processes
 
-    private static Process spawnChild(Path projectDir, String task, int hubPort, Path logDir) throws IOException {
-        return ChildBuilds.spawn(projectDir, task, List.of("-PldMpHub=127.0.0.1:" + hubPort),
-                logDir.resolve("gradle.log"));
+    private static Process spawnChild(Path projectDir, String task, int hubPort, Path logDir,
+                                      boolean headless) throws IOException {
+        // Forwarded explicitly: a child build is a fresh Gradle invocation and inherits none of this
+        // one's project properties, so without this each client would try to open a window on a
+        // machine that has no display.
+        var properties = headless
+                ? List.of("-PldMpHub=127.0.0.1:" + hubPort, "-PldTestHeadless")
+                : List.of("-PldMpHub=127.0.0.1:" + hubPort);
+        return ChildBuilds.spawn(projectDir, task, properties, logDir.resolve("gradle.log"));
     }
 
     private static void killAll(Map<String, Process> processes) {

@@ -39,9 +39,65 @@ public final class ParallelTestOrchestrator {
 
     private static final String SHARD_TASK_PREFIX = "runUiTestShard";
 
+    /**
+     * <b>The project properties each shard build is launched with.</b>
+     *
+     * <p>⚠️⚠️ <b>A child build inherits none of this one's project properties</b> — it is a fresh
+     * {@code gradlew} invocation — so everything the shard's run configuration reads from
+     * {@code project.findProperty} has to be handed over here, by name.
+     *
+     * <p>That was known for {@code -PldTestHeadless} and missed for every other one. Two kinds of
+     * damage came of it, and the second is worse than the first:
+     *
+     * <ul>
+     *   <li><b>What runs.</b> Without {@code -PldTest} a shard's {@code ldlib2.uitest.run} falls
+     *       back to {@code all}, so {@code runParTest -PldTest=group:mine} ran every scenario in the
+     *       workspace while the parent printed the selection it had been given — the one place a
+     *       reader would look. The symptom is a scenario count that is too large, and nothing
+     *       else.</li>
+     *   <li><b>⚠️⚠️ What it runs in.</b> Without {@code -PldTestWindow} a shard falls back to the
+     *       headless default of 1920x1080 — so {@code -PldTestWindow=3840x2160} gave the parallel
+     *       run <i>half</i> the logical viewport the same selection got serially. Every layout in
+     *       it was half the size, and what that produced was not an error but scenarios failing on
+     *       coordinates: a button at the bottom of a pane that is no longer tall enough, clicked
+     *       and missed. It reads as a broken widget, in a scenario that passes on its own.</li>
+     * </ul>
+     *
+     * <p>Each is passed only when it was given: an empty {@code -PldTestExclude=} would still make
+     * {@code project.hasProperty} true downstream, which is a different thing from not asking to
+     * exclude anything, and a blank window would override nothing while looking like it does.
+     *
+     * <p>⚠️ Each of these is one argument to {@code ProcessBuilder}, so a value needs no quoting —
+     * but on Windows the child goes through {@code cmd.exe /c}, which does its own parsing, and a
+     * {@code regex:} selection containing spaces or {@code &} would not survive it. Selections of
+     * that shape have to be given to a serial run.
+     */
+    static List<String> childProperties(Map<String, String> options, int jobs, boolean headless) {
+        var properties = new ArrayList<String>();
+        properties.add("-PldTestJobs=" + jobs);
+        properties.add("-PldTest=" + options.getOrDefault("selection", "all"));
+        forward(properties, options, "exclude", "-PldTestExclude");
+        forward(properties, options, "window", "-PldTestWindow");
+        forward(properties, options, "guiScale", "-PldTestGuiScale");
+        forward(properties, options, "inputMode", "-PldTestInputMode");
+        forward(properties, options, "watchdogSec", "-PldTestWatchdogSec");
+        if (headless) {
+            properties.add("-PldTestHeadless");
+        }
+        return List.copyOf(properties);
+    }
+
+    /** ⚠️ Absent rather than empty — see {@link #childProperties}. */
+    private static void forward(List<String> into, Map<String, String> options, String option,
+                                String property) {
+        var value = options.get(option);
+        if (value != null && !value.isBlank()) {
+            into.add(property + "=" + value);
+        }
+    }
+
     public static void main(String[] args) throws Exception {
         var options = parseArgs(args);
-        var childFlags = trailingChildFlags(args);
         var projectDir = Path.of(options.get("projectDir")).toAbsolutePath();
         var outDir = Path.of(options.get("out")).toAbsolutePath();
         var weightsFile = Path.of(options.get("weights")).toAbsolutePath();
@@ -49,8 +105,13 @@ public final class ParallelTestOrchestrator {
         int jobs = Math.max(1, Integer.parseInt(options.getOrDefault("jobs", "2")));
         long timeoutMs = Long.parseLong(options.getOrDefault("timeoutSec", "1800")) * 1000L;
         long runStartedMs = System.currentTimeMillis();
+        // Headless has to be forwarded explicitly: a child build is a fresh Gradle invocation and
+        // inherits none of this one's project properties, so without this the shards would each try
+        // to open a window on a machine that has no display.
+        var headless = Boolean.parseBoolean(options.getOrDefault("headless", "false"));
 
-        log("parallel run: selection '" + selection + "' across " + jobs + " job(s)");
+        log("parallel run: selection '" + selection + "' across " + jobs + " job(s)"
+                + (headless ? ", headless" : ""));
         log("output: " + outDir);
         if (Files.isRegularFile(weightsFile)) {
             log("balancing from " + weightsFile);
@@ -66,18 +127,11 @@ public final class ParallelTestOrchestrator {
         var processes = new LinkedHashMap<String, Process>();
         int exitCode;
         try {
-            // -PldTestJobs plus every -PldTest* flag this run was started with. A child build is a
-            // fresh Gradle invocation and inherits nothing, and the shard run definitions read those
-            // properties themselves - so a flag that is not forwarded is not merely ignored, it falls
-            // back to the definition's default. `-PldTest=group:x` would silently run the whole suite
-            // and still report itself as that selection.
-            var shardArgs = new ArrayList<String>();
-            shardArgs.add("-PldTestJobs=" + jobs);
-            shardArgs.addAll(childFlags);
+            var childProperties = childProperties(options, jobs, headless);
             for (int shard = 0; shard < jobs; shard++) {
                 var name = shardName(shard);
                 processes.put(name, ChildBuilds.spawn(projectDir, SHARD_TASK_PREFIX + shard,
-                        shardArgs, outDir.resolve(name).resolve("gradle.log")));
+                        childProperties, outDir.resolve(name).resolve("gradle.log")));
             }
             log("spawned " + jobs + " shard(s); waiting...");
 
@@ -300,31 +354,12 @@ public final class ParallelTestOrchestrator {
 
     // endregion
 
-    /**
-     * The Gradle flags to hand each shard build, which are whatever follows this orchestrator's own
-     * {@code --key value} options.
-     *
-     * <p>Passed through as separate argv entries rather than as one packed option, so a value
-     * containing a comma, a space or a colon — {@code -PldTestExclude=a,b}, a window size — needs no
-     * escaping convention that both sides would have to agree on.
-     */
-    private static List<String> trailingChildFlags(String[] args) {
-        return List.of(args).subList(optionCount(args), args.length);
-    }
-
-    /** How many leading entries are this orchestrator's own {@code --key value} pairs. */
-    private static int optionCount(String[] args) {
-        int i = 0;
-        while (i + 1 < args.length && args[i].startsWith("--")) {
-            i += 2;
-        }
-        return i;
-    }
-
     private static Map<String, String> parseArgs(String[] args) {
         var options = new LinkedHashMap<String, String>();
-        int optionCount = optionCount(args);
-        for (int i = 0; i + 1 < optionCount; i += 2) {
+        for (int i = 0; i + 1 < args.length; i += 2) {
+            if (!args[i].startsWith("--")) {
+                throw new IllegalArgumentException("expected --key value pairs, got " + args[i]);
+            }
             options.put(args[i].substring(2), args[i + 1]);
         }
         for (var required : List.of("projectDir", "out", "weights")) {

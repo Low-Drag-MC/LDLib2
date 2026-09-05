@@ -90,7 +90,9 @@ tasks.register('runMpTest', JavaExec) {
     args '--projectDir', project.projectDir.absolutePath,
             '--out', ldMpOutDir,
             '--selection', (project.findProperty('ldMpTest') ?: 'all').toString(),
-            '--clients', (project.findProperty('ldMpClients') ?: 'A,B').toString()
+            '--clients', (project.findProperty('ldMpClients') ?: 'A,B').toString(),
+            // Not inherited by the child builds this spawns; see MPTestOrchestrator#spawnChild.
+            '--headless', project.hasProperty('ldTestHeadless').toString()
     // The exit code is informative only; verifyMpTest below is authoritative - it also catches the
     // orchestrator dying before it could write a report at all.
     ignoreExitValue = true

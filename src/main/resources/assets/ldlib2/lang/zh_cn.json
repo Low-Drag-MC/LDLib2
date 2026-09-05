@@ -549,6 +549,7 @@
   "structured_tag_editor": "结构化标签编辑器",
   "graph.name": "名称",
   "graph.color": "颜色",
+  "graph.options": "选项",
   "graph.color.reset": "重置颜色",
   "graph.commands.create_placemat": "创建区域框 (Placemat)",
   "graph.commands.create_sticky_note": "创建便利贴",

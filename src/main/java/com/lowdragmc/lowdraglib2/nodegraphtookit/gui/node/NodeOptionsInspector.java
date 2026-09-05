@@ -83,6 +83,10 @@ public class NodeOptionsInspector extends ModelElement {
                     nodeOption.isShowInInspectorOnly(),
                     portModel.isConfiguratorEnabled())
             );
+            // Keeps its info entry above - shouldRebuildFields compares them positionally, so
+            // skipping the entry would desync every option after it - but contributes no row here.
+            // NodeElement#onSelectionInspect is what surfaces it instead.
+            if (nodeOption.isShowInInspectorOnly()) continue;
             if (!portModel.isConfiguratorEnabled()) continue; // else it'd render as a label with nothing beside it
             if (portModel instanceof IFieldValueConfigurable configurable) {
                 var inspector = new FieldValueInspector();

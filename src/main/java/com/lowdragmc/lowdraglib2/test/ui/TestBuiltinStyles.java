@@ -31,7 +31,11 @@ public class TestBuiltinStyles implements IScreenTest {
                         toggleStylesheets("gdp", StylesheetManager.GDP).selfCall(t -> ((Toggle)t)
                                 .setOn(true, false)),
                         toggleStylesheets("mc", StylesheetManager.MC),
-                        toggleStylesheets("modern", StylesheetManager.MODERN)
+                        toggleStylesheets("ore", StylesheetManager.ORE),
+                        toggleStylesheets("modern", StylesheetManager.MODERN),
+                        toggleStylesheets("dusk", StylesheetManager.DUSK),
+                        toggleStylesheets("carbon", StylesheetManager.CARBON),
+                        toggleStylesheets("paper", StylesheetManager.PAPER)
                 ));
 
         var right = new UIElement()
