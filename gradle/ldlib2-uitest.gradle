@@ -29,6 +29,45 @@ def ldHeadlessRunDirs = [:]
 // it disabled.
 def ldHeadlessFlipped = [] as Set
 
+// ⚠️ Whether this machine can put a window on a screen at all — which decides whether the FML early
+// window may stay on, and that decides WHICH GL CONTEXT the test client gets.
+//
+// FML's early window is what negotiates the context: it asks for 4.6 and falls back
+// ("Trying GL version 4.6 / Requested GL version 4.6 got version 4.6"), and Minecraft then adopts
+// that window and its context. Turn it off and Minecraft creates its own with its own hints — 3.2
+// core — so LWJGL loads no GL 3.3 entry points at all. A library that uses instanced rendering then
+// calls a null function pointer and LWJGL asks the JVM to abort: no exception, no crash report, the
+// process simply disappears. That is what took every multi-process client down, and it made the test
+// clients disagree with the game a player actually runs, which is the worse half of the bug.
+//
+// So the early window is only turned off where it genuinely cannot work: FML calls
+// glfwGetPrimaryMonitor and treats NULL as fatal, behind a modal dialog nobody is there to dismiss,
+// so the run hangs rather than fails.
+//
+// ⚠️ The override is an ENVIRONMENT VARIABLE, not a project property: the parallel and multi-process
+// harnesses launch their clients from child Gradle builds, which inherit this build's environment
+// and none of its properties. A property would be obeyed by the build that prints the message and
+// ignored by the one that actually starts the client. The detection below propagates for the same
+// reason — a child sees the same SSH_* variables and the same graphics environment.
+//
+//     LDLIB2_TEST_EARLY_WINDOW=false ./gradlew runParTest ...
+def ldHasDisplay = {
+    def forced = System.getenv('LDLIB2_TEST_EARLY_WINDOW')
+    if (forced != null && !forced.isBlank()) {
+        return Boolean.parseBoolean(forced.trim())
+    }
+    // A session over SSH has no desktop to draw on even though the machine has a monitor attached.
+    if (System.getenv('SSH_CLIENT') || System.getenv('SSH_CONNECTION') || System.getenv('SSH_TTY')) {
+        return false
+    }
+    try {
+        return !java.awt.GraphicsEnvironment.isHeadless() &&
+                java.awt.GraphicsEnvironment.localGraphicsEnvironment.screenDevices.length > 0
+    } catch (Throwable ignored) {
+        return false   // no graphics environment to ask is an answer
+    }
+}()
+
 if (project.hasProperty('ldTestHeadless')) {
     // Rejected here rather than in RunConfig so it costs nothing: the runner only reads its config
     // from a frame hook, so the same guard down there turns a typo into a crash report several
@@ -38,6 +77,12 @@ if (project.hasProperty('ldTestHeadless')) {
         throw new GradleException("-PldTestInputMode=REAL cannot be combined with -PldTestHeadless: " +
                 "real input drives the OS cursor and needs the window focused.")
     }
+    logger.lifecycle(ldHasDisplay
+            ? "LDLib2 UI test: headless, and this machine has a display — FML's early window stays on, "
+                    + "so the client gets the same GL context a player's does."
+            : "LDLib2 UI test: headless with no display — disabling FML's early window. ⚠️ The client "
+                    + "then runs on Minecraft's own GL 3.2 core context, where GL 3.3 entry points "
+                    + "(instanced rendering) are absent.")
     runs.configureEach { run ->
         run.systemProperty 'ldlib2.uitest.headless', 'true'
         ldHeadlessRunDirs['run' + run.name.capitalize()] = run.workingDirectory
@@ -139,7 +184,7 @@ tasks.configureEach { task ->
     // which has no property override. That file is shared with ordinary interactive runs, which is
     // why ldlib2RestoreEarlyWindow puts it back: leaving it off would silently cost every later
     // `runClient` its loading window, and the setting also gates the GL features FML sets up.
-    if (project.hasProperty('ldTestHeadless') && task.name.startsWith('run')) {
+    if (project.hasProperty('ldTestHeadless') && !ldHasDisplay && task.name.startsWith('run')) {
         task.finalizedBy 'ldlib2RestoreEarlyWindow'
         task.doFirst {
             def workingDir = ldHeadlessRunDirs[task.name]
