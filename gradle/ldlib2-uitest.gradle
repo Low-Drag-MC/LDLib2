@@ -44,17 +44,40 @@ def ldHeadlessFlipped = [] as Set
 // glfwGetPrimaryMonitor and treats NULL as fatal, behind a modal dialog nobody is there to dismiss,
 // so the run hangs rather than fails.
 //
-// ⚠️ The override is an ENVIRONMENT VARIABLE, not a project property: the parallel and multi-process
-// harnesses launch their clients from child Gradle builds, which inherit this build's environment
-// and none of its properties. A property would be obeyed by the build that prints the message and
-// ignored by the one that actually starts the client. The detection below propagates for the same
-// reason — a child sees the same SSH_* variables and the same graphics environment.
+// ⚠️ There are TWO overrides, and each exists for a reason the other cannot serve.
+//
+// The environment variable is for a HUMAN at a shell: the parallel and multi-process harnesses launch
+// their clients from child Gradle builds, which inherit this build's environment and none of its
+// properties, so a property typed on the outer command line would be obeyed by the build that prints
+// the message and ignored by the one that actually starts the client. The detection below propagates
+// for the same reason — a child sees the same SSH_* variables and the same graphics environment.
 //
 //     LDLIB2_TEST_EARLY_WINDOW=false ./gradlew runParTest ...
+//
+// The project property is for an ORCHESTRATOR spawning a child build directly, which is the only
+// caller that can put it on the child's own command line. ⚠️ It must not use the environment for
+// this: a Gradle client whose environment differs from the running daemon's makes Gradle stop that
+// daemon, and the orchestrator is running inside it — the parent build dies with "Gradle build
+// daemon disappeared unexpectedly" the instant the child is spawned. That is measured, not feared.
+//
+// ⚠️⚠️ And the machine's own answer, from last time: AWT is wrong exactly where it matters — on a
+// disconnected remote desktop it reports one screen while GLFW finds no monitor at all, and FML then
+// dies before a line of test code runs. Only GLFW knows, and the first thing it does with the answer
+// is abort the process, so the parallel orchestrator writes `build/ldlib2-uitest-no-monitor` when it
+// sees that death and this leaves the early window off from then on. One failed run per machine,
+// once — retrying the shard from inside the running build is not an option, because spawning a
+// second Gradle build kills the parent daemon (see ParallelTestOrchestrator.rememberIfNoMonitor).
+// Delete the file when a display comes back; `clean` deletes it too.
 def ldHasDisplay = {
+    if (project.hasProperty('ldTestEarlyWindow')) {
+        return Boolean.parseBoolean(project.property('ldTestEarlyWindow').toString().trim())
+    }
     def forced = System.getenv('LDLIB2_TEST_EARLY_WINDOW')
     if (forced != null && !forced.isBlank()) {
         return Boolean.parseBoolean(forced.trim())
+    }
+    if (new File(project.layout.buildDirectory.get().asFile, 'ldlib2-uitest-no-monitor').isFile()) {
+        return false
     }
     // A session over SSH has no desktop to draw on even though the machine has a monitor attached.
     if (System.getenv('SSH_CLIENT') || System.getenv('SSH_CONNECTION') || System.getenv('SSH_TTY')) {
