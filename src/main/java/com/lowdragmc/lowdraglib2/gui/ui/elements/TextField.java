@@ -440,7 +440,36 @@ public class TextField extends BindableUIElement<String> {
         }
     }
 
+    /**
+     * The keys a focused field <b>owns</b>: the ones it acts on below, and the ones that are about to
+     * type a character into it.
+     *
+     * <p>⚠️ Without this an ancestor's shortcut fires while the author is typing — the space bar both
+     * types a space and starts a timeline playing, Delete both deletes a character and deletes the
+     * selection behind the field, and the arrow keys both move the cursor and step a playhead. Every
+     * consumer would otherwise have to walk the focus chain looking for a text field, which is a
+     * guard each of them can forget.
+     *
+     * <p>What is deliberately <b>not</b> owned, so a container still hears it: chords (Ctrl/Alt —
+     * they are commands and arrive as {@code EXECUTE_COMMAND} anyway), Escape and Tab (dismiss and
+     * traverse), Enter (a field commits on it, and a dialog may take it as OK), and anything else
+     * this switch does not handle, F5 and friends included.
+     */
+    protected boolean ownsKey(UIEvent event) {
+        if (!isEditable() || event.isCtrlDown() || event.isAltDown()) {
+            return false;
+        }
+        return switch (event.keyCode) {
+            case GLFW.GLFW_KEY_BACKSPACE, GLFW.GLFW_KEY_DELETE, GLFW.GLFW_KEY_LEFT, GLFW.GLFW_KEY_RIGHT,
+                 GLFW.GLFW_KEY_HOME, GLFW.GLFW_KEY_END -> true;
+            default -> KeyState.isTextKey(event.keyCode);
+        };
+    }
+
     protected void onKeyDown(UIEvent event) {
+        if (ownsKey(event)) {
+            event.stopPropagation();
+        }
         switch (event.keyCode) {
             case GLFW.GLFW_KEY_BACKSPACE -> {
                 if (isEditable()) {

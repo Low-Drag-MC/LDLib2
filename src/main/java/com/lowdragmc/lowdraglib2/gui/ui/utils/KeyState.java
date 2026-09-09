@@ -135,4 +135,23 @@ public final class KeyState {
     public static boolean isCommandChord() {
         return isCtrlDown() && !isShiftDown() && !isAltDown();
     }
+
+    /**
+     * Whether this key will put a character into a focused text field — space, the ASCII punctuation
+     * and letter block, and the numeric keypad.
+     *
+     * <p>⚠️ It matters at {@code KEY_DOWN} time even though the character itself arrives as
+     * {@code CHAR_TYPED}: an editable field that lets such a key bubble has the character typed
+     * <i>and</i> whatever shortcut an ancestor hangs off that key fired. Space is the one that bites —
+     * it is the play/pause key of every timeline and it appears in no field's own key switch.
+     *
+     * <p>GLFW numbers the printable block contiguously from {@code APOSTROPHE} (39) to
+     * {@code GRAVE_ACCENT} (96) — the digits, the letters, the brackets and the punctuation; space
+     * sits at 32 on its own and the keypad at 320–336.
+     */
+    public static boolean isTextKey(int keyCode) {
+        return keyCode == GLFW.GLFW_KEY_SPACE
+                || (keyCode >= GLFW.GLFW_KEY_APOSTROPHE && keyCode <= GLFW.GLFW_KEY_GRAVE_ACCENT)
+                || (keyCode >= GLFW.GLFW_KEY_KP_0 && keyCode <= GLFW.GLFW_KEY_KP_EQUAL);
+    }
 }
