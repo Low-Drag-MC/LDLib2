@@ -922,8 +922,8 @@ public abstract class Editor extends UIElement implements EditorHost {
      * something worth listing.
      */
     protected void recordRecentProject() {
-        if (currentProjectFile != null) {
-            EditorProjectStore.addRecentProject(currentProjectFile,
+        if (currentProject != null && currentProjectFile != null) {
+            EditorProjectStore.addRecentProject(currentProjectFile, currentProject.getProjectType(),
                     BehaviorSettings.of(this).getRecentProjectCount());
         }
     }

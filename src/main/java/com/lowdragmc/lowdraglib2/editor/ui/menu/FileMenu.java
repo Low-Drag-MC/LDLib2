@@ -84,13 +84,15 @@ public class FileMenu extends MenuTab {
     }
 
     /**
-     * The recently opened projects, as a branch that opens one straight away. Projects whose file is
-     * gone are already left out by the store, and the branch is skipped entirely when none remain.
+     * The recently opened projects, as a branch that opens one straight away. Only the projects this
+     * menu's own types can open are listed — another editor's projects are none of its business.
+     * Projects whose file is gone are already left out by the store, and the branch is skipped entirely
+     * when none remain.
      */
     protected void appendRecentProjects(TreeBuilder.Menu menu) {
         var limit = BehaviorSettings.of(editor).getRecentProjectCount();
         if (limit <= 0) return;
-        var recent = EditorProjectStore.getRecentProjects().stream().limit(limit).toList();
+        var recent = EditorProjectStore.getRecentProjects(projectTypes).stream().limit(limit).toList();
         if (recent.isEmpty()) return;
         menu.branch(Icons.HISTORY, "ldlib.gui.editor.menu.recent_projects", branch -> {
             for (var file : recent) {
@@ -106,7 +108,7 @@ public class FileMenu extends MenuTab {
             }
             branch.crossLine();
             branch.leaf(Icons.REMOVE, "ldlib.gui.editor.menu.recent_projects.clear",
-                    EditorProjectStore::clearRecentProjects);
+                    () -> EditorProjectStore.clearRecentProjects(projectTypes));
         });
     }
 
