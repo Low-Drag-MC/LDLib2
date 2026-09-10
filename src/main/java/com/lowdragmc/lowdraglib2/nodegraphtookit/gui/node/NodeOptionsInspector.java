@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node;
 
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.IFieldValueConfigurable;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.OptionVisibility;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.FieldValueInspector;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.ModelElement;
@@ -13,10 +14,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class NodeOptionsInspector extends ModelElement {
-    public record OptionFieldInfo(String name, TypeHandle type, boolean inspectorOnly, boolean configuratorEnabled) {
+    public record OptionFieldInfo(String name, TypeHandle type, OptionVisibility visibility,
+                                  boolean configuratorEnabled) {
         @Deprecated
         public OptionFieldInfo(String name, TypeHandle type, boolean inspectorOnly) {
-            this(name, type, inspectorOnly, true);
+            this(name, type, inspectorOnly ? OptionVisibility.INSPECTOR_ONLY : OptionVisibility.NODE_AND_INSPECTOR,
+                    true);
         }
     }
     public final NodeModel nodeModel;
@@ -60,7 +63,7 @@ public class NodeOptionsInspector extends ModelElement {
             var currentOption = options.get(i);
             if (!currentOption.getPortModel().getUniqueName().equals(oldOption.name)) return true;
             if (!currentOption.getPortModel().getDataTypeHandle().equals(oldOption.type)) return true;
-            if (currentOption.isShowInInspectorOnly() != oldOption.inspectorOnly) return true;
+            if (currentOption.getVisibility() != oldOption.visibility) return true;
             // a node that toggles which of its options are editable (e.g. a mode option swapping in a
             // different value editor) changes nothing else — without this the UI would never refresh
             if (currentOption.getPortModel().isConfiguratorEnabled() != oldOption.configuratorEnabled) return true;
@@ -80,13 +83,13 @@ public class NodeOptionsInspector extends ModelElement {
             mutableFieldInfos.add(new OptionFieldInfo(
                     portModel.getUniqueName(),
                     portModel.getDataTypeHandle(),
-                    nodeOption.isShowInInspectorOnly(),
+                    nodeOption.getVisibility(),
                     portModel.isConfiguratorEnabled())
             );
             // Keeps its info entry above - shouldRebuildFields compares them positionally, so
             // skipping the entry would desync every option after it - but contributes no row here.
             // NodeElement#onSelectionInspect is what surfaces it instead.
-            if (nodeOption.isShowInInspectorOnly()) continue;
+            if (!nodeOption.getVisibility().showInNode()) continue;
             if (!portModel.isConfiguratorEnabled()) continue; // else it'd render as a label with nothing beside it
             if (portModel instanceof IFieldValueConfigurable configurable) {
                 var inspector = new FieldValueInspector();

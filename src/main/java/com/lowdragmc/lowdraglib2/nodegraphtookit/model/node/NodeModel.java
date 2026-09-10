@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Tooltips;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.Node;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.OptionVisibility;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.*;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireSide;
@@ -538,12 +539,29 @@ public abstract class NodeModel extends InputOutputPortsNodeModel implements INo
     }
 
     /**
+     * @deprecated visibility is no longer a single flag, use
+     *             {@link #addNodeOption(String, TypeHandle, Tooltips, OptionVisibility, int, Consumer, Consumer)}.
+     */
+    @Deprecated(since = "1.22")
+    public NodeOption addNodeOption(String optionId,
+                                    TypeHandle dataType,
+                                    @Nullable Tooltips tooltip,
+                                    boolean showInInspectorOnly,
+                                    int order,
+                                    @Nullable Consumer<Constant> initializationCallback,
+                                    @Nullable Consumer<Object> setterAction) {
+        return addNodeOption(optionId, dataType, tooltip,
+                showInInspectorOnly ? OptionVisibility.INSPECTOR_ONLY : OptionVisibility.NODE_AND_INSPECTOR,
+                order, initializationCallback, setterAction);
+    }
+
+    /**
      * Adds a node option to the node.
      */
     public NodeOption addNodeOption(String optionId,
                                     TypeHandle dataType,
                                     @Nullable Tooltips tooltip,
-                                    boolean showInInspectorOnly,
+                                    OptionVisibility visibility,
                                     int order,
                                     @Nullable Consumer<Constant> initializationCallback,
                                     @Nullable Consumer<Object> setterAction) {
@@ -568,7 +586,7 @@ public abstract class NodeModel extends InputOutputPortsNodeModel implements INo
         // (including with empty) to avoid inheriting a tooltip from a previous definition.
         noConnectorPort.setTooltips(tooltip == null ? Tooltips.empty() : tooltip);
 
-        var nodeOption = new NodeOption(optionId, noConnectorPort, showInInspectorOnly, order);
+        var nodeOption = new NodeOption(optionId, noConnectorPort, visibility, order);
         nodeOptions.add(nodeOption);
         nodeOptionsById.put(optionId, nodeOption);
         return nodeOption;

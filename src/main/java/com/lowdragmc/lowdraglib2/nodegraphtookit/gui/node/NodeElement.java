@@ -203,12 +203,15 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
      * mean anything: an option hidden from the node body has nowhere else to be edited.
      *
      * <p>Every option is listed, not only the inspector-only ones — the inspector is the node's full
-     * configuration, and an option drawn in the node body stays editable from both places.
+     * configuration, and an option drawn in the node body stays editable from both places. The one
+     * exception is an option that asked for {@code IOptionBuilder#showInNodeOnly()}, whose editor
+     * belongs to the body alone.
      */
     protected void buildOptionConfigurators(ConfiguratorGroup group) {
         if (!(getModel() instanceof InputOutputPortsNodeModel ioNode)) return;
         var rows = new ArrayList<Configurator>();
         for (var nodeOption : ioNode.getNodeOptions()) {
+            if (!nodeOption.getVisibility().showInInspector()) continue;
             var portModel = nodeOption.getPortModel();
             // Builds into a scratch group first because the configurators come back unlabelled: in the
             // node body FieldValueInspector draws the name itself, so IFieldConstantConfigurable

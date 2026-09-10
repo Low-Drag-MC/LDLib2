@@ -23,18 +23,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * {@code IOptionBuilder#showInInspectorOnly()} — an option that is edited from the inspector instead
- * of from the node body.
+ * Where a node option's editor is drawn — {@code IOptionBuilder#showInInspectorOnly()} and its
+ * opposite {@code IOptionBuilder#showInNodeOnly()}.
  *
- * <p>The flag shipped with the toolkit and did nothing: the model carried it, but
+ * <p>The inspector-only flag shipped with the toolkit and did nothing: the model carried it, but
  * {@code NodeOptionsInspector} read it only to decide whether to rebuild and drew the row anyway,
- * and {@code NodeElement#onSelectionInspect} put no options in the inspector at all. So the two
- * halves are asserted separately — the option is absent from the node, and present in the inspector
- * — because either one passing alone still leaves the feature broken.</p>
+ * and {@code NodeElement#onSelectionInspect} put no options in the inspector at all. So both halves
+ * of each flag are asserted — where the option must be, and where it must not — because either one
+ * passing alone still leaves the feature broken.</p>
  *
- * <p>The node's own options are checked in the inspector too: an option drawn in the node body stays
- * editable from both places, which is what makes the inspector the node's full configuration rather
- * than an overflow bin for whatever the body refused.</p>
+ * <p>The node's plain options are checked in the inspector too: an option drawn in the node body
+ * stays editable from both places, which is what makes the inspector the node's full configuration
+ * rather than an overflow bin for whatever the body refused.</p>
  */
 @LDLRegisterClient(name = "ngt_inspector_only_option", group = "ldlib2", registry = UIScenario.REGISTRY,
         environment = RegistrationEnvironment.DEV_ONLY)
@@ -42,6 +42,8 @@ public class NgtInspectorOnlyOptionScenario implements UIScenario {
 
     /** The option {@link OptionTestNode} marks {@code showInInspectorOnly()}. */
     private static final String INSPECTOR_ONLY = "inspector_only";
+    /** The option the same node marks {@code showInNodeOnly()}. */
+    private static final String NODE_ONLY = "node_only";
     /** Options the same node leaves on the body, which the inspector must also list. */
     private static final List<String> BODY_OPTIONS = List.of("enum", "string[]", "color", "block", "stack");
 
@@ -70,6 +72,9 @@ public class NgtInspectorOnlyOptionScenario implements UIScenario {
                             ctx.check("the inspector-only option is not drawn in the node",
                                     !names.contains(INSPECTOR_ONLY), "absent",
                                     names.contains(INSPECTOR_ONLY) ? "present" : "absent");
+                            ctx.check("the node-only option is drawn in the node",
+                                    names.contains(NODE_ONLY), "present",
+                                    names.contains(NODE_ONLY) ? "present" : "absent");
                             for (var option : BODY_OPTIONS) {
                                 ctx.check("the node still draws '" + option + "'", names.contains(option));
                             }
@@ -88,6 +93,9 @@ public class NgtInspectorOnlyOptionScenario implements UIScenario {
                             ctx.check("the inspector-only option is editable from the inspector",
                                     labels.contains(INSPECTOR_ONLY), "present",
                                     labels.contains(INSPECTOR_ONLY) ? "present" : "absent");
+                            ctx.check("the node-only option is left out of the inspector",
+                                    !labels.contains(NODE_ONLY), "absent",
+                                    labels.contains(NODE_ONLY) ? "present" : "absent");
                             for (var option : BODY_OPTIONS) {
                                 ctx.check("the inspector also lists '" + option + "'", labels.contains(option));
                             }
