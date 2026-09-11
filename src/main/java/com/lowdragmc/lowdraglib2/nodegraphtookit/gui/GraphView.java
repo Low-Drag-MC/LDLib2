@@ -20,6 +20,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Menu;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Toggle;
+import com.lowdragmc.lowdraglib2.editor.keymap.EditorActions;
+import net.minecraft.resources.ResourceLocation;
+import com.lowdragmc.lowdraglib2.editor.keymap.Keymaps;
 import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
@@ -229,12 +232,12 @@ public class GraphView extends UIElement {
         undoBtn.setText("Undo").setOnClick(event -> historyStack.undo());
         undoBtn.addClass("__node-graph-view_header-undo__");
         Style.defaultPipeline(undoBtn.getLayout(), l -> l.width(30));
-        Style.defaultPipeline(undoBtn.getStyle(), s -> s.tooltips("Ctrl+Z"));
+        bindShortcutTooltip(undoBtn, EditorActions.UNDO, "Ctrl+Z");
         var redoBtn = new Button();
         redoBtn.setText("Redo").setOnClick(event -> historyStack.redo());
         redoBtn.addClass("__node-graph-view_header-redo__");
         Style.defaultPipeline(redoBtn.getLayout(), l -> l.width(30));
-        Style.defaultPipeline(redoBtn.getStyle(), s -> s.tooltips("Ctrl+Y / Ctrl+Shift+Z"));
+        bindShortcutTooltip(redoBtn, EditorActions.REDO, "Ctrl+Y / Ctrl+Shift+Z");
         leftSection.addChildren(undoBtn, redoBtn);
 
         // center section
@@ -1172,6 +1175,21 @@ public class GraphView extends UIElement {
             var localOffset = getContentViewContainer().getLocalMouseNormal(offset.x, offset.y);
             dispatchCommand(new GraphCommands.MoveElementsCommand(new ArrayList<>(movables), localOffset));
         }
+    }
+
+    /**
+     * Shows the chord this button's action currently answers to, resolved when the tooltip is about to
+     * be shown rather than written into the button once.
+     *
+     * <p>Inside an editor that is whatever the user's keymap says, which may not be the default any
+     * more; outside one there is no keymap and the UI's built-in chord still applies, which is what
+     * {@code fallback} is.
+     */
+    protected void bindShortcutTooltip(UIElement button, ResourceLocation actionId, String fallback) {
+        button.addEventListener(UIEvents.MOUSE_ENTER, event -> {
+            var tooltip = Keymaps.shortcutTooltip(button, actionId, fallback);
+            button.style(style -> style.tooltips(tooltip));
+        }, true);
     }
 
     protected void onKeyDown(UIEvent event) {
