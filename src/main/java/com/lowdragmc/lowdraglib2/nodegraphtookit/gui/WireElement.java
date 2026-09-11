@@ -41,6 +41,15 @@ public class WireElement extends GraphElement<WireModel> {
     protected float toOffset = 15;
     protected List<Vector2f> rawPoints = Collections.emptyList();
     protected List<Vector2f> drawPoints = Collections.emptyList();
+    /**
+     * Parent position {@link #rawPoints} was last built against.
+     *
+     * <p>{@link #from} and {@link #to} are parent-local while the polyline is absolute, so the canvas
+     * moving under a wire that has not moved changes neither endpoint. Without this, nothing notices
+     * and the wire keeps drawing at the offset the layer used to have — which is what leaves a freshly
+     * opened graph with wires ending in mid-air until a node is dragged.</p>
+     */
+    protected final Vector2f builtParentOffset = new Vector2f(Float.NaN, Float.NaN);
     /** Reroute connector anchors, in the same parent-local layout space as {@link #from} / {@link #to}. */
     protected List<Vector2f> reroutePositions = Collections.emptyList();
     protected ModelElement lastUsedFromPort;
@@ -290,6 +299,14 @@ public class WireElement extends GraphElement<WireModel> {
 
         if (getParent() == null) return;
 
+        // Checked before the endpoints, because it is the one input to the polyline that neither of
+        // them reflects. See builtParentOffset.
+        var parentOffset = new Vector2f(getParent().getPositionX(), getParent().getPositionY());
+        if (!parentOffset.equals(builtParentOffset)) {
+            dirty = true;
+            builtParentOffset.set(parentOffset);
+        }
+
         var fromPos = getParent().worldToLocalLayoutOffset(endpointWorldPosition(fromPort, true));
         if (!fromPos.equals(from)) {
             dirty = true;
@@ -362,8 +379,7 @@ public class WireElement extends GraphElement<WireModel> {
                     .top(boxTop)
                     .width(boxWidth)
                     .height(boxHeight));
-            var offset = new Vector2f(getParent().getPositionX(), getParent().getPositionY());
-            rawPoints = localPoints.stream().map(point -> point.add(offset, new Vector2f())).toList();
+            rawPoints = localPoints.stream().map(point -> point.add(builtParentOffset, new Vector2f())).toList();
             // Rounding a corner costs 8 extra points each; at reduced LOD the fillet is smaller
             // than a pixel, so the raw polyline is used verbatim.
             drawPoints = effectiveLod() == GraphViewLod.SIMPLIFIED ? rawPoints : roundCorners(rawPoints, 6, 8);
