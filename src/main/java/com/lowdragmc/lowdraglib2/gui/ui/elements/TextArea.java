@@ -777,7 +777,13 @@ public class TextArea extends BindableUIElement<String[]> {
      *
      * <p>Alt chords, Escape, Tab and anything this switch ignores are left to bubble.
      */
-    protected boolean ownsKey(UIEvent event) {
+    @Override
+    public boolean isTextInput() {
+        return isEditable();
+    }
+
+    @Override
+    public boolean ownsKey(UIEvent event) {
         if (!isEditable() || event.isAltDown()) {
             return false;
         }

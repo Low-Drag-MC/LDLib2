@@ -649,3 +649,25 @@ ToggleSelectorConfigurator .__toggle_button__ {
   padding-all: 6;
   gap-all: 5;
 }
+
+// ── keymap ──────────────────────────────────────────────────────────────────
+.__keymap_chord__ {
+  background: sdf(#0d0a11, 5, 1, #16ffffff);
+}
+
+.__keymap_chord__:hovered {
+  background: sdf(#16101d, 5, 1, #2effffff);
+}
+
+.__keymap_chord__.__capturing__ {
+  background: sdf(#0d0a11, 5, 1, #e879f9);
+}
+
+.__keymap_chord-text__ {
+  text-color: #ece6f2;
+  text-shadow: false;
+}
+
+.__keymap_chord__.__conflict__ .__keymap_chord-text__ {
+  text-color: #e5484d;
+}

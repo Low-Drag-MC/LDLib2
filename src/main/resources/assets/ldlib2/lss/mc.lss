@@ -487,3 +487,23 @@ ToggleSelectorConfigurator toggle {
   padding-all: 5;
   gap-all: 4;
 }
+// keymap
+.__keymap_chord__ {
+  background: built-in(ui-mc:RECT_5);
+}
+
+.__keymap_chord__:hovered {
+  background: built-in(ui-mc:RECT_3);
+}
+
+.__keymap_chord__.__capturing__ {
+  background: built-in(ui-mc:RECT_6);
+}
+
+.__keymap_chord-text__ {
+  text-color: #ffffff;
+}
+
+.__keymap_chord__.__conflict__ .__keymap_chord-text__ {
+  text-color: #ff6b6b;
+}

@@ -455,7 +455,13 @@ public class TextField extends BindableUIElement<String> {
      * traverse), Enter (a field commits on it, and a dialog may take it as OK), and anything else
      * this switch does not handle, F5 and friends included.
      */
-    protected boolean ownsKey(UIEvent event) {
+    @Override
+    public boolean isTextInput() {
+        return isEditable();
+    }
+
+    @Override
+    public boolean ownsKey(UIEvent event) {
         if (!isEditable() || event.isCtrlDown() || event.isAltDown()) {
             return false;
         }

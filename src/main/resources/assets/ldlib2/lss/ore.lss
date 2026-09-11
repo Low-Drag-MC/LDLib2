@@ -622,3 +622,23 @@ button.__asset-browser_breadcrumb-segment__ > text {
 button.__asset-browser_breadcrumb-segment__ {
   padding-bottom: 0;
 }
+// keymap
+.__keymap_chord__ {
+  background: built-in(ui-ore:RECT2);
+}
+
+.__keymap_chord__:hovered {
+  background: built-in(ui-ore:BTN_RECT_HOVER);
+}
+
+.__keymap_chord__.__capturing__ {
+  background: built-in(ui-ore:WHITE_BORDER);
+}
+
+.__keymap_chord-text__ {
+  text-color: #ffffff;
+}
+
+.__keymap_chord__.__conflict__ .__keymap_chord-text__ {
+  text-color: #ff6b6b;
+}

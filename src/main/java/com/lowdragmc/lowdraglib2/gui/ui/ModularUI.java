@@ -883,6 +883,19 @@ public class ModularUI {
         return widget;
     }
 
+    /**
+     * Runs one of the {@link CommandEvents} against this UI, exactly as its key chord would.
+     *
+     * <p>For a keymap that resolved the chord itself: the action still has to reach whatever holds the
+     * selection, and that routing lives in one place.
+     *
+     * @return true if anything handled it.
+     */
+    @OnlyIn(Dist.CLIENT)
+    public boolean dispatchCommand(String command) {
+        return getWidget().dispatchCommand(command, lastPressedKeyCode, lastPressedScanCode, lastPressedModifiers);
+    }
+
     @OnlyIn(Dist.CLIENT)
     public List<Rect2i> getGuiExtraAreas() {
         if (extraAreas.isEmpty()) calculateExtraAreas();
@@ -1301,25 +1314,17 @@ public class ModularUI {
                 event.target = focusedElement;
                 UIEventDispatcher.dispatchEvent(event);
                 hasHandler = event.hasHandler;
-                if (command != null) {
-                    event = createExecuteCommandEvent(command, keyCode, scanCode, modifiers);
-                    event.target = focusedElement;
-                    UIEventDispatcher.dispatchEvent(event);
-                    hasHandler |= event.hasHandler;
+                // This table is the fallback for UIs with no keymap of their own. Once a keymap has seen
+                // the key it owns the outcome - whether it ran something, or deliberately has nothing
+                // bound to that chord any more - and this table firing as well would either run the
+                // action twice or keep a rebound shortcut alive on its old key. Same for a key some
+                // element consumed outright.
+                if (command != null && !event.propagationStopped && !event.keymapResolved) {
+                    hasHandler |= dispatchCommand(command, keyCode, scanCode, modifiers);
                 }
                 return hasHandler;
             } else if (command != null){
-                var event = createValidCommandEvent(command, keyCode, scanCode, modifiers);
-                event.target = ui.rootElement;
-                var handled = UIEventDispatcher.dispatchAllChildren(event);
-                hasHandler |= event.hasHandler;
-                if (handled && event.currentElement != null) {
-                    var executeCommandEvent = createExecuteCommandEvent(command, keyCode, scanCode, modifiers);
-                    executeCommandEvent.target = event.currentElement;
-                    UIEventDispatcher.dispatchEvent(executeCommandEvent);
-                    hasHandler |= event.hasHandler;
-                }
-                return hasHandler;
+                return dispatchCommand(command, keyCode, scanCode, modifiers);
             }
             return false;
         }
@@ -1358,6 +1363,38 @@ public class ModularUI {
                 return CommandEvents.DUPLICATE;
             }
             return null;
+        }
+
+        /**
+         * Runs one of the {@link CommandEvents} against the UI, the way a key chord does.
+         *
+         * <p>With something focused the command goes straight to it — a copy belongs to whatever has
+         * the selection, not to whichever ancestor listens for copies. With nothing focused there is no
+         * such answer, so the UI is asked who wants it and the first taker gets it.
+         *
+         * <p>Public because a keymap resolves its own chords and then needs this exact routing to reach
+         * the same handlers a built-in chord would have.
+         *
+         * @return true if anything handled the command.
+         */
+        public boolean dispatchCommand(String command, int keyCode, int scanCode, int modifiers) {
+            if (focusedElement != null) {
+                var event = createExecuteCommandEvent(command, keyCode, scanCode, modifiers);
+                event.target = focusedElement;
+                UIEventDispatcher.dispatchEvent(event);
+                return event.hasHandler;
+            }
+            var event = createValidCommandEvent(command, keyCode, scanCode, modifiers);
+            event.target = ui.rootElement;
+            var handled = UIEventDispatcher.dispatchAllChildren(event);
+            var hasHandler = event.hasHandler;
+            if (handled && event.currentElement != null) {
+                var executeCommandEvent = createExecuteCommandEvent(command, keyCode, scanCode, modifiers);
+                executeCommandEvent.target = event.currentElement;
+                UIEventDispatcher.dispatchEvent(executeCommandEvent);
+                hasHandler |= executeCommandEvent.hasHandler;
+            }
+            return hasHandler;
         }
 
         protected UIEvent createValidCommandEvent(String command, int keyCode, int scanCode, int modifiers) {

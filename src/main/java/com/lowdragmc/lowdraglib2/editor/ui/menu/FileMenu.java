@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.editor.ui.menu;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.editor.keymap.EditorActions;
 import com.lowdragmc.lowdraglib2.editor.project.ProjectType;
 import com.lowdragmc.lowdraglib2.editor.settings.BehaviorSettings;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
@@ -39,14 +40,20 @@ public class FileMenu extends MenuTab {
             newMenu.crossLine();
             newMenuCreators.forEach(creator -> creator.accept(this, newMenu));
         });
-        menu.leaf(Icons.OPEN_FILE, "ldlib.gui.editor.menu.open", this::onOpenProject);
+        var keymap = editor.getKeymap();
+        menu.leaf(Icons.OPEN_FILE,
+                keymap.menuLabel(EditorActions.OPEN_PROJECT, "ldlib.gui.editor.menu.open"),
+                this::onOpenProject);
         appendRecentProjects(menu);
         menu.crossLine();
         if (editor.getCurrentProject() != null) {
             if (editor.getCurrentProjectFile() != null) {
-                menu.leaf(Icons.SAVE, "ldlib.gui.editor.tips.save.menu", () -> editor.saveProject(null));
+                // the chord comes from the keymap rather than the translation: it is the user's to change
+                menu.leaf(Icons.SAVE, keymap.menuLabel(EditorActions.SAVE, "ldlib.gui.editor.tips.save"),
+                        () -> editor.saveProject(null));
             }
-            menu.leaf(Icons.SAVE, "ldlib.gui.editor.tips.save_as.menu", () -> editor.saveAsProject(null));
+            menu.leaf(Icons.SAVE, keymap.menuLabel(EditorActions.SAVE_AS, "ldlib.gui.editor.tips.save_as"),
+                    () -> editor.saveAsProject(null));
         }
         menu.crossLine();
         return menu;
@@ -56,9 +63,10 @@ public class FileMenu extends MenuTab {
     protected TreeBuilder.Menu createMenu() {
         var menu = super.createMenu();
         menu.crossLine();
-        menu.leaf("editor.settings.menu", editor::openSettingsPanel);
+        menu.leaf(editor.getKeymap().menuLabel(EditorActions.SETTINGS, "editor.settings"),
+                editor::openSettingsPanel);
         menu.crossLine();
-        menu.leaf("editor.exit", editor::exit);
+        menu.leaf(editor.getKeymap().menuLabel(EditorActions.CLOSE_EDITOR, "editor.exit"), editor::exit);
         return menu;
     }
 
@@ -147,7 +155,8 @@ public class FileMenu extends MenuTab {
         return true;
     }
 
-    protected void onOpenProject() {
+    /** Opens the load-project dialog, as the {@code open} entry of this menu does. */
+    public void onOpenProject() {
         var suffixes = projectTypes.stream().map(ProjectType::getSuffix).toArray(String[]::new);
         Dialog.showFileDialog("ldlib.gui.editor.tips.load_project", LDLib2.getAssetsDir(), true,
                 Dialog.suffixFilter(suffixes), r -> {

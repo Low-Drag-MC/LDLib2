@@ -31,6 +31,17 @@ public interface Settings extends IConfigurable {
     void onApply(Editor editor);
 
     /**
+     * Called when this instance becomes an editor's settings — on registration, and again whenever the
+     * settings are read back from disk, which replaces the instance.
+     *
+     * <p>For settings whose page needs the editor to draw itself at all: {@link #onApply} is only
+     * reached when something changed, so an instance restored by Cancel would otherwise never learn
+     * which editor it belongs to.
+     */
+    default void onLoaded(Editor editor) {
+    }
+
+    /**
      * Retrieves the display name for this settings registry.
      */
     default Component getDisplayName() {
