@@ -253,7 +253,22 @@ public class EditorWindow extends UIElement {
         }
     }
 
+    /**
+     * Whether this window can be minimized at all.
+     *
+     * <p>It needs an id: minimized windows are parked in a map keyed by it and re-opened through
+     * {@link #open}, so a window without one would close with no way back. That is why the title bar
+     * only shows the minimize button when there is an id.
+     */
+    public boolean canMinimize() {
+        return windowID != null;
+    }
+
     public void minimizeWindow() {
+        // Guarded rather than left to the caller: the button is hidden for an id-less window, but a
+        // keymap action or a script has no way to know that, and the map this parks the window in is a
+        // ConcurrentHashMap - a null key there is an NPE from somewhere far away from the cause.
+        if (!canMinimize()) return;
         if (EditorWindow.MINIMIZED_WINDOWS.containsKey(windowID)) return;
         EditorWindow.MINIMIZED_WINDOWS.put(windowID, this);
         closeScreen();
