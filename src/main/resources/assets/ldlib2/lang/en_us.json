@@ -558,6 +558,8 @@
   "debugger.always_on_top.0": "keep this window above the others",
   "graph.commands.create_variable": "Create Variable",
   "graph.commands.create_group": "Create Group",
+  "graph.commands.get_variable": "Get",
+  "graph.commands.set_variable": "Set",
   "graph.constant": "Constant",
   "graph.inspector": "Inspector",
   "graph.preview": "Preview",

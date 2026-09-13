@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortDirection;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.PortType;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.editor.IGraphReferenceResolver;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.IGraphCommand;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.itemlibrary.NodeModelLibraryItem;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandleHelpers;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandles;
@@ -873,6 +874,20 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
         return variable.getDataTypeHandle().equals(TypeHandles.EXECUTION_FLOW)
                 || variable.getModifiers() != ModifierFlags.WRITE
                 || graphModel.findReferencesInGraph(VariableNodeModel.class, variable).isEmpty();
+    }
+
+    /**
+     * The item that spawns a node <b>writing</b> this variable, or null for a graph that has no such
+     * node — the default, and what keeps dropping a variable on the canvas meaning "read it".
+     *
+     * <p>When it is non-null the drop offers the choice instead, which is the choice Unreal offers
+     * for the same gesture. It answers with a library item rather than a node so that either arm goes
+     * through the ordinary create-node command and is undoable like any other node creation; a graph
+     * that answers here also decides how the spawned node remembers which variable it writes.
+     */
+    @Nullable
+    public NodeModelLibraryItem createVariableSetterItem(VariableDeclarationModelBase variable) {
+        return null;
     }
 
     protected Class<? extends VariableNodeModel> getVariableNodeType() {
