@@ -26,6 +26,7 @@ public final class ScenarioOptions {
     private boolean captureOnFailure = true;
     private boolean captureEveryStep = false;
     private boolean requiresWorld = true;
+    private boolean settleAfterAssertions = true;
     private int guiScale = -1;
     private final Set<String> tags = new LinkedHashSet<>();
 
@@ -68,6 +69,31 @@ public final class ScenarioOptions {
     public ScenarioOptions requiresWorld(boolean requiresWorld) {
         this.requiresWorld = requiresWorld;
         return this;
+    }
+
+    /**
+     * Whether a step that only asserts idles afterwards like every other step. On by default.
+     *
+     * <p>A settle runs <b>after</b> the step it is attached to, and {@link ScenarioBuilder#settleMs}
+     * hands it to the <b>next</b> step added — so {@code .step(act).settleMs(900).check(..)} asserts
+     * one frame after {@code act} and sleeps the 900 ms once the answer is already in. The wait a
+     * scenario like that meant to write is {@code .settleMs(900).step(act).check(..)}, or a
+     * {@code waitUntil}; what it actually wrote only delays whatever comes next.
+     *
+     * <p>Turning this off drops the idle after every assertion. <b>It cannot turn a red green:</b>
+     * each assertion keeps the timing it already had, because that timing comes from the settle of
+     * the step before it. All that arrives sooner is the following action — so a scenario that was
+     * quietly relying on the pause goes red and says where, rather than passing for the wrong
+     * reason. A scenario that genuinely wants time to pass between two assertions asks for it with
+     * an idle step of its own, which reads as what it is.
+     */
+    public ScenarioOptions settleAfterAssertions(boolean settle) {
+        this.settleAfterAssertions = settle;
+        return this;
+    }
+
+    public boolean settleAfterAssertions() {
+        return settleAfterAssertions;
     }
 
     /**
