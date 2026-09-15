@@ -360,13 +360,48 @@ ResourceView tab:host {
   pressed-background: sdf(#aaa, 3) scale(0.9);
 }
 
-ResourceView .__tab-view_tab_header_container__ {
-  background: sdf(#1e1f22,  3 0 0 3, 1, #7f8084);
+/* One rounded shape cut in two: the strip rounds the corners facing away from the content, the
+   content rounds the ones facing away from the strip, and each is nudged a pixel into the other so
+   the two borders read as one seam. Which corners those are turns with the placement — and mind the
+   radius order, which is bottom-left, bottom-right, top-right, top-left. */
+.__resource-view_placement-left__ .__tab-view_tab_header_container__ {
+  background: sdf(#1e1f22, 3 0 0 3, 1, #7f8084);
   transform: translate(1, 0);
 }
 
-ResourceView .__tab-view_tab_content_container__ {
-  background: sdf(#2c2c34 , 0 5 5 0 , 1, #7f8084);
+.__resource-view_placement-left__ .__tab-view_tab_content_container__ {
+  background: sdf(#2c2c34, 0 5 5 0, 1, #7f8084);
+}
+
+.__resource-view_placement-right__ .__tab-view_tab_header_container__ {
+  background: sdf(#1e1f22, 0 3 3 0, 1, #7f8084);
+  transform: translate(-1, 0);
+}
+
+.__resource-view_placement-right__ .__tab-view_tab_content_container__ {
+  background: sdf(#2c2c34, 5 0 0 5, 1, #7f8084);
+}
+
+.__resource-view_placement-top__ .__tab-view_tab_header_container__ {
+  background: sdf(#1e1f22, 0 0 3 3, 1, #7f8084);
+  transform: translate(0, 1);
+}
+
+.__resource-view_placement-top__ .__tab-view_tab_content_container__ {
+  background: sdf(#2c2c34, 5 5 0 0, 1, #7f8084);
+}
+
+.__resource-view_placement-bottom__ .__tab-view_tab_header_container__ {
+  background: sdf(#1e1f22, 3 3 0 0, 1, #7f8084);
+  transform: translate(0, -1);
+}
+
+.__resource-view_placement-bottom__ .__tab-view_tab_content_container__ {
+  background: sdf(#2c2c34, 0 0 5 5, 1, #7f8084);
+}
+
+.__resource-view_tab-placeholder__ {
+  background: sdf(#aaa, 3);
 }
 
 .__ui-editor-view_header__ {

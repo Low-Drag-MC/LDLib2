@@ -308,14 +308,37 @@ ResourceView tab:host {
 
 ResourceView .__tab-view_tab_header_container__ {
   background: empty;
+  /* The thickness the strip takes until the user drags it wider: one 16 pixel tab, with no margins
+     and nothing across it. It cannot size itself to its tabs — a wrapping strip with no width to wrap
+     inside puts every tab on one line — and ResourceView keeps a floor of one tab under whatever is
+     set here, so a taller tab is never cut off. */
+  width: 16;
+  height: 16;
+}
+
+/* Breathing room along the line the tabs run in, and the two pixel nudge that lines the strip up
+   with the frame it sits against. Both turn with the strip. */
+.__resource-view_placement-left__ .__tab-view_tab_header_container__,
+.__resource-view_placement-right__ .__tab-view_tab_header_container__ {
   padding-vertical: 4;
   padding-horizontal: 0;
   transform: translateY(-2);
 }
 
+.__resource-view_placement-top__ .__tab-view_tab_header_container__,
+.__resource-view_placement-bottom__ .__tab-view_tab_header_container__ {
+  padding-vertical: 0;
+  padding-horizontal: 4;
+  transform: translateX(-2);
+}
+
 ResourceView .__tab-view_tab_content_container__ {
   padding-vertical: 0;
   background: empty;
+}
+
+.__resource-view_tab-placeholder__ {
+  background: built-in(ui-mc:RECT_THIN);
 }
 
 .__ui-editor-view__ graph-view {
