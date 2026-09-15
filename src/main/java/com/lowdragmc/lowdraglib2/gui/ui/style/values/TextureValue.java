@@ -4,6 +4,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalNotification;
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.editor.resource.TexturesResource;
 import com.lowdragmc.lowdraglib2.gui.texture.*;
@@ -18,9 +19,12 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 public class TextureValue extends StyleValue<IGuiTexture> {
+    private static final Set<String> REPORTED = ConcurrentHashMap.newKeySet();
     private static final LoadingCache<String, IGuiTexture> CACHE = CacheBuilder.newBuilder()
             .expireAfterAccess(10, TimeUnit.SECONDS)
             .removalListener((RemovalNotification<String, IGuiTexture> notification) -> {
@@ -40,6 +44,9 @@ public class TextureValue extends StyleValue<IGuiTexture> {
                     try {
                         return Optional.ofNullable(parseTexture(key)).orElse(IGuiTexture.MISSING_TEXTURE);
                     } catch (Throwable e) {
+                        if (REPORTED.add(key)) {
+                            LDLib2.LOGGER.warn("Failed to parse texture value '{}': {}", key, e.getMessage());
+                        }
                         return IGuiTexture.MISSING_TEXTURE;
                     }
                 }
@@ -88,6 +95,7 @@ public class TextureValue extends StyleValue<IGuiTexture> {
 
         Transform2D transform = new Transform2D();
         Integer color = null;
+        SpriteTexture.WrapMode wrapMode = null;
 
         // parse modification (e.g., scale/translate/rotation/color ...)
         for (int k = 1; k < calls.size(); k++) {
@@ -129,6 +137,11 @@ public class TextureValue extends StyleValue<IGuiTexture> {
                         color = ColorUtils.color(a, r, g, b);
                     }
                 }
+                case "wrap", "wrap-mode" -> {
+                    if (args.length == 1) {
+                        wrapMode = EnumValue.parse(SpriteTexture.WrapMode.class, args[0]);
+                    }
+                }
                 default -> {
                 }
             }
@@ -138,6 +151,13 @@ public class TextureValue extends StyleValue<IGuiTexture> {
         if (color != null) {
             texture = texture.copy().setColor(color);
             isCopied = true;
+        }
+        if (wrapMode != null && texture instanceof SpriteTexture) {
+            if (!isCopied) {
+                texture = texture.copy();
+                isCopied = true;
+            }
+            ((SpriteTexture) texture).setWrapMode(wrapMode);
         }
         if (!transform.isIdentity()) {
             if (texture instanceof TransformTexture transformTexture) {
@@ -193,6 +213,9 @@ public class TextureValue extends StyleValue<IGuiTexture> {
                     if (args.length > 9) {
                         sprite.setColor(ColorUtils.parseColor(args[9]));
                     }
+                    if (args.length > 10) {
+                        sprite.setWrapMode(EnumValue.parse(SpriteTexture.WrapMode.class, args[10]));
+                    }
                     return sprite;
                 }
             }
@@ -205,12 +228,12 @@ public class TextureValue extends StyleValue<IGuiTexture> {
                 }
             }
             case "rect" -> {
-                // rect(#FF00FF, 0 0 0 0, 4, #FFFFFF)
+                // rect(#FF00FF, 0 0 0 0, 4, #FFFFFF, 8)
                 if (args.length > 0) {
                     var rect = new RectTexture();
                     rect.setColor(ColorUtils.parseColor(args[0]));
                     if (args.length > 1) {
-                        var par = args[1].split(" ");
+                        var par = args[1].split("\\s+");
                         if (par.length == 1) {
                             rect.setRadius(new Vector4f(Float.parseFloat(par[0])));
                         } else if (par.length == 4) {
@@ -224,6 +247,9 @@ public class TextureValue extends StyleValue<IGuiTexture> {
                     if (args.length > 3) {
                         rect.setBorderColor(ColorUtils.parseColor(args[3]));
                     }
+                    if (args.length > 4) {
+                        rect.setCornerSegments(Integer.parseInt(args[4]));
+                    }
                     return rect;
                 }
             }
@@ -233,7 +259,7 @@ public class TextureValue extends StyleValue<IGuiTexture> {
                     var sdf = new SDFRectTexture();
                     sdf.setColor(ColorUtils.parseColor(args[0]));
                     if (args.length > 1) {
-                        var par = args[1].split(" ");
+                        var par = args[1].split("\\s+");
                         if (par.length == 1) {
                             sdf.setRadius(new Vector4f(Float.parseFloat(par[0])));
                         } else if (par.length == 4) {
