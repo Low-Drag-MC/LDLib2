@@ -50,10 +50,11 @@ public class ItemStackAccessor extends TypesAccessor<ItemStack> {
         var group = new ConfiguratorGroup(name);
         var slot = new ItemSlot();
         slot.layout(layout -> layout.width(14).height(14));
-        slot.bindDataSource(SupplierDataSource.of(supplier));
+        slot.bindDataSource(SupplierDataSource.of(() -> safeStack(supplier)));
         Consumer<ItemStack> updater = itemStack -> {
-            slot.setItem(itemStack);
-            consumer.accept(itemStack);
+            var safe = itemStack == null ? ItemStack.EMPTY : itemStack;
+            slot.setItem(safe);
+            consumer.accept(safe);
         };
         var inventoryButton = new Button();
         inventoryButton.style(style -> style.tooltips("ldlib.gui.editor.configurator.select_item.tooltip"));
@@ -62,9 +63,9 @@ public class ItemStackAccessor extends TypesAccessor<ItemStack> {
         group.inlineContainer.getLayout().flexDirection(FlexDirection.ROW);
         group.inlineContainer.addChildren(slot, new UIElement().layout(l -> l.flex(1)), inventoryButton);
         var defaultValue = defaultValue(field);
-        var componentsConfigurator = new DataComponentConfigurator(supplier.get().getItem().components(),
-                () -> supplier.get().getComponentsPatch(),
-                patch -> updater.accept(new ItemStack(supplier.get().getItem().builtInRegistryHolder(), supplier.get().getCount(), patch)), forceUpdate);
+        var componentsConfigurator = new DataComponentConfigurator(safeStack(supplier).getItem().components(),
+                () -> safeStack(supplier).getComponentsPatch(),
+                patch -> updater.accept(new ItemStack(safeStack(supplier).getItem().builtInRegistryHolder(), safeStack(supplier).getCount(), patch)), forceUpdate);
         inventoryButton.setOnClick(event -> {
             // open player inventory to select item
             if (!LDLib2.isClient()) return;
@@ -115,16 +116,16 @@ public class ItemStackAccessor extends TypesAccessor<ItemStack> {
             event.stopImmediatePropagation();
         });
         var itemConfigurator = new RegistrySearchComponent.Item("configurator.item",
-                () -> supplier.get().getItem(),
+                () -> safeStack(supplier).getItem(),
                 item -> {
                     updater.accept(new ItemStack(item.builtInRegistryHolder(),
-                            Math.max(supplier.get().getCount(), 1),
-                            supplier.get().getComponentsPatch()));
+                            Math.max(safeStack(supplier).getCount(), 1),
+                            safeStack(supplier).getComponentsPatch()));
                     componentsConfigurator.setPrototype(item.components());
                 },
                 defaultValue.getItem(), forceUpdate);
         var countConfigurator = new NumberConfigurator("ldlib.gui.editor.configurator.count",
-                () -> supplier.get().getCount(), count -> updater.accept(supplier.get().copyWithCount(count.intValue())),
+                () -> safeStack(supplier).getCount(), count -> updater.accept(safeStack(supplier).copyWithCount(count.intValue())),
                 defaultValue.getCount(), forceUpdate)
                 .setType(ConfigNumber.Type.INTEGER)
                 .setRange(0, Integer.MAX_VALUE)
@@ -152,6 +153,18 @@ public class ItemStackAccessor extends TypesAccessor<ItemStack> {
             });
         }
         return group;
+    }
+
+    /**
+     * A field typed {@link ItemStack} may legitimately hold null — a mod that means "nothing chosen yet"
+     * cannot say so with {@link ItemStack#EMPTY}, because naming that constant from a field initialiser
+     * loads the item registry while the owner is being constructed. Read every value through here, the
+     * way {@link BlockStateAccessor} reads its state, so that a null owner field draws an empty slot
+     * instead of throwing while the configurator is built.
+     */
+    private static ItemStack safeStack(Supplier<ItemStack> supplier) {
+        var stack = supplier.get();
+        return stack == null ? ItemStack.EMPTY : stack;
     }
 
     private static ItemSlot createPickerSlot(ItemStack stack, ItemSlot[] selected, ItemStack[] selectedStack) {
