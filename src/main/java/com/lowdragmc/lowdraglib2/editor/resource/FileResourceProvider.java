@@ -20,16 +20,12 @@ import net.minecraft.Util;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
-import org.appliedenergistics.yoga.YogaGutter;
-import org.appliedenergistics.yoga.YogaOverflow;
 
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 public final class FileResourceProvider<T> extends ResourceProvider<T>  {
     public static final ResourceProviderType TYPE = new ResourceProviderType() {
@@ -74,6 +70,16 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
     public final File resourceLocation;
     public final String resourceSuffix;
     private final Map<File, Long> resourcesLastModified = new LinkedHashMap<>();
+    /**
+     * Every file in the folder, in scan order — <b>what exists</b>, as opposed to
+     * {@link #contents}, which is what has been read.
+     *
+     * <p>An immutable snapshot replaced wholesale by the scan, so a reader never walks a map that
+     * is being written to.
+     */
+    private volatile Map<IResourcePath, File> known = Map.of();
+    /** {@link #known}'s order, which an immutable map does not promise. */
+    private volatile List<IResourcePath> order = List.of();
     @Getter @Setter
     private String name;
 
@@ -134,7 +140,91 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
     }
 
     @Override
+    public boolean hasResource(IResourcePath path) {
+        return supportResourcePath(path) && known.containsKey(path);
+    }
+
+    /**
+     * The resource at {@code path}, <b>read the first time it is asked for</b> and remembered after.
+     *
+     * <p>A file that will not decode is dropped from the listing rather than re-read on every call —
+     * which is what the eager scan did by only recording a file whose read succeeded. The next scan
+     * picks it up again if it changes on disk.
+     */
+    @Override
+    public T getResource(IResourcePath path) {
+        if (!supportResourcePath(path)) {
+            return null;
+        }
+        var loaded = contents.get(path);
+        if (loaded != null) {
+            return loaded;
+        }
+        var file = known.get(path);
+        if (file == null) {
+            return null;
+        }
+        var read = readResourceFromFile(file);
+        if (read == null) {
+            forget(path, file);
+            return null;
+        }
+        contents.put(path, read);
+        return read;
+    }
+
+    /** Every file in the folder, <b>reading one only if its value is taken</b>. */
+    @Override
+    public @Nonnull Iterator<Map.Entry<IResourcePath, T>> iterator() {
+        var paths = order.iterator();
+        return new Iterator<>() {
+            @Override
+            public boolean hasNext() {
+                return paths.hasNext();
+            }
+
+            @Override
+            public Map.Entry<IResourcePath, T> next() {
+                var path = paths.next();
+                return new Map.Entry<>() {
+                    @Override
+                    public IResourcePath getKey() {
+                        return path;
+                    }
+
+                    @Override
+                    public T getValue() {
+                        return getResource(path);
+                    }
+
+                    @Override
+                    public T setValue(T value) {
+                        throw new UnsupportedOperationException();
+                    }
+                };
+            }
+        };
+    }
+
+    private void forget(IResourcePath path, File file) {
+        var paths = new LinkedHashMap<>(known);
+        if (paths.remove(path) == null) {
+            return;
+        }
+        var ordered = new java.util.ArrayList<>(order);
+        ordered.remove(path);
+        known = Map.copyOf(paths);
+        order = java.util.List.copyOf(ordered);
+        resourcesLastModified.remove(file);
+        contents.remove(path);
+    }
+
+    @Override
     public boolean addResource(IResourcePath path, T content) {
+        // A resource type is free to assume the thing it is asked to write exists — most reach
+        // straight into a field of it — so null is refused here rather than handed on as a crash
+        // inside somebody's serializeResource.
+        if (content == null) return false;
         if (supportResourcePath(path) && path instanceof FilePath filePath) {
             var file = filePath.file;
             try {
@@ -145,6 +235,8 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
                     }
                     NbtIo.write(nbt, file.toPath());
                     resourcesLastModified.put(file, file.lastModified());
+                    // it exists from now on, without waiting for the next scan to notice the file
+                    remember(path, file);
                     return super.addResource(path, content);
                 } else {
                     LDLib2.LOGGER.error("Failed to serialize resource {} to file {}", content, file);
@@ -159,11 +251,29 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
     @Override
     public T removeResource(IResourcePath path) {
         if (supportResourcePath(path) && path instanceof FilePath filePath && filePath.file.isFile()) {
+            // read before the file goes: the base class returns what was cached, and with a lazy
+            // provider nothing may have read it yet — a caller relying on the removed value (an
+            // undo entry) would otherwise get null for a resource that was perfectly good
+            var removed = getResource(path);
             if (filePath.file.delete()) {
-                return super.removeResource(path);
+                forget(path, filePath.file);
+                super.removeResource(path);
+                return removed;
             }
         }
         return null;
+    }
+
+    private void remember(IResourcePath path, File file) {
+        if (known.containsKey(path)) {
+            return;
+        }
+        var paths = new LinkedHashMap<>(known);
+        paths.put(path, file);
+        var ordered = new java.util.ArrayList<>(order);
+        ordered.add(path);
+        known = Map.copyOf(paths);
+        order = java.util.List.copyOf(ordered);
     }
 
     @Override
@@ -211,31 +321,26 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
         try {
             var changed = false;
             var found = new HashSet<File>();
+            // built here and published together at the end — see the note on `known`
+            var paths = new LinkedHashMap<IResourcePath, File>();
+            var ordered = new ArrayList<IResourcePath>();
             var files = resourceLocation.listFiles((file, name) -> name.endsWith(resourceSuffix));
             if (files != null) {
                 for (var file : files) {
                     var path = new FilePath(file);
-                    if (contents.containsKey(path)) {
-                        if (!resourcesLastModified.containsKey(file) || resourcesLastModified.get(file) != file.lastModified()) {
-                            var res = readResourceFromFile(file);
-                            if (res != null) {
-                                contents.put(path, res);
-                                resourcesLastModified.put(file, file.lastModified());
-                                changed = true;
-                                found.add(file);
-                            }
-                        } else {
-                            found.add(file);
-                        }
-                    } else {
-                        var resource = readResourceFromFile(file);
-                        if (resource != null) {
-                            contents.put(path, resource);
-                            resourcesLastModified.put(file, file.lastModified());
-                            changed = true;
-                            found.add(file);
-                        }
+                    found.add(file);
+                    paths.put(path, file);
+                    ordered.add(path);
+                    var seen = resourcesLastModified.get(file);
+                    var stamp = file.lastModified();
+                    if (seen != null && seen == stamp) {
+                        continue;
                     }
+                    // new, or rewritten on disk. ⚠️ NOTHING is read here: whatever was decoded from
+                    // the old bytes is dropped, and the next getResource pays for the new ones.
+                    contents.remove(path);
+                    resourcesLastModified.put(file, stamp);
+                    changed = true;
                 }
             }
             if (found.size() != resourcesLastModified.size()) {
@@ -247,6 +352,8 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
                 });
                 changed = true;
             }
+            known = Map.copyOf(paths);
+            order = List.copyOf(ordered);
             if (changed) {
                 resourceInstance.clearCache();
             }

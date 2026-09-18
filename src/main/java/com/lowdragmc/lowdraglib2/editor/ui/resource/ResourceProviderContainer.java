@@ -844,6 +844,7 @@ public class ResourceProviderContainer<T> extends UIElement {
     @Nullable
     public IResourcePath renameResourceTo(IResourcePath key, String newName) {
         if (key == null || newName == null || newName.isBlank() || !canRename.test(key)) return null;
+        if (!resourceProvider.hasResource(key)) return null;
         var trimmed = newName.trim();
         var newPath = resourceProvider.createSubPath(trimmed);
         if (newPath.equals(key)) return key;
@@ -857,19 +858,21 @@ public class ResourceProviderContainer<T> extends UIElement {
     }
 
     protected void onRename(IResourcePath oldPath, IResourcePath newPath) {
-        editor.historyView.pushHistory(Component.translatable("editor.rename_resource"), EditAction.of(() -> {
-            resourceProvider.addResource(newPath, resourceProvider.getResource(oldPath));
-            resourceProvider.removeResource(oldPath);
-            removeResource(oldPath, false);
-            appendResourceUI(newPath);
-            selectResource(newPath);
-        }, () -> {
-            resourceProvider.addResource(oldPath, resourceProvider.getResource(newPath));
-            resourceProvider.removeResource(newPath);
-            removeResource(newPath, false);
-            appendResourceUI(oldPath);
-            selectResource(oldPath);
-        }));
+        editor.historyView.pushHistory(Component.translatable("editor.rename_resource"), EditAction.of(
+                () -> moveResource(oldPath, newPath),
+                () -> moveResource(newPath, oldPath)));
+    }
+
+    /**
+     * Stores the resource at {@code from} under {@code to} and drops the old one, its cell with it.
+     */
+    private void moveResource(IResourcePath from, IResourcePath to) {
+        var value = resourceProvider.getResource(from);
+        if (value == null) return;
+        resourceProvider.addResource(to, value);
+        removeResourceInternal(from);
+        appendResourceUI(to);
+        selectResource(to);
     }
 
 }
