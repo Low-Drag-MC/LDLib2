@@ -118,6 +118,9 @@ public final class ScenarioRun {
     }
 
     public long effectiveSettleMs(Step step) {
+        if (step.kind == StepKind.ASSERT && !options.settleAfterAssertions()) {
+            return 0;
+        }
         return step.settleMs >= 0 ? step.settleMs : options.defaultSettleMs();
     }
 

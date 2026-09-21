@@ -69,10 +69,14 @@ public class CustomGraphModelImpl extends GraphModel {
         return graph.getLibrarySupportNodes();
     }
 
+    /**
+     * Defaults to the authorable subset of {@link #getSupportTypes()}, not the whole thing — a
+     * wire-only type has no literal to drag in. See {@link Graph#getLibrarySupportTypes()}.
+     */
     @Override
     public List<TypeHandle> getLibrarySupportTypes() {
         var types = graph.getLibrarySupportTypes();
-        return types == null ? getSupportTypes() : types;
+        return types == null ? TypeHandleHelpers.authorableTypes(getSupportTypes()) : types;
     }
 
     @Override

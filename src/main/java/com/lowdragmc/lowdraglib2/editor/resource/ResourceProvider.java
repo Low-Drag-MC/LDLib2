@@ -35,6 +35,7 @@ public abstract class ResourceProvider<T> implements IResourceProvider<T> {
     } 
 
     public boolean addResource(IResourcePath path, T resource) {
+        if (resource == null) return false;
         if (!supportResourcePath(path)) return false;
         if (contents.put(path, resource) != null) {
             resourceInstance.clearCache();

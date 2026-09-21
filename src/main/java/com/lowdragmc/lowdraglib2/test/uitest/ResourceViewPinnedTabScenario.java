@@ -47,6 +47,9 @@ public class ResourceViewPinnedTabScenario implements UIScenario {
                     editor(ctx).loadProject(new TestProject(), null);
                 })
                 .waitUntil("the resource tabs are up", ctx -> !resourceView(ctx).getResourceTabs().isEmpty())
+                // The strip's arrangement is saved per editor and outlives the run, so a scenario that
+                // left it on top would otherwise decide what this one is looking at.
+                .step("start from a strip nobody has touched", ctx -> resourceView(ctx).resetTabLayout())
 
                 .group("the browser tab is out of the scroller and above it", g -> g
                         .check("its header is not a scroller child", ctx -> {

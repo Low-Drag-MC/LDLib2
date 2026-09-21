@@ -77,7 +77,26 @@ public interface IProject extends ValueIOSerializable {
     }
 
     /**
-     * Fired when the project is opened
+     * Fired when the project is opened.
+     *
+     * <p>The place to add whatever this project brings to the editor, shortcuts included:
+     * <pre>{@code
+     * public void onLoad(Editor editor) {
+     *     actions = editor.getKeymap().registerAll(
+     *             EditorAction.builder(MyIds.RUN)
+     *                     .category(KeymapCategories.GENERAL)
+     *                     .defaultChord(KeyChord.key(GLFW.GLFW_KEY_F5))
+     *                     .when(KeyContext.focusWithin(MyView.class))
+     *                     .onAction(this::run)
+     *                     .build());
+     * }
+     *
+     * public void onClosed(Editor editor) {
+     *     actions.unsubscribe();   // the editor outlives the project
+     * }
+     * }</pre>
+     *
+     * Anything registered shows up in the keymap settings and can be rebound like a built-in action.
      */
     default void onLoad(Editor editor) {
     }

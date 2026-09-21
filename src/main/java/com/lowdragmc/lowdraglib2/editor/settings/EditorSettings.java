@@ -45,6 +45,7 @@ public class EditorSettings implements IPersistedSerializable {
     public <T extends Settings> void registerSettings(T settings, Codec<T> codec) {
         this.settings.put(settings.getId(), settings);
         this.codecs.put(settings.getId(), codec);
+        settings.onLoaded(editor);
     }
 
     public void unregisterSettings(Identifier id) {
@@ -62,7 +63,8 @@ public class EditorSettings implements IPersistedSerializable {
         var settingsTree = createSettingsTree().build();
         var treeList = new TreeList<>(settingsTree, true);
 
-        splitView.layout(layout -> layout.flexAuto().height(200).widthPercent(100));
+        // fills whatever the dialog is, rather than a fixed 200: the dialog can be resized now
+        splitView.layout(layout -> layout.flex(1).widthPercent(100));
         inspector.layout(layout -> layout.widthPercent(100).heightPercent(100).marginLeft(2));
         treeList.layout(layout -> layout.widthPercent(100).heightPercent(100));
         treeList.setOnSelectedChanged(selected -> {
@@ -160,7 +162,10 @@ public class EditorSettings implements IPersistedSerializable {
             if (json.has(id.toString())) {
                 var data = json.get(id.toString());
                 codec.parse(Platform.getFrozenRegistry().createSerializationContext(JsonOps.INSTANCE), data)
-                        .ifSuccess(settings -> this.settings.put(id, settings))
+                        .ifSuccess(settings -> {
+                            this.settings.put(id, settings);
+                            settings.onLoaded(editor);
+                        })
                         .ifError(e -> LDLib2.LOGGER.error("Failed to load settings for {}, Error {}", id, e));
             }
         }

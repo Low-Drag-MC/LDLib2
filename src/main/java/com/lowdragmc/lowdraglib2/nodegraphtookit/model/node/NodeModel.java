@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Tooltips;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.Node;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.OptionVisibility;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.*;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireSide;
@@ -28,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -537,12 +539,29 @@ public abstract class NodeModel extends InputOutputPortsNodeModel implements INo
     }
 
     /**
+     * @deprecated visibility is no longer a single flag, use
+     *             {@link #addNodeOption(String, TypeHandle, Tooltips, OptionVisibility, int, Consumer, Consumer)}.
+     */
+    @Deprecated(since = "1.22")
+    public NodeOption addNodeOption(String optionId,
+                                    TypeHandle dataType,
+                                    @Nullable Tooltips tooltip,
+                                    boolean showInInspectorOnly,
+                                    int order,
+                                    @Nullable Consumer<Constant> initializationCallback,
+                                    @Nullable Consumer<Object> setterAction) {
+        return addNodeOption(optionId, dataType, tooltip,
+                showInInspectorOnly ? OptionVisibility.INSPECTOR_ONLY : OptionVisibility.NODE_AND_INSPECTOR,
+                order, initializationCallback, setterAction);
+    }
+
+    /**
      * Adds a node option to the node.
      */
     public NodeOption addNodeOption(String optionId,
                                     TypeHandle dataType,
                                     @Nullable Tooltips tooltip,
-                                    boolean showInInspectorOnly,
+                                    OptionVisibility visibility,
                                     int order,
                                     @Nullable Consumer<Constant> initializationCallback,
                                     @Nullable Consumer<Object> setterAction) {
@@ -567,7 +586,7 @@ public abstract class NodeModel extends InputOutputPortsNodeModel implements INo
         // (including with empty) to avoid inheriting a tooltip from a previous definition.
         noConnectorPort.setTooltips(tooltip == null ? Tooltips.empty() : tooltip);
 
-        var nodeOption = new NodeOption(optionId, noConnectorPort, showInInspectorOnly, order);
+        var nodeOption = new NodeOption(optionId, noConnectorPort, visibility, order);
         nodeOptions.add(nodeOption);
         nodeOptionsById.put(optionId, nodeOption);
         return nodeOption;
@@ -608,11 +627,32 @@ public abstract class NodeModel extends InputOutputPortsNodeModel implements INo
                     graphModel.getCurrentGraphChangeDescription().addChangedModel(this, ChangeHint.UNSPECIFIED);
                 }
             } else {
-                // reuse
-                existingConstant.setOwner(inputPort);
-                existingConstant.clearListeners();
+                // reuse — under the port's CURRENT type handle. A constant read back from a file
+                // carries the handle it was saved under, while the port's comes from the node's code
+                // and may have moved on since (a plain string pin that became a typed asset
+                // reference). The pin's control is drawn from the constant's handle, not the port's,
+                // so every such pin on a loaded graph showed the old control while a freshly added
+                // node showed the new one, holding the very same value. When the two handles differ
+                // and a constant of the port's handle can hold the value, the constant follows the port.
+                // Handles that came from the same declaration compare equal (the id string round-trips
+                // through the tag untouched), so a port whose declaration has NOT changed never enters
+                // this branch and keeps the exact constant object it had before.
+                Constant kept = existingConstant;
+                if (newConstant != null && !Objects.equals(existingConstant.getTypeHandle(), inputPort.dataTypeHandle)) {
+                    Object value = existingConstant.getValue();
+                    if (value == null || newConstant.trySetValue(value)) {
+                        // Phase 1 may already have flagged the saved value as undecodable; the graph
+                        // reads that flag after load to disconnect the port, so it travels with the value.
+                        newConstant.setDeserializeFailed(existingConstant.isDeserializeFailed());
+                        kept = newConstant;
+                        inputConstantsById.put(id, kept);
+                        graphModel.getCurrentGraphChangeDescription().addChangedModel(this, ChangeHint.UNSPECIFIED);
+                    }
+                }
+                kept.setOwner(inputPort);
+                kept.clearListeners();
                 if (setterAction != null) {
-                    existingConstant.addListener(setterAction);
+                    kept.addListener(setterAction);
                 }
                 // Phase 2 of constant deserialize: re-apply the builder's initializationCallback
                 // (installs customCodec, serializationEnabled, defaultValue and resets value to
@@ -632,12 +672,12 @@ public abstract class NodeModel extends InputOutputPortsNodeModel implements INo
                         pendingConstantTags.remove(id);
                     } else {
                         try {
-                            initializationCallback.accept(existingConstant);
+                            initializationCallback.accept(kept);
                         } catch (Exception e) {
                             LDLib2.LOGGER.error("Builder initializationCallback threw for port {} of node {}", id, this.getClass().getSimpleName(), e);
                         }
                         var pendingTag = pendingConstantTags.remove(id);
-                        TypeConstant.deserializeIntoConstant(existingConstant, pendingTag);
+                        TypeConstant.deserializeIntoConstant(kept, pendingTag);
                     }
                 }
                 return;

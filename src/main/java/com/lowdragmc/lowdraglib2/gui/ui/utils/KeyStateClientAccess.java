@@ -46,6 +46,18 @@ final class KeyStateClientAccess {
         return Minecraft.getInstance().hasAltDown();
     }
 
+    /**
+     * Which modifier bit an event has to carry for the platform's shortcut modifier — the same
+     * constant vanilla's {@code InputWithModifiers#hasControlDownWithQuirk} reads. Control on a
+     * dedicated server, where no shortcut is ever resolved anyway.
+     */
+    static int shortcutModifierBit() {
+        if (!LDLib2.isClient()) {
+            return GLFW.GLFW_MOD_CONTROL;
+        }
+        return InputQuirks.EDIT_SHORTCUT_KEY_MODIFIER;
+    }
+
     static boolean isCtrlOrCmdDown() {
         if (!LDLib2.isClient()) {
             return false;

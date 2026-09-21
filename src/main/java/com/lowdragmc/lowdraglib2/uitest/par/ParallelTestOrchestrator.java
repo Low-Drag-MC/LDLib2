@@ -149,12 +149,75 @@ public final class ParallelTestOrchestrator {
             if (timedOut) {
                 log("GLOBAL TIMEOUT - killing the survivors");
                 ChildBuilds.killAll(processes);
+            } else {
+                rememberIfNoMonitor(outDir, processes);
             }
             exitCode = mergeAndReport(outDir, weightsFile, selection, jobs, timedOut, runStartedMs);
         } finally {
             ChildBuilds.killAll(processes);
         }
         System.exit(exitCode);
+    }
+
+    /**
+     * What FML prints when its early window cannot find a screen to open on. The launch dies there,
+     * before a single line of test code runs, so this is the only trace it leaves.
+     */
+    private static final String NO_MONITOR = "Failed to locate a primary monitor";
+    /**
+     * Written into the project's build directory the first time a launch dies for want of a monitor;
+     * {@code ldHasDisplay} in {@code ldlib2-uitest.gradle} leaves the early window off while it is
+     * there. Deleting it (or a {@code clean}) asks the question again.
+     */
+    public static final String NO_MONITOR_MARKER = "ldlib2-uitest-no-monitor";
+
+    /**
+     * Leaves a note for the next run when a shard died because FML's early window had no monitor to
+     * open on — {@link #NO_MONITOR_MARKER} beside the shard output, which {@code ldHasDisplay} reads.
+     *
+     * <p>⚠️ <b>Remembered rather than retried, and rather than predicted.</b> The harness keeps the
+     * early window on when it believes the machine has a display, so the client gets the same GL
+     * context a player's does; it decides that from AWT, and AWT is wrong exactly when it matters —
+     * on a disconnected remote desktop it reports one screen while GLFW finds no monitor at all. Only
+     * GLFW knows, and the first thing it does with the answer is abort the process.
+     *
+     * <p>⚠️⚠️ Retrying the shard from here does not work, and it is worth writing down why:
+     * <b>spawning a second child Gradle build while this one is running kills the parent daemon</b>.
+     * The build ends with "Gradle build daemon disappeared unexpectedly" the moment the second
+     * {@code gradlew} starts — measured twice, once passing the setting through the child's
+     * environment and once through a project property on its command line, and the parent daemon's
+     * own log simply stops mid-line. So the second attempt is the author's next run: it costs one
+     * failed run per machine, once, instead of an environment variable remembered forever.
+     */
+    private static void rememberIfNoMonitor(Path outDir, LinkedHashMap<String, Process> processes) {
+        for (var entry : processes.entrySet()) {
+            var log = outDir.resolve(entry.getKey()).resolve("gradle.log");
+            if (entry.getValue().exitValue() == 0 || !mentions(log, NO_MONITOR)) {
+                continue;
+            }
+            var marker = outDir.getParent().resolve(NO_MONITOR_MARKER);
+            try {
+                Files.writeString(marker, "FML's early window found no monitor on "
+                        + java.time.LocalDateTime.now() + System.lineSeparator());
+                log("'" + entry.getKey() + "' could not open FML's early window: this machine has no "
+                        + "monitor GLFW can see. Remembered in " + marker + " — run again and the "
+                        + "early window will be left off. Delete that file once a display is back.");
+            } catch (IOException e) {
+                log("'" + entry.getKey() + "' could not open FML's early window, and the note for "
+                        + "the next run could not be written (" + e + "). Re-run with "
+                        + "LDLIB2_TEST_EARLY_WINDOW=false.");
+            }
+            return;   // one note is enough; the machine is the same for every shard
+        }
+    }
+
+    /** Whether {@code log} contains {@code marker}; false for a log that cannot be read. */
+    private static boolean mentions(Path log, String marker) {
+        try (var lines = Files.lines(log, java.nio.charset.StandardCharsets.UTF_8)) {
+            return lines.anyMatch(line -> line.contains(marker));
+        } catch (IOException | java.io.UncheckedIOException e) {
+            return false;
+        }
     }
 
     private static String shardName(int shard) {

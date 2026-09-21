@@ -386,7 +386,12 @@ public class SearchComponent<T> extends BindableUIElement<T> {
             var candidateUI = candidateUIProvider.apply(value);
             this.preview.addChild(candidateUI);
         }
-        textField.setText(value == null ? "" : searchUI.resultText(value));
+        // ⚠️ Only notifies when the CALLER is notifying. The text field's value listener is what
+        // drives the search, and SearchEngine drops the results of any search that is no longer the
+        // current one — so a display sync that notified (a passive update from the value's supplier,
+        // of which there is one per tick when a configurator forces updates) silently superseded
+        // whatever search was in flight and left the dropdown holding that one entry, or nothing.
+        textField.setText(value == null ? "" : searchUI.resultText(value), notify);
 
         // notify
         if (notify) {
@@ -462,6 +467,21 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         }
     }
 
+    /**
+     * Opens the dropdown <b>on the whole catalogue</b>, with the chosen value's text selected.
+     *
+     * <p>⚠️ The search is driven by the text field's value listener and by nothing else, so a box
+     * that has just been opened has never searched: its dialog holds whatever the last query left,
+     * which — because {@link #hide} writes the chosen value back into the field, and that write
+     * searches — is the single entry matching the value already chosen. On a fresh box it is nothing
+     * at all. Either way what the author sees is an empty or one-line dropdown on a list of
+     * hundreds, and the only way out is to type a character; that is what was reported.
+     *
+     * <p>Nothing here touches the <b>value</b>, and the text is left as it was: selecting it is what
+     * makes the first keystroke replace the old name instead of appending to it, which is how every
+     * other type-to-filter box behaves. Closing without picking anything restores the text
+     * ({@link #hide}), so opening a box to see what there is costs the author nothing.
+     */
     public void show() {
         if (this.isOpen()) {
             return;
@@ -475,6 +495,8 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         }
         preview.setDisplay(false);
         textField.setDisplay(true);
+        textField.setSelection(0, textField.getValue().length());
+        onSearchWordChanged("");
     }
 
     public void hide() {

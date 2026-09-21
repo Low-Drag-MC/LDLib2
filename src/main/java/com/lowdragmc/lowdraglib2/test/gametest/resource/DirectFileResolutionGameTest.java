@@ -186,12 +186,19 @@ public final class DirectFileResolutionGameTest {
         try {
             var file = new File(directory, "sample.color.nbt");
             writeResource(file, "color", 111);
-            // the provider loads 111 into memory when it is constructed
             provider = new FileResourceProvider<>(instance, directory);
             instance.addBuiltinProvider(provider);
             instance.clearCache();
+            // the provider reads on demand, so take the value once to put 111 in its own contents
+            if (!Objects.equals(instance.getResource(new FilePath(file)), 111)) {
+                helper.fail("The provider did not load the initial value");
+                return;
+            }
             // change the file behind the provider's back, without letting it rescan
             writeResource(file, "color", 222);
+            // only the instance level cache goes: the provider keeps what it read, so 222 can surface
+            // only if the direct file tier runs ahead of it
+            instance.clearCache();
             var value = instance.getResource(new FilePath(file));
             if (!Objects.equals(value, 111)) {
                 helper.fail("Expected the provider's value 111, got " + value);

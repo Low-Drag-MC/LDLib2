@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.nodegraphtookit.api.graph;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.INode;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.Node;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandleHelpers;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.IVariable;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.variable.VariableKind;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.IGraphCommand;
@@ -34,6 +35,11 @@ public abstract class Graph implements IGraph {
 
     /**
      * Retrieves a list of supported types for the graph.
+     *
+     * <p>Overriding this <em>replaces</em> auto-detection rather than extending it. To keep
+     * detection as the floor and only add to it, union it in yourself:
+     * {@code new HashSet<>(CustomGraphModelImpl.detectSupportedTypes(graphModel))} plus whatever the
+     * pickers should offer before any node carries it.</p>
      *
      * @return a {@link List} of {@link TypeHandle} objects representing the supported types,
      * or {@code null} if no specific types are explicitly supported, it will be automatically detected by nodes ports.
@@ -114,11 +120,24 @@ public abstract class Graph implements IGraph {
     /**
      * Retrieves type handles shown as constant nodes in the item library.
      *
+     * <h2>Why the default is no longer {@link #getSupportTypes()}</h2>
+     * A type belongs in the type pickers as soon as a port can carry it, but it only belongs here if
+     * a literal of it can be <em>authored</em> — and that is a property of the type, not of the node
+     * set. Chaining the two offered a draggable constant for every wire-only type in the graph
+     * ({@code Level}, {@code Entity}, …): the node spawns, renders an empty inspector row and emits
+     * null. Offering a node that cannot do anything is worse than not offering it.
+     *
+     * <p>The default now filters the supported set through
+     * {@link TypeHandleHelpers#canAuthorLiteral}. Override to make a cut that predicate cannot
+     * express — a width-polymorphic vector handle whose constant has no meaningful width, a type
+     * with a default but no configurator widget, or a graph that would rather the user reached for a
+     * dedicated node than a bare constant.</p>
+     *
      * @return a {@link List} of type handles available through the library UI,
-     * or {@code null} to use the graph's supported types.
+     * or {@code null} to use the authorable subset of the graph's supported types.
      */
     public @Nullable List<TypeHandle> getLibrarySupportTypes() {
-        return getSupportTypes();
+        return null;
     }
 
     /**

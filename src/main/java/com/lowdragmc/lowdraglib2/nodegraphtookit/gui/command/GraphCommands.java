@@ -36,6 +36,16 @@ public final class GraphCommands {
         }
     }
 
+    /**
+     * Moves every element by the same offset.
+     *
+     * <p>The offset is applied verbatim — snapping is the caller's business, and
+     * {@link com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphView#resolveDragOffset} has already
+     * done it for a drag. It used to be re-derived here, per element: that pulled each one towards
+     * its own nearest grid line and so changed the distances <em>between</em> them, which turned
+     * dragging a tidy row of nodes into un-tidying it, and let a drop land somewhere the drag
+     * preview never showed.</p>
+     */
     public static class MoveElementsCommand extends UndoableGraphCommand {
         public static final Component NAME = Component.translatable("graph.commands.move");
         private final List<Model> movables;
@@ -50,9 +60,7 @@ public final class GraphCommands {
         public void execute() {
             for (var model : movables) {
                 if (model instanceof IMovable movable) {
-                    var newPos = localOffset.add(movable.getPosition(), new Vector2f());
-                    if (view != null) newPos = view.snapPosition(newPos);
-                    movable.setPosition(newPos);
+                    movable.setPosition(localOffset.add(movable.getPosition(), new Vector2f()));
                 }
             }
         }

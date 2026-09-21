@@ -23,7 +23,7 @@ public class OptionBuilder implements IOptionBuilder<OptionBuilder> {
     protected Component displayName;
     protected TypeHandle dataType;
     protected @Nullable Tooltips tooltip;
-    protected boolean showInInspectorOnly;
+    protected OptionVisibility visibility = OptionVisibility.NODE_AND_INSPECTOR;
     protected int order;
     protected Object defaultValue;
     @Nullable
@@ -47,7 +47,7 @@ public class OptionBuilder implements IOptionBuilder<OptionBuilder> {
         displayName = null;
         dataType = null;
         tooltip = null;
-        showInInspectorOnly = false;
+        visibility = OptionVisibility.NODE_AND_INSPECTOR;
         order = 0;
         defaultValue = null;
         customTypeConfigurable = null;
@@ -85,7 +85,13 @@ public class OptionBuilder implements IOptionBuilder<OptionBuilder> {
 
     @Override
     public OptionBuilder showInInspectorOnly() {
-        this.showInInspectorOnly = true;
+        this.visibility = OptionVisibility.INSPECTOR_ONLY;
+        return this;
+    }
+
+    @Override
+    public OptionBuilder showInNodeOnly() {
+        this.visibility = OptionVisibility.NODE_ONLY;
         return this;
     }
 
@@ -153,7 +159,7 @@ public class OptionBuilder implements IOptionBuilder<OptionBuilder> {
         // correct constant — Phase 2's reset-and-redecode would be redundant work.
         Consumer<Constant> initializationCallback = buildInitializationCallback();
         var nodeModel = context.getScope().nodeModel;
-        var result = nodeModel.addNodeOption(optionId, dataType, tooltip, showInInspectorOnly, order, initializationCallback, __ -> {
+        var result = nodeModel.addNodeOption(optionId, dataType, tooltip, visibility, order, initializationCallback, __ -> {
             // schedule defines while the option value changed
             if (!nodeModel.isCurrentlyDefiningNode()) {
                 nodeModel.defineNode();

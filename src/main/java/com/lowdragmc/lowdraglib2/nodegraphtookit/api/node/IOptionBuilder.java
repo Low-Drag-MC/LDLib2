@@ -57,9 +57,23 @@ public interface IOptionBuilder<T extends IOptionBuilder<T>> {
     /**
      * Configures the option to be shown only in the inspector, not in the node header.
      *
+     * <p>The two {@code ...Only} methods are the same setting, so the last one called wins. To show the
+     * option in neither place, see {@link #withoutConfigurator()}.</p>
+     *
      * @return the current builder instance for method chaining
      */
     T showInInspectorOnly();
+
+    /**
+     * Configures the option to be shown only in the node header, not in the inspector of the selected
+     * node — where it would otherwise be repeated, since the inspector lists every option by default.
+     *
+     * <p>The two {@code ...Only} methods are the same setting, so the last one called wins. To show the
+     * option in neither place, see {@link #withoutConfigurator()}.</p>
+     *
+     * @return the current builder instance for method chaining
+     */
+    T showInNodeOnly();
 
     /**
      * Overrides the configurator used to edit this option's value. By default the configurator

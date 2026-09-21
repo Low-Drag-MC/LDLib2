@@ -63,6 +63,13 @@ button:host {
   height: 16;
 }
 
+// Icons authored white would vanish on this theme's light buttons, so a button that carries one says
+// so with __white_icon__ and gets it tinted to the same ink as its label.
+button:host > .__white_icon__,
+button.__white_icon__ > .__icon__ {
+  color: #2b2622;
+}
+
 button:host .__button_text__ {
   text-color: #2b2622;
   text-shadow: false;
@@ -468,13 +475,48 @@ ResourceView tab:host:selected {
   pressed-background: sdf(#fffcf7, 5) scale(0.92);
 }
 
-ResourceView .__tab-view_tab_header_container__ {
+/* One rounded shape cut in two: the strip rounds the corners facing away from the content, the
+   content rounds the ones facing away from the strip, and each is nudged a pixel into the other so
+   the two borders read as one seam. Which corners those are turns with the placement — and mind the
+   radius order, which is top-left, top-right, bottom-right, bottom-left. */
+.__resource-view_placement-left__ .__tab-view_tab_header_container__ {
   background: sdf(#e8e0d5, 7 0 0 7, 1, #1f000000);
   transform: translate(1, 0);
 }
 
-ResourceView .__tab-view_tab_content_container__ {
+.__resource-view_placement-left__ .__tab-view_tab_content_container__ {
   background: sdf(#f5efe6, 0 7 7 0, 1, #1f000000);
+}
+
+.__resource-view_placement-right__ .__tab-view_tab_header_container__ {
+  background: sdf(#e8e0d5, 0 7 7 0, 1, #1f000000);
+  transform: translate(-1, 0);
+}
+
+.__resource-view_placement-right__ .__tab-view_tab_content_container__ {
+  background: sdf(#f5efe6, 7 0 0 7, 1, #1f000000);
+}
+
+.__resource-view_placement-top__ .__tab-view_tab_header_container__ {
+  background: sdf(#e8e0d5, 7 7 0 0, 1, #1f000000);
+  transform: translate(0, 1);
+}
+
+.__resource-view_placement-top__ .__tab-view_tab_content_container__ {
+  background: sdf(#f5efe6, 0 0 7 7, 1, #1f000000);
+}
+
+.__resource-view_placement-bottom__ .__tab-view_tab_header_container__ {
+  background: sdf(#e8e0d5, 0 0 7 7, 1, #1f000000);
+  transform: translate(0, -1);
+}
+
+.__resource-view_placement-bottom__ .__tab-view_tab_content_container__ {
+  background: sdf(#f5efe6, 7 7 0 0, 1, #1f000000);
+}
+
+.__resource-view_tab-placeholder__ {
+  background: sdf(#2ec2703f, 5);
 }
 
 .__ui-editor-view_header__ {
@@ -652,4 +694,26 @@ ToggleSelectorConfigurator .__toggle_button__ {
   background: sdf(#faf5efe6, 7, 1, #1f000000);
   padding-all: 6;
   gap-all: 5;
+}
+
+// ── keymap ──────────────────────────────────────────────────────────────────
+.__keymap_chord__ {
+  background: sdf(#fffcf7, 5, 1, #1f000000);
+}
+
+.__keymap_chord__:hovered {
+  background: sdf(#f6efe6, 5, 1, #33000000);
+}
+
+.__keymap_chord__.__capturing__ {
+  background: sdf(#fffcf7, 5, 1, #c2703f);
+}
+
+.__keymap_chord-text__ {
+  text-color: #2b2622;
+  text-shadow: false;
+}
+
+.__keymap_chord__.__conflict__ .__keymap_chord-text__ {
+  text-color: #c1121f;
 }

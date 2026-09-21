@@ -335,27 +335,51 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
             event.target = modularUI.focusedElement;
             UIEventDispatcher.dispatchEvent(event);
             var hasHandler = event.hasHandler;
-            if (command != null) {
-                event = createExecuteCommandEvent(command, keyCode, scanCode, modifiers);
-                event.target = modularUI.focusedElement;
-                UIEventDispatcher.dispatchEvent(event);
-                hasHandler |= event.hasHandler;
+            // This table is the fallback for UIs with no keymap of their own. Once a keymap has seen
+            // the key it owns the outcome - whether it ran something, or deliberately has nothing
+            // bound to that chord any more - and this table firing as well would either run the
+            // action twice or keep a rebound shortcut alive on its old key. Same for a key some
+            // element consumed outright.
+            if (command != null && !event.propagationStopped && !event.keymapResolved) {
+                hasHandler |= dispatchCommand(command, keyCode, scanCode, modifiers);
             }
             return hasHandler;
         } else if (command != null) {
-            var event = createValidCommandEvent(command, keyCode, scanCode, modifiers);
-            event.target = modularUI.ui.rootElement;
-            var handled = UIEventDispatcher.dispatchAllChildren(event);
-            var hasHandler = event.hasHandler;
-            if (handled && event.currentElement != null) {
-                var executeCommandEvent = createExecuteCommandEvent(command, keyCode, scanCode, modifiers);
-                executeCommandEvent.target = event.currentElement;
-                UIEventDispatcher.dispatchEvent(executeCommandEvent);
-                hasHandler |= event.hasHandler;
-            }
-            return hasHandler;
+            return dispatchCommand(command, keyCode, scanCode, modifiers);
         }
         return false;
+    }
+
+    /**
+     * Runs one of the {@link CommandEvents} against the UI, the way a key chord does.
+     *
+     * <p>With something focused the command goes straight to it — a copy belongs to whatever has
+     * the selection, not to whichever ancestor listens for copies. With nothing focused there is no
+     * such answer, so the UI is asked who wants it and the first taker gets it.
+     *
+     * <p>Public because a keymap resolves its own chords and then needs this exact routing to reach
+     * the same handlers a built-in chord would have.
+     *
+     * @return true if anything handled the command.
+     */
+    public boolean dispatchCommand(String command, int keyCode, int scanCode, int modifiers) {
+        if (modularUI.focusedElement != null) {
+            var event = createExecuteCommandEvent(command, keyCode, scanCode, modifiers);
+            event.target = modularUI.focusedElement;
+            UIEventDispatcher.dispatchEvent(event);
+            return event.hasHandler;
+        }
+        var event = createValidCommandEvent(command, keyCode, scanCode, modifiers);
+        event.target = modularUI.ui.rootElement;
+        var handled = UIEventDispatcher.dispatchAllChildren(event);
+        var hasHandler = event.hasHandler;
+        if (handled && event.currentElement != null) {
+            var executeCommandEvent = createExecuteCommandEvent(command, keyCode, scanCode, modifiers);
+            executeCommandEvent.target = event.currentElement;
+            UIEventDispatcher.dispatchEvent(executeCommandEvent);
+            hasHandler |= executeCommandEvent.hasHandler;
+        }
+        return hasHandler;
     }
 
     @Nullable

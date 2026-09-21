@@ -55,6 +55,10 @@ public final class ChildBuilds {
                 .directory(projectDir.toFile())
                 .redirectErrorStream(true)
                 .redirectOutput(logFile.toFile());
+        // ⚠️ Nothing is ADDED to the environment here, on purpose. A Gradle client whose environment
+        // differs from the running daemon's makes Gradle stop that daemon — including the one an
+        // orchestrator is itself running in, which then dies with "Gradle build daemon disappeared
+        // unexpectedly". Anything a child must be told goes on its command line as a property.
         builder.environment().remove("GRADLE_USER_HOME");
         return builder.start();
     }
