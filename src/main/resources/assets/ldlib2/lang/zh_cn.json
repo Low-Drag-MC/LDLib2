@@ -456,7 +456,7 @@
   "view.close.info": "关闭视图",
   "view.save_before_close.info": "关闭前保存",
   "TextStyle": "文本样式",
-  "GraphView.": "适应视图",
+  "GraphView.fit": "适应视图",
   "UIEditor.selection_box": "显示/隐藏 选择框",
   "UIEditor.simulation": "预览模拟",
   "builtin_styles": "内置样式",
