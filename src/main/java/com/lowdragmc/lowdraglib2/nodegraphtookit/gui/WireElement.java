@@ -20,6 +20,8 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.AbstractNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.PortNodeModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.IGhostWireModel;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.wire.WireRouteStyle;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.wire.WireRouter;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireModel;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.wire.WireReroutePointModel;
 import dev.vfyjxf.taffy.style.TaffyPosition;
@@ -65,6 +67,12 @@ public class WireElement extends GraphElement<WireModel> {
      * altogether — so geometry has to be forced stale whenever the level moves.
      */
     protected GraphViewLod lastLod = GraphViewLod.FULL;
+    /**
+     * Route style the current geometry was built for. Tracked per wire rather than pushed from the
+     * view so a wire built after the setting changed — a fresh element, a ghost wire — picks the
+     * new style up on its own.
+     */
+    protected WireRouteStyle lastStyle = WireRouteStyle.DEFAULT;
     protected boolean geometryDirty = true;
 
     public WireElement(WireModel wireModel) {
@@ -348,18 +356,14 @@ public class WireElement extends GraphElement<WireModel> {
             this.reroutePositions = anchors;
         }
 
+        var style = resolveRouteStyle();
+        if (style != lastStyle) {
+            dirty = true;
+            this.lastStyle = style;
+        }
+
         if (dirty) {
-            // Control points leave the port along its orientation: horizontal ports exit sideways
-            // (±x), vertical ports exit up/down (±y). The output endpoint (`from`) pushes in the
-            // exit direction (+), the input endpoint (`to`) pulls back from its approach side (-).
-            // Reroute anchors sit between the two control points, in wire order, and are passed through
-            // verbatim — the corner rounding below turns them into smooth bends.
-            var localPoints = new ArrayList<Vector2f>(4 + anchors.size());
-            localPoints.add(from);
-            localPoints.add(controlPoint(fromPort, from, fromOffset, true));
-            localPoints.addAll(anchors);
-            localPoints.add(controlPoint(toPort, to, toOffset, false));
-            localPoints.add(to);
+            var localPoints = buildRoutePoints(style, fromPort, toPort, anchors);
 
             float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
             float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
@@ -381,10 +385,99 @@ public class WireElement extends GraphElement<WireModel> {
                     .height(boxHeight));
             rawPoints = localPoints.stream().map(point -> point.add(builtParentOffset, new Vector2f())).toList();
             // Rounding a corner costs 8 extra points each; at reduced LOD the fillet is smaller
-            // than a pixel, so the raw polyline is used verbatim.
-            drawPoints = effectiveLod() == GraphViewLod.SIMPLIFIED ? rawPoints : roundCorners(rawPoints, 6, 8);
+            // than a pixel, so the raw polyline is used verbatim. A style with no radius — a curve
+            // is already smooth — skips it too.
+            drawPoints = effectiveLod() == GraphViewLod.SIMPLIFIED || style.getCornerRadius() <= 0
+                    ? rawPoints
+                    : roundCorners(rawPoints, style.getCornerRadius(), style.getCornerSegments());
             geometryDirty = false;
         }
+    }
+
+    /**
+     * The polyline this wire currently occupies, in absolute layout coordinates — the same points
+     * hit-testing runs against, before the cosmetic corner fillet. Empty until the wire has been
+     * drawn once.
+     */
+    public List<Vector2f> getRoutePoints() {
+        return Collections.unmodifiableList(rawPoints);
+    }
+
+    /** The route style in force, falling back to the original look outside a graph view. */
+    protected WireRouteStyle resolveRouteStyle() {
+        var graphView = getGraphView();
+        return graphView == null ? WireRouteStyle.DEFAULT : graphView.getWireRouteStyle();
+    }
+
+    /**
+     * The wire's polyline in parent-local layout space, before corner rounding.
+     *
+     * <p>Control points leave the port along its orientation: horizontal ports exit sideways (±x),
+     * vertical ports exit up/down (±y). The output endpoint ({@link #from}) pushes in the exit
+     * direction, the input endpoint ({@link #to}) pulls back from its approach side.</p>
+     *
+     * <p>Reroute anchors arrive in pairs — a point is drawn as a little node, so the wire lands on
+     * its input dot and leaves from its output dot. The gap <em>inside</em> a pair is that node's
+     * own body and is always drawn straight; only the gaps <em>between</em> consecutive points get
+     * routed, which is what keeps a rerouted wire honouring every style.</p>
+     */
+    protected List<Vector2f> buildRoutePoints(WireRouteStyle style,
+                                              @org.jetbrains.annotations.Nullable PortModel fromPort,
+                                              @org.jetbrains.annotations.Nullable PortModel toPort,
+                                              List<Vector2f> anchors) {
+        if (style == WireRouteStyle.STRAIGHT) {
+            var points = new ArrayList<Vector2f>(2 + anchors.size());
+            points.add(new Vector2f(from));
+            points.addAll(anchors);
+            points.add(new Vector2f(to));
+            return points;
+        }
+
+        var fromControl = controlPoint(fromPort, from, fromOffset, true);
+        var toControl = controlPoint(toPort, to, toOffset, false);
+        if (!style.isRouted()) {
+            var points = new ArrayList<Vector2f>(4 + anchors.size());
+            points.add(new Vector2f(from));
+            points.add(fromControl);
+            points.addAll(anchors);
+            points.add(toControl);
+            points.add(new Vector2f(to));
+            return points;
+        }
+
+        // Waypoint chain: [fromControl, (reroute in, reroute out)…, toControl]. Index parity tells
+        // the two kinds of gap apart — an odd index is a point's own in→out body.
+        var chain = new ArrayList<Vector2f>(2 + anchors.size());
+        var axes = new ArrayList<WireRouter.Axis>(2 + anchors.size());
+        chain.add(fromControl);
+        axes.add(axisOf(fromPort));
+        for (var anchor : anchors) {
+            chain.add(anchor);
+            axes.add(WireRouter.Axis.HORIZONTAL);
+        }
+        chain.add(toControl);
+        axes.add(axisOf(toPort));
+
+        var minJog = Math.max(WireRouter.DEFAULT_MIN_JOG, Math.max(fromOffset, toOffset));
+        var points = new ArrayList<Vector2f>();
+        points.add(new Vector2f(from));
+        points.add(new Vector2f(chain.getFirst()));
+        for (var i = 0; i + 1 < chain.size(); i++) {
+            if (i % 2 == 1) {
+                points.add(new Vector2f(chain.get(i + 1)));
+                continue;
+            }
+            var segment = WireRouter.route(chain.get(i), axes.get(i), chain.get(i + 1), axes.get(i + 1), style, minJog);
+            for (var j = 1; j < segment.size(); j++) points.add(segment.get(j));
+        }
+        points.add(new Vector2f(to));
+        return points;
+    }
+
+    private static WireRouter.Axis axisOf(@org.jetbrains.annotations.Nullable PortModel port) {
+        return port != null && port.getOrientation() == PortOrientation.Vertical
+                ? WireRouter.Axis.VERTICAL
+                : WireRouter.Axis.HORIZONTAL;
     }
 
     /**
