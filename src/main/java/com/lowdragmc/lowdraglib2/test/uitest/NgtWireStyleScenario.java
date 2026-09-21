@@ -193,6 +193,40 @@ public class NgtWireStyleScenario implements UIScenario {
                         })
                         .screenshot("07_octilinear_hit"))
 
+                // Wire style is the one contextual entry a read-only graph keeps: it decides how the
+                // graph is drawn, not what it holds. Everything else in that menu goes through
+                // dispatchCommand, which read-only refuses outright.
+                .group("a read-only graph still offers wire style, and nothing that edits", g -> g
+                        .step("set the style back to the default",
+                                ctx -> graphView(ctx).setWireRouteStyle(WireRouteStyle.DEFAULT))
+                        .step("make the graph read-only", ctx -> graphView(ctx).setReadOnly(true))
+                        .settleMs(120)
+                        .step("right-click empty canvas", NgtWireStyleScenario::rightClickEmptyCanvas)
+                        .waitUntil("the contextual menu is open",
+                                ctx -> ctx.count(ContextMenus.GRAPH_MENU) > 0)
+                        .step("it offers the wire style branch", ctx -> ctx.check(
+                                "a 'Wire Style' branch exists",
+                                ContextMenus.branchCount(ctx, "graph.wire_style") == 1))
+                        .step("and nothing that would change the graph", ctx -> {
+                            for (var key : List.of("graph.commands.add_node", "graph.auto_layout")) {
+                                ctx.check("read-only does not offer " + key,
+                                        ContextMenus.branchCount(ctx, key) == 0
+                                                && ContextMenus.leafCount(ctx, key) == 0);
+                            }
+                        })
+                        .step("hover the branch to open its submenu",
+                                ctx -> ContextMenus.openBranch(ctx, "graph.wire_style"))
+                        .settleMs(120)
+                        .step("pick Orthogonal",
+                                ctx -> ContextMenus.clickLeaf(ctx, WireRouteStyle.ORTHOGONAL.getTranslationKey()))
+                        .waitUntil("the read-only view switched to orthogonal",
+                                ctx -> graphView(ctx).getWireRouteStyle() == WireRouteStyle.ORTHOGONAL)
+                        .settleMs(200)
+                        .step("no segment runs diagonally", ctx -> checkRoutes(ctx, "orthogonal", false))
+                        .step("the wires still connect the same ports", NgtWireStyleScenario::checkPortsUnchanged)
+                        .screenshot("08_read_only_wire_style")
+                        .step("hand the graph back", ctx -> graphView(ctx).setReadOnly(false)))
+
                 .step("hand the preference store back to the real config",
                         ctx -> ScenarioPreferences.restore())
                 .closeScreen();

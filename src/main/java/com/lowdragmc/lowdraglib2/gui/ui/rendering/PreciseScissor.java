@@ -131,6 +131,43 @@ public final class PreciseScissor {
     }
 
     /**
+     * The same box, made legal for {@code RenderPass#enableScissor}.
+     *
+     * <p>⚠️ 26.2 rejects an empty scissor outright — {@code "Scissor size must be >0"} — where 26.1's
+     * GL path simply clipped everything away. Vanilla never hands it one because a gui element whose
+     * scissor does not meet its own bounds is dropped before it is ever queued
+     * ({@code ScreenRectangle#intersection} returning null). That guard runs against the
+     * <em>integer hull</em>, and {@link #quantize} is deliberately stricter than the hull, so a draw
+     * can survive the cull and still quantise to nothing.
+     *
+     * <p>By then the draw is queued and the scissor is the only thing left that speaks for it, so an
+     * empty box becomes the smallest legal one at the same corner. That is not a fudge in either
+     * case an empty box comes from:
+     *
+     * <ul>
+     * <li>A clip that fell off the target clamps to the edge it left through, and the geometry it was
+     * clipping is on the far side of that edge — so a pixel there covers none of it.</li>
+     * <li>A clip narrower than half a physical pixel draws the hairline that vanilla's own
+     * whole-pixel path would have drawn anyway.</li>
+     * </ul>
+     *
+     * <p>Kept out of {@link #quantize} so that one stays honest about what the clip actually covers:
+     * it is the pixel-centre rule, and the answer really is "no pixels". This is the render pass's
+     * constraint, applied where the render pass is.
+     */
+    public static PixelBox atLeastOnePixel(PixelBox box, int targetWidth, int targetHeight) {
+        if (box.width() > 0 && box.height() > 0) return box;
+        // Nothing legal exists to return; the caller has to skip the scissor entirely.
+        if (targetWidth <= 0 || targetHeight <= 0) return box;
+        var width = Math.max(1, box.width());
+        var height = Math.max(1, box.height());
+        return new PixelBox(
+                Math.min(box.x(), targetWidth - width),
+                Math.min(box.y(), targetHeight - height),
+                width, height);
+    }
+
+    /**
      * {@code Math.round(double)} returns a long on purpose: an absurd coordinate would otherwise
      * saturate into a negative int before it ever reached the clamp.
      */

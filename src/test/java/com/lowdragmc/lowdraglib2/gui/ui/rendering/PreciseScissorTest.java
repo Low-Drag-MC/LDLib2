@@ -81,6 +81,34 @@ class PreciseScissorTest {
         assertBoxIsValid(PreciseScissor.quantize(new ClipRect(-1e9f, -1e9f, 1e9f, 1e9f), 4, 4, 640, 480));
     }
 
+    @Test
+    void anEmptyBoxIsWidenedToTheSmallestOneTheRenderPassAccepts() {
+        // 26.2's RenderPass#enableScissor throws on a zero-area box instead of clipping it all away.
+        var offTarget = PreciseScissor.quantize(new ClipRect(900, 700, 950, 750), 2, 2, 640, 480);
+        var legal = PreciseScissor.atLeastOnePixel(offTarget, 640, 480);
+        assertEquals(1, legal.width());
+        assertEquals(1, legal.height());
+        // Still inside the render area, which enableScissor checks just as strictly.
+        assertTrue(legal.x() >= 0 && legal.x() + legal.width() <= 640);
+        assertTrue(legal.y() >= 0 && legal.y() + legal.height() <= 480);
+    }
+
+    @Test
+    void aBoxThatAlreadyCoversAPixelIsLeftAlone() {
+        var box = PreciseScissor.quantize(new ClipRect(10, 20, 60, 45), 2, 2, 640, 480);
+        assertEquals(box, PreciseScissor.atLeastOnePixel(box, 640, 480));
+    }
+
+    @Test
+    void onlyTheEmptyAxisIsWidened() {
+        // 70 wide and nothing tall: the tab strip row that crashed the client, in miniature.
+        var flat = new PreciseScissor.PixelBox(10, 480, 70, 0);
+        var legal = PreciseScissor.atLeastOnePixel(flat, 640, 480);
+        assertEquals(70, legal.width());
+        assertEquals(1, legal.height());
+        assertEquals(479, legal.y());
+    }
+
     private static void assertBoxIsValid(PreciseScissor.PixelBox box) {
         assertTrue(box.x() >= 0, "x >= 0, was " + box.x());
         assertTrue(box.y() >= 0, "y >= 0, was " + box.y());

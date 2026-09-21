@@ -1641,10 +1641,17 @@ public class GraphView extends UIElement {
 
     protected TreeBuilder.Menu createMenu(float mouseX, float mouseY) {
         var menuBuilder = TreeBuilder.Menu.start();
-        // Read-only: every entry below either creates or edits something, and dispatchCommand refuses
-        // all of it. An empty menu is not opened at all (see onGraphViewMouseUp), so right-click stays
-        // pure panning instead of popping up a list of things that silently do nothing.
-        if (readOnly) return menuBuilder;
+        // Read-only: every entry below this block either creates or edits something, and
+        // dispatchCommand refuses all of it — offering them would be a list of things that silently
+        // do nothing.
+        //
+        // Wire style is the exception, and stays: it is how the graph is *drawn*, not what it holds,
+        // so it neither goes through dispatchCommand nor touches the model. Reading a blueprint you
+        // are not allowed to change is exactly when you want to re-route its wires to follow them.
+        if (readOnly) {
+            appendWireStyleMenu(menuBuilder);
+            return menuBuilder;
+        }
         // Newly-created elements align to the snap grid the same way drag-moved ones do, so the
         // canvas stays grid-consistent regardless of how the user adds content.
         var localPosition = snapPosition(

@@ -98,9 +98,17 @@ public class TreeNode<T, K> implements ITreeNode<T, K> {
         }
     }
 
+    /**
+     * Removes <em>this</em> node, by identity rather than by equality.
+     *
+     * <p>Two sibling nodes are {@link #equals} when their key and content match, which separators do:
+     * every cross-line in a menu carries the same key and no content. Removing by equality would take
+     * the first of them instead of the one asked for — so a menu with two separators that ends in one
+     * loses the separator in its middle and keeps the trailing line it was trimming.</p>
+     */
     public void removeChild(TreeNode<T, K> child) {
         if (children != null) {
-            children.remove(child);
+            children.removeIf(existing -> existing == child);
         }
     }
 

@@ -124,6 +124,14 @@ public abstract class GuiRendererMixin implements IGuiRendererExt {
 
         var box = PreciseScissor.quantize(clip, window.guiScale, window.guiScale,
                 window.width, window.height);
+        // An empty box means this draw is invisible, which 26.2 has no way to say: RenderPass throws
+        // on a zero-area scissor rather than clipping everything away as the GL call behind 26.1's
+        // did. See PreciseScissor#atLeastOnePixel for why the smallest legal box is the same answer.
+        box = PreciseScissor.atLeastOnePixel(box, window.width, window.height);
+        if (box.width() <= 0 || box.height() <= 0) {
+            // Only reachable for a target with no area at all, which can hold no geometry either.
+            return;
+        }
         renderPass.enableScissor(box.x(), box.y(), box.width(), box.height());
         ci.cancel();
     }
