@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import com.lowdragmc.lowdraglib2.client.shader.management.ShaderProgram;
 import com.lowdragmc.lowdraglib2.client.shader.uniform.UniformCache;
 import com.lowdragmc.lowdraglib2.client.utils.RenderBufferUtils;
+import com.lowdragmc.lowdraglib2.core.mixins.accessor.GuiGraphicsAccessor;
 import com.lowdragmc.lowdraglib2.utils.FluidHelper;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import com.lowdragmc.lowdraglib2.math.Position;
@@ -31,6 +32,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.client.ClientHooks;
 import net.minecraft.world.phys.Vec2;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -273,8 +275,23 @@ public class DrawerHelper {
         RenderBufferUtils.drawColorTexLines(graphics.pose(), buffer, points, startColor, endColor, width, true);
     }
 
+    /**
+     * Draws a tooltip, kept inside the surface on all four sides. Spelled out rather than delegated to
+     * {@code graphics.renderTooltip(...)} because that overload hard-codes the positioner — see
+     * {@link ClampedTooltipPositioner}; the rest is what vanilla's does.
+     */
     public static void drawTooltip(GuiGraphics graphics, int mouseX, int mouseY, List<Component> tooltipTexts, ItemStack tooltipStack, @Nullable TooltipComponent tooltipComponent, Font tooltipFont) {
-        graphics.renderTooltip(tooltipFont, tooltipTexts, Optional.ofNullable(tooltipComponent), tooltipStack, mouseX, mouseY);
+        var accessor = (GuiGraphicsAccessor) graphics;
+        accessor.ldlib2$setTooltipStack(tooltipStack);
+        try {
+            var components = ClientHooks.gatherTooltipComponents(tooltipStack, tooltipTexts,
+                    Optional.ofNullable(tooltipComponent), mouseX,
+                    graphics.guiWidth(), graphics.guiHeight(), tooltipFont);
+            accessor.ldlib2$renderTooltipInternal(tooltipFont, components, mouseX, mouseY,
+                    ClampedTooltipPositioner.INSTANCE);
+        } finally {
+            accessor.ldlib2$setTooltipStack(ItemStack.EMPTY);
+        }
     }
 
     public static ClientTooltipComponent getClientTooltipComponent(TooltipComponent component) {

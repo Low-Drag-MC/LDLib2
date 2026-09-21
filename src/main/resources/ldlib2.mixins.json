@@ -19,6 +19,7 @@
     "SpriteSourceListMixin",
     "WorldRendererMixin",
     "accessor.BufferBuilderAccessor",
+    "accessor.GuiGraphicsAccessor",
     "accessor.MeshDataAccessor",
     "accessor.MinecraftAccessor",
     "accessor.ModelBakeryAccessor",
