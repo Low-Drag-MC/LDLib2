@@ -131,4 +131,72 @@ public final class KeyState {
         return KeyStateClientAccess.isAltDown();
     }
 
+    // ── Modifiers carried by an event, rather than polled ────────────────────────────────────────
+    //
+    // Preferred over the polling methods above wherever the modifiers of one specific key press are
+    // what matters — resolving a shortcut, capturing a chord. The bits come from the GLFW callback of
+    // whichever window the press arrived at, so they are right in a torn-off window without a scoped
+    // Source, they are right for the key being pressed at the moment it is pressed, and a test driver
+    // can supply them outright. This is the same thing the game's own InputWithModifiers#hasControlDown
+    // and friends read, which is why KeyEvent#isCopy works in a second window.
+
+    public static boolean isShiftDown(int modifiers) {
+        return (modifiers & GLFW.GLFW_MOD_SHIFT) != 0;
+    }
+
+    public static boolean isAltDown(int modifiers) {
+        return (modifiers & GLFW.GLFW_MOD_ALT) != 0;
+    }
+
+    /**
+     * Whether the event's modifiers say the platform's primary shortcut modifier was held — command
+     * on a Mac keyboard, control everywhere else.
+     *
+     * <p>Under an installed {@link Source} either bit counts, for the same reason
+     * {@link #isCtrlOrCmdDown()} accepts either key: a test that presses control is asking for the
+     * shortcut, and making that depend on which machine the suite runs on would buy nothing.
+     */
+    public static boolean isCtrlOrCmdDown(int modifiers) {
+        var current = source;
+        if (current != null) {
+            return (modifiers & (GLFW.GLFW_MOD_CONTROL | GLFW.GLFW_MOD_SUPER)) != 0;
+        }
+        return (modifiers & KeyStateClientAccess.shortcutModifierBit()) != 0;
+    }
+
+    /**
+     * The modifier bit a key press of its own implies, or zero for a key that is not a modifier.
+     *
+     * <p>GLFW is not consistent across platforms about whether a modifier's own press event carries
+     * its bit, and a chord capture field shows "Ctrl+…" the moment control goes down — so the bit is
+     * put in explicitly rather than trusted to be there.
+     */
+    public static int modifierBitOf(int keyCode) {
+        return switch (keyCode) {
+            case GLFW.GLFW_KEY_LEFT_SHIFT, GLFW.GLFW_KEY_RIGHT_SHIFT -> GLFW.GLFW_MOD_SHIFT;
+            case GLFW.GLFW_KEY_LEFT_CONTROL, GLFW.GLFW_KEY_RIGHT_CONTROL -> GLFW.GLFW_MOD_CONTROL;
+            case GLFW.GLFW_KEY_LEFT_ALT, GLFW.GLFW_KEY_RIGHT_ALT -> GLFW.GLFW_MOD_ALT;
+            case GLFW.GLFW_KEY_LEFT_SUPER, GLFW.GLFW_KEY_RIGHT_SUPER -> GLFW.GLFW_MOD_SUPER;
+            default -> 0;
+        };
+    }
+
+    /**
+     * Whether this key will put a character into a focused text field — space, the ASCII punctuation
+     * and letter block, and the numeric keypad.
+     *
+     * <p>⚠️ It matters at {@code KEY_DOWN} time even though the character itself arrives as
+     * {@code CHAR_TYPED}: an editable field that lets such a key bubble has the character typed
+     * <i>and</i> whatever shortcut an ancestor hangs off that key fired. Space is the one that bites —
+     * it is the play/pause key of every timeline and it appears in no field's own key switch.
+     *
+     * <p>GLFW numbers the printable block contiguously from {@code APOSTROPHE} (39) to
+     * {@code GRAVE_ACCENT} (96) — the digits, the letters, the brackets and the punctuation; space
+     * sits at 32 on its own and the keypad at 320–336.
+     */
+    public static boolean isTextKey(int keyCode) {
+        return keyCode == GLFW.GLFW_KEY_SPACE
+                || (keyCode >= GLFW.GLFW_KEY_APOSTROPHE && keyCode <= GLFW.GLFW_KEY_GRAVE_ACCENT)
+                || (keyCode >= GLFW.GLFW_KEY_KP_0 && keyCode <= GLFW.GLFW_KEY_KP_EQUAL);
+    }
 }

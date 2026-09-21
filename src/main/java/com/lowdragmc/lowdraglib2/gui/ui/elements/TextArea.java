@@ -27,6 +27,7 @@ import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.KeyState;
 import com.lowdragmc.lowdraglib2.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
@@ -684,7 +685,39 @@ public class TextArea extends BindableUIElement<String[]> {
         }
     }
 
+    /**
+     * The keys a focused editor <b>owns</b> — the ones the switch below acts on, and the ones about
+     * to type a character into it. Same reason as {@code TextField.ownsKey}: an ancestor's shortcut
+     * must not fire while the author is typing. Enter and the vertical moves are owned here because
+     * a text area does something with them.
+     *
+     * <p>Alt chords, Escape, Tab and anything this switch ignores are left to bubble.
+     */
+    @Override
+    public boolean isTextInput() {
+        return isEditable();
+    }
+
+    @Override
+    public boolean ownsKey(UIEvent event) {
+        if (!isEditable() || event.isAltDown()) {
+            return false;
+        }
+        return switch (event.keyCode) {
+            // ⚠️ Ctrl+Left/Right is this editor's own word jump, so those two are owned with the
+            // modifier down as well; every other chord belongs to whatever the container makes of it.
+            case GLFW.GLFW_KEY_LEFT, GLFW.GLFW_KEY_RIGHT -> true;
+            case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_BACKSPACE, GLFW.GLFW_KEY_DELETE, GLFW.GLFW_KEY_UP,
+                 GLFW.GLFW_KEY_DOWN, GLFW.GLFW_KEY_HOME, GLFW.GLFW_KEY_END, GLFW.GLFW_KEY_PAGE_UP,
+                 GLFW.GLFW_KEY_PAGE_DOWN -> !event.isCtrlDown();
+            default -> !event.isCtrlDown() && KeyState.isTextKey(event.keyCode);
+        };
+    }
+
     protected void onKeyDown(UIEvent event) {
+        if (ownsKey(event)) {
+            event.stopPropagation();
+        }
         switch (event.keyCode) {
             case GLFW.GLFW_KEY_ENTER -> {
                 if (!isEditable()) return;

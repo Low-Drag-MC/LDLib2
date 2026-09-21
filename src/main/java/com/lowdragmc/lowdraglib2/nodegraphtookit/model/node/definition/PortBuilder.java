@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.definition;
 
+import com.lowdragmc.lowdraglib2.gui.ui.data.Tooltips;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.port.*;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.ITypeConfigurable;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
@@ -18,6 +19,7 @@ public class PortBuilder implements IInputPortBuilder<PortBuilder>, IOutputPortB
     protected PortDefinitionContext context = null;
     protected String portId;
     protected Component displayName;
+    protected Tooltips tooltips = Tooltips.empty();
     protected TypeHandle dataType;
     protected PortDirection portDirection = PortDirection.NONE;
     protected PortOrientation portOrientation = PortOrientation.Horizontal;
@@ -37,6 +39,7 @@ public class PortBuilder implements IInputPortBuilder<PortBuilder>, IOutputPortB
     public void reset() {
         portId = null;
         displayName = null;
+        tooltips = Tooltips.empty();
         dataType = null;
         portDirection = PortDirection.NONE;
         portOrientation = PortOrientation.Horizontal;
@@ -69,6 +72,12 @@ public class PortBuilder implements IInputPortBuilder<PortBuilder>, IOutputPortB
     @Override
     public PortBuilder withDisplayName(Component displayName) {
         this.displayName = displayName;
+        return this;
+    }
+
+    @Override
+    public PortBuilder withTooltips(Tooltips tooltips) {
+        this.tooltips = tooltips == null ? Tooltips.empty() : tooltips;
         return this;
     }
 
@@ -158,6 +167,10 @@ public class PortBuilder implements IInputPortBuilder<PortBuilder>, IOutputPortB
         if (displayName != null) {
             result.setTitle(displayName);
         }
+        // Set every build, empty included: a PortModel is reused across defineNode passes, so a
+        // tooltip an earlier definition authored would otherwise outlive the option that caused it —
+        // the same reason the configurator overrides below are reapplied unconditionally.
+        result.setTooltips(tooltips);
         if (result instanceof PortModelImpl portModelImpl) {
             portModelImpl.setConnectorUI(connectorUI);
         }

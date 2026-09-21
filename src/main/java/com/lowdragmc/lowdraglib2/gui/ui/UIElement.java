@@ -1127,6 +1127,29 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return mui != null && mui.getFocusedElement() != null && this.isAncestorOf(mui.getFocusedElement());
     }
 
+    /**
+     * Whether this element, while it has the focus, takes this key for itself.
+     *
+     * <p>A focused text field owns the keys it types and the ones that move its cursor: it stops those
+     * from propagating, so an ancestor's shortcut does not fire while the user is writing. The same
+     * answer is what a keymap asks before running a bare-key shortcut, which is why it is declared here
+     * rather than left private to each element — a container has no other way to tell "the focus is
+     * busy with this key" from "nobody wanted it".
+     *
+     * @see #isTextInput()
+     */
+    public boolean ownsKey(UIEvent event) {
+        return false;
+    }
+
+    /**
+     * Whether the user types into this element right now — true for an editable text field, area or code
+     * editor, false for the same element made read-only.
+     */
+    public boolean isTextInput() {
+        return false;
+    }
+
     /// Interaction
     public boolean isMouseOverElement(float mouseX, float mouseY) {
         return isDisplayed() &&

@@ -2,10 +2,18 @@ package com.lowdragmc.lowdraglib2.editor.ui;
 
 import com.google.common.util.concurrent.Runnables;
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.editor.keymap.EditorAction;
+import com.lowdragmc.lowdraglib2.editor.keymap.EditorActions;
+import com.lowdragmc.lowdraglib2.editor.keymap.EditorKeymapDispatcher;
+import com.lowdragmc.lowdraglib2.editor.keymap.KeyChord;
+import com.lowdragmc.lowdraglib2.editor.keymap.KeyContext;
+import com.lowdragmc.lowdraglib2.editor.keymap.Keymap;
+import com.lowdragmc.lowdraglib2.editor.keymap.KeymapCategories;
 import com.lowdragmc.lowdraglib2.editor.project.IProject;
 import com.lowdragmc.lowdraglib2.editor.settings.AppearanceSettings;
 import com.lowdragmc.lowdraglib2.editor.settings.BehaviorSettings;
 import com.lowdragmc.lowdraglib2.editor.settings.EditorSettings;
+import com.lowdragmc.lowdraglib2.editor.settings.KeymapSettings;
 import com.lowdragmc.lowdraglib2.editor.ui.menu.FileMenu;
 import com.lowdragmc.lowdraglib2.editor.ui.menu.ViewMenu;
 import com.lowdragmc.lowdraglib2.editor.ui.view.HistoryView;
@@ -34,9 +42,10 @@ import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
-import dev.vfyjxf.taffy.style.TaffyDimension;
 import lombok.Getter;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import org.lwjgl.glfw.GLFW;
 
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -48,7 +57,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Deque;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 @Getter
 @ParametersAreNonnullByDefault
@@ -112,6 +123,16 @@ public abstract class Editor extends UIElement implements EditorHost {
 
     public final EditorSettings editorSettings;
 
+    /**
+     * The actions this editor knows, and the keys they answer to.
+     *
+     * <p>Registration is per editor instance, so a subclass, a view or a project can add its own — and
+     * anything registered has a binding the user can change in the settings.
+     */
+    @Getter
+    public final Keymap keymap = new Keymap();
+    private final EditorKeymapDispatcher keymapDispatcher = new EditorKeymapDispatcher(this);
+
     // runtime
     @Getter
     @Nullable
@@ -145,6 +166,12 @@ public abstract class Editor extends UIElement implements EditorHost {
      */
     @Nullable
     protected EditorLayout savedLayout;
+    /**
+     * The view container the focus was in last. Panel actions fall back to it so they keep working
+     * after the focus has moved somewhere that is in no view — see {@link #resolveActiveViewContainer}.
+     */
+    @Nullable
+    protected ViewContainer activeViewContainer;
 
     public Editor() {
         getLayout().widthPercent(100);
@@ -174,6 +201,11 @@ public abstract class Editor extends UIElement implements EditorHost {
         this.viewMenu = new ViewMenu(this);
 
         this.editorSettings = createSettings();
+
+        // Focusable so that a click anywhere in the editor leaves the focus inside it: ModularUI walks
+        // up from whatever was clicked looking for a focusable element, and keyboard events only travel
+        // through the focused element's ancestors — which is the path the keymap listens on.
+        setFocusable(true);
 
         rootWindow = new SplittableWindow().setImmortal(true);
         rootWindow.setAnchorId(ANCHOR_ROOT);
@@ -239,9 +271,14 @@ public abstract class Editor extends UIElement implements EditorHost {
         mainView.addClass("__editor_main__").moveInlineAsDefault();
 
         /// internal components
+        // Before the settings are read: the keymap settings only carry what the user changed, so the
+        // actions they refer to have to exist for those overrides to mean anything.
+        keymapDispatcher.install();
+        initKeymap();
         initEditorSettings();
         editorSettings.loadAllSettingsFromFile();
         editorSettings.applyCurrentSettings();
+        migrateLegacySettings();
 
         initMenus();
         onPrepareInspectorView();
@@ -251,6 +288,10 @@ public abstract class Editor extends UIElement implements EditorHost {
         /// events
         addEventListener(UIEvents.VALIDATE_COMMAND, this::onValidateCommand);
         addEventListener(UIEvents.EXECUTE_COMMAND, this::onExecuteCommand);
+        addEventListener(UIEvents.MUI_CHANGED, event -> focusIfNothingElseIs());
+        // capture: a focus event has no bubble phase, and the editor is an ancestor of whatever
+        // gained the focus
+        addEventListener(UIEvents.FOCUS, this::onFocusChanged, true);
     }
 
     /**
@@ -277,6 +318,259 @@ public abstract class Editor extends UIElement implements EditorHost {
         if (!LDLib2.isClient()) return;
         editorSettings.registerSettings(new AppearanceSettings(), AppearanceSettings.CODEC);
         editorSettings.registerSettings(new BehaviorSettings(), BehaviorSettings.CODEC);
+        editorSettings.registerSettings(new KeymapSettings(), KeymapSettings.CODEC);
+    }
+
+    /**
+     * Registers the actions this editor answers to. Override and call {@code super} to add more; a
+     * subclass that wants a built-in action to do something else registers its own under the same
+     * {@link EditorActions id}, which replaces it.
+     *
+     * <p>Only the <em>defaults</em> are here. What each action actually answers to is
+     * {@link Keymap#bindingsOf}, which the user's keymap settings feed.
+     */
+    protected void initKeymap() {
+        keymap.registerAll(
+                EditorAction.builder(EditorActions.SAVE)
+                        .category(KeymapCategories.FILE)
+                        .defaultChord(KeyChord.ctrl(GLFW.GLFW_KEY_S))
+                        // The focused view gets first refusal, because a graph editor's save means
+                        // "write this level back", not "write the project file". Only if nobody claims
+                        // it does the project itself get saved.
+                        .onAction(context -> command(CommandEvents.SAVE) || saveCurrentProject())
+                        .build(),
+                EditorAction.builder(EditorActions.SAVE_AS)
+                        .category(KeymapCategories.FILE)
+                        .defaultChord(KeyChord.ctrlShift(GLFW.GLFW_KEY_S))
+                        .when(KeyContext.withProject())
+                        .onAction(() -> saveAsProject(null))
+                        .build(),
+                EditorAction.builder(EditorActions.OPEN_PROJECT)
+                        .category(KeymapCategories.FILE)
+                        .defaultChord(KeyChord.ctrl(GLFW.GLFW_KEY_O))
+                        .onAction(fileMenu::onOpenProject)
+                        .build(),
+                EditorAction.builder(EditorActions.SETTINGS)
+                        .category(KeymapCategories.FILE)
+                        .defaultChord(KeyChord.ctrlAlt(GLFW.GLFW_KEY_S))
+                        .onAction(this::openSettingsPanel)
+                        .build(),
+                EditorAction.builder(EditorActions.CLOSE_EDITOR)
+                        .category(KeymapCategories.FILE)
+                        // Unbound by default: closing the editor is the one action a stray key press
+                        // must not reach. Escape gets bound to it by whoever asks for that.
+                        .onAction(this::close)
+                        .build(),
+
+                commandAction(EditorActions.UNDO, CommandEvents.UNDO, KeyChord.ctrl(GLFW.GLFW_KEY_Z), KeyChord.UNBOUND),
+                commandAction(EditorActions.REDO, CommandEvents.REDO, KeyChord.ctrl(GLFW.GLFW_KEY_Y),
+                        KeyChord.ctrlShift(GLFW.GLFW_KEY_Z)),
+                commandAction(EditorActions.COPY, CommandEvents.COPY, KeyChord.ctrl(GLFW.GLFW_KEY_C), KeyChord.UNBOUND),
+                commandAction(EditorActions.CUT, CommandEvents.CUT, KeyChord.ctrl(GLFW.GLFW_KEY_X), KeyChord.UNBOUND),
+                commandAction(EditorActions.PASTE, CommandEvents.PASTE, KeyChord.ctrl(GLFW.GLFW_KEY_V), KeyChord.UNBOUND),
+                commandAction(EditorActions.DUPLICATE, CommandEvents.DUPLICATE, KeyChord.ctrl(GLFW.GLFW_KEY_D), KeyChord.UNBOUND),
+                commandAction(EditorActions.SELECT_ALL, CommandEvents.SELECT_ALL, KeyChord.ctrl(GLFW.GLFW_KEY_A), KeyChord.UNBOUND),
+                commandAction(EditorActions.FIND, CommandEvents.FIND, KeyChord.ctrl(GLFW.GLFW_KEY_F), KeyChord.UNBOUND),
+
+                EditorAction.builder(EditorActions.NEXT_VIEW)
+                        .category(KeymapCategories.VIEW)
+                        .defaultChord(KeyChord.ctrl(GLFW.GLFW_KEY_PAGE_DOWN))
+                        .defaultAlternative(KeyChord.ctrl(GLFW.GLFW_KEY_TAB))
+                        .onAction(context -> cycleFocusedView(1))
+                        .build(),
+                EditorAction.builder(EditorActions.PREVIOUS_VIEW)
+                        .category(KeymapCategories.VIEW)
+                        .defaultChord(KeyChord.ctrl(GLFW.GLFW_KEY_PAGE_UP))
+                        .defaultAlternative(KeyChord.ctrlShift(GLFW.GLFW_KEY_TAB))
+                        .onAction(context -> cycleFocusedView(-1))
+                        .build(),
+                EditorAction.builder(EditorActions.MAXIMIZE_PANE)
+                        .category(KeymapCategories.VIEW)
+                        .defaultChord(KeyChord.ctrl(GLFW.GLFW_KEY_M))
+                        .onAction(context -> toggleFocusedPaneMaximized())
+                        .build(),
+
+                EditorAction.builder(EditorActions.MINIMIZE_WINDOW)
+                        .category(KeymapCategories.WINDOW)
+                        // the desktop convention, and free of anything a text control claims: Ctrl
+                        // chords are never owned by a field, and no editor action uses the arrows
+                        .defaultChord(KeyChord.ctrlAlt(GLFW.GLFW_KEY_DOWN))
+                        // declines rather than throws when this editor is not in a window, or is in one
+                        // that could never be re-opened - the chord then falls through to whatever else
+                        // wants it, which is what an action that cannot run is supposed to do
+                        .onAction(context -> window != null && window.canMinimize()
+                                && withWindow(EditorWindow::minimizeWindow))
+                        .build(),
+                EditorAction.builder(EditorActions.MAXIMIZE_WINDOW)
+                        .category(KeymapCategories.WINDOW)
+                        .defaultChord(KeyChord.ctrlAlt(GLFW.GLFW_KEY_UP))
+                        .onAction(context -> withWindow(window -> {
+                            if (window.isMaximized()) {
+                                window.retoreWindow();
+                            } else {
+                                window.maximizeWindow();
+                            }
+                        }))
+                        .build()
+        );
+    }
+
+    /** An action that runs one of the UI's commands against whatever has the focus. */
+    private EditorAction commandAction(Identifier id, String command, KeyChord chord, KeyChord alternative) {
+        return EditorAction.builder(id)
+                .category(KeymapCategories.EDIT)
+                .defaultChord(chord)
+                .defaultAlternative(alternative)
+                .onAction(context -> command(command))
+                .build();
+    }
+
+    /**
+     * Runs a {@link CommandEvents} command, reaching the same handler its built-in chord would.
+     *
+     * @return true if anything handled it.
+     */
+    protected boolean command(String command) {
+        var ui = getModularUI();
+        return ui != null && ModularUIClientAccess.dispatchCommand(ui, command);
+    }
+
+    /** Saves the project, asking where to put it if it has never been saved. */
+    protected boolean saveCurrentProject() {
+        if (currentProject == null) return false;
+        if (currentProjectFile != null) {
+            saveProject(null);
+        } else {
+            saveAsProject(null);
+        }
+        return true;
+    }
+
+    /** The focused element of this editor's UI, if it has one. */
+    @Nullable
+    protected UIElement getFocusedElement() {
+        var ui = getModularUI();
+        return ui == null ? null : ui.getFocusedElement();
+    }
+
+    /**
+     * The container a panel-scoped action works on.
+     *
+     * <p>Not simply "the one the focus is in": the focus spends a lot of its time somewhere that is in
+     * no view at all — the menu bar, a dialog that was just closed, the editor itself right after it
+     * opened — and a tab shortcut that does nothing in those moments feels broken. So the last container
+     * the focus was in is remembered and used as the answer, exactly like the active editor group of any
+     * other editor, with a sensible panel as the last resort.
+     */
+    @Nullable
+    protected ViewContainer resolveActiveViewContainer() {
+        var focused = getFocusedElement();
+        var container = focused == null ? null : focused.getFirstAncestorOfType(ViewContainer.class);
+        if (container != null) return container;
+        if (activeViewContainer != null && isAncestorOf(activeViewContainer)) {
+            return activeViewContainer;
+        }
+        return findCyclableViewContainer();
+    }
+
+    /** Remembers where the user was, so a panel action still has a subject once the focus moves on. */
+    protected void onFocusChanged(UIEvent event) {
+        if (event.target == null) return;
+        var container = event.target.getFirstAncestorOfType(ViewContainer.class);
+        if (container != null) {
+            activeViewContainer = container;
+        }
+    }
+
+    /**
+     * A container worth cycling when nothing has ever been focused — one with something to cycle
+     * through, preferring the middle of the editor, which is where the work is.
+     */
+    @Nullable
+    protected ViewContainer findCyclableViewContainer() {
+        return Stream.concat(viewContainersOf(centerWindow), viewContainersOf(rootWindow))
+                .filter(container -> !container.isCollapse())
+                .filter(container -> container.getAllViews().size() > 1)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static Stream<ViewContainer> viewContainersOf(UIElement root) {
+        return root.selfAndAllChildren()
+                .filter(ViewContainer.class::isInstance)
+                .map(ViewContainer.class::cast);
+    }
+
+    /** Selects the next (or previous) tab of the container the user is working in. */
+    protected boolean cycleFocusedView(int offset) {
+        var container = resolveActiveViewContainer();
+        if (container == null) return false;
+        var views = container.getAllViews();
+        if (views.size() < 2) return false;
+        var current = 0;
+        for (int i = 0; i < views.size(); i++) {
+            if (container.isViewSelected(views.get(i))) {
+                current = i;
+                break;
+            }
+        }
+        var next = Math.floorMod(current + offset, views.size());
+        container.selectView(views.get(next));
+        // the container takes the focus, so the panel the user just switched to is the one the next
+        // shortcut acts on - and so the view they switched away from stops being the active one
+        container.focus();
+        return true;
+    }
+
+    /** Makes the pane the user is working in fill the editor, or puts it back. */
+    protected boolean toggleFocusedPaneMaximized() {
+        var container = resolveActiveViewContainer();
+        var window = container == null ? null : container.getFirstAncestorOfType(SplittableWindow.class);
+        if (window == null || window == rootWindow) return false;
+        window.toggleMaximize();
+        return true;
+    }
+
+    private boolean withWindow(Consumer<EditorWindow> action) {
+        if (window == null) return false;
+        action.accept(window);
+        return true;
+    }
+
+    /**
+     * Carries settings that used to be their own switch over to the keymap.
+     *
+     * <p>Runs after the settings file is read, so it sees what the user actually had, and writes the
+     * result into the keymap settings rather than only into the live keymap — otherwise the next time
+     * the settings were applied the migrated binding would be dropped again.
+     */
+    @SuppressWarnings("deprecation")
+    protected void migrateLegacySettings() {
+        var behavior = BehaviorSettings.of(this);
+        if (!behavior.isShouldCloseOnEsc()) return;
+        var keymapSettings = KeymapSettings.of(this);
+        keymapSettings.bindIfUnset(EditorActions.CLOSE_EDITOR, KeyChord.key(GLFW.GLFW_KEY_ESCAPE));
+        keymapSettings.onApply(this);
+    }
+
+    /**
+     * Takes the focus when the editor joins a UI that has none, so its shortcuts work before anything
+     * has been clicked — keyboard events only travel through the focused element's ancestors.
+     *
+     * <p>Hooked on both events because either can come last: an editor added to a tree that is already
+     * shown has its UI immediately, while one built before its window is opened gets it later.
+     */
+    @Override
+    protected void onAdded() {
+        super.onAdded();
+        focusIfNothingElseIs();
+    }
+
+    protected void focusIfNothingElseIs() {
+        var ui = getModularUI();
+        if (ui != null && ui.getFocusedElement() == null) {
+            ui.requestFocus(this);
+        }
     }
 
     protected void onPrepareInspectorView() {
@@ -687,12 +981,23 @@ public abstract class Editor extends UIElement implements EditorHost {
         });
     }
 
+    /** The settings dialog's size the first time it is opened; it is dragged from there. */
+    public static final float SETTINGS_WIDTH = 350;
+    public static final float SETTINGS_HEIGHT = 260;
+
     public void openSettingsPanel() {
         var dialog = new Dialog();
         dialog.setAutoClose(false);
-        dialog.width(TaffyDimension.length(350));
         dialog.setTitle("editor.settings");
         dialog.addContent(editorSettings.createSettingsPanel());
+        // A window rather than a fixed box: the keymap page in particular is a long list of rows that
+        // some users will want taller and wider, and windowMode is where the drag-to-move and the
+        // border resize already live. Closing on a click outside stays off - setAutoClose(false) above
+        // gates that - so it is still dismissed only through its own buttons.
+        dialog.windowMode(
+                getPositionX() + (getSizeWidth() - SETTINGS_WIDTH) / 2f,
+                getPositionY() + (getSizeHeight() - SETTINGS_HEIGHT) / 2f,
+                SETTINGS_WIDTH, SETTINGS_HEIGHT);
 
         var cancelButton = new Button();
         cancelButton.text.textStyle(textStyle -> textStyle.textColor(ColorPattern.GRAY.color));
@@ -917,8 +1222,8 @@ public abstract class Editor extends UIElement implements EditorHost {
      * something worth listing.
      */
     protected void recordRecentProject() {
-        if (currentProjectFile != null) {
-            EditorProjectStore.addRecentProject(currentProjectFile,
+        if (currentProject != null && currentProjectFile != null) {
+            EditorProjectStore.addRecentProject(currentProjectFile, currentProject.getProjectType(),
                     BehaviorSettings.of(this).getRecentProjectCount());
         }
     }

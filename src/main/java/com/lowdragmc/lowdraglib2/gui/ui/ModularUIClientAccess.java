@@ -42,6 +42,20 @@ public final class ModularUIClientAccess {
         return getState(modularUI).getWidget();
     }
 
+    /**
+     * Runs one of the {@link com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents} against this UI,
+     * exactly as its key chord would.
+     *
+     * <p>For a keymap that resolved the chord itself: the action still has to reach whatever holds the
+     * selection, and that routing lives in one place.
+     *
+     * @return true if anything handled it.
+     */
+    public static boolean dispatchCommand(ModularUI modularUI, String command) {
+        return getWidget(modularUI).dispatchCommand(command,
+                modularUI.lastPressedKeyCode, modularUI.lastPressedScanCode, modularUI.lastPressedModifiers);
+    }
+
     @Nullable
     public static Screen getScreen(ModularUI modularUI) {
         return getState(modularUI).screen;

@@ -43,6 +43,12 @@ public class ViewContainer extends UIElement {
         this.collapseButton = new Button().noText();
         this.addClass("__view-container__");
         this.getLayout().flex(1);
+        // Focusable so that clicking anywhere in a view - its background, its title bar - leaves the
+        // focus on this container. It never takes focus from a child that wants it: ModularUI focuses
+        // the deepest focusable element under the cursor and only walks up when there is none. What it
+        // buys is that "which panel am I in" has an answer after any click, which is what the keyboard
+        // needs to know for tab switching.
+        setFocusable(true);
 
         this.tabView.layout(layout -> {
             layout.widthPercent(100);

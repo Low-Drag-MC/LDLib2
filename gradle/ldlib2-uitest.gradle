@@ -33,6 +33,77 @@ if (ldTestHeadless && 'REAL'.equalsIgnoreCase(project.findProperty('ldTestInputM
             "real input drives the OS cursor and needs the window focused.")
 }
 
+// ⚠️ Whether this machine can put a window on a screen at all — which decides whether the FML early
+// window may stay on, and that decides WHICH GL CONTEXT the test client gets.
+//
+// FML's early window is what negotiates the context: it asks for 4.6 and falls back
+// ("Trying GL version 4.6 / Requested GL version 4.6 got version 4.6"), and Minecraft then adopts
+// that window and its context. Turn it off and Minecraft creates its own with its own hints — 3.2
+// core — so LWJGL loads no GL 3.3 entry points at all. A library that uses instanced rendering then
+// calls a null function pointer and LWJGL asks the JVM to abort: no exception, no crash report, the
+// process simply disappears. That is what took every multi-process client down, and it made the test
+// clients disagree with the game a player actually runs, which is the worse half of the bug.
+//
+// So the early window is only turned off where it genuinely cannot work: FML calls
+// glfwGetPrimaryMonitor and treats NULL as fatal, behind a modal dialog nobody is there to dismiss,
+// so the run hangs rather than fails.
+//
+// ⚠️ There are TWO overrides, and each exists for a reason the other cannot serve.
+//
+// The environment variable is for a HUMAN at a shell: the parallel and multi-process harnesses launch
+// their clients from child Gradle builds, which inherit this build's environment and none of its
+// properties, so a property typed on the outer command line would be obeyed by the build that prints
+// the message and ignored by the one that actually starts the client. The detection below propagates
+// for the same reason — a child sees the same SSH_* variables and the same graphics environment.
+//
+//     LDLIB2_TEST_EARLY_WINDOW=false ./gradlew runParTest ...
+//
+// The project property is for an ORCHESTRATOR spawning a child build directly, which is the only
+// caller that can put it on the child's own command line. ⚠️ It must not use the environment for
+// this: a Gradle client whose environment differs from the running daemon's makes Gradle stop that
+// daemon, and the orchestrator is running inside it — the parent build dies with "Gradle build
+// daemon disappeared unexpectedly" the instant the child is spawned. That is measured, not feared.
+//
+// ⚠️⚠️ And the machine's own answer, from last time: AWT is wrong exactly where it matters — on a
+// disconnected remote desktop it reports one screen while GLFW finds no monitor at all, and FML then
+// dies before a line of test code runs. Only GLFW knows, and the first thing it does with the answer
+// is abort the process, so the parallel orchestrator writes `build/ldlib2-uitest-no-monitor` when it
+// sees that death and this leaves the early window off from then on. One failed run per machine,
+// once — retrying the shard from inside the running build is not an option, because spawning a
+// second Gradle build kills the parent daemon (see ParallelTestOrchestrator.rememberIfNoMonitor).
+// Delete the file when a display comes back; `clean` deletes it too.
+def ldHasDisplay = {
+    if (project.hasProperty('ldTestEarlyWindow')) {
+        return Boolean.parseBoolean(project.property('ldTestEarlyWindow').toString().trim())
+    }
+    def forced = System.getenv('LDLIB2_TEST_EARLY_WINDOW')
+    if (forced != null && !forced.isBlank()) {
+        return Boolean.parseBoolean(forced.trim())
+    }
+    if (new File(project.layout.buildDirectory.get().asFile, 'ldlib2-uitest-no-monitor').isFile()) {
+        return false
+    }
+    // A session over SSH has no desktop to draw on even though the machine has a monitor attached.
+    if (System.getenv('SSH_CLIENT') || System.getenv('SSH_CONNECTION') || System.getenv('SSH_TTY')) {
+        return false
+    }
+    try {
+        return !java.awt.GraphicsEnvironment.isHeadless() &&
+                java.awt.GraphicsEnvironment.localGraphicsEnvironment.screenDevices.length > 0
+    } catch (Throwable ignored) {
+        return false   // no graphics environment to ask is an answer
+    }
+}()
+
+if (ldTestHeadless) {
+    logger.lifecycle(ldHasDisplay
+            ? "LDLib2 UI test: headless, and this machine has a display — FML's early window stays on, "
+                    + "so the client gets the same GL context a player's does."
+            : "LDLib2 UI test: headless with no display — disabling FML's early window. ⚠️ The client "
+                    + "then runs on Minecraft's own GL 3.2 core context, where GL 3.3 entry points "
+                    + "(instanced rendering) are absent.")
+}
+
 // System properties rather than program arguments: Minecraft's own argument parser owns the command
 // line and rejects what it does not recognise.
 //
@@ -167,8 +238,13 @@ tasks.configureEach { task ->
     // FMLConfig.ConfigValue.EARLY_WINDOW_CONTROL and nothing else. (Its `headless` parameter is not
     // a way in either: Client hard-codes it to false.)
     //
+    // ⚠️ And only when this machine has no display to open it on - see ldHasDisplay above. Headless
+    // on a machine that HAS a screen keeps the early window, because the early window is what
+    // negotiates the GL context, and a client on Minecraft's own 3.2 core context is not the client
+    // a player runs.
+    //
     // That file is shared with ordinary interactive runs, so the flip is undone - but by the next
-    // run that does NOT ask for headless, recorded through a marker file beside it, rather than by a
+    // run that does NOT turn it off, recorded through a marker file beside it, rather than by a
     // finalizer task holding a Set. Two reasons. With the configuration cache on, two tasks do not
     // share a captured collection: each is serialised its own copy, so a finalizer would always find
     // nothing to restore. And a marker survives Gradle being killed, which a finalizer cannot - the
@@ -180,7 +256,7 @@ tasks.configureEach { task ->
         def dir = t.gameDirectory.get().asFile
         def toml = new File(dir, 'config/fml.toml')
         def marker = new File(dir, 'config/.ldlib2-early-window-flipped')
-        if (ldTestHeadless) {
+        if (ldTestHeadless && !ldHasDisplay) {
             if (!toml.exists()) {
                 // A fresh run directory: FML writes this file during startup, so there is nothing to
                 // patch yet and the default (true) would take the client down. Seed just this one

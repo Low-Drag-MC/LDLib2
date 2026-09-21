@@ -36,6 +36,10 @@ public class OptionTestNode extends Node {
         context.addOption("inspector_only", String.class)
                 .withDefaultValue("only in the inspector")
                 .showInInspectorOnly();
+        // the other way round: drawn in the node body, and left out of the inspector
+        context.addOption("node_only", String.class)
+                .withDefaultValue("only in the node")
+                .showInNodeOnly();
     }
 
     @Override

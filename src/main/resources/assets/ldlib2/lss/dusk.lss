@@ -464,13 +464,48 @@ ResourceView tab:host:selected {
   pressed-background: sdf(#212632, 5) scale(0.92);
 }
 
-ResourceView .__tab-view_tab_header_container__ {
+/* One rounded shape cut in two: the strip rounds the corners facing away from the content, the
+   content rounds the ones facing away from the strip, and each is nudged a pixel into the other so
+   the two borders read as one seam. Which corners those are turns with the placement — and mind the
+   radius order, which is top-left, top-right, bottom-right, bottom-left. */
+.__resource-view_placement-left__ .__tab-view_tab_header_container__ {
   background: sdf(#0f1116, 7 0 0 7, 1, #16ffffff);
   transform: translate(1, 0);
 }
 
-ResourceView .__tab-view_tab_content_container__ {
+.__resource-view_placement-left__ .__tab-view_tab_content_container__ {
   background: sdf(#171a21, 0 7 7 0, 1, #16ffffff);
+}
+
+.__resource-view_placement-right__ .__tab-view_tab_header_container__ {
+  background: sdf(#0f1116, 0 7 7 0, 1, #16ffffff);
+  transform: translate(-1, 0);
+}
+
+.__resource-view_placement-right__ .__tab-view_tab_content_container__ {
+  background: sdf(#171a21, 7 0 0 7, 1, #16ffffff);
+}
+
+.__resource-view_placement-top__ .__tab-view_tab_header_container__ {
+  background: sdf(#0f1116, 7 7 0 0, 1, #16ffffff);
+  transform: translate(0, 1);
+}
+
+.__resource-view_placement-top__ .__tab-view_tab_content_container__ {
+  background: sdf(#171a21, 0 0 7 7, 1, #16ffffff);
+}
+
+.__resource-view_placement-bottom__ .__tab-view_tab_header_container__ {
+  background: sdf(#0f1116, 0 0 7 7, 1, #16ffffff);
+  transform: translate(0, -1);
+}
+
+.__resource-view_placement-bottom__ .__tab-view_tab_content_container__ {
+  background: sdf(#171a21, 7 7 0 0, 1, #16ffffff);
+}
+
+.__resource-view_tab-placeholder__ {
+  background: sdf(#3d7c8cff, 5);
 }
 
 .__ui-editor-view_header__ {
@@ -648,4 +683,26 @@ ToggleSelectorConfigurator .__toggle_button__ {
   background: sdf(#f2171a21, 7, 1, #16ffffff);
   padding-all: 6;
   gap-all: 5;
+}
+
+// ── keymap ──────────────────────────────────────────────────────────────────
+.__keymap_chord__ {
+  background: sdf(#0b0d11, 5, 1, #16ffffff);
+}
+
+.__keymap_chord__:hovered {
+  background: sdf(#141821, 5, 1, #2effffff);
+}
+
+.__keymap_chord__.__capturing__ {
+  background: sdf(#0b0d11, 5, 1, #7c8cff);
+}
+
+.__keymap_chord-text__ {
+  text-color: #e6e8ef;
+  text-shadow: false;
+}
+
+.__keymap_chord__.__conflict__ .__keymap_chord-text__ {
+  text-color: #e5484d;
 }

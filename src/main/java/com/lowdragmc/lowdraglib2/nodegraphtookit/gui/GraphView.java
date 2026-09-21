@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.EditAction;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.SDFRectTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
@@ -17,6 +18,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Menu;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Toggle;
+import com.lowdragmc.lowdraglib2.editor.keymap.EditorActions;
+import net.minecraft.resources.Identifier;
+import com.lowdragmc.lowdraglib2.editor.keymap.Keymaps;
 import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
@@ -40,7 +44,13 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.NodeCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.WireCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ElementUpdateVisitor;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.LayoutCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.itemlibrary.ItemLibrary;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.layout.GraphLayoutAlgorithm;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.snap.SnapEngine;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.snap.SnapGuide;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.snap.SnapSettings;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.wire.WireRouteStyle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.itemlibrary.NodeModelLibraryItem;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.NodeElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.wiget.PlacematElement;
@@ -158,11 +168,42 @@ public class GraphView extends UIElement {
     private boolean graphLogExpanded = false;
 
     /** When true, drag-moved and newly-created elements snap their positions to {@link #gridSnapSize}. */
-    @Getter @Setter
-    private boolean snapToGrid = true;
+    @Getter
+    private boolean snapToGrid = GraphViewPreferences.Entry.DEFAULTS.snapToGrid();
     /** Pixel granularity for snap-to-grid alignment. Runtime-mutable; default 16. */
+    @Getter
+    private float gridSnapSize = GraphViewPreferences.Entry.DEFAULTS.gridSnapSize();
+    /**
+     * When true, a drag also lines up with the edges and centres of nearby elements, and draws a
+     * guide through whatever it lined up with. Takes precedence over the grid when both are in
+     * reach — see {@link SnapEngine}.
+     */
+    @Getter
+    private boolean snapToElements = GraphViewPreferences.Entry.DEFAULTS.snapToElements();
+    /**
+     * How close an edge has to come before it grabs, and how far away an element may be and still
+     * count as something the user is lining up with. Both in <em>screen</em> pixels: they are
+     * divided by the canvas zoom before use, so a snap feels the same size at any zoom.
+     */
     @Getter @Setter
-    private float gridSnapSize = 16f;
+    private float elementSnapThreshold = 7f;
+    @Getter @Setter
+    private float elementSnapRange = 600f;
+    /** Guides for the drag currently in progress, in canvas content coordinates. */
+    @Getter
+    private List<SnapGuide> snapGuides = List.of();
+    private final SnapGuideElement snapGuideElement = new SnapGuideElement(this);
+    /** Guards {@link #savePreferences()} while the remembered setup is being put back on. */
+    private boolean applyingPreferences = false;
+    /**
+     * How every wire in this view is routed. View-wide rather than per wire, like
+     * {@link #snapToGrid}: a graph with two wire styles in it reads as a rendering bug.
+     *
+     * <p>Not pushed to the wires — each {@link WireElement} notices the change on its next draw
+     * and rebuilds, which also covers wires created after the change.</p>
+     */
+    @Getter
+    private WireRouteStyle wireRouteStyle = GraphViewPreferences.Entry.DEFAULTS.wireStyle();
 
 
     public GraphView() {
@@ -227,12 +268,12 @@ public class GraphView extends UIElement {
         undoBtn.setText("Undo").setOnClick(event -> historyStack.undo());
         undoBtn.addClass("__node-graph-view_header-undo__");
         Style.defaultPipeline(undoBtn.getLayout(), l -> l.width(30));
-        Style.defaultPipeline(undoBtn.getStyle(), s -> s.tooltips("Ctrl+Z"));
+        bindShortcutTooltip(undoBtn, EditorActions.UNDO, "Ctrl+Z");
         var redoBtn = new Button();
         redoBtn.setText("Redo").setOnClick(event -> historyStack.redo());
         redoBtn.addClass("__node-graph-view_header-redo__");
         Style.defaultPipeline(redoBtn.getLayout(), l -> l.width(30));
-        Style.defaultPipeline(redoBtn.getStyle(), s -> s.tooltips("Ctrl+Y / Ctrl+Shift+Z"));
+        bindShortcutTooltip(redoBtn, EditorActions.REDO, "Ctrl+Y / Ctrl+Shift+Z");
         leftSection.addChildren(undoBtn, redoBtn);
 
         // center section
@@ -256,11 +297,25 @@ public class GraphView extends UIElement {
                 .bindDataSource(SupplierDataSource.of(() -> snapToGrid));
         Style.defaultPipeline(snapToggle.getToggleStyle(), style -> style.baseTexture(Sprites.BORDER1_RT1_DARK)
                 .hoverTexture(Sprites.BORDER1_RT1)
-                .markTexture(Icons.MAGNET)
-                .unmarkTexture(Icons.MAGNET));
+                .markTexture(Icons.GRID)
+                .unmarkTexture(Icons.GRID));
         Style.defaultPipeline(snapToggle.getLayout(), l -> l.width(14).heightPercent(100));
         Style.defaultPipeline(snapToggle.getStyle(), s -> s.tooltips("graph.snap_to_grid"));
         rightSection.addChild(snapToggle);
+
+        var alignToggle = new Toggle();
+        alignToggle.addClass("__node-graph-view_header-align-toggle__");
+        alignToggle.noText()
+                .setOn(snapToElements, false)
+                .setOnToggleChanged(this::setSnapToElements)
+                .bindDataSource(SupplierDataSource.of(() -> snapToElements));
+        Style.defaultPipeline(alignToggle.getToggleStyle(), style -> style.baseTexture(Sprites.BORDER1_RT1_DARK)
+                .hoverTexture(Sprites.BORDER1_RT1)
+                .markTexture(Icons.MAGNET)
+                .unmarkTexture(Icons.MAGNET));
+        Style.defaultPipeline(alignToggle.getLayout(), l -> l.width(14).heightPercent(100));
+        Style.defaultPipeline(alignToggle.getStyle(), s -> s.tooltips("graph.snap_to_elements"));
+        rightSection.addChild(alignToggle);
 
         var fitBtn = new Button();
         fitBtn.noText().setOnClick(event -> fitGraphChildren());
@@ -373,6 +428,10 @@ public class GraphView extends UIElement {
             graphView.addContentChild(layer);
             layers.put(layerName, layer);
         }
+        // Guides belong over the content, and content children draw in the order they were added —
+        // so a layer set installed after construction would otherwise bury them.
+        snapGuideElement.removeSelf();
+        graphView.addContentChild(snapGuideElement);
         return this;
     }
 
@@ -423,6 +482,9 @@ public class GraphView extends UIElement {
         clearGraph();
         this.graph = graph;
         if (this.graph == null) return this;
+        // Before anything is built: the wire style decides how every wire's geometry comes out, and
+        // adopting it afterwards would make the first frame show the old one.
+        applyPreferences(GraphViewPreferences.get(graph.getClass()));
         this.itemLibrary.onLoadGraph(graph.graphModel);
         // Warm the supported-type probe here, on the thread that owns this graph. It is cached per
         // graph class, so this costs nothing after the first graph of a type — but it decides WHICH
@@ -1120,9 +1182,71 @@ public class GraphView extends UIElement {
         return !isMenuOpen && super.isSelfOrChildHover();
     }
 
+    // region view preferences
+
+    public void setSnapToGrid(boolean value) {
+        if (snapToGrid == value) return;
+        snapToGrid = value;
+        savePreferences();
+    }
+
+    public void setGridSnapSize(float value) {
+        if (gridSnapSize == value) return;
+        gridSnapSize = value;
+        savePreferences();
+    }
+
+    public void setSnapToElements(boolean value) {
+        if (snapToElements == value) return;
+        snapToElements = value;
+        savePreferences();
+    }
+
+    public void setWireRouteStyle(WireRouteStyle value) {
+        if (wireRouteStyle == value) return;
+        wireRouteStyle = value;
+        savePreferences();
+    }
+
+    public GraphViewPreferences.Entry currentPreferences() {
+        return new GraphViewPreferences.Entry(snapToGrid, gridSnapSize, snapToElements, wireRouteStyle);
+    }
+
     /**
-     * Rounds a canvas-local position to the snap grid. Returns the input unchanged when snap is
+     * Adopts a remembered setup without writing it back — restoring what is already on disk is not
+     * a change, and treating it as one would rewrite the file on every editor open.
+     */
+    public void applyPreferences(GraphViewPreferences.Entry entry) {
+        applyingPreferences = true;
+        try {
+            setSnapToGrid(entry.snapToGrid());
+            setGridSnapSize(entry.gridSnapSize());
+            setSnapToElements(entry.snapToElements());
+            setWireRouteStyle(entry.wireStyle());
+        } finally {
+            applyingPreferences = false;
+        }
+    }
+
+    /**
+     * No-op without a graph: there is nothing to file the setup under, and a view that never gets
+     * one — a preview, a widget host — has no preferences worth keeping.
+     */
+    protected void savePreferences() {
+        if (applyingPreferences || graph == null) return;
+        GraphViewPreferences.put(graph.getClass(), currentPreferences());
+    }
+
+    // endregion
+
+    /**
+     * Rounds a single canvas-local point to the snap grid. Returns the input unchanged when snap is
      * disabled. Returns a new {@link Vector2f}; the input is not mutated.
+     *
+     * <p>For a <em>point</em> — where a new node lands, where a reroute point is inserted — the
+     * corner is all there is, so this stays plain grid rounding. Moving an existing element goes
+     * through {@link #resolveDragOffset} instead, which knows how big it is and can line its far
+     * edge up as readily as its near one.</p>
      */
     public Vector2f snapPosition(Vector2f pos) {
         if (!snapToGrid || gridSnapSize <= 0) return new Vector2f(pos);
@@ -1131,10 +1255,100 @@ public class GraphView extends UIElement {
                 Math.round(pos.y / gridSnapSize) * gridSnapSize);
     }
 
+    /**
+     * Turns the raw offset a drag has travelled into the one it should actually be committed at,
+     * and records the guides to draw for it.
+     *
+     * <p>One offset for the whole selection, not one per element: snapping each element on its own
+     * pulls them towards different grid lines and quietly changes the distances between them, so
+     * dragging a tidy row of nodes used to un-tidy it.</p>
+     *
+     * @param suppressed the user is holding the override modifier, so place it exactly where the
+     *                   cursor is — the escape hatch every editor with snapping needs
+     * @return a new offset; {@link #getSnapGuides()} is updated as a side effect
+     */
+    public Vector2f resolveDragOffset(Collection<Model> movables, Vector2f rawOffset, boolean suppressed) {
+        var moving = suppressed ? null : unionContentRect(movables, rawOffset);
+        if (moving == null) {
+            snapGuides = List.of();
+            return new Vector2f(rawOffset);
+        }
+        var result = SnapEngine.snap(moving, collectSnapTargets(movables), snapSettings());
+        snapGuides = result.guides();
+        return new Vector2f(rawOffset.x + result.offsetX(), rawOffset.y + result.offsetY());
+    }
+
+    public void clearSnapGuides() {
+        snapGuides = List.of();
+    }
+
+    /** Snap distances are authored in screen pixels; the canvas zoom converts them to content units. */
+    protected SnapSettings snapSettings() {
+        var scale = Math.max(0.01f, graphView.getScale());
+        return new SnapSettings(snapToGrid, gridSnapSize, snapToElements,
+                elementSnapThreshold / scale, elementSnapRange / scale);
+    }
+
+    /** {@code null} when nothing being dragged has a rectangle yet. */
+    protected @Nullable Vector4f unionContentRect(Collection<Model> movables, Vector2f offset) {
+        float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
+        float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
+        var found = false;
+        for (var model : movables) {
+            var rect = contentRectOf(model);
+            if (rect == null) continue;
+            found = true;
+            minX = Math.min(minX, rect.x);
+            minY = Math.min(minY, rect.y);
+            maxX = Math.max(maxX, rect.x + rect.z);
+            maxY = Math.max(maxY, rect.y + rect.w);
+        }
+        if (!found) return null;
+        return new Vector4f(minX + offset.x, minY + offset.y, maxX - minX, maxY - minY);
+    }
+
+    /**
+     * Everything a drag may line up with: the placed elements that are not themselves being moved.
+     *
+     * <p>Wires and reroute points are left out on purpose — a wire has no meaningful edge, and a
+     * reroute dot is small enough that snapping to it would read as jitter rather than as
+     * alignment.</p>
+     */
+    protected List<Vector4f> collectSnapTargets(Collection<Model> movables) {
+        if (!snapToElements) return List.of();
+        var moving = Collections.newSetFromMap(new IdentityHashMap<Model, Boolean>());
+        moving.addAll(movables);
+        var targets = new ArrayList<Vector4f>();
+        for (var model : modelElements.keySet()) {
+            if (moving.contains(model)) continue;
+            if (!(model instanceof AbstractNodeModel || model instanceof PlacematModel
+                    || model instanceof com.lowdragmc.lowdraglib2.nodegraphtookit.model.wiget.StickyNoteModel)) {
+                continue;
+            }
+            var rect = contentRectOf(model);
+            if (rect != null) targets.add(rect);
+        }
+        return targets;
+    }
+
+    /**
+     * An element's rectangle in canvas content coordinates: the model's position — which is stable
+     * while something else is mid-drag — paired with the size its UI actually measured.
+     */
+    public @Nullable Vector4f contentRectOf(@Nullable Model model) {
+        if (!(model instanceof IMovable movable)) return null;
+        var element = modelElements.get(model);
+        if (element == null) return null;
+        var position = movable.getPosition();
+        return new Vector4f(position.x, position.y,
+                Math.max(0f, element.getSizeWidth()), Math.max(0f, element.getSizeHeight()));
+    }
+
     protected void onDragSourceUpdate(UIEvent event) {
         if (event.dragHandler.draggingObject instanceof DragMove dragMove) {
             var offset = new Vector2f(event.x - event.dragStartX, event.y - event.dragStartY);
             if (offset.lengthSquared() < 1f) {
+                clearSnapGuides();
                 for (var model : dragMove.movables) {
                     var ele = modelElements.get(model);
                     if (ele != null && model instanceof IMovable movable) {
@@ -1144,10 +1358,11 @@ public class GraphView extends UIElement {
                 return;
             }
             var localOffset = getContentViewContainer().getLocalMouseNormal(offset.x, offset.y);
+            var snapped = resolveDragOffset(dragMove.movables, localOffset, event.isAltDown());
             for (var model : dragMove.movables) {
                 var ele = modelElements.get(model);
                 if (ele != null && model instanceof IMovable movable) {
-                    var newPos = snapPosition(localOffset.add(movable.getPosition(), new Vector2f()));
+                    var newPos = snapped.add(movable.getPosition(), new Vector2f());
                     Style.importantPipeline(ele.getLayout(), l -> l.left(newPos.x).top(newPos.y));
                 }
             }
@@ -1157,6 +1372,7 @@ public class GraphView extends UIElement {
     protected void onDragEnd(UIEvent event) {
         if (event.dragHandler.draggingObject instanceof DragMove(var targetWasSelected, var target, var movables)) {
             var offset = new Vector2f(event.x - event.dragStartX, event.y - event.dragStartY);
+            clearSnapGuides();
             if (offset.lengthSquared() < 1f) {
                 // too less drag, back to click
                 batchSelection(() -> {
@@ -1170,8 +1386,28 @@ public class GraphView extends UIElement {
                 return;
             }
             var localOffset = getContentViewContainer().getLocalMouseNormal(offset.x, offset.y);
-            dispatchCommand(new GraphCommands.MoveElementsCommand(new ArrayList<>(movables), localOffset));
+            // Snapped here rather than inside the command: the drag preview the user has been
+            // watching was drawn from this same offset, and re-deriving it per element inside the
+            // command is what used to let the drop land somewhere the preview never showed.
+            var snapped = resolveDragOffset(movables, localOffset, event.isAltDown());
+            clearSnapGuides();
+            dispatchCommand(new GraphCommands.MoveElementsCommand(new ArrayList<>(movables), snapped));
         }
+    }
+
+    /**
+     * Shows the chord this button's action currently answers to, resolved when the tooltip is about to
+     * be shown rather than written into the button once.
+     *
+     * <p>Inside an editor that is whatever the user's keymap says, which may not be the default any
+     * more; outside one there is no keymap and the UI's built-in chord still applies, which is what
+     * {@code fallback} is.
+     */
+    protected void bindShortcutTooltip(UIElement button, Identifier actionId, String fallback) {
+        button.addEventListener(UIEvents.MOUSE_ENTER, event -> {
+            var tooltip = Keymaps.shortcutTooltip(button, actionId, fallback);
+            button.style(style -> style.tooltips(tooltip));
+        }, true);
     }
 
     protected void onKeyDown(UIEvent event) {
@@ -1437,6 +1673,12 @@ public class GraphView extends UIElement {
                 createPlacematFromSelection(localPosition)
         );
 
+        menuBuilder.crossLine();
+        // Both are available with an empty selection: auto layout then arranges the whole graph,
+        // and wire style was never about the selection to begin with.
+        appendAutoLayoutMenu(menuBuilder);
+        appendWireStyleMenu(menuBuilder);
+
         if (getSelected().isEmpty()) return menuBuilder;
 
         // Collect selected GraphElementModels
@@ -1468,6 +1710,30 @@ public class GraphView extends UIElement {
         appendContextBlockMenuItems(menuBuilder, selectedModels, mouseX, mouseY);
 
         return menuBuilder;
+    }
+
+    /** Operates on the selection, or on the whole graph when nothing is selected. */
+    private void appendAutoLayoutMenu(TreeBuilder.Menu menuBuilder) {
+        if (graph == null) return;
+        var selection = getSelected().stream()
+                .filter(GraphElementModel.class::isInstance)
+                .map(GraphElementModel.class::cast)
+                .toList();
+        menuBuilder.branch("graph.auto_layout", branch -> {
+            for (var algorithm : GraphLayoutAlgorithm.values()) {
+                branch.leaf(algorithm.getTranslationKey(), () ->
+                        dispatchCommand(new LayoutCommands.AutoLayoutCommand(selection, algorithm)));
+            }
+        });
+    }
+
+    private void appendWireStyleMenu(TreeBuilder.Menu menuBuilder) {
+        menuBuilder.branch("graph.wire_style", branch -> {
+            for (var style : WireRouteStyle.values()) {
+                var icon = style == wireRouteStyle ? Icons.CHECK : IGuiTexture.EMPTY;
+                branch.leaf(icon, style.getTranslationKey(), () -> setWireRouteStyle(style));
+            }
+        });
     }
 
     /**

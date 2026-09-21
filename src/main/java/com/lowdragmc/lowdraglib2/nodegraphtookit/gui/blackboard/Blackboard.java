@@ -18,6 +18,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.ModelElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.VariableDeclarationCommands;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.node.PortElement;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.NodeCommands;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.itemlibrary.NodeModelLibraryItem;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.dependency.ModelUpdateVisitor;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.ChangeHintList;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.Model;
@@ -329,6 +330,20 @@ public class Blackboard extends BlackboardElement implements IGraphTool {
     }
 
     protected void onDragVariablesIntoGraph(UIEvent e, List<VariableDeclarationModelBase> variables) {
+        // One variable, dropped on open canvas, in a graph that has a node for writing one: ask which
+        // was meant, the way Unreal asks for the same gesture. Everything else drops a getter, which
+        // is what this always did — several at once, a drop onto a port, or a graph that only reads.
+        if (variables.size() == 1 && e.target.getFirstAncestorOfType(PortElement.class) == null) {
+            var variable = variables.getFirst();
+            NodeModelLibraryItem setter = graphView.getGraph() == null ? null
+                    : graphView.getGraph().graphModel.createVariableSetterItem(variable);
+            if (setter != null) {
+                var position = graphView.getContentViewContainer()
+                        .worldToLocalLayoutOffset(new Vector2f(e.x, e.y));
+                openGetSetMenu(e, variable, setter, position);
+                return;
+            }
+        }
         var variablesWithInfo = new ArrayList<Pair<VariableDeclarationModelBase, Vector2f>>();
         for (int i = 0; i < variables.size(); i++) {
             variablesWithInfo.add(Pair.of(
@@ -351,6 +366,31 @@ public class Blackboard extends BlackboardElement implements IGraphTool {
         }
 
         graphView.dispatchCommand(command);
+    }
+
+    /**
+     * The Get/Set choice a dropped variable offers. Both arms go through the ordinary create-node
+     * command, so either is one undo away — the reason {@code createVariableSetterItem} hands back a
+     * library item rather than a node.
+     */
+    protected void openGetSetMenu(UIEvent e, VariableDeclarationModelBase variable,
+                                  NodeModelLibraryItem setter, Vector2f position) {
+        var mui = getModularUI();
+        if (mui == null) {
+            return;
+        }
+        var menu = TreeBuilder.Menu.start()
+                .leaf("graph.commands.get_variable", () -> graphView.dispatchCommand(
+                        new NodeCommands.CreateNodeCommand().withNodeOnGraph(variable, position, null)))
+                .leaf("graph.commands.set_variable", () -> graphView.dispatchCommand(
+                        new NodeCommands.CreateNodeCommand().onGraph(setter, position, null)));
+        var layoutOffset = mui.ui.rootElement.worldToLocalLayoutOffset(new Vector2f(e.x, e.y));
+        var contextMenu = new Menu<>(menu.build(), TreeBuilder.Menu::uiProvider)
+                .setHoverTextureProvider(TreeBuilder.Menu::hoverTextureProvider)
+                .setOnNodeClicked(TreeBuilder.Menu::handle);
+        contextMenu.addClass("__blackboard_context-menu__");
+        Style.importantPipeline(contextMenu.getLayout(), l -> l.left(layoutOffset.x).top(layoutOffset.y));
+        mui.ui.rootElement.addChild(contextMenu);
     }
 
     protected void onBlackboardMouseUp(UIEvent event) {

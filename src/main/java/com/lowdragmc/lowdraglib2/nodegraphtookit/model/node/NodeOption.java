@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.nodegraphtookit.model.node;
 
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.INodeOption;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.OptionVisibility;
 import com.mojang.serialization.DataResult;
 import lombok.Getter;
 import net.minecraft.network.chat.Component;
@@ -18,16 +19,38 @@ public class NodeOption implements INodeOption {
     public final String id;
     @Getter
     public final PortModel portModel;
+    /** Which of the node body and the inspector draw this option's editor. */
     @Getter
+    public final OptionVisibility visibility;
+    /** @deprecated mirrors {@link #visibility}, kept so code that read the old field still compiles. */
+    @Deprecated(since = "1.22")
     public final boolean showInInspectorOnly;
     @Getter
     public final int order;
 
-    public NodeOption(String name, PortModel portModel, boolean showInInspectorOnly, int order) {
+    public NodeOption(String name, PortModel portModel, OptionVisibility visibility, int order) {
         this.id = name;
         this.portModel = portModel;
-        this.showInInspectorOnly = showInInspectorOnly;
+        this.visibility = visibility;
+        this.showInInspectorOnly = visibility == OptionVisibility.INSPECTOR_ONLY;
         this.order = order;
+    }
+
+    /**
+     * @deprecated visibility is no longer a single flag, use
+     *             {@link #NodeOption(String, PortModel, OptionVisibility, int)}.
+     */
+    @Deprecated(since = "1.22")
+    public NodeOption(String name, PortModel portModel, boolean showInInspectorOnly, int order) {
+        this(name, portModel, showInInspectorOnly
+                ? OptionVisibility.INSPECTOR_ONLY
+                : OptionVisibility.NODE_AND_INSPECTOR, order);
+    }
+
+    /** @deprecated use {@link #getVisibility()}. */
+    @Deprecated(since = "1.22")
+    public boolean isShowInInspectorOnly() {
+        return visibility == OptionVisibility.INSPECTOR_ONLY;
     }
 
     @Override
