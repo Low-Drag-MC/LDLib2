@@ -1,14 +1,24 @@
-## v26.1.2.39
-* Added six themes — dusk, carbon, mint, plum, paper and latte — one design over four dark palettes and two light
-* Added free movement and uniform scaling from the transform gizmo's centre box
-* Added planar scale handles that scale the two axes they span
-* Added headless UI test runs
-* Added more builtin lss
-* Improved the rotation gizmo to draw only the near half of each ring, over a faint ball outline
-* Improved the planar handles by moving them further out from the centre
-* Fixed the transform gizmo's size and picking under an orthographic camera
-* Fixed a scene click being broadcast to every interactable instead of the nearest one
-* Fixed an option being invisible in the inspector
-* Fixed JEI leaking into the published pom as a runtime dependency
-* Fixed datagen crashing because it reached for a Minecraft instance it never has
-* Fixed a class-path failure reporting the previous run's result as a pass
+## v26.1.2.41
+* Added a configurable keymap framework for the editor, with rebindable chords, key contexts and a settings page
+* Added auto layout to the graph's contextual menu, with layered, grid and force-directed algorithms, and placemats arranged either as one box or from the inside out
+* Added selectable wire route styles — curved, octilinear, orthogonal and straight
+* Added a Get/Set choice when a variable is dropped on a graph that can write one
+* Added canAuthorLiteral, so the item library defaults to the supported types a literal can be authored of
+* Added authored tooltips to port builders, matching option builders
+* Added a node option API for keeping an option out of the inspector, the opposite of showInInspectorOnly
+* Added an lss sprite wrap mode, kebab-case enum values and rect corner segments
+* Improved graph snapping to take a node by whichever of its four edges is nearest, and to line it up with the edges and centres of nearby elements behind a guide
+* Improved the graph view to remember its snapping and wire style per graph type
+* Improved the resource view's tab strip to be resizable, wrapping, reorderable by drag and placeable on any of the four sides, remembered per editor
+* Improved the graph toolbar tooltips to show the chord each action is bound to
+* Fixed a client being unable to join a server that does not have LDLib (thanks @TcatHeBlueCreper)
+* Fixed dragging several elements at once changing the spacing between them
+* Fixed a ResourceProvider crash
+* Fixed the item stack configurator crashing on a null stack, which the block state one already survives
+* Fixed minimizing an editor window without an id crashing the game
+* Fixed every editor sharing one recent projects list instead of keeping its own project types
+* Fixed a search box offering only the value already chosen until a character was typed
+* Fixed a focused text field letting the keys it types bubble on to the container's shortcuts
+* Fixed a loaded constant keeping the type it was saved under instead of following its pin's declared type
+* Fixed a freshly opened graph drawing its wires at the layer's old offset until a node was dragged
+* Fixed the headless test harness disabling the early window on machines that have a display
