@@ -122,17 +122,18 @@ public abstract class GuiRendererMixin implements IGuiRendererExt {
         var window = override != null ? override
                 : Minecraft.getInstance().gameRenderer.gameRenderState().windowRenderState;
 
-        var box = PreciseScissor.quantize(clip, window.guiScale, window.guiScale,
-                window.width, window.height);
         // An empty box means this draw is invisible, which 26.2 has no way to say: RenderPass throws
         // on a zero-area scissor rather than clipping everything away as the GL call behind 26.1's
         // did. See PreciseScissor#atLeastOnePixel for why the smallest legal box is the same answer.
-        box = PreciseScissor.atLeastOnePixel(box, window.width, window.height);
-        if (box.width() <= 0 || box.height() <= 0) {
-            // Only reachable for a target with no area at all, which can hold no geometry either.
-            return;
+        var box = PreciseScissor.atLeastOnePixel(
+                PreciseScissor.quantize(clip, window.guiScale, window.guiScale, window.width, window.height),
+                window.width, window.height);
+        // Still empty only for a target with no area at all, which has no pixel to describe and none
+        // to draw into either. Cancelling without a scissor is right there; falling through to
+        // vanilla would hand the same degenerate numbers to the same throwing call.
+        if (box.width() > 0 && box.height() > 0) {
+            renderPass.enableScissor(box.x(), box.y(), box.width(), box.height());
         }
-        renderPass.enableScissor(box.x(), box.y(), box.width(), box.height());
         ci.cancel();
     }
 

@@ -76,20 +76,59 @@ public class CodeEditor extends TextArea {
         needsReparsing = true;
     }
 
+    /**
+     * The two keys this editor acts on that a plain text area does not.
+     *
+     * <p>Tab is deliberately <b>not</b> owned by {@link TextArea} — there it traverses the focus, which
+     * is the right answer for a one-line-per-field form. A code editor indents with it instead, and a
+     * key that is acted on here must not also reach a container's shortcuts.</p>
+     *
+     * <p>Slash covers both of its jobs: bare it types a character, and with the shortcut modifier it is
+     * the comment toggle {@link #onKeyDown} runs below.</p>
+     */
+    @Override
+    public boolean ownsKey(UIEvent event) {
+        if (!isEditable() || event.isAltDown()) {
+            return false;
+        }
+        return switch (event.keyCode) {
+            case GLFW.GLFW_KEY_TAB -> !event.isCtrlDown();
+            case GLFW.GLFW_KEY_SLASH -> true;
+            default -> super.ownsKey(event);
+        };
+    }
+
     @Override
     protected void onKeyDown(UIEvent event) {
-        if (isEditable()) {
-            switch (event.keyCode) {
-                case GLFW.GLFW_KEY_TAB -> insertText("  ");
-                case GLFW.GLFW_KEY_SLASH -> {
-                    if (isCtrlOrCmdDown()) {
-                        toggleCommentAtBol();
-                    }
-                }
-                default -> super.onKeyDown(event);
-            }
-        } else {
+        if (!isEditable()) {
             super.onKeyDown(event);
+            return;
+        }
+        // ⚠️ The guard TextArea#onKeyDown opens with, repeated because the branches below act on their
+        // key without delegating — and a key that is acted on here and still bubbles is exactly the
+        // bug ownsKey exists to close. Delegating re-runs it, which is harmless: it only sets a flag.
+        if (ownsKey(event)) {
+            event.stopPropagation();
+        }
+        switch (event.keyCode) {
+            // Only the bare key indents. Ctrl+Tab is the editor's "next view" and Alt+Tab is the
+            // window manager's; swallowing either to type two spaces is not what the author meant.
+            case GLFW.GLFW_KEY_TAB -> {
+                if (event.isCtrlDown() || event.isAltDown()) {
+                    super.onKeyDown(event);
+                } else {
+                    insertText("  ");
+                }
+            }
+            case GLFW.GLFW_KEY_SLASH -> {
+                if (isCtrlOrCmdDown()) {
+                    toggleCommentAtBol();
+                } else {
+                    // Not ours to swallow: a bare slash is a character the text area still has to see.
+                    super.onKeyDown(event);
+                }
+            }
+            default -> super.onKeyDown(event);
         }
     }
 

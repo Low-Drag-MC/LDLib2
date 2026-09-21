@@ -159,11 +159,14 @@ public final class PreciseScissor {
         if (box.width() > 0 && box.height() > 0) return box;
         // Nothing legal exists to return; the caller has to skip the scissor entirely.
         if (targetWidth <= 0 || targetHeight <= 0) return box;
-        var width = Math.max(1, box.width());
-        var height = Math.max(1, box.height());
+        // Clamped rather than merely widened, because the box being empty says nothing about the
+        // other axis: this is public, and enableScissor rejects a box that leaves the render area
+        // just as loudly as an empty one.
+        var width = Math.clamp(box.width(), 1, targetWidth);
+        var height = Math.clamp(box.height(), 1, targetHeight);
         return new PixelBox(
-                Math.min(box.x(), targetWidth - width),
-                Math.min(box.y(), targetHeight - height),
+                Math.clamp(box.x(), 0, targetWidth - width),
+                Math.clamp(box.y(), 0, targetHeight - height),
                 width, height);
     }
 

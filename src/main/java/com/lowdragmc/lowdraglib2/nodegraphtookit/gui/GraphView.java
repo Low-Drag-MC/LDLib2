@@ -1734,7 +1734,12 @@ public class GraphView extends UIElement {
         });
     }
 
+    /**
+     * No graph, no wires to route — and on a read-only view this branch is the whole menu, so
+     * leaving it out is what keeps right-click on an empty canvas pure panning.
+     */
     private void appendWireStyleMenu(TreeBuilder.Menu menuBuilder) {
+        if (graph == null) return;
         menuBuilder.branch("graph.wire_style", branch -> {
             for (var style : WireRouteStyle.values()) {
                 var icon = style == wireRouteStyle ? Icons.CHECK : IGuiTexture.EMPTY;
