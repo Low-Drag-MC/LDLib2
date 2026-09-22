@@ -48,6 +48,25 @@ public class EnumAccessor implements IConfiguratorAccessor<Enum> {
         return (Enum) type.getEnumConstants()[0];
     }
 
+    /**
+     * ⚠️ <b>Without a field, the enum class is the only thing that can name the constants.</b>
+     * A graph variable has no {@code Field} behind it and starts on a null value, so neither the
+     * annotations nor {@code supplier.get().getClass()} can be asked — and this used to hand back
+     * the bare row of the interface default, which draws a label and nothing else. An enum variable
+     * was declarable and not editable.
+     */
+    @Override
+    public Configurator create(String name, @Nullable Class<?> type, Supplier<Enum> supplier, Consumer<Enum> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
+        if (field == null && type != null && type.isEnum()) {
+            List<Enum> candidates = Arrays.stream(type.getEnumConstants()).map(Enum.class::cast).toList();
+            var selector = new SelectorConfigurator<>(name, supplier, consumer,
+                    defaultValue(null, type), forceUpdate, candidates, EnumAccessor::getEnumName);
+            selector.setCopiable(value -> value);
+            return selector;
+        }
+        return create(name, supplier, consumer, forceUpdate, field, owner);
+    }
+
     @Override
     public Configurator create(String name, Supplier<Enum> supplier, Consumer<Enum> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
         if (field == null) return IConfiguratorAccessor.super.create(name, supplier, consumer, forceUpdate, field, owner);
