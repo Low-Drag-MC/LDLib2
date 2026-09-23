@@ -5,12 +5,19 @@ import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.lowdragmc.lowdraglib2.client.shader.ILDShaderInstance;
 import com.lowdragmc.lowdraglib2.client.shader.LDProgramDefineManager;
+import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.shaders.Program;
+import com.mojang.blaze3d.shaders.Uniform;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceProvider;
+import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -20,6 +27,8 @@ import java.io.IOException;
 
 @Mixin(ShaderInstance.class)
 public abstract class ShaderInstanceMixin implements ILDShaderInstance {
+    @Shadow @Final @Nullable public Uniform SCREEN_SIZE;
+
     @Inject(method = "<init>(Lnet/minecraft/server/packs/resources/ResourceProvider;Lnet/minecraft/resources/ResourceLocation;Lcom/mojang/blaze3d/vertex/VertexFormat;)V",
             require = 1,
             at = {@At(
@@ -59,5 +68,17 @@ public abstract class ShaderInstanceMixin implements ILDShaderInstance {
             target = "Ljava/util/Map;get(Ljava/lang/Object;)Ljava/lang/Object;"))
     private static Object ldlib2$skipPlainCacheWhenDefinesActive(Object original) {
         return LDProgramDefineManager.hasProgramDefines() ? null : original;
+    }
+
+    /**
+     * rendertype_lines widens lines by LineWidth / ScreenSize in NDC, which spans the viewport; vanilla passes the
+     * window size, so lines drawn into a smaller viewport (scene widgets, other windows) came out thinner per axis.
+     */
+    @Inject(method = "setDefaultUniforms", at = @At("TAIL"))
+    private void ldlib2$lineScreenSizeFromViewport(VertexFormat.Mode mode, Matrix4f frustumMatrix, Matrix4f projectionMatrix,
+                                                   Window window, CallbackInfo ci) {
+        if (SCREEN_SIZE != null && (mode == VertexFormat.Mode.LINES || mode == VertexFormat.Mode.LINE_STRIP)) {
+            SCREEN_SIZE.set((float) GlStateManager.Viewport.width(), (float) GlStateManager.Viewport.height());
+        }
     }
 }
