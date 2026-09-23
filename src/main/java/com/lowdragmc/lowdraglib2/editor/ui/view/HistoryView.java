@@ -110,6 +110,20 @@ public class HistoryView extends View implements IHistoryStack {
         historyUIs.clear();
     }
 
+    /**
+     * Drops everything that could be redone — for a snapshot record whose restore replaced the objects
+     * the entries after it act on, so redoing them would change nothing that is still shown.
+     */
+    public void clearRedo() {
+        for (HistoryItem historyItem : redoStack) {
+            var ui = historyUIs.remove(historyItem);
+            if (ui != null) {
+                scrollerView.viewContainer.removeChild(ui);
+            }
+        }
+        redoStack.clear();
+    }
+
     public void pushHistory(Component name, EditAction action) {
         pushHistory(name, action, null, true);
     }
