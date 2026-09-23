@@ -271,6 +271,31 @@ public class TreeBuilder<K, V> {
             return this;
         }
 
+        /**
+         * What a {@link #disabledLeaf} runs, which is nothing — and how the menu tells that it cannot be
+         * picked ({@code Menu#isEnabled}).
+         */
+        public static final Runnable DISABLED = () -> {
+        };
+
+        /**
+         * An entry that is shown and cannot be picked — Unity's {@code AddDisabledItem}: dimmed, and a click
+         * on it leaves the menu open. For an entry whose absence would hide that the action exists at all,
+         * where it is only unavailable here.
+         */
+        public Menu disabledLeaf(IGuiTexture icon, Component name) {
+            super.leaf(new Tuple<>(icon, name), DISABLED);
+            return this;
+        }
+
+        public Menu disabledLeaf(String name) {
+            return disabledLeaf(IGuiTexture.EMPTY, Component.translatable(name));
+        }
+
+        public Menu disabledLeaf(Component name) {
+            return disabledLeaf(IGuiTexture.EMPTY, name);
+        }
+
         public Menu remove(String name) {
             return remove(Component.translatable(name));
         }

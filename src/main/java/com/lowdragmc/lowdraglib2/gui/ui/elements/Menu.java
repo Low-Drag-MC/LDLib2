@@ -13,6 +13,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.gui.util.ITreeNode;
+import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
@@ -241,9 +242,19 @@ public class Menu<K, T> extends UIElement {
         onClose.run();
     }
 
+    /**
+     * Whether an entry can be picked. One that cannot is still shown — dimmed, not lit up under the
+     * mouse, and a click on it does nothing and leaves the menu open: Unity's {@code AddDisabledItem},
+     * for an entry whose absence would hide that the thing exists ({@link TreeBuilder.Menu#disabledLeaf}).
+     */
+    protected boolean isEnabled(ITreeNode<K, T> node) {
+        return node.getContent() != TreeBuilder.Menu.DISABLED;
+    }
+
     protected void initMenu() {
         if (!root.isLeaf()) {
             for (var child : root.getChildren()) {
+                var enabled = isEnabled(child);
                 var container = new UIElement().layout(layout -> {
                     layout.flexDirection(FlexDirection.ROW);
                     layout.alignItems(AlignItems.CENTER);
@@ -252,7 +263,7 @@ public class Menu<K, T> extends UIElement {
                             layout.flex(1);
                         }).addChild(uiProvider.apply(child.getKey())))
                         .addEventListener(UIEvents.MOUSE_DOWN, e -> {
-                            if (e.button == 0) {
+                            if (e.button == 0 && enabled) {
                                 if (child.isLeaf()) {
                                     if (onNodeClicked != null) {
                                         onNodeClicked.accept(child);
@@ -263,7 +274,9 @@ public class Menu<K, T> extends UIElement {
                                 }
                             }
                         }).addEventListener(UIEvents.MOUSE_ENTER, e -> {
-                            e.currentElement.style(style -> style.backgroundTexture(hoverTextureProvider.apply(child)));
+                            if (enabled) {
+                                e.currentElement.style(style -> style.backgroundTexture(hoverTextureProvider.apply(child)));
+                            }
                             if (!child.isLeaf()) { // open a new menu
                                 if (opened != null) {
                                     if (openedNode == child) return;
@@ -300,6 +313,10 @@ public class Menu<K, T> extends UIElement {
                         .addEventListener(UIEvents.MOUSE_LEAVE, e -> {
                             e.currentElement.style(style -> style.backgroundTexture(textureProvider.apply(child)));
                         }, true);
+                if (!enabled) {
+                    container.addClass("__menu_disabled-node__");
+                    container.style(style -> style.opacity(0.4f));
+                }
                 if (child.isLeaf()) {
                     container.addClass("__menu_leaf-node__");
                 } else {

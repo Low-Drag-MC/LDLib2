@@ -969,10 +969,13 @@ public class AssetBrowser extends UIElement {
 
         menu.leaf("ldlib.gui.editor.menu.copy_path", () -> ClipboardManager.INSTANCE.copyDirect(
                 path == null ? target.getAbsolutePath() : path.getPathWithType()));
+        var projectType = projectTypeOf(target);
         if (container != null && container.getOnEdit() != null && container.getCanEdit().test(path)) {
             menu.leaf(Icons.EDIT_FILE, "ldlib.gui.editor.menu.edit", () -> activate(target));
-        } else if (projectTypeOf(target) != null) {
+        } else if (projectType != null) {
             menu.leaf(Icons.OPEN_FILE, "ldlib.gui.editor.menu.open", () -> activate(target));
+            // the project type's own entries, beside its Open — see ProjectType#appendFileMenu
+            projectType.appendFileMenu(editor, target, menu);
         }
         menu.leaf("ldlib.gui.editor.menu.rename", () -> renameEntry(target));
         menu.crossLine();
