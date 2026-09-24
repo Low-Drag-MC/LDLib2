@@ -18,7 +18,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FontDescription;
 import net.minecraft.network.chat.Style;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
@@ -92,8 +92,8 @@ public class CodeEditor extends TextArea {
             return false;
         }
         return switch (event.keyCode) {
-            case GLFW.GLFW_KEY_TAB -> !event.isCtrlDown();
-            case GLFW.GLFW_KEY_SLASH -> true;
+            case InputConstants.KEY_TAB -> !event.isCtrlDown();
+            case InputConstants.KEY_SLASH -> true;
             default -> super.ownsKey(event);
         };
     }
@@ -113,14 +113,14 @@ public class CodeEditor extends TextArea {
         switch (event.keyCode) {
             // Only the bare key indents. Ctrl+Tab is the editor's "next view" and Alt+Tab is the
             // window manager's; swallowing either to type two spaces is not what the author meant.
-            case GLFW.GLFW_KEY_TAB -> {
+            case InputConstants.KEY_TAB -> {
                 if (event.isCtrlDown() || event.isAltDown()) {
                     super.onKeyDown(event);
                 } else {
                     insertText("  ");
                 }
             }
-            case GLFW.GLFW_KEY_SLASH -> {
+            case InputConstants.KEY_SLASH -> {
                 if (isCtrlOrCmdDown()) {
                     toggleCommentAtBol();
                 } else {

@@ -4,7 +4,6 @@ import com.lowdragmc.lowdraglib2.client.window.OsWindow;
 import com.lowdragmc.lowdraglib2.client.window.OsWindowEvent;
 import com.lowdragmc.lowdraglib2.client.window.OsWindowHost;
 import com.lowdragmc.lowdraglib2.client.window.OsWindowManager;
-import com.lowdragmc.lowdraglib2.client.RenderTargetScope;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.GameRendererAccessor;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.PictureInPictureRendererPoolAccessor;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
@@ -15,7 +14,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGuiRendererExt;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.OffscreenSurface;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.UISurface;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Stylesheet;
-import com.lowdragmc.lowdraglib2.gui.ui.utils.KeyState;
 import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
 import lombok.Setter;
@@ -29,7 +27,8 @@ import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.client.renderer.state.gui.GuiRenderState;
 import net.neoforged.neoforge.client.gui.PictureInPictureRendererRegistration;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.glfw.GLFW;
+import org.lwjgl.sdl.SDLMouse;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,18 +53,17 @@ import java.util.List;
  * path — same shaders, same fonts, same nested framebuffers — and then blitted into the second
  * window. Nothing about how the UI draws itself changes; only where it lands.
  *
- * <p>Input arrives as raw GLFW callbacks queued by {@link OsWindow} and is replayed here through the
- * same {@code ModularUIWidget} methods a {@code Screen} would call, so focus tracking, click counting
- * and drag bookkeeping all behave exactly as they do in the game window. Two overrides are installed
- * for the duration: {@link KeyState} reads <em>this</em> window's keyboard (GLFW key state is
- * per-window, so the game window's would report nothing while this one is focused), and
- * {@link ModularUI#active()} points here so anything that opens a popup without an element in hand
- * parents it into this UI rather than the parent's.
+ * <p>Input arrives as SDL events queued by {@link OsWindow} and is replayed here through the same
+ * {@code ModularUIWidget} methods a {@code Screen} would call, so focus tracking, click counting, drag
+ * bookkeeping and text input all behave exactly as they do in the game window. One override is
+ * installed for the duration: {@link ModularUI#active()} points here so anything that opens a popup
+ * without an element in hand parents it into this UI rather than the parent's. The keyboard needs no
+ * such override — SDL keeps one keyboard state, for whichever window has focus.
  *
  * <p>Windows are opened undecorated, so moving and resizing are handled here rather than by the
  * platform. That is not only cosmetic: a decorated window's move and resize gestures run in a nested
- * modal event loop inside {@code glfwPollEvents}, which Minecraft calls every frame, so dragging one
- * would freeze the entire game for as long as the mouse is held.
+ * modal event loop inside the event pump, which Minecraft runs every frame, so dragging one would
+ * freeze the entire game for as long as the mouse is held.
  */
 public class ModularUIWindow implements OsWindowHost {
 
@@ -132,10 +130,10 @@ public class ModularUIWindow implements OsWindowHost {
     private OffscreenSurface surface;
 
     /**
-     * Modifier bits from the most recent GLFW callback on this window.
+     * Modifier bits from the most recent key or button event on this window.
      *
      * <p>Carried forward because motion events do not report them: a drag has to be told whether
-     * shift was held, and asking the keyboard instead would read the game window's.
+     * shift was held.
      */
     private int lastModifiers;
 
@@ -358,8 +356,7 @@ public class ModularUIWindow implements OsWindowHost {
         // Checked before the scopes are opened: on a frame where nothing happened — most of them —
         // installing and restoring two ambient overrides is pure overhead.
         if (current == null || current.isDestroyed() || !current.hasPendingEvents()) return;
-        try (var ignoredKeys = KeyState.scoped(current::isKeyDown);
-             var ignoredActive = ModularUI.scopedActive(modularUI)) {
+        try (var ignoredActive = ModularUI.scopedActive(modularUI)) {
             current.drain(this::handleEvent);
         }
     }
@@ -385,7 +382,7 @@ public class ModularUIWindow implements OsWindowHost {
                 // whatever was under the cursor last frame.
                 modularUI.refreshHoveredElementAtScreen(mouseX, mouseY);
                 widget.mouseMoved(mouseX, mouseY);
-                for (int button = GLFW.GLFW_MOUSE_BUTTON_1; button <= GLFW.GLFW_MOUSE_BUTTON_3; button++) {
+                for (int button = InputConstants.MOUSE_BUTTON_LEFT; button <= InputConstants.MOUSE_BUTTON_RIGHT; button++) {
                     if (current.isMouseButtonDown(button)) {
                         widget.mouseDragged(mouseEvent(button), mouseX - previousX, mouseY - previousY);
                         break;
@@ -398,11 +395,11 @@ public class ModularUIWindow implements OsWindowHost {
                 // CursorEnter, can take a click before any movement is reported.
                 mouseX = toGuiX(current.getCursorX(), currentSurface);
                 mouseY = toGuiY(current.getCursorY(), currentSurface);
-                if (mouse.button() == GLFW.GLFW_MOUSE_BUTTON_1) {
-                    if (mouse.action() == GLFW.GLFW_PRESS && beginGesture()) {
+                if (mouse.button() == InputConstants.MOUSE_BUTTON_LEFT) {
+                    if (mouse.action() == InputConstants.PRESS && beginGesture()) {
                         return; // the press drives the window, the UI must not also see it
                     }
-                    if (mouse.action() == GLFW.GLFW_RELEASE && gesture != Gesture.NONE) {
+                    if (mouse.action() == InputConstants.RELEASE && gesture != Gesture.NONE) {
                         gesture = Gesture.NONE;
                         updateCursorShape();
                         return;
@@ -411,11 +408,11 @@ public class ModularUIWindow implements OsWindowHost {
                 modularUI.refreshHoveredElementAtScreen(mouseX, mouseY);
                 lastModifiers = mouse.mods();
                 var mouseEvent = mouseEvent(mouse.button());
-                if (mouse.action() == GLFW.GLFW_PRESS) {
+                if (mouse.action() == InputConstants.PRESS) {
                     // Double-click bookkeeping is the widget's own; vanilla only passes this so a
                     // screen can special-case it, and ModularUIWidget does not.
                     widget.mouseClicked(mouseEvent, false);
-                } else if (mouse.action() == GLFW.GLFW_RELEASE) {
+                } else if (mouse.action() == InputConstants.RELEASE) {
                     widget.mouseReleased(mouseEvent);
                 }
             }
@@ -425,23 +422,26 @@ public class ModularUIWindow implements OsWindowHost {
             }
             case OsWindowEvent.Key key -> {
                 lastModifiers = key.mods();
-                // The modifier bits come from this window's own callback, so every shortcut the
-                // widget resolves from KeyEvent#isCopy and friends is correct here without any
-                // reference to the game window's keyboard.
-                var keyEvent = new KeyEvent(key.key(), key.scancode(), key.mods());
-                if (key.action() == GLFW.GLFW_RELEASE) {
+                // The modifier bits come with this window's own event, so every shortcut the widget
+                // resolves from KeyEvent#isCopy and friends is correct here too.
+                var keyEvent = new KeyEvent(key.key(), key.keycode(), key.mods());
+                if (key.action() == InputConstants.RELEASE) {
                     widget.keyReleased(keyEvent);
                 } else {
                     // PRESS and REPEAT both, so held arrows and backspace behave in a text field.
                     widget.keyPressed(keyEvent);
                 }
             }
-            case OsWindowEvent.Char typed -> {
-                lastModifiers = typed.mods();
-                widget.charTyped(new CharacterEvent(typed.codepoint()));
+            case OsWindowEvent.Text typed -> {
+                // Committed text ends any composition, the same order vanilla's KeyboardHandler uses.
+                widget.preeditUpdated(null);
+                typed.text().codePoints().forEach(codePoint -> widget.charTyped(new CharacterEvent(codePoint)));
             }
+            case OsWindowEvent.Preedit preedit -> widget.preeditUpdated(preedit.preedit());
             case OsWindowEvent.CursorEnter enter -> {
-                if (!enter.entered()) {
+                if (enter.entered()) {
+                    updateCursorShape();
+                } else {
                     // Park the pointer well outside so MOUSE_LEAVE fires and hover state clears;
                     // otherwise an element stays highlighted after the cursor has gone.
                     mouseX = CURSOR_OUTSIDE;
@@ -456,7 +456,7 @@ public class ModularUIWindow implements OsWindowHost {
                 modularUI.init(currentSurface.guiScaledWidth(), currentSurface.guiScaledHeight());
             }
             case OsWindowEvent.Focus focus -> widget.setFocused(focus.focused());
-            case OsWindowEvent.FileDrop drop -> ModularUIClientAccess.onFilesDrop(modularUI, drop.files(), currentSurface);
+            case OsWindowEvent.FileDrop drop -> ModularUIClientAccess.onFilesDrop(modularUI, drop.files(), currentSurface, drop.x(), drop.y());
             case OsWindowEvent.CloseRequest ignored -> onCloseRequested();
             case OsWindowEvent.WindowPos ignored -> {
                 // Recorded on the window; nothing in the UI depends on where it sits.
@@ -573,13 +573,11 @@ public class ModularUIWindow implements OsWindowHost {
         if (horizontal && vertical) {
             var topLeft = (edges & EDGE_LEFT) != 0 && (edges & EDGE_TOP) != 0;
             var bottomRight = (edges & EDGE_RIGHT) != 0 && (edges & EDGE_BOTTOM) != 0;
-            // The diagonal shapes need GLFW 3.4 and a desktop that provides them; OsWindow falls back
-            // to leaving the previous shape when one is missing.
-            return topLeft || bottomRight ? GLFW.GLFW_RESIZE_NWSE_CURSOR : GLFW.GLFW_RESIZE_NESW_CURSOR;
+            return topLeft || bottomRight ? SDLMouse.SDL_SYSTEM_CURSOR_NWSE_RESIZE : SDLMouse.SDL_SYSTEM_CURSOR_NESW_RESIZE;
         }
-        if (horizontal) return GLFW.GLFW_HRESIZE_CURSOR;
-        if (vertical) return GLFW.GLFW_VRESIZE_CURSOR;
-        return GLFW.GLFW_ARROW_CURSOR;
+        if (horizontal) return SDLMouse.SDL_SYSTEM_CURSOR_EW_RESIZE;
+        if (vertical) return SDLMouse.SDL_SYSTEM_CURSOR_NS_RESIZE;
+        return SDLMouse.SDL_SYSTEM_CURSOR_DEFAULT;
     }
 
     /**
@@ -714,10 +712,11 @@ public class ModularUIWindow implements OsWindowHost {
             // hover tooltips that are computed every frame and never appear.
             graphics.extractDeferredElements((int) mouseX, (int) mouseY, partialTick);
 
-            // Pass two: flush it into our target. Three overrides, because the gui renderer otherwise
-            // resolves all three from the game window: where pixels land (target), the window metrics
+            // Pass two: flush it into our target. Two overrides, because the gui renderer otherwise
+            // resolves both from the game window: where pixels land (target), and the window metrics
             // everything size-dependent is derived from — projection, scissor and gui scale alike
-            // (window), and which textures the render passes attach (output override).
+            // (window). Picture-in-picture content needs neither: since 26.3 each of those renders
+            // into textures it names itself.
             var device = RenderSystem.getDevice();
             // Depth clears to 0.0, not 1.0: 26.2 draws with a reversed-Z projection, so the far
             // plane is at zero and clearing to one would put every pixel at the near plane and fail
@@ -726,8 +725,7 @@ public class ModularUIWindow implements OsWindowHost {
                     colorTexture, state.clearColorOverride, target.getDepthTexture(), 0.0);
 
             var guiRenderer = ensureRenderer();
-            try (var ignoredOutput = RenderTargetScope.redirect(colorView, target.getDepthTextureView());
-                 var ignoredTarget = IGuiRendererExt.ldlib2$targetOverride(target);
+            try (var ignoredTarget = IGuiRendererExt.ldlib2$targetOverride(target);
                  var ignoredWindow = IGuiRendererExt.ldlib2$windowOverride(target, (int) currentSurface.guiScale())) {
                 try {
                     guiRenderer.render();
@@ -766,6 +764,21 @@ public class ModularUIWindow implements OsWindowHost {
     protected void renderContents(GuiGraphicsExtractor graphics, float partialTick) {
         ModularUIClientAccess.getWidget(modularUI)
                 .extractRenderState(graphics, (int) mouseX, (int) mouseY, partialTick);
+    }
+
+    /**
+     * Tells the input method where the caret is, in this window's gui units — see
+     * {@link ModularUIClientAccess#setTextInputArea}.
+     */
+    public void setTextInputArea(float x0, float y0, float x1, float y1) {
+        var current = window;
+        var currentSurface = surface;
+        if (current == null || currentSurface == null || current.isDestroyed()) return;
+        var toWindowX = currentSurface.screenWidth() / (double) Math.max(1, currentSurface.guiScaledWidth());
+        var toWindowY = currentSurface.screenHeight() / (double) Math.max(1, currentSurface.guiScaledHeight());
+        var left = (int) Math.floor(x0 * toWindowX);
+        var top = (int) Math.floor(y0 * toWindowY);
+        current.setTextInputArea(left, top, (int) Math.ceil(x1 * toWindowX) - left, (int) Math.ceil(y1 * toWindowY) - top);
     }
 
     /** A mouse event at the current cursor position, carrying this window's last modifier bits. */

@@ -16,8 +16,6 @@ import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 
 import java.util.ArrayList;
-import java.util.Map;
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -70,8 +68,9 @@ public class DataComponentConfigurator extends ConfiguratorGroup {
             var key = BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(type);
             if (key == null) continue;
             var tagConfigurator = new TagConfigurator(key.getPath(), () -> {
-                var valueOpt = supplier.get().getPatch(type);
-                var value = valueOpt == null ? prototype.get(type) : valueOpt.orElse(null);
+                var patch = supplier.get();
+                // A patched type whose patch is null has been removed from the prototype.
+                var value = patch.isPatched(type) ? patch.getPatch(type) : prototype.get(type);
                 if (value == null) return EndTag.INSTANCE;
                 DataResult<Tag> result = type.codec().encodeStart(opWithRegistry, value);
                 return result.result().orElse(EndTag.INSTANCE);
@@ -79,10 +78,10 @@ public class DataComponentConfigurator extends ConfiguratorGroup {
                 var value = type.codec().parse(opWithRegistry, tag).result().orElse(null);
                 var patch = supplier.get();
                 var builder = DataComponentPatch.builder();
-                for (Map.Entry<DataComponentType<?>, Optional<?>> entry : patch.entrySet()) {
-                    if (entry.getKey() == type) continue;
-                    var t = (DataComponentType)entry.getKey();
-                    var v = entry.getValue().orElse(null);
+                for (DataComponentType<?> patched : patch.keySet()) {
+                    if (patched == type) continue;
+                    var t = (DataComponentType) patched;
+                    var v = patch.getPatch(patched);
                     if (v == null) builder.remove(t);
                     else builder.set(t, v);
                 }
@@ -95,9 +94,10 @@ public class DataComponentConfigurator extends ConfiguratorGroup {
         }
         // additional data component
         var typeValues = new ArrayList<TypedDataComponent>();
-        for (var entry : supplier.get().entrySet()) {
-            if (prototype.has(entry.getKey())) continue;
-            typeValues.add(TypedDataComponent.createUnchecked(entry.getKey(), entry.getValue().orElse(null)));
+        var currentPatch = supplier.get();
+        for (DataComponentType<?> patched : currentPatch.keySet()) {
+            if (prototype.has(patched)) continue;
+            typeValues.add(TypedDataComponent.createUnchecked(patched, currentPatch.getPatch(patched)));
         }
         var arrayGroup = new ArrayConfiguratorGroup<>("configurator.additional", true,
                 () -> typeValues,
@@ -107,7 +107,7 @@ public class DataComponentConfigurator extends ConfiguratorGroup {
         arrayGroup.setAddDefault(() -> {
             var type = BuiltInRegistries.DATA_COMPONENT_TYPE.stream()
                     .filter(t -> !t.isTransient() &&
-                            supplier.get().entrySet().stream().noneMatch(entry -> entry.getKey() == t))
+                            !supplier.get().isPatched(t))
                     .findAny();
             return TypedDataComponent.createUnchecked(type.orElse(null), null);
         });
@@ -116,11 +116,12 @@ public class DataComponentConfigurator extends ConfiguratorGroup {
             typeValues.clear();
             typeValues.addAll(list);
             var builder = DataComponentPatch.builder();
-            for (Map.Entry<DataComponentType<?>, Optional<?>> entry : supplier.get().entrySet()) {
-                if (prototype.has(entry.getKey())) {
-                    var value = entry.getValue().orElse(null);
-                    if (value == null) builder.remove(entry.getKey());
-                    else builder.set((DataComponentType)entry.getKey(), value);
+            var patch = supplier.get();
+            for (DataComponentType<?> patched : patch.keySet()) {
+                if (prototype.has(patched)) {
+                    var value = patch.getPatch(patched);
+                    if (value == null) builder.remove(patched);
+                    else builder.set((DataComponentType) patched, value);
                 }
             }
             typeValues.forEach(component -> {

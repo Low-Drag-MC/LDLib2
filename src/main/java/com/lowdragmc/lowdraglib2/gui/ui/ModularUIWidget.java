@@ -13,6 +13,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import net.minecraft.client.Minecraft;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
@@ -23,9 +24,10 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.PreeditEvent;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2f;
-import org.lwjgl.glfw.GLFW;
+import org.lwjgl.sdl.SDLKeycode;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Arrays;
@@ -85,6 +87,18 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
         return modularUI.isFocused();
     }
 
+    /**
+     * Whether the user is typing into this UI — its focused element is a text field, area or editor
+     * that accepts input. Vanilla's {@code Screen#isInputCaptured} asks the focused widget this, and
+     * holds back its global key bindings (the friends screen and the like) while it answers yes, the
+     * same way it does for an {@code EditBox}.
+     */
+    @Override
+    public boolean capturesInput() {
+        var focused = modularUI.focusedElement;
+        return focused != null && focused.isTextInput();
+    }
+
     @Override
     public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean doubleClick) {
         // Picking comes first and swallows the press: in focus mode the pointer is an inspector,
@@ -98,7 +112,7 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
         }
         modularUI.lastMouseDownX = (float) mouseButtonEvent.x();
         modularUI.lastMouseDownY = (float) mouseButtonEvent.y();
-        modularUI.lastMouseDownButton = mouseButtonEvent.button();
+        modularUI.lastMouseDownButton = UIEvent.buttonFromInput(mouseButtonEvent.button());
         modularUI.lastMouseDownElement = modularUI.getLastHoveredElement();
         if (modularUI.lastMouseDownElement != null) {
             if (!modularUI.lastMouseDownElement.isFocusable()) {
@@ -149,7 +163,7 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
         }
         var mouseX = mouseButtonEvent.x();
         var mouseY = mouseButtonEvent.y();
-        var button = mouseButtonEvent.button();
+        var button = UIEvent.buttonFromInput(mouseButtonEvent.button());
         modularUI.lastMouseDownButton = -1;
         var releasedElement = modularUI.getLastHoveredElement();
         if (modularUI.getDragHandler().isDragging()) {
@@ -244,7 +258,7 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
     public boolean mouseDragged(MouseButtonEvent mouseButtonEvent, double dragX, double dragY) {
         var mouseX = mouseButtonEvent.x();
         var mouseY = mouseButtonEvent.y();
-        var button = mouseButtonEvent.button();
+        var button = UIEvent.buttonFromInput(mouseButtonEvent.button());
         if (modularUI.getDragHandler().isDragging()) {
             var hasHandler = false;
             var current = modularUI.getLastHoveredElement();
@@ -302,9 +316,9 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
     @Override
     public boolean keyPressed(KeyEvent keyEvent) {
         var keyCode = keyEvent.key();
-        var scanCode = keyEvent.scancode();
+        var shortcutKey = keyEvent.shortcutKey();
         var modifiers = keyEvent.modifiers();
-        if (modularUI.isAllowDebugMode() && keyCode == GLFW.GLFW_KEY_F12) {
+        if (modularUI.isAllowDebugMode() && keyCode == InputConstants.KEY_F12) {
             ModularUIClientAccess.enableDebugger(modularUI, !modularUI.isDebugMode());
         }
         // The debugger's own chords, handled here so they work with the pointer over the UI being
@@ -312,23 +326,23 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
         // keyboard is. Live only while it is open, so a UI's own F1 is untouched otherwise.
         var debugger = ModularUIClientAccess.activeDebugger(modularUI);
         if (debugger != null) {
-            if (keyCode == GLFW.GLFW_KEY_F1) {
+            if (keyCode == InputConstants.KEY_F1) {
                 debugger.setFocusMode(!debugger.isFocusMode());
                 return true;
             }
-            if (keyCode == GLFW.GLFW_KEY_F4) {
+            if (keyCode == InputConstants.KEY_F4) {
                 debugger.setRenderUIShaping(!debugger.isRenderUIShaping());
                 return true;
             }
         }
         modularUI.lastPressedKeyCode = keyCode;
-        modularUI.lastPressedScanCode = scanCode;
+        modularUI.lastPressedShortcutKey = shortcutKey;
         modularUI.lastPressedModifiers = modifiers;
         var command = getCommandType(keyEvent);
         if (modularUI.focusedElement != null) {
             var event = UIEvent.create(UIEvents.KEY_DOWN);
             event.keyCode = keyCode;
-            event.scanCode = scanCode;
+            event.shortcutKey = shortcutKey;
             event.modifiers = modifiers;
             event.target = modularUI.focusedElement;
             UIEventDispatcher.dispatchEvent(event);
@@ -339,11 +353,11 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
             // action twice or keep a rebound shortcut alive on its old key. Same for a key some
             // element consumed outright.
             if (command != null && !event.propagationStopped && !event.keymapResolved) {
-                hasHandler |= dispatchCommand(command, keyCode, scanCode, modifiers);
+                hasHandler |= dispatchCommand(command, keyCode, shortcutKey, modifiers);
             }
             return hasHandler;
         } else if (command != null) {
-            return dispatchCommand(command, keyCode, scanCode, modifiers);
+            return dispatchCommand(command, keyCode, shortcutKey, modifiers);
         }
         return false;
     }
@@ -360,19 +374,19 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
      *
      * @return true if anything handled the command.
      */
-    public boolean dispatchCommand(String command, int keyCode, int scanCode, int modifiers) {
+    public boolean dispatchCommand(String command, int keyCode, int shortcutKey, int modifiers) {
         if (modularUI.focusedElement != null) {
-            var event = createExecuteCommandEvent(command, keyCode, scanCode, modifiers);
+            var event = createExecuteCommandEvent(command, keyCode, shortcutKey, modifiers);
             event.target = modularUI.focusedElement;
             UIEventDispatcher.dispatchEvent(event);
             return event.hasHandler;
         }
-        var event = createValidCommandEvent(command, keyCode, scanCode, modifiers);
+        var event = createValidCommandEvent(command, keyCode, shortcutKey, modifiers);
         event.target = modularUI.ui.rootElement;
         var handled = UIEventDispatcher.dispatchAllChildren(event);
         var hasHandler = event.hasHandler;
         if (handled && event.currentElement != null) {
-            var executeCommandEvent = createExecuteCommandEvent(command, keyCode, scanCode, modifiers);
+            var executeCommandEvent = createExecuteCommandEvent(command, keyCode, shortcutKey, modifiers);
             executeCommandEvent.target = event.currentElement;
             UIEventDispatcher.dispatchEvent(executeCommandEvent);
             hasHandler |= executeCommandEvent.hasHandler;
@@ -380,9 +394,16 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
         return hasHandler;
     }
 
+    /**
+     * The built-in chord a key press stands for, if any.
+     *
+     * <p>Matched on the layout-aware {@link KeyEvent#shortcutKey() shortcut key} and the modifiers the
+     * event carries — the same rule vanilla's {@link KeyEvent#isCopy()} and friends use — so Ctrl+Z is the
+     * key labelled Z on every layout, and the answer does not depend on which window's keyboard a
+     * polling query would have looked at.
+     */
     @Nullable
     protected String getCommandType(KeyEvent keyEvent) {
-        var keyCode = keyEvent.key();
         if (keyEvent.isCopy()) {
             return CommandEvents.COPY;
         } else if (keyEvent.isPaste()) {
@@ -391,37 +412,35 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
             return CommandEvents.CUT;
         } else if (keyEvent.isSelectAll()) {
             return CommandEvents.SELECT_ALL;
-        } else if (keyCode == GLFW.GLFW_KEY_Z && UIElement.isCtrlOrCmdDown() && !UIElement.isShiftDown() && !UIElement.isAltDown()) {
-            return CommandEvents.UNDO;
-        } else if (keyCode == GLFW.GLFW_KEY_Z && UIElement.isCtrlOrCmdDown() && UIElement.isShiftDown() && !UIElement.isAltDown()) {
-            return CommandEvents.REDO;
-        } else if (keyCode == GLFW.GLFW_KEY_Y && UIElement.isCtrlOrCmdDown() && !UIElement.isShiftDown() && !UIElement.isAltDown()) {
-            return CommandEvents.REDO;
-        } else if (keyCode == GLFW.GLFW_KEY_F && UIElement.isCtrlOrCmdDown() && !UIElement.isShiftDown() && !UIElement.isAltDown()) {
-            return CommandEvents.FIND;
-        } else if (keyCode == GLFW.GLFW_KEY_S && UIElement.isCtrlOrCmdDown() && !UIElement.isShiftDown() && !UIElement.isAltDown()) {
-            return CommandEvents.SAVE;
         }
-        return null;
+        if (!keyEvent.hasControlDownWithQuirk() || keyEvent.hasAltDown()) return null;
+        var shift = keyEvent.hasShiftDown();
+        return switch (keyEvent.shortcutKey()) {
+            case SDLKeycode.SDLK_Z -> shift ? CommandEvents.REDO : CommandEvents.UNDO;
+            case SDLKeycode.SDLK_Y -> shift ? null : CommandEvents.REDO;
+            case SDLKeycode.SDLK_F -> shift ? null : CommandEvents.FIND;
+            case SDLKeycode.SDLK_S -> shift ? null : CommandEvents.SAVE;
+            default -> null;
+        };
     }
 
-    protected UIEvent createValidCommandEvent(String command, int keyCode, int scanCode, int modifiers) {
+    protected UIEvent createValidCommandEvent(String command, int keyCode, int shortcutKey, int modifiers) {
         var event = UIEvent.create(UIEvents.VALIDATE_COMMAND);
         event.hasBubblePhase = false;
         event.hasCapturePhase = false;
         event.keyCode = keyCode;
-        event.scanCode = scanCode;
+        event.shortcutKey = shortcutKey;
         event.modifiers = modifiers;
         event.command = command;
         return event;
     }
 
-    protected UIEvent createExecuteCommandEvent(String command, int keyCode, int scanCode, int modifiers) {
+    protected UIEvent createExecuteCommandEvent(String command, int keyCode, int shortcutKey, int modifiers) {
         var event = UIEvent.create(UIEvents.EXECUTE_COMMAND);
         event.hasBubblePhase = false;
         event.hasCapturePhase = false;
         event.keyCode = keyCode;
-        event.scanCode = scanCode;
+        event.shortcutKey = shortcutKey;
         event.modifiers = modifiers;
         event.command = command;
         return event;
@@ -432,7 +451,7 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
         if (modularUI.focusedElement != null) {
             var event = UIEvent.create(UIEvents.KEY_UP);
             event.keyCode = keyEvent.key();
-            event.scanCode = keyEvent.scancode();
+            event.shortcutKey = keyEvent.shortcutKey();
             event.modifiers = keyEvent.modifiers();
             event.target = modularUI.focusedElement;
             UIEventDispatcher.dispatchEvent(event);
@@ -441,11 +460,20 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
         return false;
     }
 
+    /**
+     * An input method's composition, from whichever window this UI is in — the game window's
+     * {@code KeyboardHandler} or an {@code OsWindow}'s own event.
+     */
+    @Override
+    public boolean preeditUpdated(@Nullable PreeditEvent preedit) {
+        return ModularUIClientAccess.dispatchPreedit(modularUI, preedit);
+    }
+
     @Override
     public boolean charTyped(CharacterEvent characterEvent) {
         if (modularUI.focusedElement != null) {
             var event = UIEvent.create(UIEvents.CHAR_TYPED);
-            event.codePoint = (char) characterEvent.codepoint();
+            event.codePoint = characterEvent.codepoint();
 //            event.modifiers = characterEvent.modifiers();
             event.hasCapturePhase = false;
             event.hasBubblePhase = false;
@@ -490,6 +518,9 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
         modularUI.getAnimationEngine().updateFrame();
         modularUI.calculateStyleAndLayout();
         ModularUIClientAccess.cleanTooltip(modularUI);
+        // Focus changes switch text input immediately; this catches the focused element becoming
+        // editable or read-only while it keeps the focus.
+        ModularUIClientAccess.syncTextInput(modularUI);
 
         modularUI.lastDrawPose = new Matrix3x2f(guiGraphics.pose());
         var context = GUIContext.of(guiGraphics, mouseX, mouseY, partialTick);

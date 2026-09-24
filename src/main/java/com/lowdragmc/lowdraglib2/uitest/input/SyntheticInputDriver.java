@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.uitest.input;
 
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.uitest.InputMode;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
@@ -27,8 +28,8 @@ public class SyntheticInputDriver extends InputDriver {
     public void placeCursor(float x, float y) {
         cursorX = x;
         cursorY = y;
-        // No glfwSetCursorPos. The physical pointer belongs to whoever is using the machine, and GLFW
-        // ignores the call anyway while the window is unfocused. The CursorState override installed by
+        // No pointer warp. The physical pointer belongs to whoever is using the machine. The
+        // CursorState override installed by
         // install() is what makes MouseHandler#xpos/ypos - and so the mouseX/mouseY every
         // Screen#render receives, and so ModularUI's per-frame hover - report this position instead.
         syncHover(x, y);
@@ -92,7 +93,7 @@ public class SyntheticInputDriver extends InputDriver {
         markHeld(keyCode, true);
         var screen = screen();
         if (screen != null) {
-            screen.keyPressed(new KeyEvent(keyCode, Keys.scanCodeOf(keyCode), modifiers | heldModifiers()));
+            screen.keyPressed(new KeyEvent(keyCode, Keys.keycodeOf(keyCode), modifiers | heldModifiers()));
         }
     }
 
@@ -100,7 +101,7 @@ public class SyntheticInputDriver extends InputDriver {
     public void keyUp(int keyCode, int modifiers) {
         var screen = screen();
         if (screen != null) {
-            screen.keyReleased(new KeyEvent(keyCode, Keys.scanCodeOf(keyCode), modifiers | heldModifiers()));
+            screen.keyReleased(new KeyEvent(keyCode, Keys.keycodeOf(keyCode), modifiers | heldModifiers()));
         }
         markHeld(keyCode, false);
     }
@@ -117,9 +118,9 @@ public class SyntheticInputDriver extends InputDriver {
      * A synthetic mouse event carrying the modifiers this driver currently considers held.
      *
      * <p>26.1 resolves every shortcut from the event's own modifier bits rather than from
-     * {@code glfwGetKey}, so a synthesised chord only works if those bits are filled in here.
+     * the keyboard state, so a synthesised chord only works if those bits are filled in here.
      */
     private static MouseButtonEvent mouseEvent(float x, float y, int button, int modifiers) {
-        return new MouseButtonEvent(x, y, new MouseButtonInfo(button, modifiers));
+        return new MouseButtonEvent(x, y, new MouseButtonInfo(UIEvent.buttonToInput(button), modifiers));
     }
 }

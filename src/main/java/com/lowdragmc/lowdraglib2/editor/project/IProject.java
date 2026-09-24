@@ -1,5 +1,7 @@
 package com.lowdragmc.lowdraglib2.editor.project;
 
+import org.lwjgl.sdl.SDLKeycode;
+
 import com.lowdragmc.lowdraglib2.editor.resource.Resources;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -85,7 +87,7 @@ public interface IProject extends ValueIOSerializable {
      *     actions = editor.getKeymap().registerAll(
      *             EditorAction.builder(MyIds.RUN)
      *                     .category(KeymapCategories.GENERAL)
-     *                     .defaultChord(KeyChord.key(GLFW.GLFW_KEY_F5))
+     *                     .defaultChord(KeyChord.key(SDLKeycode.SDLK_F5))
      *                     .when(KeyContext.focusWithin(MyView.class))
      *                     .onAction(this::run)
      *                     .build());

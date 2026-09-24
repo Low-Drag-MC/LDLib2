@@ -14,7 +14,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.NoArgsConstructor;
 import net.minecraft.world.entity.player.Player;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -209,16 +209,16 @@ public class TestMCP implements IScreenTest {
             if (!alive[0]) {
                 return;
             }
-            if (event.keyCode == GLFW.GLFW_KEY_UP && directionY[0] != 1) {
+            if (event.keyCode == InputConstants.KEY_UP && directionY[0] != 1) {
                 nextDirectionX[0] = 0;
                 nextDirectionY[0] = -1;
-            } else if (event.keyCode == GLFW.GLFW_KEY_DOWN && directionY[0] != -1) {
+            } else if (event.keyCode == InputConstants.KEY_DOWN && directionY[0] != -1) {
                 nextDirectionX[0] = 0;
                 nextDirectionY[0] = 1;
-            } else if (event.keyCode == GLFW.GLFW_KEY_LEFT && directionX[0] != 1) {
+            } else if (event.keyCode == InputConstants.KEY_LEFT && directionX[0] != 1) {
                 nextDirectionX[0] = -1;
                 nextDirectionY[0] = 0;
-            } else if (event.keyCode == GLFW.GLFW_KEY_RIGHT && directionX[0] != -1) {
+            } else if (event.keyCode == InputConstants.KEY_RIGHT && directionX[0] != -1) {
                 nextDirectionX[0] = 1;
                 nextDirectionY[0] = 0;
             }

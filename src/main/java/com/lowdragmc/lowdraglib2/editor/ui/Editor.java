@@ -45,7 +45,7 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import org.lwjgl.glfw.GLFW;
+import org.lwjgl.sdl.SDLKeycode;
 
 import org.jetbrains.annotations.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -333,7 +333,7 @@ public abstract class Editor extends UIElement implements EditorHost {
         keymap.registerAll(
                 EditorAction.builder(EditorActions.SAVE)
                         .category(KeymapCategories.FILE)
-                        .defaultChord(KeyChord.ctrl(GLFW.GLFW_KEY_S))
+                        .defaultChord(KeyChord.ctrl(SDLKeycode.SDLK_S))
                         // The focused view gets first refusal, because a graph editor's save means
                         // "write this level back", not "write the project file". Only if nobody claims
                         // it does the project itself get saved.
@@ -341,18 +341,18 @@ public abstract class Editor extends UIElement implements EditorHost {
                         .build(),
                 EditorAction.builder(EditorActions.SAVE_AS)
                         .category(KeymapCategories.FILE)
-                        .defaultChord(KeyChord.ctrlShift(GLFW.GLFW_KEY_S))
+                        .defaultChord(KeyChord.ctrlShift(SDLKeycode.SDLK_S))
                         .when(KeyContext.withProject())
                         .onAction(() -> saveAsProject(null))
                         .build(),
                 EditorAction.builder(EditorActions.OPEN_PROJECT)
                         .category(KeymapCategories.FILE)
-                        .defaultChord(KeyChord.ctrl(GLFW.GLFW_KEY_O))
+                        .defaultChord(KeyChord.ctrl(SDLKeycode.SDLK_O))
                         .onAction(fileMenu::onOpenProject)
                         .build(),
                 EditorAction.builder(EditorActions.SETTINGS)
                         .category(KeymapCategories.FILE)
-                        .defaultChord(KeyChord.ctrlAlt(GLFW.GLFW_KEY_S))
+                        .defaultChord(KeyChord.ctrlAlt(SDLKeycode.SDLK_S))
                         .onAction(this::openSettingsPanel)
                         .build(),
                 EditorAction.builder(EditorActions.CLOSE_EDITOR)
@@ -362,31 +362,31 @@ public abstract class Editor extends UIElement implements EditorHost {
                         .onAction(this::close)
                         .build(),
 
-                commandAction(EditorActions.UNDO, CommandEvents.UNDO, KeyChord.ctrl(GLFW.GLFW_KEY_Z), KeyChord.UNBOUND),
-                commandAction(EditorActions.REDO, CommandEvents.REDO, KeyChord.ctrl(GLFW.GLFW_KEY_Y),
-                        KeyChord.ctrlShift(GLFW.GLFW_KEY_Z)),
-                commandAction(EditorActions.COPY, CommandEvents.COPY, KeyChord.ctrl(GLFW.GLFW_KEY_C), KeyChord.UNBOUND),
-                commandAction(EditorActions.CUT, CommandEvents.CUT, KeyChord.ctrl(GLFW.GLFW_KEY_X), KeyChord.UNBOUND),
-                commandAction(EditorActions.PASTE, CommandEvents.PASTE, KeyChord.ctrl(GLFW.GLFW_KEY_V), KeyChord.UNBOUND),
-                commandAction(EditorActions.DUPLICATE, CommandEvents.DUPLICATE, KeyChord.ctrl(GLFW.GLFW_KEY_D), KeyChord.UNBOUND),
-                commandAction(EditorActions.SELECT_ALL, CommandEvents.SELECT_ALL, KeyChord.ctrl(GLFW.GLFW_KEY_A), KeyChord.UNBOUND),
-                commandAction(EditorActions.FIND, CommandEvents.FIND, KeyChord.ctrl(GLFW.GLFW_KEY_F), KeyChord.UNBOUND),
+                commandAction(EditorActions.UNDO, CommandEvents.UNDO, KeyChord.ctrl(SDLKeycode.SDLK_Z), KeyChord.UNBOUND),
+                commandAction(EditorActions.REDO, CommandEvents.REDO, KeyChord.ctrl(SDLKeycode.SDLK_Y),
+                        KeyChord.ctrlShift(SDLKeycode.SDLK_Z)),
+                commandAction(EditorActions.COPY, CommandEvents.COPY, KeyChord.ctrl(SDLKeycode.SDLK_C), KeyChord.UNBOUND),
+                commandAction(EditorActions.CUT, CommandEvents.CUT, KeyChord.ctrl(SDLKeycode.SDLK_X), KeyChord.UNBOUND),
+                commandAction(EditorActions.PASTE, CommandEvents.PASTE, KeyChord.ctrl(SDLKeycode.SDLK_V), KeyChord.UNBOUND),
+                commandAction(EditorActions.DUPLICATE, CommandEvents.DUPLICATE, KeyChord.ctrl(SDLKeycode.SDLK_D), KeyChord.UNBOUND),
+                commandAction(EditorActions.SELECT_ALL, CommandEvents.SELECT_ALL, KeyChord.ctrl(SDLKeycode.SDLK_A), KeyChord.UNBOUND),
+                commandAction(EditorActions.FIND, CommandEvents.FIND, KeyChord.ctrl(SDLKeycode.SDLK_F), KeyChord.UNBOUND),
 
                 EditorAction.builder(EditorActions.NEXT_VIEW)
                         .category(KeymapCategories.VIEW)
-                        .defaultChord(KeyChord.ctrl(GLFW.GLFW_KEY_PAGE_DOWN))
-                        .defaultAlternative(KeyChord.ctrl(GLFW.GLFW_KEY_TAB))
+                        .defaultChord(KeyChord.ctrl(SDLKeycode.SDLK_PAGEDOWN))
+                        .defaultAlternative(KeyChord.ctrl(SDLKeycode.SDLK_TAB))
                         .onAction(context -> cycleFocusedView(1))
                         .build(),
                 EditorAction.builder(EditorActions.PREVIOUS_VIEW)
                         .category(KeymapCategories.VIEW)
-                        .defaultChord(KeyChord.ctrl(GLFW.GLFW_KEY_PAGE_UP))
-                        .defaultAlternative(KeyChord.ctrlShift(GLFW.GLFW_KEY_TAB))
+                        .defaultChord(KeyChord.ctrl(SDLKeycode.SDLK_PAGEUP))
+                        .defaultAlternative(KeyChord.ctrlShift(SDLKeycode.SDLK_TAB))
                         .onAction(context -> cycleFocusedView(-1))
                         .build(),
                 EditorAction.builder(EditorActions.MAXIMIZE_PANE)
                         .category(KeymapCategories.VIEW)
-                        .defaultChord(KeyChord.ctrl(GLFW.GLFW_KEY_M))
+                        .defaultChord(KeyChord.ctrl(SDLKeycode.SDLK_M))
                         .onAction(context -> toggleFocusedPaneMaximized())
                         .build(),
 
@@ -394,7 +394,7 @@ public abstract class Editor extends UIElement implements EditorHost {
                         .category(KeymapCategories.WINDOW)
                         // the desktop convention, and free of anything a text control claims: Ctrl
                         // chords are never owned by a field, and no editor action uses the arrows
-                        .defaultChord(KeyChord.ctrlAlt(GLFW.GLFW_KEY_DOWN))
+                        .defaultChord(KeyChord.ctrlAlt(SDLKeycode.SDLK_DOWN))
                         // declines rather than throws when this editor is not in a window, or is in one
                         // that could never be re-opened - the chord then falls through to whatever else
                         // wants it, which is what an action that cannot run is supposed to do
@@ -403,7 +403,7 @@ public abstract class Editor extends UIElement implements EditorHost {
                         .build(),
                 EditorAction.builder(EditorActions.MAXIMIZE_WINDOW)
                         .category(KeymapCategories.WINDOW)
-                        .defaultChord(KeyChord.ctrlAlt(GLFW.GLFW_KEY_UP))
+                        .defaultChord(KeyChord.ctrlAlt(SDLKeycode.SDLK_UP))
                         .onAction(context -> withWindow(window -> {
                             if (window.isMaximized()) {
                                 window.retoreWindow();
@@ -549,7 +549,7 @@ public abstract class Editor extends UIElement implements EditorHost {
         var behavior = BehaviorSettings.of(this);
         if (!behavior.isShouldCloseOnEsc()) return;
         var keymapSettings = KeymapSettings.of(this);
-        keymapSettings.bindIfUnset(EditorActions.CLOSE_EDITOR, KeyChord.key(GLFW.GLFW_KEY_ESCAPE));
+        keymapSettings.bindIfUnset(EditorActions.CLOSE_EDITOR, KeyChord.key(SDLKeycode.SDLK_ESCAPE));
         keymapSettings.onApply(this);
     }
 

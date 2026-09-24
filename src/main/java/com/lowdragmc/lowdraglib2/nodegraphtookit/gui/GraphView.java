@@ -74,7 +74,7 @@ import org.apache.commons.lang3.function.Consumers;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
@@ -1413,7 +1413,7 @@ public class GraphView extends UIElement {
     protected void onKeyDown(UIEvent event) {
         if (this.isFocused() || panelLayer.getChildren().stream().anyMatch(UIElement::isFocused)) {
             switch (event.keyCode) {
-                case GLFW.GLFW_KEY_DELETE -> {
+                case InputConstants.KEY_DELETE -> {
                     if (readOnly) event.hasHandler = false;
                     else deleteSelectedElements();
                 }

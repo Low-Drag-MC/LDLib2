@@ -24,7 +24,7 @@ import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Arrays;
@@ -397,14 +397,14 @@ public class StructuredTagEditor extends BindableUIElement<Tag> {
             var field = new TextField().setText(key, false);
             field.setTextValidator(text -> isRenameValid(keyParent, key, text));
             field.addEventListener(UIEvents.KEY_DOWN, event -> {
-                if (event.keyCode == GLFW.GLFW_KEY_ENTER || event.keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+                if (event.keyCode == InputConstants.KEY_RETURN || event.keyCode == InputConstants.KEY_NUMPADENTER) {
                     if (renameCompoundKey(keyParent, key, field.getRawText())) {
                         changed();
                     } else {
                         reloadRows();
                     }
                     event.stopPropagation();
-                } else if (event.keyCode == GLFW.GLFW_KEY_ESCAPE) {
+                } else if (event.keyCode == InputConstants.KEY_ESCAPE) {
                     reloadRows();
                     event.stopPropagation();
                 }
@@ -445,7 +445,7 @@ public class StructuredTagEditor extends BindableUIElement<Tag> {
     }
 
     private void onKeyDown(UIEvent event) {
-        if (isFocused() && (event.keyCode == GLFW.GLFW_KEY_DELETE || event.keyCode == GLFW.GLFW_KEY_BACKSPACE)) {
+        if (isFocused() && (event.keyCode == InputConstants.KEY_DELETE || event.keyCode == InputConstants.KEY_BACKSPACE)) {
             deleteSelectedPaths();
             event.stopPropagation();
         }

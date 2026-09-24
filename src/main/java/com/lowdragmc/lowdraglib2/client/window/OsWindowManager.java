@@ -10,7 +10,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderFrameEvent;
 import net.neoforged.neoforge.event.GameShuttingDownEvent;
-import org.lwjgl.glfw.GLFW;
+import org.lwjgl.sdl.SDLVideo;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -51,7 +51,7 @@ public final class OsWindowManager {
 
         private Entry(OsWindow window) {
             this.window = window;
-            this.presenter = OsWindowPresenter.create(window);
+            this.presenter = new OsWindowPresenter(window);
         }
     }
 
@@ -67,15 +67,25 @@ public final class OsWindowManager {
      * Control. There is no way to place a window into another application's fullscreen Space, so the
      * honest answer there is no. Windows and Linux have no such notion and are not restricted.
      *
-     * <p>The graphics backend is not a reason to say no. 26.2 can run on Vulkan as well as OpenGL and
-     * both are supported here; which one is in use only decides how the frame reaches the window, see
-     * {@link OsWindowBackend}.
+     * <p>SDL's offscreen and dummy video drivers have no windows a user could see, so a headless run
+     * answers no as well.
+     *
+     * <p>The graphics backend is not a reason to say no: OpenGL and Vulkan both present through the
+     * same {@code GpuSurface} path, see {@link OsWindowPresenter}.
      */
     public static boolean isAvailable() {
         if (!RenderSystem.isOnRenderThread()) return false;
-        if (GLFW.glfwGetPlatform() == GLFW.GLFW_PLATFORM_NULL) return false;
-        return GLFW.glfwGetPlatform() != GLFW.GLFW_PLATFORM_COCOA
-                || !Minecraft.getInstance().getWindow().isFullscreen();
+        var driver = SDLVideo.SDL_GetCurrentVideoDriver();
+        if (driver == null || "offscreen".equals(driver) || "dummy".equals(driver)) return false;
+        return !"cocoa".equals(driver) || !Minecraft.getInstance().getWindow().isExclusiveFullscreen() && !isMacFullscreen();
+    }
+
+    /**
+     * Whether the game window occupies a fullscreen Space of its own. SDL reports borderless ("desktop")
+     * fullscreen through the window flags; exclusive fullscreen is checked separately above.
+     */
+    private static boolean isMacFullscreen() {
+        return (SDLVideo.SDL_GetWindowFlags(Minecraft.getInstance().getWindow().handle()) & SDLVideo.SDL_WINDOW_FULLSCREEN) != 0;
     }
 
     /**
@@ -100,7 +110,7 @@ public final class OsWindowManager {
     public static void close(OsWindowHost host) {
         var entry = ENTRIES.remove(host);
         if (entry == null) return;
-        // The presenter's framebuffer object lives in the window's context, so it has to go first.
+        // The presenter's surface belongs to the window, so it has to go first.
         entry.presenter.destroy();
         entry.window.destroy();
         host.onDestroyed();
@@ -178,11 +188,12 @@ public final class OsWindowManager {
     }
 
     /**
-     * Closes every window while the GL context is still valid.
+     * Closes every window while the graphics device is still alive.
      *
-     * <p>Not optional. {@code Minecraft#stop} fires this and then closes its own window, which calls
-     * {@code glfwTerminate} — that destroys every remaining window out from under us and leaks the
-     * native callback closures we allocated for them.
+     * <p>Not optional. {@code Minecraft#stop} fires this and then shuts the renderer down, which closes
+     * the device every presenter's surface was created from — a surface outliving it is a use after
+     * free — and then quits SDL, destroying every remaining window out from under us along with the
+     * event filter that routes to them.
      */
     @SubscribeEvent
     public static void onGameShuttingDown(GameShuttingDownEvent event) {

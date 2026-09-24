@@ -7,7 +7,7 @@ import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
-import org.lwjgl.glfw.GLFW;
+import org.lwjgl.sdl.SDLKeycode;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -38,7 +38,7 @@ class KeymapPersistenceTest {
     @Test
     void bindingsRoundTripThroughJson() {
         var overrides = new LinkedHashMap<Identifier, Keymap.Bindings>();
-        overrides.put(SAVE, Keymap.Bindings.of(KeyChord.ctrl(GLFW.GLFW_KEY_W), KeyChord.key(GLFW.GLFW_KEY_F2)));
+        overrides.put(SAVE, Keymap.Bindings.of(KeyChord.ctrl(SDLKeycode.SDLK_W), KeyChord.key(SDLKeycode.SDLK_F2)));
 
         var json = CODEC.encodeStart(JsonOps.INSTANCE, overrides).getOrThrow();
         var read = CODEC.parse(JsonOps.INSTANCE, json).getOrThrow();
@@ -48,7 +48,7 @@ class KeymapPersistenceTest {
 
     @Test
     void theStoredShapeIsTheOneDocumented() {
-        var overrides = Map.of(SAVE, Keymap.Bindings.of(KeyChord.ctrlShift(GLFW.GLFW_KEY_S), KeyChord.UNBOUND));
+        var overrides = Map.of(SAVE, Keymap.Bindings.of(KeyChord.ctrlShift(SDLKeycode.SDLK_S), KeyChord.UNBOUND));
 
         var json = CODEC.encodeStart(JsonOps.INSTANCE, overrides).getOrThrow().getAsJsonObject();
 
@@ -86,7 +86,7 @@ class KeymapPersistenceTest {
 
         var read = CODEC.parse(JsonOps.INSTANCE, json).getOrThrow();
 
-        assertEquals(KeyChord.ctrl(GLFW.GLFW_KEY_W), read.get(SAVE).primary());
+        assertEquals(KeyChord.ctrl(SDLKeycode.SDLK_W), read.get(SAVE).primary());
         assertEquals(KeyChord.UNBOUND, read.get(SAVE).secondary());
     }
 
@@ -100,7 +100,7 @@ class KeymapPersistenceTest {
                 }
                 """);
         var keymap = new Keymap();
-        keymap.register(EditorAction.builder(SAVE).defaultChord(KeyChord.ctrl(GLFW.GLFW_KEY_S))
+        keymap.register(EditorAction.builder(SAVE).defaultChord(KeyChord.ctrl(SDLKeycode.SDLK_S))
                 .onAction(() -> {}).build());
 
         keymap.setOverrides(CODEC.parse(JsonOps.INSTANCE, stored).getOrThrow());

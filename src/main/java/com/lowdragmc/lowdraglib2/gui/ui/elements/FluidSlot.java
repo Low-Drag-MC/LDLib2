@@ -36,7 +36,6 @@ import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.lowdraglib2.utils.FluidHelper;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
-import com.mojang.datafixers.util.Either;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -44,12 +43,9 @@ import mezz.jei.api.neoforge.NeoForgeTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.Block;
+import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.FluidUtil;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.transfer.RangedResourceHandler;
 import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.ResourceHandlerUtil;
@@ -160,7 +156,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
     private final RPCEmitter clickEvent;
 
     @Nullable
-    private Either<IFluidHandler, ResourceHandler<FluidResource>> boundHandler;
+    private ResourceHandler<FluidResource> boundHandler;
     private int tankIndex;
     @Nullable
     private ISubscription fluidTankSubscription;
@@ -204,8 +200,7 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         return this;
     }
 
-    @Deprecated(forRemoval = true)
-    protected FluidSlot bind(@Nullable Either<IFluidHandler, ResourceHandler<FluidResource>> fluidHandler, int tankIndex) {
+    public FluidSlot bind(@Nullable ResourceHandler<FluidResource> fluidHandler, int tankIndex) {
         if (fluidTankSubscription != null) {
             fluidTankSubscription.unsubscribe();
         }
@@ -214,14 +209,11 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         if (boundHandler == null) return this;
         this.tankIndex = tankIndex;
 
-        if (tankIndex < 0 || tankIndex >= boundHandler.map(IFluidHandler::getTanks, ResourceHandler::size)) throw new IllegalArgumentException("Invalid tank index: " + tankIndex);
-        var fluidBinding = DataBindingBuilder.fluidStackS2C(() -> boundHandler.map(
-                left -> left.getFluidInTank(this.tankIndex),
-                right -> right.getResource(this.tankIndex).toStack(right.getAmountAsInt(this.tankIndex))))
+        if (tankIndex < 0 || tankIndex >= boundHandler.size()) throw new IllegalArgumentException("Invalid tank index: " + tankIndex);
+        var fluidBinding = DataBindingBuilder.fluidStackS2C(() ->
+                        boundHandler.getResource(this.tankIndex).toStack(boundHandler.getAmountAsInt(this.tankIndex)))
                 .build();
-        var capacitySyncValue = DataBindingBuilder.intValS2C(() -> boundHandler.map(
-                left -> left.getTankCapacity(this.tankIndex),
-                right -> right.getCapacityAsInt(this.tankIndex, FluidResource.EMPTY)))
+        var capacitySyncValue = DataBindingBuilder.intValS2C(() -> boundHandler.getCapacityAsInt(this.tankIndex, FluidResource.EMPTY))
                 .remoteSetter(this::setCapacity)
                 .build()
                 .getSyncValue();
@@ -235,15 +227,6 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
         };
 
         return this;
-    }
-
-    public FluidSlot bind(@Nullable ResourceHandler<FluidResource> fluidHandler, int tankIndex) {
-        return bind(fluidHandler == null ? null : Either.right(fluidHandler), tankIndex);
-    }
-
-    @Deprecated(forRemoval = true)
-    public FluidSlot bind(@Nullable IFluidHandler fluidTank, int tankIndex) {
-        return bind(fluidTank == null ? null : Either.left(fluidTank), tankIndex);
     }
 
     public FluidSlot xeiPhantom() {
@@ -324,100 +307,46 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
 
     private void tryClickContainer(boolean isShiftKeyDown) {
         if (boundHandler == null) return;
-        if (tankIndex < 0 || tankIndex >= boundHandler.map(IFluidHandler::getTanks, ResourceHandler::size)) return;
+        if (tankIndex < 0 || tankIndex >= boundHandler.size()) return;
         var mui = getModularUI();
         if (mui == null || mui.getMenu() == null) return;
         var player = mui.player;
         if (player == null) return;
-        var menu = mui.getMenu();
-        var carried = menu.getCarried();
-        boundHandler.ifLeft(container -> {
-            var handler = FluidUtil.getFluidHandler(carried);
-            if (handler.isEmpty()) return;
-            int maxAttempts = isShiftKeyDown ? carried.getCount() : 1;
-            var initialFluid = container.getFluidInTank(tankIndex);
-            if (allowClickFilled && initialFluid.getAmount() > 0) {
-                var performedFill = false;
-                for (int i = 0; i < maxAttempts; i++) {
-                    var result = FluidUtil.tryFillContainer(carried, container, Integer.MAX_VALUE, null, false);
-                    if (!result.isSuccess()) break;
-                    ItemStack remainingStack = FluidUtil.tryFillContainer(carried, container, Integer.MAX_VALUE, null, true).getResult();
-                    carried.shrink(1);
-                    performedFill = true;
-                    if (!remainingStack.isEmpty() && !player.addItem(remainingStack)) {
-                        Block.popResource(player.level(), player.getOnPos(), remainingStack);
-                        break;
-                    }
-                }
-                if (performedFill) {
-                    SoundEvent soundevent = FluidHelper.getFillSound(initialFluid);
-                    if (soundevent != null) {
-                        player.level().playSound(null, player.position().x, player.position().y + 0.5, player.position().z, soundevent, SoundSource.BLOCKS, 1.0F, 1.0F);
-                    }
-                    menu.setCarried(carried);
-                    return;
-                }
+        var container = RangedResourceHandler.of(boundHandler, tankIndex, tankIndex + 1);
+        // The cursor access writes the filled/emptied container back to the carried stack itself, including the
+        // shift-click case where a whole stack of buckets is processed and the leftovers go to the inventory.
+        var access = ItemAccess.forPlayerCursor(player, mui.getMenu());
+        var handler = access.getCapability(Capabilities.Fluid.ITEM);
+        if (handler == null) return;
+        var initialFluid = container.getResource(0).toStack(container.getAmountAsInt(0));
+        if (allowClickFilled && container.getAmountAsInt(0) > 0) {
+            boolean performedFill;
+            try (var trans = Transaction.openRoot()) {
+                performedFill = ResourceHandlerUtil.move(container, handler, Predicates.alwaysTrue(), Integer.MAX_VALUE, trans) > 0;
+                trans.commit();
             }
+            if (performedFill) {
+                playFluidSound(player, FluidHelper.getFillSound(initialFluid));
+                return;
+            }
+        }
 
-            if (allowClickDrained) {
-                var performedEmptying = false;
-                for (int i = 0; i < maxAttempts; i++) {
-                    var result = FluidUtil.tryEmptyContainer(carried, container, Integer.MAX_VALUE, null, false);
-                    if (!result.isSuccess()) break;
-                    ItemStack remainingStack = FluidUtil.tryEmptyContainer(carried, container, Integer.MAX_VALUE, null, true).getResult();
-                    carried.shrink(1);
-                    performedEmptying = true;
-                    if (!remainingStack.isEmpty() && !player.getInventory().add(remainingStack)) {
-                        Block.popResource(player.level(), player.getOnPos(), remainingStack);
-                        break;
-                    }
-                }
-                var filledFluid = container.getFluidInTank(tankIndex);
-                if (performedEmptying) {
-                    SoundEvent soundevent = FluidHelper.getEmptySound(filledFluid);
-                    if (soundevent != null) {
-                        player.level().playSound(null, player.position().x, player.position().y + 0.5, player.position().z, soundevent, SoundSource.BLOCKS, 1.0F, 1.0F);
-                    }
-                    menu.setCarried(carried);
-                }
+        if (allowClickDrained) {
+            boolean performedEmptying;
+            try (var trans = Transaction.openRoot()) {
+                performedEmptying = ResourceHandlerUtil.move(handler, container, Predicates.alwaysTrue(), Integer.MAX_VALUE, trans) > 0;
+                trans.commit();
             }
-        }).ifRight(container -> {
-            container = RangedResourceHandler.of(container, tankIndex, tankIndex + 1);
-            var access = ItemAccess.forPlayerCursor(player, menu);
-            var handler = access.getCapability(Capabilities.Fluid.ITEM);
-            if (handler == null) return;
-            var initialFluid = container.getResource(0).toStack(container.getAmountAsInt(0));
-            if (allowClickFilled && container.getAmountAsInt(0) > 0) {
-                var performedFill = false;
-                try (var trans = Transaction.openRoot()) {
-                    var moved = ResourceHandlerUtil.move(container, handler, Predicates.alwaysTrue(), Integer.MAX_VALUE, trans);
-                    performedFill = moved > 0;
-                    trans.commit();
-                }
-                if (performedFill) {
-                    var soundevent = FluidHelper.getFillSound(initialFluid);
-                    if (soundevent != null) {
-                        player.level().playSound(null, player.position().x, player.position().y + 0.5, player.position().z, soundevent, SoundSource.BLOCKS, 1.0F, 1.0F);
-                    }
-                    return;
-                }
+            if (performedEmptying) {
+                playFluidSound(player, FluidHelper.getEmptySound(container.getResource(0).toStack(container.getAmountAsInt(0))));
             }
+        }
+    }
 
-            if (allowClickDrained) {
-                var performedEmptying = false;
-                try (var trans = Transaction.openRoot()) {
-                    var moved = ResourceHandlerUtil.move(handler, container, Predicates.alwaysTrue(), Integer.MAX_VALUE, trans);
-                    performedEmptying = moved > 0;
-                    trans.commit();
-                }
-                if (performedEmptying) {
-                    var soundevent = FluidHelper.getEmptySound(container.getResource(0).toStack(container.getAmountAsInt(0)));
-                    if (soundevent != null) {
-                        player.level().playSound(null, player.position().x, player.position().y + 0.5, player.position().z, soundevent, SoundSource.BLOCKS, 1.0F, 1.0F);
-                    }
-                }
-            }
-        });
+    private static void playFluidSound(Player player, @Nullable SoundEvent sound) {
+        if (sound != null) {
+            player.level().playSound(null, player.position().x, player.position().y + 0.5, player.position().z, sound, SoundSource.BLOCKS, 1.0F, 1.0F);
+        }
     }
 
     protected void onMouseDown(UIEvent event) {

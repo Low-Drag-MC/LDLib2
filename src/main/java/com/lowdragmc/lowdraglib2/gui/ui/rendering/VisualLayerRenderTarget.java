@@ -1,14 +1,15 @@
 package com.lowdragmc.lowdraglib2.gui.ui.rendering;
 
-import com.mojang.blaze3d.GpuFormat;
+import com.mojang.renderpearl.api.GpuFormat;
 import com.mojang.blaze3d.pipeline.RenderTarget;
-import com.mojang.blaze3d.textures.GpuTexture;
-import com.mojang.blaze3d.textures.GpuTextureView;
+import com.mojang.renderpearl.api.textures.GpuTexture;
+import com.mojang.renderpearl.api.textures.GpuTextureView;
 
 public class VisualLayerRenderTarget extends RenderTarget {
     public VisualLayerRenderTarget() {
-        // 26.2: RenderTarget ctor now takes the color GpuFormat.
-        super("ldlib2-visual-layer", true, GpuFormat.RGBA8_UNORM);
+        // Borrows the picture-in-picture renderer's textures (see bind), so the formats only describe
+        // them; RGBA8 colour and a depth attachment are what that renderer allocates.
+        super("ldlib2-visual-layer", GpuFormat.RGBA8_UNORM, GpuFormat.D32_FLOAT);
     }
 
     public void bind(GpuTextureView color, GpuTexture colorTex,

@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.editor.keymap;
 
 import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
-import org.lwjgl.glfw.GLFW;
+import org.lwjgl.sdl.SDLKeycode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -72,9 +72,9 @@ class KeymapTest {
     void aChordReachesTheActionBoundToIt() {
         var log = new ArrayList<Identifier>();
         var keymap = new Keymap();
-        keymap.register(action(SAVE, KeyChord.ctrl(GLFW.GLFW_KEY_S), KeyContext.global(), log));
+        keymap.register(action(SAVE, KeyChord.ctrl(SDLKeycode.SDLK_S), KeyContext.global(), log));
 
-        assertNotNull(keymap.dispatch(TestContext.of(KeyChord.ctrl(GLFW.GLFW_KEY_S))));
+        assertNotNull(keymap.dispatch(TestContext.of(KeyChord.ctrl(SDLKeycode.SDLK_S))));
         assertEquals(List.of(SAVE), log);
     }
 
@@ -82,9 +82,9 @@ class KeymapTest {
     void anUnboundChordReachesNothing() {
         var log = new ArrayList<Identifier>();
         var keymap = new Keymap();
-        keymap.register(action(SAVE, KeyChord.ctrl(GLFW.GLFW_KEY_S), KeyContext.global(), log));
+        keymap.register(action(SAVE, KeyChord.ctrl(SDLKeycode.SDLK_S), KeyContext.global(), log));
 
-        assertNull(keymap.dispatch(TestContext.of(KeyChord.ctrl(GLFW.GLFW_KEY_D))));
+        assertNull(keymap.dispatch(TestContext.of(KeyChord.ctrl(SDLKeycode.SDLK_D))));
         assertNull(keymap.dispatch(TestContext.of(KeyChord.UNBOUND)));
         assertTrue(log.isEmpty());
     }
@@ -93,7 +93,7 @@ class KeymapTest {
     void theMoreSpecificContextWins() {
         var log = new ArrayList<Identifier>();
         var keymap = new Keymap();
-        var delete = KeyChord.key(GLFW.GLFW_KEY_DELETE);
+        var delete = KeyChord.key(SDLKeycode.SDLK_DELETE);
         // registered first on purpose: specificity has to beat registration order, or the panel that
         // happened to load last would own every shared key
         keymap.register(action(DELETE_NODE, delete, KeyContext.focusWithin(GraphPanel.class), log));
@@ -109,7 +109,7 @@ class KeymapTest {
     void anActionOutOfContextStandsAsideForTheGlobalOne() {
         var log = new ArrayList<Identifier>();
         var keymap = new Keymap();
-        var delete = KeyChord.key(GLFW.GLFW_KEY_DELETE);
+        var delete = KeyChord.key(SDLKeycode.SDLK_DELETE);
         keymap.register(action(DELETE_NODE, delete, KeyContext.focusWithin(GraphPanel.class), log));
         keymap.register(action(DELETE_FILE, delete, KeyContext.global(), log));
 
@@ -122,7 +122,7 @@ class KeymapTest {
     void aHandlerThatDeclinesPassesTheChordOn() {
         var log = new ArrayList<Identifier>();
         var keymap = new Keymap();
-        var delete = KeyChord.key(GLFW.GLFW_KEY_DELETE);
+        var delete = KeyChord.key(SDLKeycode.SDLK_DELETE);
         // "nothing is selected here" — the panel is focused but has nothing to delete
         keymap.register(EditorAction.builder(DELETE_NODE).defaultChord(delete)
                 .when(KeyContext.focusWithin(GraphPanel.class))
@@ -139,7 +139,7 @@ class KeymapTest {
     void priorityThenRegistrationOrderBreakTheTie() {
         var log = new ArrayList<Identifier>();
         var keymap = new Keymap();
-        var chord = KeyChord.ctrl(GLFW.GLFW_KEY_S);
+        var chord = KeyChord.ctrl(SDLKeycode.SDLK_S);
         keymap.register(action(SAVE, chord, KeyContext.global(), log));
         // same context, registered later: a project's action takes over from the editor's default
         keymap.register(action(DELETE_FILE, chord, KeyContext.global(), log));
@@ -157,7 +157,7 @@ class KeymapTest {
     void registeringTheSameIdReplacesTheEarlierAction() {
         var runs = new AtomicInteger();
         var keymap = new Keymap();
-        var chord = KeyChord.ctrl(GLFW.GLFW_KEY_S);
+        var chord = KeyChord.ctrl(SDLKeycode.SDLK_S);
         keymap.register(EditorAction.builder(SAVE).defaultChord(chord).onAction(runs::incrementAndGet).build());
         keymap.register(EditorAction.builder(SAVE).defaultChord(chord).onAction(runs::incrementAndGet).build());
 
@@ -171,7 +171,7 @@ class KeymapTest {
     void unregisteringIsIgnoredOnceSomethingElseTookTheId() {
         var log = new ArrayList<Identifier>();
         var keymap = new Keymap();
-        var chord = KeyChord.ctrl(GLFW.GLFW_KEY_S);
+        var chord = KeyChord.ctrl(SDLKeycode.SDLK_S);
         var first = keymap.register(action(SAVE, chord, KeyContext.global(), log));
         keymap.register(action(SAVE, chord, KeyContext.global(), log));
 
@@ -186,7 +186,7 @@ class KeymapTest {
     void unregisteringRemovesTheActionAndItsBinding() {
         var log = new ArrayList<Identifier>();
         var keymap = new Keymap();
-        var chord = KeyChord.ctrl(GLFW.GLFW_KEY_S);
+        var chord = KeyChord.ctrl(SDLKeycode.SDLK_S);
         keymap.register(action(SAVE, chord, KeyContext.global(), log)).unsubscribe();
 
         assertNull(keymap.dispatch(TestContext.of(chord)));
@@ -197,14 +197,14 @@ class KeymapTest {
     void rebindingMovesTheActionToTheNewChord() {
         var log = new ArrayList<Identifier>();
         var keymap = new Keymap();
-        keymap.register(action(SAVE, KeyChord.ctrl(GLFW.GLFW_KEY_S), KeyContext.global(), log));
+        keymap.register(action(SAVE, KeyChord.ctrl(SDLKeycode.SDLK_S), KeyContext.global(), log));
 
-        keymap.setBindings(SAVE, Keymap.Bindings.of(KeyChord.ctrl(GLFW.GLFW_KEY_W), KeyChord.key(GLFW.GLFW_KEY_F2)));
+        keymap.setBindings(SAVE, Keymap.Bindings.of(KeyChord.ctrl(SDLKeycode.SDLK_W), KeyChord.key(SDLKeycode.SDLK_F2)));
 
-        assertNull(keymap.dispatch(TestContext.of(KeyChord.ctrl(GLFW.GLFW_KEY_S))));
-        assertNotNull(keymap.dispatch(TestContext.of(KeyChord.ctrl(GLFW.GLFW_KEY_W))));
+        assertNull(keymap.dispatch(TestContext.of(KeyChord.ctrl(SDLKeycode.SDLK_S))));
+        assertNotNull(keymap.dispatch(TestContext.of(KeyChord.ctrl(SDLKeycode.SDLK_W))));
         // the second chord is a full alternative, not decoration
-        assertNotNull(keymap.dispatch(TestContext.of(KeyChord.key(GLFW.GLFW_KEY_F2))));
+        assertNotNull(keymap.dispatch(TestContext.of(KeyChord.key(SDLKeycode.SDLK_F2))));
         assertEquals(2, log.size());
     }
 
@@ -212,11 +212,11 @@ class KeymapTest {
     void clearingABindingLeavesTheActionUnreachableButListed() {
         var log = new ArrayList<Identifier>();
         var keymap = new Keymap();
-        keymap.register(action(SAVE, KeyChord.ctrl(GLFW.GLFW_KEY_S), KeyContext.global(), log));
+        keymap.register(action(SAVE, KeyChord.ctrl(SDLKeycode.SDLK_S), KeyContext.global(), log));
 
         keymap.setBindings(SAVE, Keymap.Bindings.UNBOUND);
 
-        assertNull(keymap.dispatch(TestContext.of(KeyChord.ctrl(GLFW.GLFW_KEY_S))));
+        assertNull(keymap.dispatch(TestContext.of(KeyChord.ctrl(SDLKeycode.SDLK_S))));
         assertTrue(keymap.bindingsOf(SAVE).isUnbound());
         assertEquals(1, keymap.getActions().size());
         assertTrue(keymap.isOverridden(SAVE), "a cleared binding is an override, not a missing one");
@@ -226,10 +226,10 @@ class KeymapTest {
     void rebindingBackToTheDefaultStopsBeingAnOverride() {
         var log = new ArrayList<Identifier>();
         var keymap = new Keymap();
-        var defaults = Keymap.Bindings.of(KeyChord.ctrl(GLFW.GLFW_KEY_S), KeyChord.UNBOUND);
-        keymap.register(action(SAVE, KeyChord.ctrl(GLFW.GLFW_KEY_S), KeyContext.global(), log));
+        var defaults = Keymap.Bindings.of(KeyChord.ctrl(SDLKeycode.SDLK_S), KeyChord.UNBOUND);
+        keymap.register(action(SAVE, KeyChord.ctrl(SDLKeycode.SDLK_S), KeyContext.global(), log));
 
-        keymap.setBindings(SAVE, Keymap.Bindings.of(KeyChord.ctrl(GLFW.GLFW_KEY_W), KeyChord.UNBOUND));
+        keymap.setBindings(SAVE, Keymap.Bindings.of(KeyChord.ctrl(SDLKeycode.SDLK_W), KeyChord.UNBOUND));
         keymap.setBindings(SAVE, defaults);
 
         // stored as "not overridden", so the action keeps following its default if that ever changes
@@ -241,26 +241,26 @@ class KeymapTest {
     void resetRestoresTheDefaultChord() {
         var log = new ArrayList<Identifier>();
         var keymap = new Keymap();
-        keymap.register(action(SAVE, KeyChord.ctrl(GLFW.GLFW_KEY_S), KeyContext.global(), log));
-        keymap.setBindings(SAVE, Keymap.Bindings.of(KeyChord.ctrl(GLFW.GLFW_KEY_W), KeyChord.UNBOUND));
+        keymap.register(action(SAVE, KeyChord.ctrl(SDLKeycode.SDLK_S), KeyContext.global(), log));
+        keymap.setBindings(SAVE, Keymap.Bindings.of(KeyChord.ctrl(SDLKeycode.SDLK_W), KeyChord.UNBOUND));
 
         keymap.resetBindings(SAVE);
 
-        assertEquals(KeyChord.ctrl(GLFW.GLFW_KEY_S), keymap.bindingsOf(SAVE).primary());
-        assertNotNull(keymap.dispatch(TestContext.of(KeyChord.ctrl(GLFW.GLFW_KEY_S))));
+        assertEquals(KeyChord.ctrl(SDLKeycode.SDLK_S), keymap.bindingsOf(SAVE).primary());
+        assertNotNull(keymap.dispatch(TestContext.of(KeyChord.ctrl(SDLKeycode.SDLK_S))));
     }
 
     @Test
     void overridesForUnknownActionsSurvive() {
         var other = Identifier.fromNamespaceAndPath("othermod", "editor.thing");
         var keymap = new Keymap();
-        keymap.register(EditorAction.builder(SAVE).defaultChord(KeyChord.ctrl(GLFW.GLFW_KEY_S))
+        keymap.register(EditorAction.builder(SAVE).defaultChord(KeyChord.ctrl(SDLKeycode.SDLK_S))
                 .onAction(() -> {}).build());
 
         // as loaded from a settings file another editor wrote
-        keymap.setOverrides(Map.of(other, Keymap.Bindings.of(KeyChord.key(GLFW.GLFW_KEY_F6), KeyChord.UNBOUND)));
+        keymap.setOverrides(Map.of(other, Keymap.Bindings.of(KeyChord.key(SDLKeycode.SDLK_F6), KeyChord.UNBOUND)));
 
-        assertEquals(KeyChord.key(GLFW.GLFW_KEY_F6), keymap.bindingsOf(other).primary());
+        assertEquals(KeyChord.key(SDLKeycode.SDLK_F6), keymap.bindingsOf(other).primary());
         assertTrue(keymap.getOverrides().containsKey(other),
                 "an id this editor has no action for must still be written back, or the other editor loses its keymap");
     }
@@ -269,10 +269,10 @@ class KeymapTest {
     void conflictsAreReportedRatherThanPrevented() {
         var log = new ArrayList<Identifier>();
         var keymap = new Keymap();
-        var chord = KeyChord.key(GLFW.GLFW_KEY_DELETE);
+        var chord = KeyChord.key(SDLKeycode.SDLK_DELETE);
         keymap.register(action(DELETE_NODE, chord, KeyContext.focusWithin(GraphPanel.class), log));
         keymap.register(action(DELETE_FILE, chord, KeyContext.focusWithin(BrowserPanel.class), log));
-        keymap.register(action(SAVE, KeyChord.ctrl(GLFW.GLFW_KEY_S), KeyContext.global(), log));
+        keymap.register(action(SAVE, KeyChord.ctrl(SDLKeycode.SDLK_S), KeyContext.global(), log));
 
         var conflicts = keymap.conflicts();
 
@@ -281,6 +281,6 @@ class KeymapTest {
         assertEquals(2, conflicts.get(0).actions().size());
         assertEquals(List.of(DELETE_NODE), keymap.conflictsWith(DELETE_FILE, chord).stream()
                 .map(EditorAction::id).toList());
-        assertTrue(keymap.conflictsWith(SAVE, KeyChord.ctrl(GLFW.GLFW_KEY_S)).isEmpty());
+        assertTrue(keymap.conflictsWith(SAVE, KeyChord.ctrl(SDLKeycode.SDLK_S)).isEmpty());
     }
 }

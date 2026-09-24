@@ -11,7 +11,7 @@ public interface BufferBuilderAccessor {
      * is private and only indexes a fixed 7-element array (Position..LineWidth), so custom vertex
      * attributes can no longer be written by semantic id. Instead we expose the raw vertex pointer
      * and write custom attributes directly at {@code pointer + element.offset()} (offset resolved by
-     * name from the {@link com.mojang.blaze3d.vertex.VertexFormat}). Returns {@code -1L} when not
+     * name from the {@link com.mojang.renderpearl.api.vertex.VertexFormat}). Returns {@code -1L} when not
      * currently building a vertex.
      */
     @Accessor("vertexPointer")

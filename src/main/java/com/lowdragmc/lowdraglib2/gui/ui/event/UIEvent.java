@@ -33,10 +33,10 @@ public class UIEvent {
                 } else {
                     byteBuf.writeBoolean(false);
                 }
-                if (event.keyCode != 0 || event.scanCode != 0 || event.modifiers != 0 || event.codePoint != 0 ) {
+                if (event.keyCode != 0 || event.shortcutKey != 0 || event.modifiers != 0 || event.codePoint != 0 ) {
                     byteBuf.writeBoolean(true);
                     byteBuf.writeVarInt(event.keyCode);
-                    byteBuf.writeVarInt(event.scanCode);
+                    byteBuf.writeVarInt(event.shortcutKey);
                     byteBuf.writeVarInt(event.modifiers);
                     byteBuf.writeVarInt(event.codePoint);
                 } else {
@@ -60,9 +60,9 @@ public class UIEvent {
                 }
                 if (byteBuf.readBoolean()) {
                     event.keyCode = byteBuf.readVarInt();
-                    event.scanCode = byteBuf.readVarInt();
+                    event.shortcutKey = byteBuf.readVarInt();
                     event.modifiers = byteBuf.readVarInt();
-                    event.codePoint = (char) byteBuf.readVarInt();
+                    event.codePoint = byteBuf.readVarInt();
                 }
                 if (byteBuf.readBoolean()) {
                     event.command = byteBuf.readUtf();
@@ -90,9 +90,26 @@ public class UIEvent {
      */
     public final long timeStamp = System.currentTimeMillis();
     /**
+     * Mouse buttons, in this library's own numbering rather than the windowing backend's. SDL numbers
+     * them left 1, middle 2, right 3 — and GLFW, before it, left 0, right 1, middle 2. {@link #button}
+     * keeps the latter no matter which backend the input came from, so a check written as
+     * {@code event.button == BUTTON_LEFT} means the same thing on every version; the conversion happens
+     * once, where input enters a UI, see {@link #buttonFromInput(int)}.
+     */
+    public static final int BUTTON_LEFT = 0;
+    public static final int BUTTON_RIGHT = 1;
+    public static final int BUTTON_MIDDLE = 2;
+    /** The side buttons, "back" and "forward" in a browser. */
+    public static final int BUTTON_4 = 3;
+    public static final int BUTTON_5 = 4;
+
+    /**
      * Mouse Event data
      */
     public float x, y, deltaX, deltaY;
+    /**
+     * The mouse button, one of the {@code BUTTON_*} constants above.
+     */
     public int button;
     /**
      * Drag Event data
@@ -100,9 +117,19 @@ public class UIEvent {
     public float dragStartX, dragStartY;
     public DragHandler dragHandler;
     /**
-     * Key Event data
+     * Key Event data.
+     * <ul>
+     *   <li>{@code keyCode} is the physical key: an SDL scancode, the {@code InputConstants.KEY_*} values.
+     *   It names a key by where it sits on a US keyboard, whatever the layout. Use it for keys whose
+     *   position is what matters — arrows, Enter, Delete, WASD.</li>
+     *   <li>{@code shortcutKey} is what the key means under the current layout: an SDL keycode, the
+     *   {@code InputConstants.KEYCODE_*} / {@code SDLKeycode.SDLK_*} values — for a letter, its lower-case
+     *   character. Use it for shortcuts named after a letter, the way vanilla's {@code KeyEvent#isCopy}
+     *   does, so Ctrl+Z is the key labelled Z on an AZERTY keyboard too.</li>
+     *   <li>{@code modifiers} is the {@code SDL_KMOD_*} mask, see {@code InputConstants.MOD_*}.</li>
+     * </ul>
      */
-    public int keyCode, scanCode, modifiers;
+    public int keyCode, shortcutKey, modifiers;
     /**
      * Hover Tooltips
      */
@@ -115,7 +142,11 @@ public class UIEvent {
      * Command name
      */
     public String command;
-    public char codePoint;
+    /**
+     * The typed character, as a Unicode code point — one that may lie outside the basic multilingual
+     * plane, such as an emoji, so it does not always fit in a {@code char}.
+     */
+    public int codePoint;
     @Nullable
     public Object customData;
     /**
@@ -231,6 +262,44 @@ public class UIEvent {
 
     public boolean isKeyDown(int keyCode) {
         return UIElement.isKeyDown(keyCode);
+    }
+
+    public boolean isLeftButton() {
+        return button == BUTTON_LEFT;
+    }
+
+    public boolean isRightButton() {
+        return button == BUTTON_RIGHT;
+    }
+
+    public boolean isMiddleButton() {
+        return button == BUTTON_MIDDLE;
+    }
+
+    /**
+     * Converts a button as vanilla and SDL number it ({@code InputConstants.MOUSE_BUTTON_*}: left 1,
+     * middle 2, right 3, then the side buttons) into this library's {@code BUTTON_*} numbering.
+     */
+    public static int buttonFromInput(int inputButton) {
+        return switch (inputButton) {
+            case 1 -> BUTTON_LEFT;
+            case 2 -> BUTTON_MIDDLE;
+            case 3 -> BUTTON_RIGHT;
+            default -> inputButton - 1;
+        };
+    }
+
+    /**
+     * The inverse of {@link #buttonFromInput(int)}, for handing a button back to vanilla — building a
+     * {@code MouseButtonInfo}, say.
+     */
+    public static int buttonToInput(int button) {
+        return switch (button) {
+            case BUTTON_LEFT -> 1;
+            case BUTTON_MIDDLE -> 2;
+            case BUTTON_RIGHT -> 3;
+            default -> button + 1;
+        };
     }
 
 }

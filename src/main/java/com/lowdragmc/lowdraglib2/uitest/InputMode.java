@@ -24,7 +24,7 @@ public enum InputMode {
      * Move the real OS cursor and let Minecraft's own {@code MouseHandler}/{@code KeyboardHandler}
      * deliver the events.
      *
-     * <p>Highest fidelity — it also covers code that reads GLFW directly, such as
+     * <p>Highest fidelity — it also covers code that reads the platform directly, such as
      * {@code ModularUI#onFilesDrop} and {@code UIElement#isShiftDown()}. In exchange it is
      * frame-coupled, <b>focuses the game window and moves your physical pointer</b>, so the machine
      * is unusable for the duration of a run. Prefer it only when a scenario depends on real key state

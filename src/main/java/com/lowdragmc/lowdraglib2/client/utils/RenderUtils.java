@@ -1,10 +1,12 @@
 package com.lowdragmc.lowdraglib2.client.utils;
 
 import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderPipelines;
-import com.mojang.blaze3d.IndexType;
-import com.mojang.blaze3d.PrimitiveTopology;
-import com.mojang.blaze3d.buffers.GpuBuffer;
+import com.mojang.renderpearl.api.pipeline.IndexType;
+import com.mojang.renderpearl.api.pipeline.PrimitiveTopology;
+import com.mojang.renderpearl.api.buffers.GpuBuffer;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.renderpearl.api.commands.RenderPass;
+import net.minecraft.client.renderer.StagedVertexBuffer;
 import com.mojang.blaze3d.vertex.*;
 import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.rendertype.RenderType;
@@ -14,7 +16,6 @@ import net.minecraft.util.Mth;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
-import org.lwjgl.opengl.GL11;
 
 import javax.annotation.Nonnull;
 import java.nio.ByteBuffer;
@@ -31,12 +32,12 @@ public class RenderUtils {
     );
 
     /**
-     * Immediate-mode drawing for a handful of render types at once: geometry is collected per
-     * {@link RenderType} into its own {@link BufferBuilder}, and on {@link #flush()} each mesh is
-     * uploaded to a transient {@link GpuBuffer} and drawn through
-     * {@code RenderType.prepare().drawFromBuffer(...)} — which captures the current
-     * model-view/projection and honours {@code RenderSystem.outputColor/DepthTextureOverride}, so a
-     * draw into a scene FBO lands where it should. Each render type gets its own backing
+     * Immediate-mode drawing for a handful of render types at once, into a render pass that is already
+     * open: geometry is collected per {@link RenderType} into its own {@link BufferBuilder}, and on
+     * {@link #flush()} each mesh is uploaded to a transient {@link GpuBuffer} and drawn through
+     * {@code RenderType.prepare().drawFromBuffer(...)}, which captures the current model-view and
+     * projection. The pass decides where it lands — a scene hook passes
+     * {@code SceneRenderContext#renderPass()}. Each render type gets its own backing
      * {@link ByteBufferBuilder}, so interleaved {@link #getBuffer} calls cannot clobber each other.
      *
      * <p><b>Submission order is preserved, and callers may rely on it.</b> Within a render type,
@@ -52,8 +53,13 @@ public class RenderUtils {
      * by a number that means nothing. A render type drawn through this class should not ask for it.
      */
     public static final class ImmediateDraw implements AutoCloseable {
+        private final RenderPass renderPass;
         private final Map<RenderType, BufferBuilder> builders = new LinkedHashMap<>();
         private final Map<RenderType, ByteBufferBuilder> scratch = new LinkedHashMap<>();
+
+        public ImmediateDraw(RenderPass renderPass) {
+            this.renderPass = renderPass;
+        }
 
         public VertexConsumer getBuffer(RenderType renderType) {
             return builders.computeIfAbsent(renderType, rt -> {
@@ -67,7 +73,7 @@ public class RenderUtils {
             for (var entry : builders.entrySet()) {
                 MeshData mesh = entry.getValue().build();
                 if (mesh != null) {
-                    drawMesh(entry.getKey(), mesh);
+                    drawMesh(renderPass, entry.getKey(), mesh);
                 }
             }
             builders.clear();
@@ -81,8 +87,12 @@ public class RenderUtils {
         }
     }
 
-    /** Upload a built {@link MeshData} and draw it once through {@code renderType} (closes the mesh). */
-    public static void drawMesh(RenderType renderType, MeshData mesh) {
+    /**
+     * Upload a built {@link MeshData} and draw it once through {@code renderType} into {@code renderPass}
+     * (closes the mesh). The transient buffers are released straight after: the draw has been issued,
+     * and the device keeps what an in-flight command still reads.
+     */
+    public static void drawMesh(RenderPass renderPass, RenderType renderType, MeshData mesh) {
         try (mesh) {
             ByteBuffer vb = mesh.vertexBuffer();
             if (vb == null) return;
@@ -103,7 +113,8 @@ public class RenderUtils {
                     indexBuffer = seq.getBuffer(drawState.indexCount());
                     indexType = seq.type();
                 }
-                renderType.prepare().drawFromBuffer(vertexBuffer, indexBuffer, indexType, 0, 0, drawState.indexCount());
+                renderType.prepare().drawFromBuffer(new StagedVertexBuffer.ExecuteInfo(vertexBuffer, indexBuffer, indexType,
+                        0, 0, drawState.indexCount(), drawState.primitiveTopology()), renderPass);
             } finally {
                 vertexBuffer.close();
                 if (ownIndexBuffer != null) ownIndexBuffer.close();
@@ -111,67 +122,21 @@ public class RenderUtils {
         }
     }
 
-    /** Emit geometry into a single {@code renderType} and draw it immediately. */
-    public static void drawImmediate(RenderType renderType, Consumer<VertexConsumer> emit) {
-        try (var draw = new ImmediateDraw()) {
+    /** Emit geometry into a single {@code renderType} and draw it immediately into {@code renderPass}. */
+    public static void drawImmediate(RenderPass renderPass, RenderType renderType, Consumer<VertexConsumer> emit) {
+        try (var draw = new ImmediateDraw(renderPass)) {
             emit.accept(draw.getBuffer(renderType));
         }
     }
 
-    /***
-     * used to render pixels in stencil mask. (e.g. Restrict rendering results to be displayed only in Monitor Screens)
-     * if you want to do the similar things in Gui(2D) not World(3D)
-     * that you don't need to draw mask to build a rect mask easily.
-     * @param mask draw mask
-     * @param renderInMask rendering in the mask
-     * @param renderMaskVisible should mask be rendered too
-     *
-     * @deprecated Drives the stencil through raw {@code GL11} calls against whatever framebuffer
-     *             happens to be bound. Neither half of that survives 26.2: stencil state belongs to
-     *             the pipeline and the render pass now, and on the Vulkan backend there is no GL
-     *             context on the render thread, so LWJGL throws out of the first call rather than
-     *             quietly doing nothing. Mask a UI with a clip rectangle, and anything in the world
-     *             through a render pipeline that declares its own stencil state.
-     */
-    @Deprecated(since = "26.2.2.35", forRemoval = true)
-    public static void useStencil(Runnable mask, Runnable renderInMask, boolean renderMaskVisible) {
-        GL11.glStencilMask(0xFF);
-        GL11.glClearStencil(0);
-        GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT);
-        GL11.glEnable(GL11.GL_STENCIL_TEST);
-
-        GL11.glStencilFunc(GL11.GL_ALWAYS, 1, 0xFF);
-        GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_REPLACE);
-
-        if (!renderMaskVisible) {
-            GL11.glColorMask(false, false, false, false);
-            GL11.glDepthMask(false);
-        }
-
-        mask.run();
-
-        if (!renderMaskVisible) {
-            GL11.glColorMask(true, true, true, true);
-            GL11.glDepthMask(true);
-        }
-
-        GL11.glStencilMask(0x00);
-        GL11.glStencilFunc(GL11.GL_EQUAL, 1, 0xFF);
-        GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP);
-
-        renderInMask.run();
-
-        GL11.glDisable(GL11.GL_STENCIL_TEST);
-    }
-
-    public static void renderBlockOverLay(@Nonnull PoseStack poseStack, BlockPos pos, float r, float g, float b, float scale) {
+    public static void renderBlockOverLay(RenderPass renderPass, @Nonnull PoseStack poseStack, BlockPos pos, float r, float g, float b, float scale) {
         if (pos == null) return;
 
         poseStack.pushPose();
         poseStack.translate((pos.getX() + 0.5), (pos.getY() + 0.5), (pos.getZ() + 0.5));
         poseStack.scale(scale, scale, scale);
 
-        drawImmediate(BLOCK_OVERLAY, buffer ->
+        drawImmediate(renderPass, BLOCK_OVERLAY, buffer ->
                 RenderUtils.renderCubeFace(poseStack, buffer, -0.5f, -0.5f, -0.5f, 0.5f, 0.5f, 0.5f, r, g, b, 1));
 
         poseStack.popPose();
@@ -219,32 +184,32 @@ public class RenderUtils {
         switch (face) {
             case UP -> {
                 poseStack.scale(1.0f, -1.0f, 1.0f);
-                poseStack.mulPose(new Quaternionf().rotateAxis(Mth.HALF_PI, new Vector3f(1, 0, 0)));
-                poseStack.mulPose(new Quaternionf().rotateAxis(angle, new Vector3f(0, 0, 1)));
+                poseStack.rotate(new Quaternionf().rotateAxis(Mth.HALF_PI, new Vector3f(1, 0, 0)));
+                poseStack.rotate(new Quaternionf().rotateAxis(angle, new Vector3f(0, 0, 1)));
             }
             case DOWN -> {
                 poseStack.scale(1.0f, -1.0f, 1.0f);
-                poseStack.mulPose(new Quaternionf().rotateAxis(-Mth.HALF_PI, new Vector3f(1, 0, 0)));
-                poseStack.mulPose(new Quaternionf().rotateAxis(spin == Direction.EAST ? Mth.HALF_PI : spin == Direction.NORTH ? Mth.PI : spin == Direction.WEST ? -Mth.HALF_PI : 0, new Vector3f(0, 0, 1)));
+                poseStack.rotate(new Quaternionf().rotateAxis(-Mth.HALF_PI, new Vector3f(1, 0, 0)));
+                poseStack.rotate(new Quaternionf().rotateAxis(spin == Direction.EAST ? Mth.HALF_PI : spin == Direction.NORTH ? Mth.PI : spin == Direction.WEST ? -Mth.HALF_PI : 0, new Vector3f(0, 0, 1)));
             }
             case EAST -> {
                 poseStack.scale(-1.0f, -1.0f, -1.0f);
-                poseStack.mulPose(new Quaternionf().rotateAxis(-Mth.HALF_PI, new Vector3f(0, 1, 0)));
-                poseStack.mulPose(new Quaternionf().rotateAxis(angle, new Vector3f(0, 0, 1)));
+                poseStack.rotate(new Quaternionf().rotateAxis(-Mth.HALF_PI, new Vector3f(0, 1, 0)));
+                poseStack.rotate(new Quaternionf().rotateAxis(angle, new Vector3f(0, 0, 1)));
             }
             case WEST -> {
                 poseStack.scale(-1.0f, -1.0f, -1.0f);
-                poseStack.mulPose(new Quaternionf().rotateAxis(Mth.HALF_PI, new Vector3f(0, 1, 0)));
-                poseStack.mulPose(new Quaternionf().rotateAxis(angle, new Vector3f(0, 0, 1)));
+                poseStack.rotate(new Quaternionf().rotateAxis(Mth.HALF_PI, new Vector3f(0, 1, 0)));
+                poseStack.rotate(new Quaternionf().rotateAxis(angle, new Vector3f(0, 0, 1)));
             }
             case NORTH -> {
                 poseStack.scale(-1.0f, -1.0f, -1.0f);
-                poseStack.mulPose(new Quaternionf().rotateAxis(angle, new Vector3f(0, 0, 1)));
+                poseStack.rotate(new Quaternionf().rotateAxis(angle, new Vector3f(0, 0, 1)));
             }
             case SOUTH -> {
                 poseStack.scale(-1.0f, -1.0f, -1.0f);
-                poseStack.mulPose(new Quaternionf().rotateAxis(Mth.PI, new Vector3f(0, 1, 0)));
-                poseStack.mulPose(new Quaternionf().rotateAxis(angle, new Vector3f(0, 0, 1)));
+                poseStack.rotate(new Quaternionf().rotateAxis(Mth.PI, new Vector3f(0, 1, 0)));
+                poseStack.rotate(new Quaternionf().rotateAxis(angle, new Vector3f(0, 0, 1)));
             }
             default -> {
             }

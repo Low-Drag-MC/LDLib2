@@ -1,6 +1,6 @@
 package com.lowdragmc.lowdraglib2.client.font;
 
-import com.mojang.blaze3d.textures.GpuSampler;
+import com.mojang.renderpearl.api.textures.GpuSampler;
 import net.minecraft.client.gui.font.TextRenderable;
 
 /**

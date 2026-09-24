@@ -10,9 +10,8 @@ import org.jetbrains.annotations.Nullable;
  * {@code ModularUI}'s per-frame hover.
  *
  * <p>The sibling of {@link KeyState}, and it exists for the same reason. The only way to move the
- * pointer from inside the process is {@code glfwSetCursorPos}, which moves the pointer of whoever is
- * sitting at the machine, and which GLFW ignores entirely while the window is unfocused. Automation
- * built on it can therefore only run in the foreground of an idle machine. With this seam the
+ * pointer from inside the process is {@code SDL_WarpMouseInWindow}, which moves the pointer of whoever
+ * is sitting at the machine. Automation built on it can therefore only run in the foreground of an idle machine. With this seam the
  * position is simply reported, so a run needs neither focus nor the user's mouse.
  *
  * <p>This describes the <em>game</em> window only. A UI hosted in its own OS window reads that

@@ -16,16 +16,14 @@ import com.lowdragmc.lowdraglib2.uitest.ScenarioBuilder;
 import com.lowdragmc.lowdraglib2.uitest.ScenarioOptions;
 import com.lowdragmc.lowdraglib2.uitest.TestContext;
 import com.lowdragmc.lowdraglib2.uitest.UIScenario;
-import org.lwjgl.glfw.GLFW;
 
 /**
  * Tears a view out of the editor into a real operating-system window and puts it back.
  *
  * <p>What this exercises cannot be seen in the screenshots — they only ever show the game window —
- * but it is the part most likely to break: creating a second GLFW window whose context shares
- * objects with Minecraft's, building capabilities for it, rendering the view into an off-screen
- * target on Minecraft's context, blitting that texture across the context boundary, and tearing all
- * of it down again. Any of that going wrong surfaces here as a failed check or a dead client rather
+ * but it is the part most likely to break: creating a second SDL window through the game's graphics
+ * backend, routing its events around the game's, rendering the view into an off-screen target,
+ * presenting that texture through the window's own surface, and tearing all of it down again. Any of that going wrong surfaces here as a failed check or a dead client rather
  * than as something a user finds later.
  *
  * <p>The frames after floating matter as much as the assertions: they prove Minecraft's own frame is
@@ -247,13 +245,11 @@ public class FloatingViewScenario implements UIScenario {
         var pane = view.getViewContainer();
         ctx.require("the view is in a pane", pane != null);
         var topLeft = pane.getWorldMouse(pane.getPositionX(), pane.getPositionY());
-        var scale = ctx.mc().getWindow().getGuiScale();
-        var originX = new int[1];
-        var originY = new int[1];
-        GLFW.glfwGetWindowPos(ctx.mc().getWindow().handle(), originX, originY);
+        var window = ctx.mc().getWindow();
+        var scale = window.getGuiScale() / window.getPixelDensity();
         return new int[]{
-                originX[0] + (int) (topLeft.x * scale),
-                originY[0] + (int) (topLeft.y * scale),
+                window.getX() + (int) (topLeft.x * scale),
+                window.getY() + (int) (topLeft.y * scale),
                 (int) (pane.getSizeWidth() * scale),
                 (int) (pane.getSizeHeight() * scale)};
     }

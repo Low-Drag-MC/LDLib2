@@ -1,21 +1,15 @@
 #version 330
+#extension GL_ARB_separate_shader_objects : require
 
-// Can't moj_import in things used during startup, when resource packs don't exist.
-// This is a copy of dynamicimports.glsl
-layout(std140) uniform DynamicTransforms {
-    mat4 ModelViewMat;
-    vec4 ColorModulator;
-    vec3 ModelOffset;
-    mat4 TextureMat;
-};
+#include <minecraft:dynamictransforms.glsl>
 
-in vec2 vLocalPos;
-in vec4 vColor;
-in vec2 vHalfSize;
-in float vBorder;
-in vec4 vRadius;  // tl, tr, br, bl
+layout(location = 0) in vec2 vLocalPos;
+layout(location = 1) in vec4 vColor;
+layout(location = 2) in vec2 vHalfSize;
+layout(location = 3) in float vBorder;
+layout(location = 4) in vec4 vRadius;  // tl, tr, br, bl
 
-out vec4 fragColor;
+layout(location = 0) out vec4 fragColor;
 
 float sdRoundedBox(vec2 p, vec2 b, vec4 r) {
     r.xy = (p.x > 0.0) ? r.xy : r.zw;

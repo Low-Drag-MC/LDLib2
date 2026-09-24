@@ -9,12 +9,16 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventDispatcher;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.UISurface;
+import com.lowdragmc.lowdraglib2.gui.ui.window.ModularUIWindow;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.input.PreeditEvent;
 import net.minecraft.client.renderer.Rect2i;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.glfw.GLFW;
+import org.lwjgl.sdl.SDLMouse;
+import org.lwjgl.sdl.SDLVideo;
+import org.lwjgl.system.MemoryStack;
 
 import java.io.File;
 import java.util.List;
@@ -53,7 +57,7 @@ public final class ModularUIClientAccess {
      */
     public static boolean dispatchCommand(ModularUI modularUI, String command) {
         return getWidget(modularUI).dispatchCommand(command,
-                modularUI.lastPressedKeyCode, modularUI.lastPressedScanCode, modularUI.lastPressedModifiers);
+                modularUI.lastPressedKeyCode, modularUI.lastPressedShortcutKey, modularUI.lastPressedModifiers);
     }
 
     @Nullable
@@ -84,30 +88,30 @@ public final class ModularUIClientAccess {
     }
 
     /**
-     * Routes files dropped onto the window from outside the game to the element under the cursor, as a
-     * {@link UIEvents#FILE_DROP} event that bubbles up from it.
+     * Routes files dropped onto the game window from outside the game to the element under the cursor,
+     * as a {@link UIEvents#FILE_DROP} event that bubbles up from it.
      * <p>
-     * The cursor position is queried from the window rather than taken from the last mouse move: the
+     * The cursor position is queried from the platform rather than taken from the last mouse move: the
      * operating system does not deliver mouse movement while a drag from another application is in
      * progress, so the cached hover element is whatever was under the cursor before the drag began.
      *
      * @return true if any element handled the drop.
      */
     public static boolean onFilesDrop(ModularUI modularUI, List<File> files) {
-        return onFilesDrop(modularUI, files, UISurface.main());
+        var surface = UISurface.main();
+        var cursor = queryCursor(surface.windowHandle());
+        return onFilesDrop(modularUI, files, surface, cursor[0], cursor[1]);
     }
 
     /**
-     * As {@link #onFilesDrop(ModularUI, List)}, but against a UI that is not hosted in the game
-     * window — the cursor has to be queried from that window and scaled by its own size.
+     * As {@link #onFilesDrop(ModularUI, List)}, for a drop whose position is already known — SDL reports
+     * where a drop landed in a window LDLib2 owns — in that window's coordinates, which are scaled by the
+     * surface's own size.
      */
-    public static boolean onFilesDrop(ModularUI modularUI, List<File> files, UISurface surface) {
+    public static boolean onFilesDrop(ModularUI modularUI, List<File> files, UISurface surface, double windowX, double windowY) {
         if (files.isEmpty()) return false;
-        var x = new double[1];
-        var y = new double[1];
-        GLFW.glfwGetCursorPos(surface.windowHandle(), x, y);
-        var mouseX = x[0] * surface.guiScaledWidth() / surface.screenWidth();
-        var mouseY = y[0] * surface.guiScaledHeight() / surface.screenHeight();
+        var mouseX = windowX * surface.guiScaledWidth() / Math.max(1, surface.screenWidth());
+        var mouseY = windowY * surface.guiScaledHeight() / Math.max(1, surface.screenHeight());
 
         var hit = modularUI.ui.rootElement.hitTest(mouseX, mouseY);
         if (hit == null) return false;
@@ -118,6 +122,107 @@ public final class ModularUIClientAccess {
         event.target = hit.getA();
         UIEventDispatcher.dispatchEvent(event);
         return event.hasHandler;
+    }
+
+    /**
+     * The pointer's position relative to {@code windowHandle}, in that window's coordinates. Read from
+     * the global position rather than SDL's per-window mouse state, which only follows the window that
+     * has mouse focus and is not updated during a drag from another application.
+     */
+    public static double[] queryCursor(long windowHandle) {
+        try (var stack = MemoryStack.stackPush()) {
+            var globalX = stack.mallocFloat(1);
+            var globalY = stack.mallocFloat(1);
+            SDLMouse.SDL_GetGlobalMouseState(globalX, globalY);
+            var windowX = stack.callocInt(1);
+            var windowY = stack.callocInt(1);
+            SDLVideo.SDL_GetWindowPosition(windowHandle, windowX, windowY);
+            return new double[]{globalX.get(0) - windowX.get(0), globalY.get(0) - windowY.get(0)};
+        }
+    }
+
+    // ------------------------------------------------------------------------------------ text input
+
+    /**
+     * Switches text input on or off for the window hosting {@code modularUI}, to match whether its
+     * focused element is one the user types into.
+     *
+     * <p>Under SDL a window receives no typed characters at all — and no input method runs — until text
+     * input is started for it, so this is what makes a {@code TextField} work, not an optimisation.
+     * The game window goes through vanilla's {@code TextInputManager} with this UI's widget as the owner,
+     * the same way an {@code EditBox} does, so a vanilla field focused afterwards takes over cleanly and
+     * losing focus here never switches off input a vanilla field still needs. A UI hosted in its own
+     * operating-system window switches that window instead.
+     *
+     * <p>Called when the focus moves and again every frame, so an element that becomes read-only while
+     * focused lets go too. Cheap when nothing changed.
+     */
+    public static void syncTextInput(ModularUI modularUI) {
+        var state = getState(modularUI);
+        var focused = modularUI.focusedElement;
+        var wanted = !modularUI.isRemoved() && focused != null && focused.isTextInput();
+        if (wanted == state.textInputActive) return;
+        state.textInputActive = wanted;
+        var window = ModularUIWindow.windowOf(modularUI);
+        if (window != null) {
+            if (!window.isOpen()) return;
+            if (wanted) {
+                window.window().startTextInput();
+            } else {
+                window.window().stopTextInput();
+            }
+        } else {
+            Minecraft.getInstance().onTextInputFocusChange(state.getWidget(), wanted);
+        }
+    }
+
+    /**
+     * Lets go of text input for good, when the UI is removed.
+     */
+    static void releaseTextInput(ModularUI modularUI) {
+        var state = getState(modularUI);
+        if (!state.textInputActive) return;
+        state.textInputActive = false;
+        var window = ModularUIWindow.windowOf(modularUI);
+        if (window != null) {
+            if (window.isOpen()) {
+                window.window().stopTextInput();
+            }
+        } else {
+            Minecraft.getInstance().textInputManager().stopTextInput(state.getWidget());
+        }
+    }
+
+    /**
+     * Hands an input-method composition to the focused element as a {@link UIEvents#PREEDIT} event.
+     *
+     * @param preedit the composition, or {@code null} when it has ended
+     * @return true if the focused element handled it
+     */
+    public static boolean dispatchPreedit(ModularUI modularUI, @Nullable PreeditEvent preedit) {
+        var focused = modularUI.focusedElement;
+        if (focused == null || !focused.isTextInput()) return false;
+        var event = UIEvent.create(UIEvents.PREEDIT);
+        event.customData = preedit;
+        event.hasCapturePhase = false;
+        event.hasBubblePhase = false;
+        event.target = focused;
+        UIEventDispatcher.dispatchEvent(event);
+        return event.hasHandler;
+    }
+
+    /**
+     * Tells the input method where the text being edited is, so its candidate list opens beside it
+     * rather than in a corner of the screen. Coordinates are gui units on the surface hosting the UI.
+     */
+    public static void setTextInputArea(ModularUI modularUI, float x0, float y0, float x1, float y1) {
+        var window = ModularUIWindow.windowOf(modularUI);
+        if (window != null) {
+            window.setTextInputArea(x0, y0, x1, y1);
+        } else {
+            Minecraft.getInstance().textInputManager().setTextInputArea(
+                    (int) Math.floor(x0), (int) Math.floor(y0), (int) Math.ceil(x1), (int) Math.ceil(y1));
+        }
     }
 
     /**
@@ -223,7 +328,7 @@ public final class ModularUIClientAccess {
      * one takes it down with it — popping a screen layer runs {@code removed()} over everything still
      * parented under it.
      *
-     * <p>Requesting a window can fail (native fullscreen, a GLFW with no windowing platform), in
+     * <p>Requesting a window can fail (native fullscreen, an SDL video driver with no windows), in
      * which case nothing moves and the debugger stays where it is.
      */
     public static void setDebuggerWindowed(ModularUI modularUI, boolean windowed) {

@@ -19,7 +19,7 @@ import java.util.Optional;
  * re-arranged every time. Kept across game sessions as well as across closes, in one small NBT file
  * next to the editor's own saved layouts, for the same reason.
  *
- * <p>The maximized state is deliberately <em>not</em> remembered. {@code glfwMaximizeWindow} is
+ * <p>The maximized state is deliberately <em>not</em> remembered. {@code SDL_MaximizeWindow} is
  * {@code ShowWindow(SW_MAXIMIZE)} on Win32, which activates the window — restoring it on open would
  * make the debugger steal the keyboard, and would do so from inside an automated run's frame hook.
  * Restoring the pre-maximize rectangle is what "restore" means anyway.

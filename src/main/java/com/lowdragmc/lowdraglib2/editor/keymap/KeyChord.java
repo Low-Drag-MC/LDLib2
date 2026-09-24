@@ -4,7 +4,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.KeyState;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.Optional;
 
@@ -18,16 +18,21 @@ import java.util.Optional;
  * <p>The text form ({@code "ctrl+shift+s"}) is what ends up in the settings file, so it is part of the
  * config format: modifiers always in the order ctrl, shift, alt, then the key's
  * {@link KeyNames stable name}.
+ *
+ * <p>{@code keyCode} is an SDL <em>keycode</em> — the key's meaning under the current layout, the event's
+ * {@link UIEvent#shortcutKey} — not the physical scancode in {@link UIEvent#keyCode}. So "ctrl+z" is the
+ * key labelled Z on a QWERTY and an AZERTY keyboard alike, which is also how vanilla matches its own
+ * copy and paste. Modifier bits are the {@code SDL_KMOD_*} masks, {@code InputConstants.MOD_*}.
  */
 public record KeyChord(int keyCode, int modifiers) {
-    public static final int MOD_SHIFT = GLFW.GLFW_MOD_SHIFT;
-    public static final int MOD_CTRL = GLFW.GLFW_MOD_CONTROL;
-    public static final int MOD_ALT = GLFW.GLFW_MOD_ALT;
+    public static final int MOD_SHIFT = InputConstants.MOD_SHIFT;
+    public static final int MOD_CTRL = InputConstants.MOD_CONTROL;
+    public static final int MOD_ALT = InputConstants.MOD_ALT;
     /** The modifiers a chord can carry. Super, caps lock and num lock are deliberately not among them. */
     public static final int MOD_MASK = MOD_SHIFT | MOD_CTRL | MOD_ALT;
 
     /** No key at all: an action that is not bound, and the value a cleared binding takes. */
-    public static final KeyChord UNBOUND = new KeyChord(GLFW.GLFW_KEY_UNKNOWN, 0);
+    public static final KeyChord UNBOUND = new KeyChord(KeyNames.UNKNOWN, 0);
 
     public static final Codec<KeyChord> CODEC = Codec.STRING.comapFlatMap(
             text -> parse(text)
@@ -43,7 +48,7 @@ public record KeyChord(int keyCode, int modifiers) {
     public KeyChord {
         modifiers &= MOD_MASK;
         if (KeyNames.isModifier(keyCode) || KeyNames.nameOf(keyCode) == null) {
-            keyCode = GLFW.GLFW_KEY_UNKNOWN;
+            keyCode = KeyNames.UNKNOWN;
             modifiers = 0;
         }
     }
@@ -55,18 +60,16 @@ public record KeyChord(int keyCode, int modifiers) {
     /**
      * The chord a key press <em>is</em>, read from the modifier bits the event itself carries.
      *
-     * <p>⚠️ Not from {@link KeyState}'s polling methods, which ask a window what is held right now.
-     * The event's bits come from the GLFW callback of whichever window the press arrived at, so a
-     * shortcut resolves correctly in an editor torn off into its own operating-system window, and a
-     * test driver can state them outright. This is the same source vanilla reads for
-     * {@code KeyEvent#isCopy} and friends.
+     * <p>⚠️ Not from {@link KeyState}'s polling methods, which ask what is held right now. The event's
+     * bits are the ones the press was delivered with, so a test driver can state them outright. This is
+     * the same source vanilla reads for {@code KeyEvent#isCopy} and friends.
      *
      * <p>{@code MOD_SUPER} is folded onto {@code MOD_CTRL} by
      * {@link KeyState#isCtrlOrCmdDown(int)} — a chord is stored as "ctrl+s" on every platform and
      * means whichever key that platform uses for shortcuts.
      */
     public static KeyChord fromEvent(UIEvent event) {
-        return fromModifiers(event.keyCode, event.modifiers);
+        return fromModifiers(event.shortcutKey, event.modifiers);
     }
 
     public static KeyChord fromModifiers(int keyCode, int modifiers) {
@@ -102,7 +105,7 @@ public record KeyChord(int keyCode, int modifiers) {
 
     /** Whether this chord names a key at all. An unbound action never matches anything. */
     public boolean isBound() {
-        return keyCode != GLFW.GLFW_KEY_UNKNOWN;
+        return keyCode != KeyNames.UNKNOWN;
     }
 
     public boolean isCtrlDown() {
@@ -162,7 +165,7 @@ public record KeyChord(int keyCode, int modifiers) {
         // "+" on its own splits to nothing at all, so the key name has to be guarded rather than indexed
         var keyName = parts.length == 0 ? "" : parts[parts.length - 1].trim();
         var keyCode = KeyNames.codeOf(keyName);
-        if (keyCode == GLFW.GLFW_KEY_UNKNOWN) return Optional.empty();
+        if (keyCode == KeyNames.UNKNOWN) return Optional.empty();
         return Optional.of(new KeyChord(keyCode, modifiers));
     }
 

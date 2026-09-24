@@ -3,6 +3,8 @@ package com.lowdragmc.lowdraglib2.core.mixins.ui;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.RawInputGate;
 import net.minecraft.client.KeyboardHandler;
 import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.PreeditEvent;
+import org.jetbrains.annotations.Nullable;
 import net.minecraft.client.input.KeyEvent;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -26,6 +28,16 @@ public class KeyboardHandlerMixin {
 
     @Inject(method = "charTyped(JLnet/minecraft/client/input/CharacterEvent;)V", at = @At("HEAD"), cancellable = true)
     private void ldlib2$dropOsChar(long windowPointer, CharacterEvent event, CallbackInfo ci) {
+        if (RawInputGate.isBlocked()) {
+            ci.cancel();
+        }
+    }
+
+    /**
+     * An input method's composition is typing too, just not committed yet.
+     */
+    @Inject(method = "textEditing(JLnet/minecraft/client/input/PreeditEvent;)V", at = @At("HEAD"), cancellable = true)
+    private void ldlib2$dropOsPreedit(long windowPointer, @Nullable PreeditEvent event, CallbackInfo ci) {
         if (RawInputGate.isBlocked()) {
             ci.cancel();
         }

@@ -1,15 +1,16 @@
 package com.lowdragmc.lowdraglib2.client.shader;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.mojang.blaze3d.PrimitiveTopology;
-import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.pipeline.ColorTargetState;
-import com.mojang.blaze3d.pipeline.DepthStencilState;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.platform.BlendFactor;
-import com.mojang.blaze3d.platform.CompareOp;
+import com.mojang.renderpearl.api.pipeline.PrimitiveTopology;
+import com.mojang.renderpearl.api.pipeline.BlendFunction;
+import com.mojang.renderpearl.api.pipeline.ColorTargetState;
+import com.mojang.renderpearl.api.pipeline.DepthStencilState;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.pipeline.BlendFactor;
+import com.mojang.renderpearl.api.pipeline.CompareOp;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import net.minecraft.client.renderer.BindGroupLayouts;
+import net.minecraft.client.renderer.oit.OitPipelineSet;
 import net.neoforged.neoforge.client.event.RegisterRenderPipelinesEvent;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,7 +38,8 @@ public class LDLibRenderPipelines {
             .build());
 
     public static final RenderPipeline POSITION_COLOR_NO_DEPTH = register(RenderPipeline.builder()
-            .withBindGroupLayout(BindGroupLayouts.MATRICES_PROJECTION)
+            .withBindGroupLayout(BindGroupLayouts.PROJECTION)
+            .withBindGroupLayout(BindGroupLayouts.DYNAMIC_TRANSFORMS)
             .withVertexShader("core/position_color")
             .withFragmentShader("core/position_color")
             .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
@@ -48,7 +50,8 @@ public class LDLibRenderPipelines {
             .build());
 
     public static final RenderPipeline BLOCK_OVERLAY = register(RenderPipeline.builder()
-            .withBindGroupLayout(BindGroupLayouts.MATRICES_PROJECTION)
+            .withBindGroupLayout(BindGroupLayouts.PROJECTION)
+            .withBindGroupLayout(BindGroupLayouts.DYNAMIC_TRANSFORMS)
             .withVertexShader("core/position_color")
             .withFragmentShader("core/position_color")
             .withColorTargetState(new ColorTargetState(BlendFunction.LIGHTNING))
@@ -58,12 +61,15 @@ public class LDLibRenderPipelines {
             .build());
 
     public static final RenderPipeline NO_DEPTH_LINES = register(RenderPipeline.builder(LINES_SNIPPET)
+            // Since 26.3 the lines snippet leaves the colour target to each pipeline.
+            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
             .withDepthStencilState(new DepthStencilState(CompareOp.ALWAYS_PASS, false))
             .withLocation(LDLib2.id("pipeline/no_depth_lines"))
             .build());
 
     public static final RenderPipeline GRAPH_WIRE = register(RenderPipeline.builder()
-            .withBindGroupLayout(BindGroupLayouts.MATRICES_PROJECTION)
+            .withBindGroupLayout(BindGroupLayouts.PROJECTION)
+            .withBindGroupLayout(BindGroupLayouts.DYNAMIC_TRANSFORMS)
             .withVertexShader("core/position_tex_color")
             .withFragmentShader(LDLib2.id("core/graph_wire"))
             .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
@@ -74,7 +80,8 @@ public class LDLibRenderPipelines {
             .build());
 
     public static final RenderPipeline ROUNDED_RECT = register(RenderPipeline.builder()
-            .withBindGroupLayout(BindGroupLayouts.MATRICES_PROJECTION)
+            .withBindGroupLayout(BindGroupLayouts.PROJECTION)
+            .withBindGroupLayout(BindGroupLayouts.DYNAMIC_TRANSFORMS)
             .withVertexShader(LDLib2.id("core/rounded_rect"))
             .withFragmentShader(LDLib2.id("core/rounded_rect"))
             .withVertexBinding(0, LDLibShaders.ROUNDED_RECT_FORMAT)
@@ -85,7 +92,8 @@ public class LDLibRenderPipelines {
             .build());
 
     public static final RenderPipeline HSB = register(RenderPipeline.builder()
-            .withBindGroupLayout(BindGroupLayouts.MATRICES_PROJECTION)
+            .withBindGroupLayout(BindGroupLayouts.PROJECTION)
+            .withBindGroupLayout(BindGroupLayouts.DYNAMIC_TRANSFORMS)
             .withVertexShader(LDLib2.id("core/hsb_block"))
             .withFragmentShader(LDLib2.id("core/hsb_block"))
             .withVertexBinding(0, LDLibShaders.HSB_VERTEX_FORMAT)
@@ -103,7 +111,8 @@ public class LDLibRenderPipelines {
      * Blend: (ZERO, SRC_ALPHA, ZERO, SRC_ALPHA) -> dst.rgba *= src.alpha.
      */
     public static final RenderPipeline MASK_ALPHA_MULTIPLY = register(RenderPipeline.builder()
-            .withBindGroupLayout(BindGroupLayouts.MATRICES_PROJECTION)
+            .withBindGroupLayout(BindGroupLayouts.PROJECTION)
+            .withBindGroupLayout(BindGroupLayouts.DYNAMIC_TRANSFORMS)
             .withVertexShader(LDLib2.id("core/mask_alpha_multiply"))
             .withFragmentShader(LDLib2.id("core/mask_alpha_multiply"))
             .withBindGroupLayout(BindGroupLayouts.SAMPLER0)
@@ -129,13 +138,17 @@ public class LDLibRenderPipelines {
      * declares. No depth state here, so each pipeline below states its own (and the GUI ones state none, which
      * is what turns depth testing off).
      */
-    private static final RenderPipeline.Snippet LD_TEXT_SNIPPET = RenderPipeline.builder()
-            .withBindGroupLayout(BindGroupLayouts.MATRICES_PROJECTION)
+    private static final RenderPipeline.Snippet LD_TEXT_BASE_SNIPPET = RenderPipeline.builder()
+            .withBindGroupLayout(BindGroupLayouts.PROJECTION)
+            .withBindGroupLayout(BindGroupLayouts.DYNAMIC_TRANSFORMS)
             .withBindGroupLayout(BindGroupLayouts.SAMPLER0)
             .withBindGroupLayout(BindGroupLayouts.SAMPLER2)
-            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
             .withVertexBinding(0, LDLibShaders.SDF_TEXT_FORMAT)
             .withPrimitiveTopology(PrimitiveTopology.QUADS)
+            .buildSnippet();
+
+    private static final RenderPipeline.Snippet LD_TEXT_SNIPPET = RenderPipeline.builder(LD_TEXT_BASE_SNIPPET)
+            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
             .buildSnippet();
 
     /**
@@ -186,6 +199,29 @@ public class LDLibRenderPipelines {
             textPipeline("raster_text", "_polygon_offset", TEXT_POLYGON_OFFSET_DEPTH);
     public static final RenderPipeline RASTER_TEXT_SEE_THROUGH =
             textPipeline("raster_text", "_see_through", TEXT_SEE_THROUGH_DEPTH);
+
+    /**
+     * The same text drawn with order-independent transparency, which is what the world's translucent
+     * phases use once the game's improved transparency option is on. Vanilla gives every one of its
+     * world text render types a set like this; a render type without one cannot be drawn in those phases
+     * at all. The base leaves the colour target and depth state to each OIT stage, as vanilla's does.
+     */
+    public static final OitPipelineSet OIT_SDF_TEXT = registerOit(oitTextPipelines("sdf_text"));
+    public static final OitPipelineSet OIT_RASTER_TEXT = registerOit(oitTextPipelines("raster_text"));
+
+    private static OitPipelineSet oitTextPipelines(String shader) {
+        return OitPipelineSet.builder(LDLib2.id(shader), RenderPipeline.builder(LD_TEXT_BASE_SNIPPET)
+                        .withVertexShader(LDLib2.id("core/" + shader))
+                        .withFragmentShader(LDLib2.id("core/" + shader)))
+                .build();
+    }
+
+    private static OitPipelineSet registerOit(OitPipelineSet set) {
+        register(set.depthBoundsPipeline());
+        register(set.transmittancePipeline());
+        register(set.accumulatePipeline());
+        return set;
+    }
 
     public static void register(RegisterRenderPipelinesEvent event) {
         PIPELINES.forEach(event::registerPipeline);

@@ -17,8 +17,7 @@ import org.jetbrains.annotations.Nullable;
  *
  * <p>The chord comes from the modifier bits on the event itself ({@link KeyChord#fromEvent}), not from
  * polling a window for what is held right now. On this branch the event is the better source in every
- * case that differs: an editor torn off into its own operating-system window gets its bits from that
- * window's own GLFW callback, the test driver states them outright, and they describe the moment of the
+ * case that differs: the test driver states them outright, and they describe the moment of the
  * press rather than whenever the handler got round to asking. It is also what the game itself reads for
  * {@code KeyEvent#isCopy} and friends, so a keymap chord and a built-in command chord now agree by
  * construction.

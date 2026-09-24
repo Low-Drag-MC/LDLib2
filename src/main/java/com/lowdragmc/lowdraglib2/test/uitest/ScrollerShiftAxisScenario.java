@@ -26,8 +26,7 @@ import com.lowdragmc.lowdraglib2.uitest.input.Keys;
  * just as happily if both moved together.
  *
  * <p>Shift is held as a real key rather than declared in the event's modifier mask: the swap reads
- * held key state through {@code KeyState}, which is also the only reading that is correct for a UI in
- * a window of its own, since {@code glfwGetKey} answers per window.
+ * held key state through {@code KeyState}.
  */
 @LDLRegisterClient(name = "scroller_shift_axis", group = "ldlib2", registry = UIScenario.REGISTRY,
         environment = RegistrationEnvironment.DEV_ONLY)

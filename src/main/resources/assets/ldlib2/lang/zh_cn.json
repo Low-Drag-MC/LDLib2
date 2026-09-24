@@ -223,7 +223,6 @@
   "color_border_texture": "纯色边框纹理",
   "animation_texture": "动画纹理",
   "item_stack_texture": "物品栈(ItemStack)纹理",
-  "shader_texture": "着色器纹理",
   "progress_texture": "进度条纹理",
   "group_texture": "纹理组",
   "widget.basic.image": "图像",

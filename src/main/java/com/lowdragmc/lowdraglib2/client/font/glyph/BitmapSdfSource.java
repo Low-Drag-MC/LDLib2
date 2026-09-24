@@ -67,7 +67,8 @@ public class BitmapSdfSource implements GlyphSource {
     public static BitmapSdfSource load(ResourceManager resourceManager, BitmapProvider.Definition definition) {
         var file = definition.file().withPrefix("textures/");
         try (InputStream stream = resourceManager.open(file)) {
-            var image = NativeImage.read(NativeImage.Format.RGBA, stream);
+            // Always decoded to RGBA since 26.3.
+            var image = NativeImage.read(stream);
             var grid = definition.codepointGrid();
             var cellWidth = image.getWidth() / grid[0].length;
             var cellHeight = image.getHeight() / grid.length;

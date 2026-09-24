@@ -1,24 +1,22 @@
 #version 330
+#extension GL_ARB_separate_shader_objects : require
 
-// Can't moj_import in things used during startup, when resource packs don't exist.
-// This is a copy of dynamicimports.glsl
-layout(std140) uniform DynamicTransforms {
-    mat4 ModelViewMat;
-    vec4 ColorModulator;
-    vec3 ModelOffset;
-    mat4 TextureMat;
-};
+#include <minecraft:dynamictransforms.glsl>
+#include <minecraft:oit.glsl>
 
 uniform sampler2D Sampler0;
 
-in vec2 texCoord0;
-in vec4 vertexColor;
+layout(location = 0) in vec2 texCoord0;
+layout(location = 1) in vec4 vertexColor;
 // AA width multiplier, 1.0 gives a roughly one pixel wide edge transition
-in float vSharpness;
+layout(location = 2) in float vSharpness;
 // Stem thickening in pixels, useful to compensate for small font sizes looking washed out
-in float vWeight;
+layout(location = 3) in float vWeight;
 
-out vec4 fragColor;
+// The alpha-only phases of order-independent transparency write no colour at all.
+#ifndef OIT_ALPHA_ONLY
+layout(location = 0) out vec4 fragColor;
+#endif
 
 // The glyph atlas stores distances with onedge_value = 128, so this is where the outline sits.
 const float EDGE = 128.0 / 255.0;
@@ -41,5 +39,15 @@ void main() {
     if (color.a < 0.01) {
         discard;
     }
+
+    // Order-independent transparency, when the game's improved transparency is on and this text is
+    // drawn in the world: see the OIT_* pipeline sets in LDLibRenderPipelines.
+    #ifdef OIT_ALPHA_ONLY
+    executeAlphaOnlyPhase(gl_FragCoord.z, color.a);
+    #else
+    #ifdef OIT_ACCUMULATE
+    color = sampleColorForAccumulation(color);
+    #endif
     fragColor = color;
+    #endif
 }

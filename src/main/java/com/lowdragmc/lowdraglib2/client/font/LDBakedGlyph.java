@@ -3,9 +3,9 @@ package com.lowdragmc.lowdraglib2.client.font;
 import com.lowdragmc.lowdraglib2.client.LDLibClientConfig;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibShaders;
 import com.mojang.blaze3d.font.GlyphInfo;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.textures.GpuSampler;
-import com.mojang.blaze3d.textures.GpuTextureView;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.textures.GpuSampler;
+import com.mojang.renderpearl.api.textures.GpuTextureView;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.font.GlyphRenderTypes;
@@ -227,11 +227,6 @@ public class LDBakedGlyph implements BakedGlyph, EffectGlyph {
         }
 
         @Override
-        public RenderType renderType(Font.DisplayMode displayMode, boolean blur) {
-            return glyph.renderTypes.select(displayMode);
-        }
-
-        @Override
         public RenderType renderType(Font.DisplayMode displayMode) {
             return glyph.renderTypes.select(displayMode);
         }
@@ -280,11 +275,6 @@ public class LDBakedGlyph implements BakedGlyph, EffectGlyph {
         @Override
         public void render(Matrix4fc pose, VertexConsumer buffer, int packedLightCoords, boolean flat) {
             glyph.renderEffect(this, pose, buffer, packedLightCoords, flat);
-        }
-
-        @Override
-        public RenderType renderType(Font.DisplayMode displayMode, boolean blur) {
-            return glyph.renderTypes.select(displayMode);
         }
 
         @Override

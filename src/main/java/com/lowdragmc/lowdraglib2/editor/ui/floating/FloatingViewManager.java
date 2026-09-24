@@ -11,7 +11,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.window.WindowBounds;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -119,13 +118,12 @@ public class FloatingViewManager {
                 pane.getPositionY() + pane.getSizeHeight());
 
         var gameWindow = Minecraft.getInstance().getWindow();
-        var scale = gameWindow.getGuiScale();
-        var originX = new int[1];
-        var originY = new int[1];
-        GLFW.glfwGetWindowPos(gameWindow.handle(), originX, originY);
+        // Gui units to window coordinates: the gui scale is in framebuffer pixels, and on a HiDPI
+        // display a window coordinate is several of those.
+        var scale = gameWindow.getGuiScale() / gameWindow.getPixelDensity();
         return new WindowBounds(
-                originX[0] + (int) (topLeft.x * scale),
-                originY[0] + (int) (topLeft.y * scale),
+                gameWindow.getX() + (int) (topLeft.x * scale),
+                gameWindow.getY() + (int) (topLeft.y * scale),
                 (int) ((bottomRight.x - topLeft.x) * scale),
                 (int) ((bottomRight.y - topLeft.y) * scale));
     }

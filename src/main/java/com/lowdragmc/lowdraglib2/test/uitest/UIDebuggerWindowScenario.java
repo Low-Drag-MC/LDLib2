@@ -13,7 +13,7 @@ import com.lowdragmc.lowdraglib2.uitest.capture.FrameCapture;
 import com.lowdragmc.lowdraglib2.uitest.input.Keys;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.util.ARGB;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import static com.lowdragmc.lowdraglib2.test.uitest.UIDebuggerScenario.*;
 
@@ -51,7 +51,7 @@ public class UIDebuggerWindowScenario implements UIScenario {
 
                 .group("the overlay is drawn into the game window, not this one", g -> g
                         .step("arm the picker from the debugger window",
-                                ctx -> ctx.input(window(ctx)).key(GLFW.GLFW_KEY_F1, 0))
+                                ctx -> ctx.input(window(ctx)).key(InputConstants.KEY_F1, 0))
                         .frames(5)
                         .check("focus mode is on", ctx -> debugger(ctx).isFocusMode())
                         .step("move the game window's pointer onto the button",
@@ -85,7 +85,7 @@ public class UIDebuggerWindowScenario implements UIScenario {
                                 ctx -> clicks(ctx).get() == 0)
                         .screenshot("01_overlay_in_the_game_window")
                         .step("disarm the picker",
-                                ctx -> ctx.input(window(ctx)).key(GLFW.GLFW_KEY_F1, 0))
+                                ctx -> ctx.input(window(ctx)).key(InputConstants.KEY_F1, 0))
                         .frames(3)
                         .step("the crosshair is gone", ctx -> {
                             var frame = FrameCapture.grab();
@@ -121,7 +121,7 @@ public class UIDebuggerWindowScenario implements UIScenario {
                                 return;
                             }
                             boolean before = ctx.get(PIN_BEFORE);
-                            ctx.check("GLFW's floating attribute flipped",
+                            ctx.check("the window's always-on-top flag flipped",
                                     window(ctx).isAlwaysOnTop() != before);
                             ctx.put(PIN_AFTER, window(ctx).isAlwaysOnTop());
                         }))
@@ -146,7 +146,7 @@ public class UIDebuggerWindowScenario implements UIScenario {
                             return geometry[2] > 0 && geometry[3] > 0;
                         })
 
-                        .key(GLFW.GLFW_KEY_F12)
+                        .key(InputConstants.KEY_F12)
                         .frames(10)
                         .check("the debugger closed", ctx -> !OsWindowManager.hasWindows())
                         .check("the inspected UI is still open", ctx -> !targetUI(ctx).isRemoved()))
@@ -193,7 +193,7 @@ public class UIDebuggerWindowScenario implements UIScenario {
 
     /** F12, then the title bar's window toggle — the two clicks a user makes to get a window. */
     static ScenarioBuilder popOut(ScenarioBuilder s) {
-        return s.key(GLFW.GLFW_KEY_F12)
+        return s.key(InputConstants.KEY_F12)
                 .frames(10)
                 .step("aim at the window toggle", ctx -> moveTo(ctx, debugger(ctx).windowModeToggle))
                 .frames(2)

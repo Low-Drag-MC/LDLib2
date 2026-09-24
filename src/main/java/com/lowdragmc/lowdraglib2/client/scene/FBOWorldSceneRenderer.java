@@ -1,9 +1,9 @@
 package com.lowdragmc.lowdraglib2.client.scene;
 
-import com.mojang.blaze3d.GpuFormat;
+import com.mojang.renderpearl.api.GpuFormat;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.GpuTexture;
-import com.mojang.blaze3d.textures.GpuTextureView;
+import com.mojang.renderpearl.api.textures.GpuTexture;
+import com.mojang.renderpearl.api.textures.GpuTextureView;
 import com.mojang.blaze3d.vertex.*;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
@@ -16,7 +16,6 @@ import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector4f;
 
-import com.lowdragmc.lowdraglib2.client.RenderTargetScope;
 
 /**
  * @Author: KilaBash
@@ -56,19 +55,11 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
     }
 
     public BlockHitResult screenPos2BlockPosFace(int mouseX, int mouseY) {
-        BlockHitResult looking;
-        try (var ignored = redirectToFBO()) {
-            looking = super.screenPos2BlockPosFace(mouseX, mouseY, 0, 0, this.resolutionWidth, this.resolutionHeight);
-        }
-        return looking;
+        return super.screenPos2BlockPosFace(mouseX, mouseY, 0, 0, this.resolutionWidth, this.resolutionHeight);
     }
 
     public Vector3f blockPos2ScreenPos(BlockPos pos, boolean depth) {
-        Vector3f winPos;
-        try (var ignored = redirectToFBO()) {
-            winPos = super.blockPos2ScreenPos(pos, 0, 0, this.resolutionWidth, this.resolutionHeight);
-        }
-        return winPos;
+        return super.blockPos2ScreenPos(pos, 0, 0, this.resolutionWidth, this.resolutionHeight);
     }
 
     /**
@@ -79,43 +70,13 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
 
         // Clear the FBO textures. 26.2 uses reversed-Z (clear depth to 0.0 = far plane); clearing to
         // 1.0 would put the whole scene at the near plane and break GREATER_THAN_OR_EQUAL depth tests.
-        var encoder = RenderSystem.getDevice().createCommandEncoder();
-        if (colorTexture != null && depthTexture != null) {
-            encoder.clearColorAndDepthTextures(colorTexture, new Vector4f(), depthTexture, 0.0);
-        }
+        if (colorTexture == null || colorTextureView == null || depthTexture == null) return;
+        RenderSystem.getDevice().createCommandEncoder()
+                .clearColorAndDepthTextures(colorTexture, new Vector4f(), depthTexture, 0.0);
 
-        // Redirect rendering to our FBO textures
-        try (var ignored = redirectToFBO()) {
-            renderDirect(this.resolutionWidth, this.resolutionHeight,
-                    (int) (this.resolutionWidth * (mouseX - x) / width),
-                    (int) (this.resolutionHeight * (1 - (mouseY - y) / height)));
-        }
-    }
-
-    /**
-     * Render scene to FBO and return - caller is responsible for blitting the texture.
-     * Use {@link #getColorTextureView()} to get the texture for blitting.
-     */
-    public void render(@Nonnull PoseStack poseStack, float x, float y, float width, float height, float mouseX, float mouseY) {
-        drawScene(x, y, width, height, mouseX, mouseY);
-    }
-
-    public void render(@Nonnull PoseStack poseStack, float x, float y, float width, float height, int mouseX, int mouseY) {
-        render(poseStack, x, y, width, height, (float) mouseX, (float) mouseY);
-    }
-
-    /**
-     * Redirects drawing into this renderer's own textures until the returned scope is closed.
-     *
-     * <p>A scope rather than a matched {@code setup}/{@code teardown} pair because closing restores
-     * <em>whatever was redirected before</em> instead of clearing to the game's own frame. That
-     * matters as soon as a scene is not being drawn straight into the game window: nested inside a
-     * visual-layer picture-in-picture pass, or inside a UI hosted in another OS window, clearing the
-     * override would send everything drawn afterwards to the wrong place.
-     */
-    private RenderTargetScope redirectToFBO() {
-        ensureFBOCreated();
-        return RenderTargetScope.redirect(this.colorTextureView, this.depthTextureView);
+        renderDirect(this.colorTextureView, this.depthTextureView,
+                (int) (this.resolutionWidth * (mouseX - x) / width),
+                (int) (this.resolutionHeight * (1 - (mouseY - y) / height)));
     }
 
     private void ensureFBOCreated() {

@@ -21,6 +21,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.TextCompositionOverlay;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
@@ -53,7 +54,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.StringUtil;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
+import org.lwjgl.sdl.SDLKeycode;
 import org.w3c.dom.Element;
 
 import org.jetbrains.annotations.Nullable;
@@ -214,6 +216,14 @@ public class TextField extends BindableUIElement<String> {
     private Predicate<String> textValidator = Predicates.alwaysTrue();
     @Setter
     private Predicate<Character> charValidator = Predicates.alwaysTrue();
+    /**
+     * The input method's in-progress composition — the client's {@code PreeditEvent} — or {@code null}
+     * when nothing is being composed. Typed as {@code Object} so this element stays loadable on a
+     * dedicated server; only the client renderer looks inside it.
+     */
+    @Getter
+    @Nullable
+    private Object composition;
     @Getter
     private String text = "";
     @Getter
@@ -265,6 +275,7 @@ public class TextField extends BindableUIElement<String> {
         setOverflowVisible(false);
         setFocusable(true);
         addEventListener(UIEvents.CHAR_TYPED, this::onCharTyped);
+        addEventListener(UIEvents.PREEDIT, this::onPreedit);
         addEventListener(UIEvents.KEY_DOWN, this::onKeyDown);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDragSource);
@@ -381,6 +392,7 @@ public class TextField extends BindableUIElement<String> {
     }
 
     protected void onBlur(UIEvent event) {
+        composition = null;
         // remove highlight if lose focus
         if (selectionStart != selectionEnd) {
             setSelection(cursorPos, cursorPos);
@@ -464,8 +476,8 @@ public class TextField extends BindableUIElement<String> {
             return false;
         }
         return switch (event.keyCode) {
-            case GLFW.GLFW_KEY_BACKSPACE, GLFW.GLFW_KEY_DELETE, GLFW.GLFW_KEY_LEFT, GLFW.GLFW_KEY_RIGHT,
-                 GLFW.GLFW_KEY_HOME, GLFW.GLFW_KEY_END -> true;
+            case InputConstants.KEY_BACKSPACE, InputConstants.KEY_DELETE, InputConstants.KEY_LEFT, InputConstants.KEY_RIGHT,
+                 InputConstants.KEY_HOME, InputConstants.KEY_END -> true;
             default -> KeyState.isTextKey(event.keyCode);
         };
     }
@@ -475,17 +487,17 @@ public class TextField extends BindableUIElement<String> {
             event.stopPropagation();
         }
         switch (event.keyCode) {
-            case GLFW.GLFW_KEY_BACKSPACE -> {
+            case InputConstants.KEY_BACKSPACE -> {
                 if (isEditable()) {
                     deleteText(-1);
                 }
             }
-            case GLFW.GLFW_KEY_DELETE -> {
+            case InputConstants.KEY_DELETE -> {
                 if (isEditable()) {
                     deleteText(1);
                 }
             }
-            case GLFW.GLFW_KEY_LEFT -> {
+            case InputConstants.KEY_LEFT -> {
                 if (event.isCtrlDown()) {
                     setCursor(getWordPosition(-1));
                 } else {
@@ -497,7 +509,7 @@ public class TextField extends BindableUIElement<String> {
                     setSelection(cursorPos, cursorPos);
                 }
             }
-            case GLFW.GLFW_KEY_RIGHT -> {
+            case InputConstants.KEY_RIGHT -> {
                 if (event.isCtrlDown()) {
                     setCursor(getWordPosition(1));
                 } else {
@@ -509,7 +521,7 @@ public class TextField extends BindableUIElement<String> {
                     setSelection(cursorPos, cursorPos);
                 }
             }
-            case GLFW.GLFW_KEY_HOME -> {
+            case InputConstants.KEY_HOME -> {
                 setCursor(0);
                 if (isShiftDown()) {
                     setSelection(selectionStart, cursorPos);
@@ -517,7 +529,7 @@ public class TextField extends BindableUIElement<String> {
                     setSelection(cursorPos, cursorPos);
                 }
             }
-            case GLFW.GLFW_KEY_END -> {
+            case InputConstants.KEY_END -> {
                 setCursor(rawText.length());
                 if (isShiftDown()) {
                     setSelection(selectionStart, cursorPos);
@@ -526,16 +538,16 @@ public class TextField extends BindableUIElement<String> {
                 }
             }
             default -> {
-                if (isPrimaryShortcut(event) && event.keyCode == GLFW.GLFW_KEY_A) {
+                if (isPrimaryShortcut(event) && event.shortcutKey == SDLKeycode.SDLK_A) {
                     setCursor(rawText.length());
                     setSelection(0, rawText.length());
-                } else if (isPrimaryShortcut(event) && event.keyCode == GLFW.GLFW_KEY_C) {
+                } else if (isPrimaryShortcut(event) && event.shortcutKey == SDLKeycode.SDLK_C) {
                     TextFieldClientSupport.copyHighlightedText(this);
-                } else if (isPrimaryShortcut(event) && event.keyCode == GLFW.GLFW_KEY_V) {
+                } else if (isPrimaryShortcut(event) && event.shortcutKey == SDLKeycode.SDLK_V) {
                     if (this.isEditable()) {
                         this.insertText(TextFieldClientSupport.getClipboardText());
                     }
-                } else if (isPrimaryShortcut(event) && event.keyCode == GLFW.GLFW_KEY_X) {
+                } else if (isPrimaryShortcut(event) && event.shortcutKey == SDLKeycode.SDLK_X) {
                     TextFieldClientSupport.copyHighlightedText(this);
                     if (this.isEditable()) {
                         this.insertText("");
@@ -546,7 +558,7 @@ public class TextField extends BindableUIElement<String> {
     }
 
     private boolean isPrimaryShortcut(UIEvent event) {
-        return event.isCtrlDown() || (event.modifiers & GLFW.GLFW_MOD_SUPER) != 0;
+        return event.isCtrlDown() || (event.modifiers & InputConstants.MOD_SUPER) != 0;
     }
 
     /// logic
@@ -810,15 +822,36 @@ public class TextField extends BindableUIElement<String> {
         return "";
     }
 
+    /**
+     * An input method is composing text for this element. Not inserted — it is only drawn beside the
+     * caret until the composition is committed, which arrives as ordinary typed characters.
+     */
+    protected void onPreedit(UIEvent event) {
+        if (!isEditable()) return;
+        composition = event.customData;
+        event.hasHandler = true;
+    }
+
     protected void onCharTyped(UIEvent event) {
         if (!isEditable()) return;
-        if (StringUtil.isAllowedChatCharacter(event.codePoint) && charValidator.test(event.codePoint)) {
+        if (StringUtil.isAllowedChatCharacter(event.codePoint) && isAllowedByValidator(event.codePoint)) {
             this.insertText(Character.toString(event.codePoint));
         }
     }
 
     public boolean isEditable() {
         return isActive() && isVisible() && isFocused() && isDisplayed();
+    }
+
+    /**
+     * Runs the char validator over a code point. One outside the basic multilingual plane is two
+     * {@code char}s, and has to pass as both.
+     */
+    private boolean isAllowedByValidator(int codePoint) {
+        for (char unit : Character.toChars(codePoint)) {
+            if (!charValidator.test(unit)) return false;
+        }
+        return true;
     }
 
     private void deleteText(int count) {
@@ -1268,6 +1301,11 @@ public class TextField extends BindableUIElement<String> {
             }
 
             var cursorPosX = font.getSplitter().stringWidth(TextUtilities.truncateStyled(styledLine, field.getCursorPos())) * scale;
+            var modularUI = field.getModularUI();
+            if (field.isEditable() && modularUI != null) {
+                TextCompositionOverlay.submit(modularUI, context, field.getComposition(),
+                        x + cursorPosX - field.getDisplayOffset(), lineY, fontSize);
+            }
             if (field.isFocused() && System.currentTimeMillis() % 1000 < 500) {
                 DrawerHelperClient.drawSolidRect(context,
                         x + cursorPosX - field.getDisplayOffset(),

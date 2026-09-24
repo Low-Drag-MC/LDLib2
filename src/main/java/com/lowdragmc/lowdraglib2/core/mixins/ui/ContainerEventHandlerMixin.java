@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.core.mixins.ui;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.lowdragmc.lowdraglib2.gui.holder.IModularUIHolder;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUIWidget;
@@ -45,7 +46,7 @@ public interface ContainerEventHandlerMixin extends GuiEventListener {
                 if (widget.mouseClicked(event, doubleClick)) {
                     if (child.shouldTakeFocusAfterInteraction()) {
                         setFocused(widget);
-                        if (event.button() == 0) {
+                        if (event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
                             setDragging(true);
                         }
                     }

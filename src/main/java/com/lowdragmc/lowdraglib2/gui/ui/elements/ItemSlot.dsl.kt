@@ -7,7 +7,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.inventory.InventorySlots
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO
 import net.minecraft.world.inventory.Slot
 import net.minecraft.world.item.ItemStack
-import net.neoforged.neoforge.items.IItemHandlerModifiable
 import net.neoforged.neoforge.transfer.ResourceHandler
 import net.neoforged.neoforge.transfer.item.ItemResource
 
@@ -126,14 +125,6 @@ fun <T : ItemSlot> T.dsl(spec: (ItemSlotSpec<T>.() -> Unit)? = null,
  */
 fun <T : ItemSlot> ItemSlotElement<T>.withItem(item: ItemStack): ItemSlotElement<T> = apply {
     element.setItem(item)
-}
-
-/**
- * Extension: Bind to item handler
- */
-@Deprecated("Use bindTo(handler: ResourceHandler<ItemResource>, index: Int) instead")
-fun <T : ItemSlot> ItemSlotElement<T>.bindTo(handler: IItemHandlerModifiable, index: Int): ItemSlotElement<T> = apply {
-    element.bind(handler, index)
 }
 
 /**

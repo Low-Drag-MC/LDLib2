@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.editor.ui.browser;
 
+import com.mojang.blaze3d.Blaze3D;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.EditAction;
@@ -36,7 +37,6 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.util.Util;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
@@ -240,7 +240,7 @@ public class AssetBrowser extends UIElement {
                     var directory = currentDirectory;
                     if (directory == null) return;
                     if (!directory.exists()) directory.mkdirs();
-                    Util.getPlatform().openFile(directory);
+                    Blaze3D.openPath(directory.toPath());
                 }),
                 iconButton(DynamicTexture.of(() -> showAllFiles ? Icons.EYE : Icons.EYE_OFF),
                         "editor.assets.show_all_files", () -> setShowAllFiles(!showAllFiles)),
@@ -758,7 +758,7 @@ public class AssetBrowser extends UIElement {
         }
         // the same route the File menu's open entry takes, prompt about the open project included
         if (editor != null && editor.fileMenu != null && editor.fileMenu.openProject(file)) return;
-        Util.getPlatform().openFile(file);
+        Blaze3D.openPath(file.toPath());
     }
 
     // --------------------------------------------------------------------------- drag and drop
@@ -944,7 +944,7 @@ public class AssetBrowser extends UIElement {
         if (ClipboardManager.INSTANCE.getClipboardType() == ClipboardAssets.class) {
             menu.leaf(Icons.PASTE, "editor.assets.paste", () -> pasteInto(directory));
         }
-        menu.leaf(Icons.FOLDER, "ldlib.gui.tips.open_folder", () -> Util.getPlatform().openFile(directory));
+        menu.leaf(Icons.FOLDER, "ldlib.gui.tips.open_folder", () -> Blaze3D.openPath(directory.toPath()));
         menu.leaf("editor.assets.refresh", this::requestGridRebuild);
         if (target != null && !target.equals(root) && target.isDirectory()) {
             menu.crossLine();
@@ -997,7 +997,7 @@ public class AssetBrowser extends UIElement {
         });
         menu.crossLine();
         menu.leaf(Icons.OPEN_FILE, "ldlib.gui.tips.open_folder", () ->
-                Util.getPlatform().openFile(target.getParentFile()));
+                Blaze3D.openPath(target.getParentFile().toPath()));
         if (container != null) {
             // contextual entries of the resource type itself, e.g. "copy color", which read the
             // container's selection while the menu is being built

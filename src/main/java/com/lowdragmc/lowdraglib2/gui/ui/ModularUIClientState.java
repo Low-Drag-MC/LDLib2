@@ -24,6 +24,8 @@ final class ModularUIClientState {
     @Getter
     private final ModularUIWidget widget;
     final List<Rect2i> extraAreas = new ArrayList<>();
+    /** Whether this UI has text input switched on for its window, see {@link ModularUIClientAccess#syncTextInput}. */
+    boolean textInputActive;
 
     ModularUIClientState(ModularUI modularUI) {
         this.widget = new ModularUIWidget(modularUI);

@@ -69,7 +69,7 @@ public class UICanvas extends UIElement {
     protected void onMouseDown(UIEvent event) {
         if (this.canvasModularUI == null) return;
         ModularUIClientAccess.getWidget(this.canvasModularUI).mouseClicked(
-                new MouseButtonEvent(event.x, event.y, new MouseButtonInfo(event.button, event.modifiers)), false
+                new MouseButtonEvent(event.x, event.y, new MouseButtonInfo(UIEvent.buttonToInput(event.button), event.modifiers)), false
         );
         // trigger dragging event as well
         startDrag(null, null);
@@ -78,13 +78,13 @@ public class UICanvas extends UIElement {
 
     protected void onMouseUp(UIEvent event) {
         if (this.canvasModularUI == null) return;
-        ModularUIClientAccess.getWidget(this.canvasModularUI).mouseReleased(new MouseButtonEvent(event.x, event.y, new MouseButtonInfo(event.button, event.modifiers)));
+        ModularUIClientAccess.getWidget(this.canvasModularUI).mouseReleased(new MouseButtonEvent(event.x, event.y, new MouseButtonInfo(UIEvent.buttonToInput(event.button), event.modifiers)));
         event.stopPropagation();
     }
 
     protected void onMouseDrag(UIEvent event) {
         if (this.canvasModularUI == null) return;
-        ModularUIClientAccess.getWidget(this.canvasModularUI).mouseDragged(new MouseButtonEvent(event.x, event.y, new MouseButtonInfo(event.button, event.modifiers)), event.deltaX, event.deltaY);
+        ModularUIClientAccess.getWidget(this.canvasModularUI).mouseDragged(new MouseButtonEvent(event.x, event.y, new MouseButtonInfo(UIEvent.buttonToInput(event.button), event.modifiers)), event.deltaX, event.deltaY);
         event.stopPropagation();
     }
 
@@ -96,13 +96,13 @@ public class UICanvas extends UIElement {
 
     protected void onKeyDown(UIEvent event) {
         if (this.canvasModularUI == null) return;
-        ModularUIClientAccess.getWidget(this.canvasModularUI).keyPressed(new KeyEvent(event.keyCode, event.scanCode, event.modifiers));
+        ModularUIClientAccess.getWidget(this.canvasModularUI).keyPressed(new KeyEvent(event.keyCode, event.shortcutKey, event.modifiers));
         event.stopPropagation();
     }
 
     protected void onKeyUp(UIEvent event) {
         if (this.canvasModularUI == null) return;
-        ModularUIClientAccess.getWidget(this.canvasModularUI).keyReleased(new KeyEvent(event.keyCode, event.scanCode, event.modifiers));
+        ModularUIClientAccess.getWidget(this.canvasModularUI).keyReleased(new KeyEvent(event.keyCode, event.shortcutKey, event.modifiers));
         event.stopPropagation();
     }
 

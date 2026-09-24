@@ -35,7 +35,7 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import org.jetbrains.annotations.Nullable;
 import java.io.File;
@@ -812,9 +812,9 @@ public class ResourceProviderContainer<T> extends UIElement {
             }
         });
         textField.addEventListener(UIEvents.KEY_DOWN, e -> {
-            if (e.keyCode == GLFW.GLFW_KEY_ENTER) {
+            if (e.keyCode == InputConstants.KEY_RETURN) {
                 textField.blur();
-            } else if (e.keyCode == GLFW.GLFW_KEY_ESCAPE) {
+            } else if (e.keyCode == InputConstants.KEY_ESCAPE) {
                 cancelled[0] = true;
                 textField.blur();
             }

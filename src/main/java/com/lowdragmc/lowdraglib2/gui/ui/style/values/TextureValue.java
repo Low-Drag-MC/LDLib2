@@ -11,7 +11,6 @@ import com.lowdragmc.lowdraglib2.gui.texture.*;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleValue;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
-import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector4f;
 
@@ -274,11 +273,6 @@ public class TextureValue extends StyleValue<IGuiTexture> {
                         sdf.setBorderColor(ColorUtils.parseColor(args[3]));
                     }
                     return sdf;
-                }
-            }
-            case "shader" -> {
-                if (args.length > 0) {
-                    return new ShaderTexture(Identifier.parse(args[0]));
                 }
             }
             case "vanilla-sprite" -> {

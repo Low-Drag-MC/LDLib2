@@ -16,8 +16,8 @@ import net.minecraft.util.Mth;
  *
  * <p>Three consumers depend on this and are easy to miss:
  * <ul>
- *   <li>file drops and cursor queries, which must go to <em>this</em> window: GLFW reports cursor
- *       position per window, and the game's would be stale or plain wrong;</li>
+ *   <li>file drops and cursor queries, which must be measured against <em>this</em> window: a
+ *       position relative to the game's would be plain wrong;</li>
  *   <li>frame capture, which reads back this target rather than the game's own frame — a UI in its
  *       own window never appears in the latter;</li>
  *   <li>clipping. The gui renderer is deferred, so a clip rectangle rides along on each
@@ -48,15 +48,15 @@ public interface UISurface {
     double guiScale();
 
     /**
-     * Window size in screen coordinates — the space {@code glfwGetCursorPos} reports in, which is
-     * not the framebuffer size on a HiDPI display.
+     * Window size in window coordinates — the space SDL reports the pointer in, which is not the
+     * framebuffer size on a HiDPI display.
      */
     int screenWidth();
 
     int screenHeight();
 
     /**
-     * The GLFW window this surface is presented in, for cursor and key queries.
+     * The SDL window this surface is presented in, for cursor queries.
      */
     long windowHandle();
 

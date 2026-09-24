@@ -20,7 +20,7 @@ import java.util.List;
  * splitting and dragging a tab between this window's own panes all work with the code that already
  * does that in the editor.
  *
- * <p>What is deliberately <em>not</em> supported is dragging a tab between windows — GLFW gives no
+ * <p>What is deliberately <em>not</em> supported is dragging a tab between windows — SDL gives no
  * cross-window drag, and faking it needs global cursor tracking and hit-testing against every window,
  * so floating and docking back are menu-driven instead.
  */

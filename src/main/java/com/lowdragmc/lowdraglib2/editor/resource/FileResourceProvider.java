@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.editor.resource;
 
+import com.mojang.blaze3d.Blaze3D;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceContainer;
@@ -16,7 +17,6 @@ import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.util.Util;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
@@ -302,7 +302,7 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
                     if (!resourceLocation.exists()) {
                         resourceLocation.mkdirs();
                     }
-                    Util.getPlatform().openFile(resourceLocation);
+                    Blaze3D.openPath(resourceLocation.toPath());
                 }).noText().layout(layout -> {
                     layout.width(7);
                     layout.height(7);

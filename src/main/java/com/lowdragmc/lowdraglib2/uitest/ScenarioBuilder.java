@@ -22,7 +22,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -585,7 +585,7 @@ public final class ScenarioBuilder {
      *
      * <p>Any modifiers are held down around it as real keys, not just passed along in the event's
      * modifier mask. {@code UIEvent#isCtrlDown()} and friends read held key state rather than the
-     * mask, so a mask alone would make {@code key(GLFW_KEY_A, MOD_CONTROL)} behave like a bare A —
+     * mask, so a mask alone would make {@code key(InputConstants.KEY_A, MOD_CONTROL)} behave like a bare A —
      * select-all would quietly do nothing.
      */
     public ScenarioBuilder key(int keyCode, int modifiers) {
@@ -634,7 +634,7 @@ public final class ScenarioBuilder {
      */
     public ScenarioBuilder typeInto(String selector, String text) {
         focus(selector);
-        key(GLFW.GLFW_KEY_A, Keys.MOD_CONTROL);
+        key(InputConstants.KEY_A, Keys.MOD_CONTROL);
         key(Keys.BACKSPACE);
         return type(text);
     }

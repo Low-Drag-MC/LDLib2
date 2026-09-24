@@ -39,7 +39,7 @@ public @interface Persisted {
      *
      * <pre>{@code
      * @Persisted(subPersisted = true)
-     * private final INBTSerializable<CompoundTag> stackHandler = new ItemStackHandler(5);
+     * private final ValueIOSerializable stackHandler = new ItemStacksResourceHandler(5);
      * @Persisted(subPersisted = true)
      * private final TestContainer testContainer = new TestContainer();
      *

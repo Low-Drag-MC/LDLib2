@@ -21,7 +21,7 @@ import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyDisplay;
 import lombok.Getter;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 public class NodeTitleElement extends ModelElement {
     public final AbstractNodeModel nodeModel;
@@ -118,10 +118,10 @@ public class NodeTitleElement extends ModelElement {
         };
 
         inlineRenameField.addEventListener(UIEvents.KEY_DOWN, e -> {
-            if (e.keyCode == GLFW.GLFW_KEY_ENTER || e.keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+            if (e.keyCode == InputConstants.KEY_RETURN || e.keyCode == InputConstants.KEY_NUMPADENTER) {
                 commit.run();
                 e.stopPropagation();
-            } else if (e.keyCode == GLFW.GLFW_KEY_ESCAPE) {
+            } else if (e.keyCode == InputConstants.KEY_ESCAPE) {
                 cancel.run();
                 e.stopPropagation();
             }

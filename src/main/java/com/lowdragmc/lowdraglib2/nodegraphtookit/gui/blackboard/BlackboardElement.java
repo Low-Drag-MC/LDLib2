@@ -14,7 +14,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector4f;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 
 public class BlackboardElement extends ModelElement {
@@ -85,10 +85,10 @@ public class BlackboardElement extends ModelElement {
         };
 
         field.addEventListener(UIEvents.KEY_DOWN, ev -> {
-            if (ev.keyCode == GLFW.GLFW_KEY_ENTER || ev.keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+            if (ev.keyCode == InputConstants.KEY_RETURN || ev.keyCode == InputConstants.KEY_NUMPADENTER) {
                 commit.run();
                 ev.stopPropagation();
-            } else if (ev.keyCode == GLFW.GLFW_KEY_ESCAPE) {
+            } else if (ev.keyCode == InputConstants.KEY_ESCAPE) {
                 cancel.run();
                 ev.stopPropagation();
             }

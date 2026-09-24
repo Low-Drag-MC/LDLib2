@@ -23,10 +23,10 @@ import org.jetbrains.annotations.Nullable;
  * The contents of a floating window: a title bar we draw ourselves, and a dock tree under it.
  *
  * <p>The chrome is ours rather than the operating system's because the native one is not free. A
- * decorated window's move and resize gestures run in a nested modal event loop inside
- * {@code glfwPollEvents}, which Minecraft calls every frame — so for as long as the user holds the
- * title bar, the entire game is frozen. Drawing the bar here and moving the window through
- * {@code glfwSetWindowPos} sidesteps that, and has the side benefit of looking identical to the
+ * decorated window's move and resize gestures run in a nested modal event loop inside the SDL event
+ * pump, which Minecraft runs every frame — so for as long as the user holds the title bar, the
+ * entire game is frozen. Drawing the bar here and moving the window through
+ * {@code SDL_SetWindowPosition} sidesteps that, and has the side benefit of looking identical to the
  * in-game panel used when a native window cannot be opened.
  *
  * <p>The dock tree is a real, immortal {@link SplittableWindow}, so a floating window is a fully

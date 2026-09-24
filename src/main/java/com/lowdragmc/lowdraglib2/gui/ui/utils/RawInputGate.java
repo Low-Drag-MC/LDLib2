@@ -14,8 +14,8 @@ import org.jetbrains.annotations.Nullable;
  * <p>Kept separate from {@link CursorState} on purpose: a scripted playback wants a synthetic
  * pointer while still letting whoever is watching interrupt it. Only an unattended run wants both.
  *
- * <p>The window's close button is unaffected — it arrives through {@code glfwWindowShouldClose}
- * rather than these callbacks — so a blocked game can still be quit.
+ * <p>The window's close button is unaffected — it arrives as a window event rather than through these
+ * handlers — so a blocked game can still be quit.
  */
 public final class RawInputGate {
 

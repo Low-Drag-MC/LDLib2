@@ -114,6 +114,15 @@ public interface UIEvents {
      * The {@code charTyped} is sent when data is input to an element.
      */
     String CHAR_TYPED = "charTyped";
+    /**
+     * The {@code preedit} is sent to the focused element while an input method is composing text —
+     * pinyin being typed before a character is chosen, say — and once more when the composition ends.
+     * {@code customData} is the client's {@code PreeditEvent} describing the composition, or
+     * {@code null} when it has ended (committed text then arrives as {@link #CHAR_TYPED}). Only sent to
+     * an element whose {@link com.lowdragmc.lowdraglib2.gui.ui.UIElement#isTextInput()} is true, since
+     * that is what turns text input on for the window.
+     */
+    String PREEDIT = "preedit";
 
     /// Hover Tooltips Events, which won't be sent to the server
     String HOVER_TOOLTIPS = "hoverTooltips";

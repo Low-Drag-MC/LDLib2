@@ -182,8 +182,8 @@ public final class ParallelTestOrchestrator {
      * <p>⚠️ <b>Remembered rather than retried, and rather than predicted.</b> The harness keeps the
      * early window on when it believes the machine has a display, so the client gets the same GL
      * context a player's does; it decides that from AWT, and AWT is wrong exactly when it matters —
-     * on a disconnected remote desktop it reports one screen while GLFW finds no monitor at all. Only
-     * GLFW knows, and the first thing it does with the answer is abort the process.
+     * on a disconnected remote desktop it reports one screen while the early window finds no monitor at
+     * all. Only the early window knows, and the first thing it does with the answer is abort the process.
      *
      * <p>⚠️⚠️ Retrying the shard from here does not work, and it is worth writing down why:
      * <b>spawning a second child Gradle build while this one is running kills the parent daemon</b>.
@@ -204,7 +204,7 @@ public final class ParallelTestOrchestrator {
                 Files.writeString(marker, "FML's early window found no monitor on "
                         + java.time.LocalDateTime.now() + System.lineSeparator());
                 log("'" + entry.getKey() + "' could not open FML's early window: this machine has no "
-                        + "monitor GLFW can see. Remembered in " + marker + " — run again and the "
+                        + "monitor the early window can see. Remembered in " + marker + " — run again and the "
                         + "early window will be left off. Delete that file once a display is back.");
             } catch (IOException e) {
                 log("'" + entry.getKey() + "' could not open FML's early window, and the note for "

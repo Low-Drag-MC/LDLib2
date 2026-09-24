@@ -4,10 +4,11 @@ package com.lowdragmc.lowdraglib2.gui.ui.window;
 //import net.neoforged.api.distmarker.OnlyIn;
 
 /**
- * A window rectangle in virtual-screen pixels — the space {@code glfwSetWindowPos} and
- * {@code glfwSetWindowSize} speak, and <em>not</em> GUI units.
+ * A window rectangle in window coordinates — the space {@code SDL_SetWindowPosition} and
+ * {@code SDL_SetWindowSize} speak, which on a HiDPI display is not framebuffer pixels, and
+ * <em>not</em> GUI units either.
  *
- * @param x position of the content area's upper-left corner, as {@code glfwGetWindowPos} reports it
+ * @param x position of the content area's upper-left corner, as {@code SDL_GetWindowPosition} reports it
  */
 //@OnlyIn(Dist.CLIENT)
 public record WindowBounds(int x, int y, int width, int height) {

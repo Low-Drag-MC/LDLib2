@@ -16,7 +16,8 @@ import com.lowdragmc.lowdraglib2.uitest.ScenarioOptions;
 import com.lowdragmc.lowdraglib2.uitest.TestContext;
 import com.lowdragmc.lowdraglib2.uitest.UIScenario;
 import com.lowdragmc.lowdraglib2.uitest.input.Keys;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
+import org.lwjgl.sdl.SDLKeycode;
 
 /**
  * The window actions, pressed as keys on a window that has no id.
@@ -33,8 +34,8 @@ public class EditorWindowShortcutScenario implements UIScenario {
 
     private static final String WINDOW = "editor_window";
     /** What the editor ships with, so this drives the real default rather than a chord of its own. */
-    private static final KeyChord MINIMIZE = KeyChord.ctrlAlt(GLFW.GLFW_KEY_DOWN);
-    private static final KeyChord MAXIMIZE = KeyChord.ctrlAlt(GLFW.GLFW_KEY_UP);
+    private static final KeyChord MINIMIZE = KeyChord.ctrlAlt(SDLKeycode.SDLK_DOWN);
+    private static final KeyChord MAXIMIZE = KeyChord.ctrlAlt(SDLKeycode.SDLK_UP);
 
     @Override
     public void configure(ScenarioOptions options) {
@@ -72,19 +73,19 @@ public class EditorWindowShortcutScenario implements UIScenario {
 
                 .group("minimizing a window that cannot be minimized does nothing", g -> g
                         // the crash: the press itself used to throw out of keyPressed
-                        .key(GLFW.GLFW_KEY_DOWN, Keys.MOD_CONTROL | Keys.MOD_ALT)
+                        .key(InputConstants.KEY_DOWN, Keys.MOD_CONTROL | Keys.MOD_ALT)
                         .settleMs(100)
                         .check("the screen is still up", ctx -> ctx.screen() != null)
                         .check("and the editor is still in it", ctx -> ctx.query().type(Editor.class).count() == 1))
 
                 .group("maximize toggles", g -> g
                         .check("it starts maximized", ctx -> window(ctx).isMaximized())
-                        .key(GLFW.GLFW_KEY_UP, Keys.MOD_CONTROL | Keys.MOD_ALT)
+                        .key(InputConstants.KEY_UP, Keys.MOD_CONTROL | Keys.MOD_ALT)
                         .settleMs(150)
                         .check("the chord restored it", ctx -> !window(ctx).isMaximized())
                         .screenshot("01_restored")
                         .step("focus the editor again", ctx -> editor(ctx).focus())
-                        .key(GLFW.GLFW_KEY_UP, Keys.MOD_CONTROL | Keys.MOD_ALT)
+                        .key(InputConstants.KEY_UP, Keys.MOD_CONTROL | Keys.MOD_ALT)
                         .settleMs(150)
                         .check("and again maximized it", ctx -> window(ctx).isMaximized()))
 

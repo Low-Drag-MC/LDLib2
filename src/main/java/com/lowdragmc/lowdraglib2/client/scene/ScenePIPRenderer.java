@@ -1,9 +1,9 @@
 package com.lowdragmc.lowdraglib2.client.scene;
 
+import com.lowdragmc.lowdraglib2.core.mixins.accessor.PictureInPictureRendererAccessor;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.FilterMode;
+import com.mojang.renderpearl.api.textures.FilterMode;
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.render.TextureSetup;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.state.gui.BlitRenderState;
@@ -36,30 +36,29 @@ public class ScenePIPRenderer extends PictureInPictureRenderer<SceneRenderState>
         var renderer = state.sceneRenderer();
 
         if (renderer instanceof FBOWorldSceneRenderer fboRenderer) {
-            // FBO renderer manages its own textures.
-            // Clear the PIP output overrides so the FBO can set its own.
-            RenderSystem.outputColorTextureOverride = null;
-            RenderSystem.outputDepthTextureOverride = null;
-
+            // FBO renderer draws into textures of its own, at its own resolution.
             fboRenderer.drawScene(
                     state.sceneX(), state.sceneY(),
                     state.sceneWidth(), state.sceneHeight(),
                     state.mouseX(), state.mouseY()
             );
         } else {
-            // Immediate renderer: PIP base class already set output overrides
-            // pointing to the PIP's texture. Render the scene directly into it.
-            // Use the PIP texture dimensions as viewport (guiSize * guiScale).
-            int guiScale = Minecraft.getInstance().getWindow().getGuiScale();
-            int texWidth = (state.x1() - state.x0()) * guiScale;
-            int texHeight = (state.y1() - state.y0()) * guiScale;
+            // Immediate renderer: straight into this picture-in-picture's own textures, which the base
+            // class has just sized and cleared. They are sized guiSize * guiScale against whatever
+            // surface is being drawn - the game window or a hosted one - so the scale is read back
+            // off them rather than off the game window.
+            var textures = (PictureInPictureRendererAccessor) (Object) this;
+            var color = textures.ldlib2$getTextureView();
+            int texWidth = color.getWidth(0);
+            int texHeight = color.getHeight(0);
+            int guiScale = Math.max(1, texWidth / Math.max(1, state.x1() - state.x0()));
             // mouseX/Y from SceneRenderState are GUI logical px in element-local pre-pose space;
             // sceneX/Y is the content origin in the same space. Translate to content-relative,
             // scale to texture px, and flip Y because GL viewport origin is bottom-left while
             // mouse Y is top-down.
             int contentMouseX = (int) ((state.mouseX() - state.sceneX()) * guiScale);
             int contentMouseY = texHeight - (int) ((state.mouseY() - state.sceneY()) * guiScale);
-            renderer.renderDirect(texWidth, texHeight, contentMouseX, contentMouseY);
+            renderer.renderDirect(color, textures.ldlib2$getDepthTextureView(), contentMouseX, contentMouseY);
         }
     }
 

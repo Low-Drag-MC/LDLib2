@@ -19,7 +19,6 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.renderer.rendertype.LayeringTransform;
-import net.minecraft.client.renderer.rendertype.OutputTarget;
 import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.core.Direction;
@@ -96,7 +95,6 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
             "ldlib_no_depth_lines",
             RenderSetup.builder(LDLibRenderPipelines.NO_DEPTH_LINES)
                     .setLayeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING)
-                    .setOutputTarget(OutputTarget.ITEM_ENTITY_TARGET)
                     .createRenderSetup()
     );
 
@@ -859,7 +857,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         var poseStack = ctx.poseStack();
         // One batch per render type, flushed when the block ends. What the gizmo needs from it is the
         // ordering guarantee — see POSITION_COLOR_NO_DEPTH.
-        try (var immediate = new RenderUtils.ImmediateDraw()) {
+        try (var immediate = new RenderUtils.ImmediateDraw(ctx.renderPass())) {
             switch (mode) {
                 case TRANSLATE -> drawTranslate(poseStack, immediate);
                 case SCALE -> drawScale(poseStack, immediate);

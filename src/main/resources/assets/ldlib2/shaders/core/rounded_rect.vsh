@@ -1,27 +1,19 @@
 #version 330
+#extension GL_ARB_separate_shader_objects : require
 
-// Can't moj_import in things used during startup, when resource packs don't exist.
-// This is a copy of dynamicimports.glsl and projection.glsl
-layout(std140) uniform DynamicTransforms {
-    mat4 ModelViewMat;
-    vec4 ColorModulator;
-    vec3 ModelOffset;
-    mat4 TextureMat;
-};
-layout(std140) uniform Projection {
-    mat4 ProjMat;
-};
+#include <minecraft:dynamictransforms.glsl>
+#include <minecraft:projection.glsl>
 
-in vec3 Position;
-in vec4 Color;
-in ivec4 RectParams;  // halfW*8, halfH*8, border*8, cornerId(0..3)
-in ivec4 Radius;      // rTL*8, rTR*8, rBR*8, rBL*8
+layout(location = 0) in vec3 Position;
+layout(location = 1) in vec4 Color;
+layout(location = 2) in ivec4 RectParams;  // halfW*8, halfH*8, border*8, cornerId(0..3)
+layout(location = 3) in ivec4 Radius;      // rTL*8, rTR*8, rBR*8, rBL*8
 
-out vec2 vLocalPos;
-out vec4 vColor;
-out vec2 vHalfSize;
-out float vBorder;
-out vec4 vRadius;
+layout(location = 0) out vec2 vLocalPos;
+layout(location = 1) out vec4 vColor;
+layout(location = 2) out vec2 vHalfSize;
+layout(location = 3) out float vBorder;
+layout(location = 4) out vec4 vRadius;
 
 void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);

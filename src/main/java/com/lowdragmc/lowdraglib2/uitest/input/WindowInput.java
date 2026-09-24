@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.uitest.input;
 
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.client.window.OsWindowEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.UISurface;
@@ -7,14 +8,16 @@ import com.lowdragmc.lowdraglib2.gui.ui.window.ModularUIWindow;
 import com.lowdragmc.lowdraglib2.uitest.ElementBounds;
 //import net.neoforged.api.distmarker.Dist;
 //import net.neoforged.api.distmarker.OnlyIn;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.input.PreeditEvent;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Drives a UI hosted in its own operating-system window.
  *
  * <p>{@link InputDriver} cannot reach one: every mode it has ends at
  * {@code Minecraft.getInstance().screen}, and a {@link ModularUIWindow} has no screen — it takes its
- * input from raw GLFW callbacks queued on its own window. So this posts into that same queue, which
+ * input from the SDL events queued on its own window. So this posts into that same queue, which
  * is what makes it a test of the window's real dispatch path rather than a way around it: the events
  * are drained, hit-tested and dispatched by exactly the code a physical click goes through, including
  * the move/resize gesture handling that decides whether the UI sees a press at all.
@@ -109,13 +112,13 @@ public final class WindowInput {
     /** Presses a button where {@link #moveTo} last aimed. */
     public WindowInput mouseDown(int button) {
         reaim();
-        window.window().post(new OsWindowEvent.MouseButton(button, GLFW.GLFW_PRESS, 0));
+        window.window().post(new OsWindowEvent.MouseButton(UIEvent.buttonToInput(button), InputConstants.PRESS, 0));
         return this;
     }
 
     public WindowInput mouseUp(int button) {
         reaim();
-        window.window().post(new OsWindowEvent.MouseButton(button, GLFW.GLFW_RELEASE, 0));
+        window.window().post(new OsWindowEvent.MouseButton(UIEvent.buttonToInput(button), InputConstants.RELEASE, 0));
         return this;
     }
 
@@ -134,12 +137,12 @@ public final class WindowInput {
     // ----------------------------------------------------------------------------------- keyboard
 
     public WindowInput keyDown(int keyCode, int modifiers) {
-        window.window().post(new OsWindowEvent.Key(keyCode, Keys.scanCodeOf(keyCode), GLFW.GLFW_PRESS, modifiers));
+        window.window().post(new OsWindowEvent.Key(keyCode, Keys.keycodeOf(keyCode), InputConstants.PRESS, modifiers));
         return this;
     }
 
     public WindowInput keyUp(int keyCode, int modifiers) {
-        window.window().post(new OsWindowEvent.Key(keyCode, Keys.scanCodeOf(keyCode), GLFW.GLFW_RELEASE, modifiers));
+        window.window().post(new OsWindowEvent.Key(keyCode, Keys.keycodeOf(keyCode), InputConstants.RELEASE, modifiers));
         return this;
     }
 
@@ -151,8 +154,21 @@ public final class WindowInput {
         return keyDown(keyCode, modifiers).keyUp(keyCode, modifiers);
     }
 
-    public WindowInput charTyped(int codepoint, int modifiers) {
-        window.window().post(new OsWindowEvent.Char(codepoint, modifiers));
+    /**
+     * Committed text, as an input method or the keyboard delivers it. Only reaches an element while text
+     * input is on for the window, which a focused text element switches on itself — the same condition
+     * the real keyboard is subject to.
+     */
+    public WindowInput text(String text) {
+        window.window().post(new OsWindowEvent.Text(text));
+        return this;
+    }
+
+    /**
+     * An input method's in-progress composition, or its end with {@code null}.
+     */
+    public WindowInput preedit(@Nullable PreeditEvent preedit) {
+        window.window().post(new OsWindowEvent.Preedit(preedit));
         return this;
     }
 

@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.test.uitest;
 
+import com.lowdragmc.lowdraglib2.uitest.input.Keys;
 import com.lowdragmc.lowdraglib2.client.window.OsWindowManager;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
@@ -17,7 +18,7 @@ import com.lowdragmc.lowdraglib2.uitest.TestContext;
 import com.lowdragmc.lowdraglib2.uitest.UIScenario;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -95,8 +96,8 @@ public class UIDebuggerMultiWindowScenario implements UIScenario {
                         .step("aim at the tool window's entry in the picker", ctx ->
                                 ctx.input(window()).moveTo(pickerEntry(ctx, "Tool")))
                         .frames(2)
-                        .step("press it", ctx -> ctx.input(window()).mouseDown(GLFW.GLFW_MOUSE_BUTTON_LEFT))
-                        .step("release it", ctx -> ctx.input(window()).mouseUp(GLFW.GLFW_MOUSE_BUTTON_LEFT))
+                        .step("press it", ctx -> ctx.input(window()).mouseDown(Keys.MOUSE_LEFT))
+                        .step("release it", ctx -> ctx.input(window()).mouseUp(Keys.MOUSE_LEFT))
                         .frames(20)
                         .check("the debugger is now inspecting the tool window's UI",
                                 ctx -> window().getTarget() == toolWindow(ctx).getModularUI())
@@ -111,7 +112,7 @@ public class UIDebuggerMultiWindowScenario implements UIScenario {
 
                 .group("picking an element inside the tool window", g -> g
                         .step("arm the picker from the debugger window",
-                                ctx -> ctx.input(window()).key(GLFW.GLFW_KEY_F1, 0))
+                                ctx -> ctx.input(window()).key(InputConstants.KEY_F1, 0))
                         .frames(5)
                         .check("focus mode is on", ctx -> debugger().isFocusMode())
                         .step("move the tool window's pointer onto its button",
@@ -124,9 +125,9 @@ public class UIDebuggerMultiWindowScenario implements UIScenario {
                                 ctx -> UIDebuggerScenario.isWithin(
                                         debugger().getShapingElement(), toolButton(ctx)))
                         .step("press inside the tool window",
-                                ctx -> ctx.input(toolWindow(ctx)).mouseDown(GLFW.GLFW_MOUSE_BUTTON_LEFT))
+                                ctx -> ctx.input(toolWindow(ctx)).mouseDown(Keys.MOUSE_LEFT))
                         .step("release inside the tool window",
-                                ctx -> ctx.input(toolWindow(ctx)).mouseUp(GLFW.GLFW_MOUSE_BUTTON_LEFT))
+                                ctx -> ctx.input(toolWindow(ctx)).mouseUp(Keys.MOUSE_LEFT))
                         .frames(10)
                         .check("the debugger selected what the tool window's pointer was over",
                                 ctx -> debugger().hierarchy.getSelectedOne().orElse(null)

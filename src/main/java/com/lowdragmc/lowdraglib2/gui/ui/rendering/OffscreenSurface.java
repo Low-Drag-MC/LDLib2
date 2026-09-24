@@ -1,8 +1,9 @@
 package com.lowdragmc.lowdraglib2.gui.ui.rendering;
 
-import com.mojang.blaze3d.GpuFormat;
+import com.mojang.renderpearl.api.GpuFormat;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
+import net.minecraft.client.Minecraft;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -23,7 +24,7 @@ public final class OffscreenSurface implements UISurface {
     private int screenHeight;
 
     /**
-     * @param windowHandle the GLFW window this will be presented in, for cursor and key queries
+     * @param windowHandle the SDL window this will be presented in, for cursor queries
      * @param screenWidth  window size in screen coordinates, which is not the framebuffer size on a
      *                     HiDPI display
      */
@@ -45,12 +46,13 @@ public final class OffscreenSurface implements UISurface {
         var width = Math.max(1, framebufferWidth);
         var height = Math.max(1, framebufferHeight);
         if (target == null) {
-            // With depth: the UI itself is flat, but a scene element drawn inside it is not, and it
-            // renders into whatever target is bound.
-            // 26.2: the colour format is declared up front. RGBA8_UNORM matches the game's own main
-            // target, so the pipelines the gui renderer draws with are the ones they were built for
-            // and the blit into the other window's default framebuffer needs no conversion.
-            target = new TextureTarget("ldlib2 ui surface", width, height, true, GpuFormat.RGBA8_UNORM);
+            // With depth: the UI itself is flat, but a scene element drawn inside it is not. The depth
+            // format is the game's own - NeoForge may have given it a stencil aspect - so every pipeline
+            // that draws into the main target draws into this one unchanged. RGBA8_UNORM likewise
+            // matches the main target's colour, and the blit into the window's surface needs no
+            // conversion.
+            var depthFormat = Minecraft.getInstance().gameRenderer.mainRenderTarget().getDepthTexture().getFormat();
+            target = new TextureTarget("ldlib2 ui surface", width, height, GpuFormat.RGBA8_UNORM, depthFormat);
         } else if (target.width != width || target.height != height) {
             target.resize(width, height);
         }

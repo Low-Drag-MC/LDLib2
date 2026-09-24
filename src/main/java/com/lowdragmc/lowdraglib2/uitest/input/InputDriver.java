@@ -12,7 +12,8 @@ import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.glfw.GLFW;
+import org.lwjgl.sdl.SDLMouse;
+import com.mojang.blaze3d.platform.InputConstants;
 
 /**
  * Delivers one primitive input event. Gestures (click, drag, type) are built out of these by the
@@ -39,8 +40,8 @@ public abstract class InputDriver {
     protected float dispatchedY;
     /**
      * Keys the harness considers held. Backs the {@link KeyState} override so that
-     * {@code UIElement.isShiftDown()} and friends see synthetic modifiers — {@code glfwGetKey} reads
-     * the physical keyboard, which nothing inside the process can move.
+     * {@code UIElement.isShiftDown()} and friends see synthetic modifiers — {@code SDL_GetKeyboardState}
+     * reads the physical keyboard, which nothing inside the process can move.
      */
     private final IntOpenHashSet heldKeys = new IntOpenHashSet();
     /** Kept so {@link #uninstall()} can prove the installed override is this driver's. */
@@ -117,7 +118,8 @@ public abstract class InputDriver {
     private static void dropMouseGrabWithoutWarping() {
         var minecraft = Minecraft.getInstance();
         if (!minecraft.mouseHandler.isMouseGrabbed()) return;
-        GLFW.glfwSetInputMode(minecraft.getWindow().handle(), GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_NORMAL);
+        // Relative mode off without the warp vanilla's own releaseMouse performs.
+        SDLMouse.SDL_SetWindowRelativeMouseMode(minecraft.getWindow().handle(), false);
         if (minecraft.mouseHandler instanceof MouseHandlerAccessor accessor) {
             accessor.setMouseGrabbed(false);
         }
@@ -134,14 +136,14 @@ public abstract class InputDriver {
     /** The modifier bitmask implied by the currently held keys, for events that carry one. */
     public int heldModifiers() {
         int modifiers = 0;
-        if (heldKeys.contains(GLFW.GLFW_KEY_LEFT_SHIFT) || heldKeys.contains(GLFW.GLFW_KEY_RIGHT_SHIFT)) {
-            modifiers |= GLFW.GLFW_MOD_SHIFT;
+        if (heldKeys.contains(InputConstants.KEY_LSHIFT) || heldKeys.contains(InputConstants.KEY_RSHIFT)) {
+            modifiers |= InputConstants.MOD_SHIFT;
         }
-        if (heldKeys.contains(GLFW.GLFW_KEY_LEFT_CONTROL) || heldKeys.contains(GLFW.GLFW_KEY_RIGHT_CONTROL)) {
-            modifiers |= GLFW.GLFW_MOD_CONTROL;
+        if (heldKeys.contains(InputConstants.KEY_LCONTROL) || heldKeys.contains(InputConstants.KEY_RCONTROL)) {
+            modifiers |= InputConstants.MOD_CONTROL;
         }
-        if (heldKeys.contains(GLFW.GLFW_KEY_LEFT_ALT) || heldKeys.contains(GLFW.GLFW_KEY_RIGHT_ALT)) {
-            modifiers |= GLFW.GLFW_MOD_ALT;
+        if (heldKeys.contains(InputConstants.KEY_LALT) || heldKeys.contains(InputConstants.KEY_RALT)) {
+            modifiers |= InputConstants.MOD_ALT;
         }
         return modifiers;
     }
@@ -198,13 +200,12 @@ public abstract class InputDriver {
     /**
      * Moves the physical pointer to the logical position. Load-bearing in {@link InputMode#REAL},
      * which has no other way to reach Minecraft's own cursor pipeline, and used <em>nowhere else</em>:
-     * it moves the pointer of whoever is at the machine, and GLFW ignores it outright while the
-     * window is unfocused. Every other mode publishes the position through {@link CursorState}.
+     * it moves the pointer of whoever is at the machine. Every other mode publishes the position through {@link CursorState}.
      */
     protected static void warpOsCursor(float guiX, float guiY) {
         var window = Minecraft.getInstance().getWindow();
         double physicalX = guiX * window.getScreenWidth() / (double) Math.max(1, window.getGuiScaledWidth());
         double physicalY = guiY * window.getScreenHeight() / (double) Math.max(1, window.getGuiScaledHeight());
-        GLFW.glfwSetCursorPos(window.handle(), physicalX, physicalY);
+        SDLMouse.SDL_WarpMouseInWindow(window.handle(), (float) physicalX, (float) physicalY);
     }
 }

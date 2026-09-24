@@ -4,10 +4,9 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.InputQuirks;
-import org.lwjgl.glfw.GLFW;
 
 /**
- * The client half of {@link KeyState}: the real keyboard, read from the game window.
+ * The client half of {@link KeyState}: the real keyboard, as SDL reports it for the focused window.
  *
  * <p>Split out so {@link KeyState} itself carries no client types. Every entry point checks
  * {@link LDLib2#isClient()} before touching {@link Minecraft}, so a stray call on a dedicated server
@@ -22,7 +21,7 @@ final class KeyStateClientAccess {
         if (!LDLib2.isClient()) {
             return false;
         }
-        return InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), keyCode);
+        return InputConstants.isKeyDown(keyCode);
     }
 
     static boolean isShiftDown() {
@@ -53,7 +52,7 @@ final class KeyStateClientAccess {
      */
     static int shortcutModifierBit() {
         if (!LDLib2.isClient()) {
-            return GLFW.GLFW_MOD_CONTROL;
+            return InputConstants.MOD_CONTROL;
         }
         return InputQuirks.EDIT_SHORTCUT_KEY_MODIFIER;
     }
@@ -63,9 +62,8 @@ final class KeyStateClientAccess {
             return false;
         }
         if (InputQuirks.REPLACE_CTRL_KEY_WITH_CMD_KEY) {
-            var window = Minecraft.getInstance().getWindow();
-            return InputConstants.isKeyDown(window, GLFW.GLFW_KEY_LEFT_SUPER)
-                    || InputConstants.isKeyDown(window, GLFW.GLFW_KEY_RIGHT_SUPER);
+            return InputConstants.isKeyDown(InputConstants.KEY_LGUI)
+                    || InputConstants.isKeyDown(InputConstants.KEY_RGUI);
         }
         return isCtrlDown();
     }

@@ -33,7 +33,7 @@ import org.joml.AxisAngle4f;
 import org.joml.Quaternionf;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -509,12 +509,12 @@ public class SceneEditor extends UIElement implements IScene {
         super.drawBackgroundAdditional(context);
         var renderer = scene.<com.lowdragmc.lowdraglib2.client.scene.WorldSceneRenderer>getRenderer();
         if (isCameraMoving && renderer != null) {
-            var _forward = isKeyDown(GLFW.GLFW_KEY_W);
-            var _backward = isKeyDown(GLFW.GLFW_KEY_S);
-            var _left = isKeyDown(GLFW.GLFW_KEY_A);
-            var _right = isKeyDown(GLFW.GLFW_KEY_D);
-            var _up = isKeyDown(GLFW.GLFW_KEY_E);
-            var _down = isKeyDown(GLFW.GLFW_KEY_Q);
+            var _forward = isKeyDown(InputConstants.KEY_W);
+            var _backward = isKeyDown(InputConstants.KEY_S);
+            var _left = isKeyDown(InputConstants.KEY_A);
+            var _right = isKeyDown(InputConstants.KEY_D);
+            var _up = isKeyDown(InputConstants.KEY_E);
+            var _down = isKeyDown(InputConstants.KEY_Q);
             if (_forward || _backward || _left || _right || _up || _down) {
                 var eyePos = renderer.getEyePos();
                 var lookAt = renderer.getLookAt();

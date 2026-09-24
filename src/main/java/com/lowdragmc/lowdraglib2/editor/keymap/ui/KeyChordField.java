@@ -17,7 +17,7 @@ import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.function.Consumer;
 
@@ -140,7 +140,7 @@ public class KeyChordField extends UIElement {
     }
 
     protected void onMouseDown(UIEvent event) {
-        if (event.button != 0) return;
+        if (!event.isLeftButton()) return;
         UISoundUtils.playButtonClickSound();
         startCapture();
     }
@@ -150,11 +150,11 @@ public class KeyChordField extends UIElement {
         // before anything else: the chord being assigned must not also run whatever it is bound to
         event.hasHandler = true;
         event.stopPropagation();
-        // The bit for the key itself is put in rather than trusted: GLFW is not consistent across
-        // platforms about whether a modifier's own press event already carries it, and this field
-        // shows "Ctrl+…" the instant control goes down.
+        // The bit for the key itself is put in rather than trusted: platforms differ about whether a
+        // modifier's own press event already carries it, and this field shows "Ctrl+…" the instant
+        // control goes down.
         heldModifiers = event.modifiers | KeyState.modifierBitOf(event.keyCode);
-        if (KeyNames.isModifier(event.keyCode)) {
+        if (KeyNames.isModifier(event.shortcutKey)) {
             // still waiting for the key the modifiers go with; show them as they are held
             refreshText();
             return;
@@ -163,7 +163,8 @@ public class KeyChordField extends UIElement {
             commit(KeyChord.UNBOUND);
             return;
         }
-        var next = KeyChord.fromModifiers(event.keyCode, heldModifiers);
+        // the chord records what the key means under the layout, see KeyChord
+        var next = KeyChord.fromModifiers(event.shortcutKey, heldModifiers);
         // a key this library has no name for cannot be stored, so it is not accepted either
         if (!next.isBound()) return;
         commit(next);
@@ -171,15 +172,15 @@ public class KeyChordField extends UIElement {
 
     protected void onKeyUp(UIEvent event) {
         if (!capturing) return;
-        // Re-read from the event rather than clearing a bit out of what we had: GLFW reports the whole
-        // modifier state on a release too, so this also puts right any drift, and the released key's
+        // Re-read from the event rather than clearing a bit out of what we had: a release reports the
+        // whole modifier state too, so this also puts right any drift, and the released key's
         // own bit comes out for the same reason it goes in above.
         heldModifiers = event.modifiers & ~KeyState.modifierBitOf(event.keyCode);
         refreshText();
     }
 
     private boolean isClear(int keyCode) {
-        return (keyCode == GLFW.GLFW_KEY_BACKSPACE || keyCode == GLFW.GLFW_KEY_DELETE)
+        return (keyCode == InputConstants.KEY_BACKSPACE || keyCode == InputConstants.KEY_DELETE)
                 && !KeyState.isCtrlOrCmdDown(heldModifiers)
                 && !KeyState.isShiftDown(heldModifiers)
                 && !KeyState.isAltDown(heldModifiers);

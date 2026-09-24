@@ -24,7 +24,7 @@ import com.lowdragmc.lowdraglib2.uitest.UIScenario;
 import com.lowdragmc.lowdraglib2.uitest.input.Keys;
 import net.minecraft.util.Mth;
 import org.joml.Vector2f;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.List;
 
@@ -233,7 +233,7 @@ public class NgtSnapScenario implements UIScenario {
                                 ctx.input().moveTo(from[0], from[1]);
                             })
                             .step("hold the override key",
-                                    ctx -> ctx.input().keyDown(GLFW.GLFW_KEY_LEFT_ALT, Keys.MOD_ALT))
+                                    ctx -> ctx.input().keyDown(InputConstants.KEY_LALT, Keys.MOD_ALT))
                             .step("press", ctx -> ctx.input().mouseDown(from[0], from[1], Keys.MOUSE_LEFT))
                             .step("drag halfway", ctx -> ctx.input().dragTo(
                                     Mth.lerp(0.5f, from[0], aim[0]), Mth.lerp(0.5f, from[1], aim[1]), Keys.MOUSE_LEFT))
@@ -243,7 +243,7 @@ public class NgtSnapScenario implements UIScenario {
                                     graphView(ctx).getSnapGuides().isEmpty())
                             .step("drop", ctx -> ctx.input().mouseUp(aim[0], aim[1], Keys.MOUSE_LEFT))
                             .step("release the override key",
-                                    ctx -> ctx.input().keyUp(GLFW.GLFW_KEY_LEFT_ALT, 0))
+                                    ctx -> ctx.input().keyUp(InputConstants.KEY_LALT, 0))
                             .settleMs(150)
                             .step("it stayed where it was put", ctx -> {
                                 var mover = node(ctx, MOVER).getPosition().x;

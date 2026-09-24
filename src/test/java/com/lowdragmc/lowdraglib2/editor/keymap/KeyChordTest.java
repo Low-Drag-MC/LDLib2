@@ -1,7 +1,8 @@
 package com.lowdragmc.lowdraglib2.editor.keymap;
 
 import org.junit.jupiter.api.Test;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
+import org.lwjgl.sdl.SDLKeycode;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -16,13 +17,13 @@ class KeyChordTest {
     @Test
     void chordsRoundTripThroughTheirTextForm() {
         var chords = new KeyChord[] {
-                KeyChord.ctrl(GLFW.GLFW_KEY_S),
-                KeyChord.ctrlShift(GLFW.GLFW_KEY_S),
-                KeyChord.ctrlAlt(GLFW.GLFW_KEY_S),
-                KeyChord.alt(GLFW.GLFW_KEY_F4),
-                KeyChord.key(GLFW.GLFW_KEY_DELETE),
-                KeyChord.key(GLFW.GLFW_KEY_KP_ENTER),
-                KeyChord.of(GLFW.GLFW_KEY_TAB, true, true, true),
+                KeyChord.ctrl(SDLKeycode.SDLK_S),
+                KeyChord.ctrlShift(SDLKeycode.SDLK_S),
+                KeyChord.ctrlAlt(SDLKeycode.SDLK_S),
+                KeyChord.alt(SDLKeycode.SDLK_F4),
+                KeyChord.key(SDLKeycode.SDLK_DELETE),
+                KeyChord.key(SDLKeycode.SDLK_KP_ENTER),
+                KeyChord.of(SDLKeycode.SDLK_TAB, true, true, true),
                 KeyChord.UNBOUND,
         };
         for (var chord : chords) {
@@ -33,10 +34,10 @@ class KeyChordTest {
 
     @Test
     void theTextFormIsTheOneWrittenIntoTheSettingsFile() {
-        assertEquals("ctrl+shift+s", KeyChord.ctrlShift(GLFW.GLFW_KEY_S).serialize());
-        assertEquals("ctrl+alt+s", KeyChord.ctrlAlt(GLFW.GLFW_KEY_S).serialize());
-        assertEquals("delete", KeyChord.key(GLFW.GLFW_KEY_DELETE).serialize());
-        assertEquals("kp_add", KeyChord.key(GLFW.GLFW_KEY_KP_ADD).serialize());
+        assertEquals("ctrl+shift+s", KeyChord.ctrlShift(SDLKeycode.SDLK_S).serialize());
+        assertEquals("ctrl+alt+s", KeyChord.ctrlAlt(SDLKeycode.SDLK_S).serialize());
+        assertEquals("delete", KeyChord.key(SDLKeycode.SDLK_DELETE).serialize());
+        assertEquals("kp_add", KeyChord.key(SDLKeycode.SDLK_KP_PLUS).serialize());
         // an unbound action is stored as an empty string, which is how "cleared" is told apart from
         // "never touched" (the entry is absent in that case)
         assertEquals("", KeyChord.UNBOUND.serialize());
@@ -44,7 +45,7 @@ class KeyChordTest {
 
     @Test
     void modifierOrderAndCaseDoNotMatterWhenReading() {
-        var expected = KeyChord.ctrlShift(GLFW.GLFW_KEY_S);
+        var expected = KeyChord.ctrlShift(SDLKeycode.SDLK_S);
         assertEquals(expected, KeyChord.parse("shift+ctrl+s").orElseThrow());
         assertEquals(expected, KeyChord.parse("Ctrl+Shift+S").orElseThrow());
         assertEquals(expected, KeyChord.parse(" ctrl + shift + s ").orElseThrow());
@@ -62,37 +63,37 @@ class KeyChordTest {
 
     @Test
     void aModifierOnItsOwnIsNotAChord() {
-        assertFalse(new KeyChord(GLFW.GLFW_KEY_LEFT_SHIFT, 0).isBound());
-        assertFalse(new KeyChord(GLFW.GLFW_KEY_LEFT_CONTROL, KeyChord.MOD_CTRL).isBound());
+        assertFalse(new KeyChord(SDLKeycode.SDLK_LSHIFT, 0).isBound());
+        assertFalse(new KeyChord(SDLKeycode.SDLK_LCTRL, KeyChord.MOD_CTRL).isBound());
         assertFalse(KeyChord.parse("ctrl").isPresent());
     }
 
     @Test
     void modifiersOutsideTheThreeAreDropped() {
-        var chord = new KeyChord(GLFW.GLFW_KEY_S, GLFW.GLFW_MOD_CONTROL | GLFW.GLFW_MOD_CAPS_LOCK
-                | GLFW.GLFW_MOD_NUM_LOCK | GLFW.GLFW_MOD_SUPER);
+        var chord = new KeyChord(SDLKeycode.SDLK_S, InputConstants.MOD_CONTROL | InputConstants.MOD_CAPS_LOCK
+                | InputConstants.MOD_NUM_LOCK | InputConstants.MOD_SUPER);
 
-        assertEquals(KeyChord.ctrl(GLFW.GLFW_KEY_S), chord);
+        assertEquals(KeyChord.ctrl(SDLKeycode.SDLK_S), chord);
     }
 
     @Test
     void matchingIsExactAboutModifiers() {
-        var save = KeyChord.ctrl(GLFW.GLFW_KEY_S);
+        var save = KeyChord.ctrl(SDLKeycode.SDLK_S);
 
-        assertTrue(save.matches(GLFW.GLFW_KEY_S, true, false, false));
+        assertTrue(save.matches(SDLKeycode.SDLK_S, true, false, false));
         // Ctrl+Shift+S is save-as, a different action: a loose match would fire both
-        assertFalse(save.matches(GLFW.GLFW_KEY_S, true, true, false));
-        assertFalse(save.matches(GLFW.GLFW_KEY_S, false, false, false));
-        assertFalse(save.matches(GLFW.GLFW_KEY_A, true, false, false));
-        assertFalse(KeyChord.UNBOUND.matches(GLFW.GLFW_KEY_UNKNOWN, false, false, false));
+        assertFalse(save.matches(SDLKeycode.SDLK_S, true, true, false));
+        assertFalse(save.matches(SDLKeycode.SDLK_S, false, false, false));
+        assertFalse(save.matches(SDLKeycode.SDLK_A, true, false, false));
+        assertFalse(KeyChord.UNBOUND.matches(KeyNames.UNKNOWN, false, false, false));
     }
 
     @Test
     void displayStringsReadLikeTheKeyboard() {
-        assertEquals("Ctrl+Shift+S", KeyChord.ctrlShift(GLFW.GLFW_KEY_S).toDisplayString());
-        assertEquals("Delete", KeyChord.key(GLFW.GLFW_KEY_DELETE).toDisplayString());
-        assertEquals("Num Enter", KeyChord.key(GLFW.GLFW_KEY_KP_ENTER).toDisplayString());
-        assertEquals("F5", KeyChord.key(GLFW.GLFW_KEY_F5).toDisplayString());
+        assertEquals("Ctrl+Shift+S", KeyChord.ctrlShift(SDLKeycode.SDLK_S).toDisplayString());
+        assertEquals("Delete", KeyChord.key(SDLKeycode.SDLK_DELETE).toDisplayString());
+        assertEquals("Num Enter", KeyChord.key(SDLKeycode.SDLK_KP_ENTER).toDisplayString());
+        assertEquals("F5", KeyChord.key(SDLKeycode.SDLK_F5).toDisplayString());
         assertEquals("", KeyChord.UNBOUND.toDisplayString());
     }
 
@@ -100,10 +101,14 @@ class KeyChordTest {
     void everyNamedKeyHasADistinctNameAndReadsBack() {
         // the table is written out by hand, so a copy-paste slip that gives two keys the same name (or
         // a name that does not read back) would otherwise surface as a shortcut silently binding another key
-        for (int keyCode = 0; keyCode <= GLFW.GLFW_KEY_LAST; keyCode++) {
-            var name = KeyNames.nameOf(keyCode);
-            if (name == null) continue;
-            assertEquals(keyCode, KeyNames.codeOf(name), "name " + name + " reads back to another key");
+        // SDL keycodes are Unicode code points for keys that type something, and scancodes tagged with
+        // SDLK_SCANCODE_MASK for the rest; walk the start of both ranges
+        for (int i = 0; i < 0x300; i++) {
+            for (var keyCode : new int[]{i, i | SDLKeycode.SDLK_SCANCODE_MASK}) {
+                var name = KeyNames.nameOf(keyCode);
+                if (name == null) continue;
+                assertEquals(keyCode, KeyNames.codeOf(name), "name " + name + " reads back to another key");
+            }
         }
     }
 }

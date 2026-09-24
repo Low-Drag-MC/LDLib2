@@ -16,9 +16,9 @@ import com.lowdragmc.lowdraglib2.gui.texture.renderstate.FloatColoredTriangleRen
 import com.lowdragmc.lowdraglib2.gui.texture.renderstate.FloatRoundedRectRenderState;
 import com.lowdragmc.lowdraglib2.gui.texture.renderstate.FloatTiledBlitRenderState;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.textures.GpuSampler;
-import com.mojang.blaze3d.textures.GpuTextureView;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.textures.GpuSampler;
+import com.mojang.renderpearl.api.textures.GpuTextureView;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.navigation.ScreenRectangle;

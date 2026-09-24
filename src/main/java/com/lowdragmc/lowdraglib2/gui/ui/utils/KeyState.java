@@ -1,28 +1,31 @@
 package com.lowdragmc.lowdraglib2.gui.ui.utils;
 
 import com.lowdragmc.lowdraglib2.utils.Scope;
+import com.mojang.blaze3d.platform.InputConstants;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.glfw.GLFW;
 
 /**
  * Physical keyboard state, as seen by UI code that needs to know whether a modifier is held while
  * something else happens — shift-clicking a slot, ctrl-dragging a gizmo, shift-scrolling a number
  * field.
  *
- * <p>This exists as an indirection rather than a direct {@code InputConstants} call because GLFW
- * reports the <em>real</em> keyboard and there is no way to inject a key press into it from inside
- * the process. Neither dispatching a synthetic {@code keyPressed} nor calling Minecraft's own
- * {@code KeyboardHandler} changes what {@code glfwGetKey} returns. Without a seam here, every
- * modifier-sensitive behaviour in the library is simply untestable.
+ * <p>Key codes here are SDL scancodes — the {@code InputConstants.KEY_*} values, which name a key by
+ * where it sits on a US keyboard rather than by what it types. That is the right unit for "is this
+ * held": {@code SDL_GetKeyboardState} is indexed by scancode.
  *
- * <p>The seam also matters at runtime, not only under test: GLFW key state is per-window, so a UI
- * hosted in its own operating-system window has to read <em>that</em> window's keyboard. With the
- * game window's state, every shortcut in the library quietly returns false while the second window
- * is focused.
+ * <p>This exists as an indirection rather than a direct {@code InputConstants} call because the
+ * platform reports the <em>real</em> keyboard and there is no way to inject a key press into it from
+ * inside the process. Neither dispatching a synthetic {@code keyPressed} nor calling Minecraft's own
+ * {@code KeyboardHandler} changes what {@code SDL_GetKeyboardState} returns. Without a seam here,
+ * every modifier-sensitive behaviour in the library is simply untestable.
+ *
+ * <p>SDL keeps one keyboard state for whichever window has keyboard focus, so a UI hosted in its own
+ * operating-system window reads the same state as the game's — unlike GLFW, which kept it per window.
  *
  * <p>Everything that actually touches Minecraft lives in {@link KeyStateClientAccess}, so this class
- * stays loadable on a dedicated server. With no source installed and no client, every query is
- * false.
+ * stays loadable on a dedicated server. Every {@code InputConstants} reference below is a compile-time
+ * constant and is inlined, so the client-only class is never loaded from here. With no source
+ * installed and no client, every query is false.
  *
  * @see #setSource(Source)
  */
@@ -41,7 +44,7 @@ public final class KeyState {
     }
 
     /**
-     * Overrides where key state is read from, or restores the GLFW default with {@code null}.
+     * Overrides where key state is read from, or restores the real keyboard with {@code null}.
      *
      * <p>Intended for automated tests and scripted playback. Anything that sets this <b>must</b>
      * clear it again, including on failure — a leaked override makes the real keyboard stop working.
@@ -70,9 +73,8 @@ public final class KeyState {
      * before rather than clearing.
      *
      * <p>{@link #setSource(Source)} is for an override that lives for a whole run — a scripted
-     * playback. This is for one that lives for a single dispatch, such as a UI hosted in its own OS
-     * window reading that window's keyboard while it handles its own events. The two nest: outside
-     * the scope the long-lived override is still in force.
+     * playback. This is for one that lives for a single dispatch. The two nest: outside the scope the
+     * long-lived override is still in force.
      */
     public static Scope scoped(Source source) {
         var previous = KeyState.source;
@@ -89,7 +91,7 @@ public final class KeyState {
     public static boolean isShiftDown() {
         var current = source;
         if (current != null) {
-            return current.isKeyDown(GLFW.GLFW_KEY_LEFT_SHIFT) || current.isKeyDown(GLFW.GLFW_KEY_RIGHT_SHIFT);
+            return current.isKeyDown(InputConstants.KEY_LSHIFT) || current.isKeyDown(InputConstants.KEY_RSHIFT);
         }
         return KeyStateClientAccess.isShiftDown();
     }
@@ -101,7 +103,7 @@ public final class KeyState {
     public static boolean isCtrlDown() {
         var current = source;
         if (current != null) {
-            return current.isKeyDown(GLFW.GLFW_KEY_LEFT_CONTROL) || current.isKeyDown(GLFW.GLFW_KEY_RIGHT_CONTROL);
+            return current.isKeyDown(InputConstants.KEY_LCONTROL) || current.isKeyDown(InputConstants.KEY_RCONTROL);
         }
         return KeyStateClientAccess.isCtrlDown();
     }
@@ -117,8 +119,8 @@ public final class KeyState {
         var current = source;
         if (current != null) {
             return isCtrlDown()
-                    || current.isKeyDown(GLFW.GLFW_KEY_LEFT_SUPER)
-                    || current.isKeyDown(GLFW.GLFW_KEY_RIGHT_SUPER);
+                    || current.isKeyDown(InputConstants.KEY_LGUI)
+                    || current.isKeyDown(InputConstants.KEY_RGUI);
         }
         return KeyStateClientAccess.isCtrlOrCmdDown();
     }
@@ -126,7 +128,7 @@ public final class KeyState {
     public static boolean isAltDown() {
         var current = source;
         if (current != null) {
-            return current.isKeyDown(GLFW.GLFW_KEY_LEFT_ALT) || current.isKeyDown(GLFW.GLFW_KEY_RIGHT_ALT);
+            return current.isKeyDown(InputConstants.KEY_LALT) || current.isKeyDown(InputConstants.KEY_RALT);
         }
         return KeyStateClientAccess.isAltDown();
     }
@@ -134,18 +136,17 @@ public final class KeyState {
     // ── Modifiers carried by an event, rather than polled ────────────────────────────────────────
     //
     // Preferred over the polling methods above wherever the modifiers of one specific key press are
-    // what matters — resolving a shortcut, capturing a chord. The bits come from the GLFW callback of
-    // whichever window the press arrived at, so they are right in a torn-off window without a scoped
-    // Source, they are right for the key being pressed at the moment it is pressed, and a test driver
-    // can supply them outright. This is the same thing the game's own InputWithModifiers#hasControlDown
-    // and friends read, which is why KeyEvent#isCopy works in a second window.
+    // what matters — resolving a shortcut, capturing a chord. The bits are the SDL_KMOD_* mask the
+    // event was delivered with, so they are right for the key being pressed at the moment it is
+    // pressed, and a test driver can supply them outright. This is the same thing the game's own
+    // InputWithModifiers#hasControlDown and friends read.
 
     public static boolean isShiftDown(int modifiers) {
-        return (modifiers & GLFW.GLFW_MOD_SHIFT) != 0;
+        return (modifiers & InputConstants.MOD_SHIFT) != 0;
     }
 
     public static boolean isAltDown(int modifiers) {
-        return (modifiers & GLFW.GLFW_MOD_ALT) != 0;
+        return (modifiers & InputConstants.MOD_ALT) != 0;
     }
 
     /**
@@ -159,44 +160,47 @@ public final class KeyState {
     public static boolean isCtrlOrCmdDown(int modifiers) {
         var current = source;
         if (current != null) {
-            return (modifiers & (GLFW.GLFW_MOD_CONTROL | GLFW.GLFW_MOD_SUPER)) != 0;
+            return (modifiers & (InputConstants.MOD_CONTROL | InputConstants.MOD_SUPER)) != 0;
         }
         return (modifiers & KeyStateClientAccess.shortcutModifierBit()) != 0;
     }
 
     /**
-     * The modifier bit a key press of its own implies, or zero for a key that is not a modifier.
+     * The modifier bits a key press of its own implies, or zero for a key that is not a modifier.
      *
-     * <p>GLFW is not consistent across platforms about whether a modifier's own press event carries
-     * its bit, and a chord capture field shows "Ctrl+…" the moment control goes down — so the bit is
-     * put in explicitly rather than trusted to be there.
+     * <p>A chord capture field shows "Ctrl+…" the moment control goes down, and whether a modifier's
+     * own press event already carries its bit differs between platforms — so the bit is put in
+     * explicitly rather than trusted to be there.
      */
     public static int modifierBitOf(int keyCode) {
         return switch (keyCode) {
-            case GLFW.GLFW_KEY_LEFT_SHIFT, GLFW.GLFW_KEY_RIGHT_SHIFT -> GLFW.GLFW_MOD_SHIFT;
-            case GLFW.GLFW_KEY_LEFT_CONTROL, GLFW.GLFW_KEY_RIGHT_CONTROL -> GLFW.GLFW_MOD_CONTROL;
-            case GLFW.GLFW_KEY_LEFT_ALT, GLFW.GLFW_KEY_RIGHT_ALT -> GLFW.GLFW_MOD_ALT;
-            case GLFW.GLFW_KEY_LEFT_SUPER, GLFW.GLFW_KEY_RIGHT_SUPER -> GLFW.GLFW_MOD_SUPER;
+            case InputConstants.KEY_LSHIFT, InputConstants.KEY_RSHIFT -> InputConstants.MOD_SHIFT;
+            case InputConstants.KEY_LCONTROL, InputConstants.KEY_RCONTROL -> InputConstants.MOD_CONTROL;
+            case InputConstants.KEY_LALT, InputConstants.KEY_RALT -> InputConstants.MOD_ALT;
+            case InputConstants.KEY_LGUI, InputConstants.KEY_RGUI -> InputConstants.MOD_SUPER;
             default -> 0;
         };
     }
 
     /**
-     * Whether this key will put a character into a focused text field — space, the ASCII punctuation
-     * and letter block, and the numeric keypad.
+     * Whether this key will put a character into a focused text field — space, the letter, digit and
+     * punctuation keys, and the numeric keypad bar its Enter.
      *
      * <p>⚠️ It matters at {@code KEY_DOWN} time even though the character itself arrives as
      * {@code CHAR_TYPED}: an editable field that lets such a key bubble has the character typed
      * <i>and</i> whatever shortcut an ancestor hangs off that key fired. Space is the one that bites —
      * it is the play/pause key of every timeline and it appears in no field's own key switch.
      *
-     * <p>GLFW numbers the printable block contiguously from {@code APOSTROPHE} (39) to
-     * {@code GRAVE_ACCENT} (96) — the digits, the letters, the brackets and the punctuation; space
-     * sits at 32 on its own and the keypad at 320–336.
+     * <p>SDL numbers the letters (4–29) and digits (30–39) contiguously; Enter, Escape, Backspace and
+     * Tab (40–43) come next and are not text, then space and the punctuation block (44–56). The keypad
+     * runs 84–99 with Enter (88) in the middle, plus keypad-equals at 103, and the ISO key left of Z
+     * sits alone at 100.
      */
     public static boolean isTextKey(int keyCode) {
-        return keyCode == GLFW.GLFW_KEY_SPACE
-                || (keyCode >= GLFW.GLFW_KEY_APOSTROPHE && keyCode <= GLFW.GLFW_KEY_GRAVE_ACCENT)
-                || (keyCode >= GLFW.GLFW_KEY_KP_0 && keyCode <= GLFW.GLFW_KEY_KP_EQUAL);
+        return (keyCode >= InputConstants.KEY_A && keyCode <= InputConstants.KEY_0)
+                || (keyCode >= InputConstants.KEY_SPACE && keyCode <= InputConstants.KEY_SLASH)
+                || (keyCode >= 84 && keyCode <= 99 && keyCode != InputConstants.KEY_NUMPADENTER)
+                || keyCode == 100
+                || keyCode == InputConstants.KEY_NUMPADEQUALS;
     }
 }

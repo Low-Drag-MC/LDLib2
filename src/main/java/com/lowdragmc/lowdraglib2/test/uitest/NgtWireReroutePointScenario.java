@@ -22,7 +22,7 @@ import com.lowdragmc.lowdraglib2.uitest.UIScenario;
 import com.lowdragmc.lowdraglib2.uitest.input.Keys;
 import net.minecraft.util.Mth;
 import org.joml.Vector2f;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -292,7 +292,7 @@ public class NgtWireReroutePointScenario implements UIScenario {
                 // point rather than reloading as two lookalike copies.
                 .group("undo brings the shared point back", g -> g
                         .focus("#graph")
-                        .key(GLFW.GLFW_KEY_Z, Keys.MOD_CONTROL)
+                        .key(InputConstants.KEY_Z, Keys.MOD_CONTROL)
                         .waitUntil("the point element is back",
                                 ctx -> ctx.count(".__wire-reroute-point__") == 1)
                         .checkCount(".__wire__", 3)

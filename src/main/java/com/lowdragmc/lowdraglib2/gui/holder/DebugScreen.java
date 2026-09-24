@@ -18,7 +18,7 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2i;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.LinkedHashMap;
@@ -156,18 +156,18 @@ public class DebugScreen extends ModularUIScreen {
     @Override
     public boolean keyPressed(KeyEvent event) {
         var keyCode = event.key();
-        if (keyCode == GLFW.GLFW_KEY_F12) {
+        if (keyCode == InputConstants.KEY_F12) {
             onClose();
             return true;
         }
         // Consumed, not merely acted on. The inspected UI answers to the same chords, and everything
         // this screen does not handle is forwarded straight into it - so letting these fall through
         // would toggle each of them twice and leave them exactly as they were.
-        if (keyCode == GLFW.GLFW_KEY_F1) {
+        if (keyCode == InputConstants.KEY_F1) {
             uiDebugger.setFocusMode(!uiDebugger.isFocusMode());
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_F4) {
+        if (keyCode == InputConstants.KEY_F4) {
             uiDebugger.setRenderUIShaping(!uiDebugger.isRenderUIShaping());
             return true;
         }

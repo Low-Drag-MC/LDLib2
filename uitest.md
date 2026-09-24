@@ -172,10 +172,10 @@ place: captures download the main render target's colour texture rather than rea
 and `SYNTHETIC` input dispatches straight into `Screen`. What the flag actually does is stop the
 runner asking the window system for things a display-less machine cannot answer:
 
-- **The window is hidden** (`glfwHideWindow`) instead of maximised, and a size is pinned instead of
+- **The window is hidden** (`SDL_HideWindow`) instead of maximised, and a size is pinned instead of
   being read off the monitor — see [Resolution](#resolution) below.
-- **FML's early loading window is disabled.** It calls `glfwGetPrimaryMonitor` and treats `NULL` as
-  fatal, so it dies long before Minecraft is reached — behind a modal dialog nobody is there to
+- **FML's early loading window is disabled.** It asks for the primary display and treats having none
+  as fatal, so it dies long before Minecraft is reached — behind a modal dialog nobody is there to
   dismiss, so the run *hangs* rather than fails. Minecraft's own `Window` handles a null monitor
   fine. NeoForge keeps this setting in `FMLConfig`, which has no system-property override, so the
   Gradle wiring writes `earlyWindowControl = false` into the run directory's `config/fml.toml`. That
@@ -215,7 +215,8 @@ no primary monitor. A malformed `WxH` falls back to it rather than aborting the 
 
 - **A hidden window is not clamped to the desktop.** `-PldTestWindow=3840x2160` really does produce
   3840x2160 PNGs on a machine with *no monitor at all* — verified, not assumed. The ceiling is
-  `GL_MAX_TEXTURE_SIZE` (Minecraft calls `glfwSetWindowSizeLimits` with it), not any display.
+  the device's maximum texture size (Minecraft calls `SDL_SetWindowMaximumSize` with it), not any
+  display.
 - **Raising the resolution alone enlarges the layout, it does not sharpen it.** 4K at GUI scale 2
   gives the UI a 1920x1080 logical viewport — a different layout from 1080p at scale 2, not a
   crisper picture of the same one. For "same layout, more pixels" scale both:
@@ -231,19 +232,19 @@ no primary monitor. A malformed `WxH` falls back to it rather than aborting the 
 
 #### When it is not the harness
 
-None of this touches the graphics stack below GLFW. A headless run still needs a real GPU OpenGL 3.2
-core context, and on Windows the ICD is bound to a display device: RDP replaces the console session's
+None of this touches the graphics stack below SDL. A headless run still needs a real GPU OpenGL 3.3
+core context (or a Vulkan device), and on Windows the ICD is bound to a display device: RDP replaces the console session's
 display driver, and some drivers fall back to GDI Generic (OpenGL 1.1) with nothing attached, which
 Minecraft cannot start on.
 
-Check `GL_RENDERER` before blaming the harness. A dozen lines of LWJGL — `glfwInit`, Minecraft's own
-window hints, `glfwCreateWindow`, `GL.createCapabilities`, print `GL_RENDERER` — answers it in
-seconds, where a failing `runClient` takes minutes. Two things that probe should also tell you:
+Check `GL_RENDERER` before blaming the harness. A dozen lines of LWJGL — `SDL_Init`, a hidden
+`SDL_WINDOW_OPENGL` window with Minecraft's 3.3 core attributes, `SDL_GL_CreateContext`,
+`GL.createCapabilities`, print `GL_RENDERER` — answers it in seconds, where a failing `runClient` takes minutes. Two things that probe should also tell you:
 
 - **Read back from an FBO, not the default framebuffer.** A hidden window's default framebuffer reads
   back black, which is why captures go through the main render target. A probe that only checks the
   default framebuffer will report failure on a machine that works fine.
-- `glfwGetPrimaryMonitor() == 0` and `glfwGetMonitors() == null` are **not** by themselves a problem.
+- Having no primary display (`SDL_GetPrimaryDisplay() == 0`) is **not** by itself a problem.
   On an NVIDIA + Windows 11 box in session 0 with zero monitors enumerated, a real 3.2 core context
   comes back and the whole suite passes.
 
@@ -312,8 +313,8 @@ can never silently click nothing and pass.
 ### A UI in its own OS window
 
 `ctx.el`, `ctx.query` and every input step resolve through the UI behind `Minecraft#screen`. A UI
-hosted in a `ModularUIWindow` is behind no screen at all: it takes its input from raw GLFW callbacks
-on its own window and is drawn into an off-screen target that never reaches the game's frame. Three
+hosted in a `ModularUIWindow` is behind no screen at all: it takes its input from the SDL events
+addressed to its own window and is drawn into an off-screen target that never reaches the game's frame. Three
 things address that, and each is the only way to do its job:
 
 ```java
@@ -364,11 +365,10 @@ Two things about it that are load-bearing rather than incidental:
 - **Settle is wall-clock, never frames.** A dev world renders far faster than it ticks, and
   `ModularUI#tick` — which refreshes data-bound labels — runs at 20 Hz. Use `ticks(n)` or a condition
   wait for anything data-driven.
-- **The pointer.** `glfwSetCursorPos` moves the pointer of whoever is at the machine, and GLFW ignores
-  it outright while the window is unfocused — so a harness built on it can only run in the foreground
-  of an idle machine. `CursorState` is the seam that replaces it, the sibling of `KeyState` and there
+- **The pointer.** `SDL_WarpMouseInWindow` moves the pointer of whoever is at the machine — so a
+  harness built on it can only run in the foreground of an idle machine. `CursorState` is the seam that replaces it, the sibling of `KeyState` and there
   for the same reason.
-- **Modifier keys.** `glfwGetKey` reads the physical keyboard and nothing in-process can move it, so
+- **Modifier keys.** `SDL_GetKeyboardState` reads the physical keyboard and nothing in-process can move it, so
   `KeyState` is overridden for the duration of a run. `key(k, MOD_CONTROL)` therefore holds control
   as a real key rather than only setting the event's modifier mask — `UIEvent#isCtrlDown()` reads
   held state, so a mask alone would make ctrl+A behave like a bare A.

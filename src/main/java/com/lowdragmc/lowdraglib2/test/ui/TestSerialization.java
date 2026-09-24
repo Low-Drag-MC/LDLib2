@@ -41,7 +41,7 @@ import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
 import net.neoforged.neoforge.common.util.ValueIOSerializable;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.items.ItemStackHandler;
+import net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 
@@ -86,7 +86,7 @@ public class TestSerialization implements IScreenTest {
         @ReadOnlyManaged(serializeMethod = "testGroupSerialize", deserializeMethod = "testGroupDeserialize")
         private final List<TestGroup> groupList = new ArrayList<>();
         @Persisted
-        private final ValueIOSerializable stackHandler = new ItemStackHandler(5);
+        private final ValueIOSerializable stackHandler = new ItemStacksResourceHandler(5);
         @Persisted(subPersisted = true)
         private final TestContainer testContainer = new TestContainer();
 

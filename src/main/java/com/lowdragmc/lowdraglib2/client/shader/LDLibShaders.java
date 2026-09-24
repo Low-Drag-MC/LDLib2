@@ -1,17 +1,14 @@
 package com.lowdragmc.lowdraglib2.client.shader;
 
-import com.mojang.blaze3d.GpuFormat;
+import com.mojang.renderpearl.api.GpuFormat;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.VertexFormat;
-import org.lwjgl.opengl.GL;
+import com.mojang.renderpearl.api.vertex.VertexFormat;
 
 public class LDLibShaders {
 
 	/**
 	 * the vertex format for HSB color, three four of float
 	 */
-//	public static final VertexFormatElement HSB_Alpha = VertexFormatElement.register(VertexFormatElement.findNextId(), 0, VertexFormatElement.Type.FLOAT, false, 4);
-
 	public static VertexFormat HSB_VERTEX_FORMAT = VertexFormat.builder(0)
 			.addAttribute("Position", GpuFormat.RGB32_FLOAT)
 			.addAttribute("HSB_ALPHA", GpuFormat.RGBA32_FLOAT)
@@ -19,7 +16,7 @@ public class LDLibShaders {
 
 	/**
 	 * Byte offset of the custom {@code HSB_ALPHA} attribute within {@link #HSB_VERTEX_FORMAT}.
-	 * In 26.2 custom vertex attributes are written directly at {@code vertexPointer + offset}
+	 * Custom vertex attributes are written directly at {@code vertexPointer + offset}
 	 * (see {@code BufferBuilderAccessor#getVertexPointer}), since {@code BufferBuilder} only
 	 * knows the 7 standard element names.
 	 */
@@ -30,12 +27,6 @@ public class LDLibShaders {
 	 * RectParams: (halfW*8, halfH*8, border*8, 0) as SHORT×4
 	 * Radius: (rTL*8, rTR*8, rBR*8, rBL*8) as SHORT×4
 	 */
-//	public static final VertexFormatElement RECT_PARAMS = VertexFormatElement.register(
-//			VertexFormatElement.findNextId(), 0, VertexFormatElement.Type.SHORT, false, 4);
-//
-//	public static final VertexFormatElement RECT_RADIUS = VertexFormatElement.register(
-//			VertexFormatElement.findNextId(), 0, VertexFormatElement.Type.SHORT, false, 4);
-
 	public static final VertexFormat ROUNDED_RECT_FORMAT = VertexFormat.builder(0)
 			.addAttribute("Position", GpuFormat.RGB32_FLOAT)
 			.addAttribute("Color", GpuFormat.RGBA8_UNORM)
@@ -80,25 +71,5 @@ public class LDLibShaders {
 			.addAttribute(DefaultVertexFormat.UV1_SEMANTIC_NAME, GpuFormat.RG16_SINT)
 			.addAttribute(DefaultVertexFormat.UV2_SEMANTIC_NAME, GpuFormat.RG16_SINT)
 			.build();
-
-	/**
-	 * @deprecated OpenGL-only, and not merely in the sense of reporting {@code false} elsewhere:
-	 *             {@code GL.getCapabilities()} throws outright when the game is running on Vulkan,
-	 *             which 26.2 allows. There is no backend-neutral equivalent — capabilities are
-	 *             expressed through {@code RenderSystem.getDevice().getDeviceInfo()} now — and the
-	 *             compute/SSBO machinery this guarded was removed, so nothing calls it.
-	 */
-	@Deprecated(since = "26.2.2.35", forRemoval = true)
-	public static boolean supportComputeShader() {
-		return GL.getCapabilities().GL_ARB_compute_shader;
-	}
-
-	/**
-	 * @deprecated See {@link #supportComputeShader()} — same reason, same fate.
-	 */
-	@Deprecated(since = "26.2.2.35", forRemoval = true)
-	public static boolean supportSSBO() {
-		return GL.getCapabilities().GL_ARB_shader_storage_buffer_object;
-	}
 
 }

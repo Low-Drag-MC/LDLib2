@@ -31,7 +31,8 @@ import com.lowdragmc.lowdraglib2.uitest.TestContext;
 import com.lowdragmc.lowdraglib2.uitest.UIScenario;
 import com.lowdragmc.lowdraglib2.uitest.input.Keys;
 import net.minecraft.resources.Identifier;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
+import org.lwjgl.sdl.SDLKeycode;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -50,8 +51,8 @@ public class EditorKeymapScenario implements UIScenario {
     private static final Identifier CHORD_ACTION = LDLib2.id("uitest.keymap_chord");
     private static final Identifier BARE_ACTION = LDLib2.id("uitest.keymap_bare");
 
-    private static final KeyChord PROBE_CHORD = KeyChord.ctrlShift(GLFW.GLFW_KEY_K);
-    private static final KeyChord REBOUND_CHORD = KeyChord.ctrlShift(GLFW.GLFW_KEY_J);
+    private static final KeyChord PROBE_CHORD = KeyChord.ctrlShift(SDLKeycode.SDLK_K);
+    private static final KeyChord REBOUND_CHORD = KeyChord.ctrlShift(SDLKeycode.SDLK_J);
 
     private static final String CHORD_RUNS = "chord_runs";
     private static final String BARE_RUNS = "bare_runs";
@@ -96,7 +97,7 @@ public class EditorKeymapScenario implements UIScenario {
                                     .build(),
                             // a bare key: the kind that has to stand aside while the user is typing
                             EditorAction.builder(BARE_ACTION)
-                                    .defaultChord(KeyChord.key(GLFW.GLFW_KEY_SPACE))
+                                    .defaultChord(KeyChord.key(SDLKeycode.SDLK_SPACE))
                                     .onAction(bareRuns::incrementAndGet)
                                     .build());
                 })
@@ -112,23 +113,23 @@ public class EditorKeymapScenario implements UIScenario {
 
                 .group("a chord reaches its action", g -> g
                         .step("focus the editor itself", ctx -> editor(ctx).focus())
-                        .key(GLFW.GLFW_KEY_K, Keys.MOD_CONTROL | Keys.MOD_SHIFT)
+                        .key(InputConstants.KEY_K, Keys.MOD_CONTROL | Keys.MOD_SHIFT)
                         .check("the action ran once", ctx -> runs(ctx, CHORD_RUNS) == 1)
                         .check("the bare-key action did not", ctx -> runs(ctx, BARE_RUNS) == 0)
-                        .key(GLFW.GLFW_KEY_SPACE)
+                        .key(InputConstants.KEY_SPACE)
                         .check("a bare space runs its action when nothing is being typed into",
                                 ctx -> runs(ctx, BARE_RUNS) == 1))
 
                 .group("a focused text field keeps the keys it types", g -> g
                         .step("focus the text field", ctx -> field(ctx).focus())
-                        .key(GLFW.GLFW_KEY_SPACE)
+                        .key(InputConstants.KEY_SPACE)
                         .check("the space did not run the shortcut", ctx -> runs(ctx, BARE_RUNS) == 1)
                         .type("ab")
                         .check("and typing still reaches the field", ctx -> fieldText(ctx).contains("ab")))
 
                 .group("a modified chord still reaches the editor while typing", g -> g
                         .check("the field still has the focus", ctx -> field(ctx).isFocused())
-                        .key(GLFW.GLFW_KEY_K, Keys.MOD_CONTROL | Keys.MOD_SHIFT)
+                        .key(InputConstants.KEY_K, Keys.MOD_CONTROL | Keys.MOD_SHIFT)
                         .check("the action ran again", ctx -> runs(ctx, CHORD_RUNS) == 2)
                         .check("and nothing was typed into the field", ctx -> fieldText(ctx).equals("ab")))
 
@@ -141,9 +142,9 @@ public class EditorKeymapScenario implements UIScenario {
                             editor.getEditorSettings().applyCurrentSettings();
                         })
                         .step("focus the editor itself", ctx -> editor(ctx).focus())
-                        .key(GLFW.GLFW_KEY_K, Keys.MOD_CONTROL | Keys.MOD_SHIFT)
+                        .key(InputConstants.KEY_K, Keys.MOD_CONTROL | Keys.MOD_SHIFT)
                         .check("the old chord does nothing", ctx -> runs(ctx, CHORD_RUNS) == 2)
-                        .key(GLFW.GLFW_KEY_J, Keys.MOD_CONTROL | Keys.MOD_SHIFT)
+                        .key(InputConstants.KEY_J, Keys.MOD_CONTROL | Keys.MOD_SHIFT)
                         .check("the new one runs it", ctx -> runs(ctx, CHORD_RUNS) == 3))
 
                 // The chords the keymap's Edit and File actions use are also hardcoded in ModularUI's
@@ -159,25 +160,25 @@ public class EditorKeymapScenario implements UIScenario {
                             });
                         })
                         .step("focus the editor itself", ctx -> editor(ctx).focus())
-                        .key(GLFW.GLFW_KEY_S, Keys.MOD_CONTROL)
+                        .key(InputConstants.KEY_S, Keys.MOD_CONTROL)
                         .check("ctrl+s saves while that is what save is bound to",
                                 ctx -> runs(ctx, SAVE_COMMANDS) == 1)
                         .step("move save onto ctrl+shift+b", ctx -> {
                             var editor = editor(ctx);
                             KeymapSettings.of(editor).setBindings(action(ctx, EditorActions.SAVE),
-                                    Keymap.Bindings.of(KeyChord.ctrlShift(GLFW.GLFW_KEY_B), KeyChord.UNBOUND));
+                                    Keymap.Bindings.of(KeyChord.ctrlShift(SDLKeycode.SDLK_B), KeyChord.UNBOUND));
                             editor.getEditorSettings().applyCurrentSettings();
                         })
-                        .key(GLFW.GLFW_KEY_S, Keys.MOD_CONTROL)
+                        .key(InputConstants.KEY_S, Keys.MOD_CONTROL)
                         .check("the old chord no longer saves", ctx -> runs(ctx, SAVE_COMMANDS) == 1)
-                        .key(GLFW.GLFW_KEY_B, Keys.MOD_CONTROL | Keys.MOD_SHIFT)
+                        .key(InputConstants.KEY_B, Keys.MOD_CONTROL | Keys.MOD_SHIFT)
                         .check("and the new one does", ctx -> runs(ctx, SAVE_COMMANDS) == 2)
                         .step("put save back", ctx -> {
                             var editor = editor(ctx);
                             KeymapSettings.of(editor).reset(action(ctx, EditorActions.SAVE));
                             editor.getEditorSettings().applyCurrentSettings();
                         })
-                        .key(GLFW.GLFW_KEY_S, Keys.MOD_CONTROL)
+                        .key(InputConstants.KEY_S, Keys.MOD_CONTROL)
                         .check("resetting brings ctrl+s back", ctx -> runs(ctx, SAVE_COMMANDS) == 3))
 
                 .group("the keymap page lists every action", g -> g
@@ -212,7 +213,7 @@ public class EditorKeymapScenario implements UIScenario {
                         .step("start listening on the probe's row", ctx -> captureField(ctx, REBOUND_CHORD)
                                 .startCapture())
                         // the very chord the probe answers to: it must be recorded, not run
-                        .key(GLFW.GLFW_KEY_J, Keys.MOD_CONTROL | Keys.MOD_SHIFT)
+                        .key(InputConstants.KEY_J, Keys.MOD_CONTROL | Keys.MOD_SHIFT)
                         .check("the action did not run", ctx -> runs(ctx, CHORD_RUNS) == 3)
                         .check("and the chord is still what it was",
                                 ctx -> REBOUND_CHORD.equals(binding(ctx, CHORD_ACTION))))
@@ -220,13 +221,13 @@ public class EditorKeymapScenario implements UIScenario {
                 .group("a clash with a built-in action is marked, not refused", g -> g
                         .step("assign ctrl+s, which save already uses",
                                 ctx -> captureField(ctx, REBOUND_CHORD).startCapture())
-                        .key(GLFW.GLFW_KEY_S, Keys.MOD_CONTROL)
+                        .key(InputConstants.KEY_S, Keys.MOD_CONTROL)
                         .check("the chord was taken",
-                                ctx -> KeyChord.ctrl(GLFW.GLFW_KEY_S).equals(binding(ctx, CHORD_ACTION)))
+                                ctx -> KeyChord.ctrl(SDLKeycode.SDLK_S).equals(binding(ctx, CHORD_ACTION)))
                         .check("assigning it did not save anything",
                                 ctx -> ctx.count(".__dialog_progress-bar__") == 0)
                         .check("the page reports the clash with save", ctx -> KeymapSettings.of(editor(ctx))
-                                .conflictsWith(action(ctx, CHORD_ACTION), KeyChord.ctrl(GLFW.GLFW_KEY_S))
+                                .conflictsWith(action(ctx, CHORD_ACTION), KeyChord.ctrl(SDLKeycode.SDLK_S))
                                 .stream().anyMatch(other -> other.id().equals(EditorActions.SAVE)))
                         .screenshot("02_conflict"))
 
@@ -235,7 +236,7 @@ public class EditorKeymapScenario implements UIScenario {
                 .group("the page follows the stylesheet", g -> {
                     // left listening for the shots, so each theme shows both states of the field
                     g.step("put one field into its listening state",
-                            ctx -> captureField(ctx, KeyChord.ctrl(GLFW.GLFW_KEY_O)).startCapture());
+                            ctx -> captureField(ctx, KeyChord.ctrl(SDLKeycode.SDLK_O)).startCapture());
                     for (var theme : THEMES) {
                         g.step("switch to " + theme, ctx -> applyTheme(ctx, theme))
                                 .frames(2)
@@ -286,7 +287,7 @@ public class EditorKeymapScenario implements UIScenario {
                         .step("move the settings action onto ctrl+alt+g", ctx -> {
                             var editor = editor(ctx);
                             KeymapSettings.of(editor).setBindings(action(ctx, EditorActions.SETTINGS),
-                                    Keymap.Bindings.of(KeyChord.ctrlAlt(GLFW.GLFW_KEY_G), KeyChord.UNBOUND));
+                                    Keymap.Bindings.of(KeyChord.ctrlAlt(SDLKeycode.SDLK_G), KeyChord.UNBOUND));
                             editor.getEditorSettings().applyCurrentSettings();
                         })
                         .step("open the file menu", ctx -> {
@@ -322,11 +323,11 @@ public class EditorKeymapScenario implements UIScenario {
                             return focused != null && focused.getFirstAncestorOfType(ViewContainer.class) == null;
                         })
                         .step("remember which tab is up", ctx -> ctx.put(SELECTED_VIEW, selectedTab(ctx)))
-                        .key(GLFW.GLFW_KEY_PAGE_DOWN, Keys.MOD_CONTROL)
+                        .key(InputConstants.KEY_PAGEDOWN, Keys.MOD_CONTROL)
                         .settleMs(120)
                         .check("the next tab came up anyway",
                                 ctx -> !ctx.<String>get(SELECTED_VIEW).equals(selectedTab(ctx)))
-                        .key(GLFW.GLFW_KEY_PAGE_UP, Keys.MOD_CONTROL)
+                        .key(InputConstants.KEY_PAGEUP, Keys.MOD_CONTROL)
                         .settleMs(120)
                         .check("and back", ctx -> ctx.<String>get(SELECTED_VIEW).equals(selectedTab(ctx)))
                         .screenshot("06_tabs"))

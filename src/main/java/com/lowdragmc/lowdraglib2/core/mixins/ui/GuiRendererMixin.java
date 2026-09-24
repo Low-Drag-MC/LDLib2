@@ -5,7 +5,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGuiRendererExt;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.IPreciseScissor;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.PreciseScissor;
 import com.mojang.blaze3d.pipeline.RenderTarget;
-import com.mojang.blaze3d.systems.RenderPass;
+import com.mojang.renderpearl.api.commands.RenderPass;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.renderer.GameRenderer;

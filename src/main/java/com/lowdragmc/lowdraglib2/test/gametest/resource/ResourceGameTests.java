@@ -45,19 +45,7 @@ public final class ResourceGameTests {
     }
 
     static TestData<Holder<TestEnvironmentDefinition<?>>> defaultTestData(Holder<TestEnvironmentDefinition<?>> environment, String structurePath) {
-        return new TestData<>(
-                environment,
-                LDLib2.id(structurePath),
-                20,
-                0,
-                true,
-                Rotation.NONE,
-                false,
-                1,
-                1,
-                false,
-                0
-        );
+        return new TestData<>(environment, LDLib2.id(structurePath), 20, 0, true, Rotation.NONE);
     }
 
     private static void registerGameTests(RegisterGameTestsEvent event) {

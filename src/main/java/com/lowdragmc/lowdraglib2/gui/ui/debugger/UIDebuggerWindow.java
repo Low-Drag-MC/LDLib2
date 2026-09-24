@@ -22,7 +22,7 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -256,7 +256,7 @@ public class UIDebuggerWindow extends ModularUIWindow {
     @Override
     protected void handleEvent(OsWindowEvent event) {
         // PRESS only, not REPEAT: a held F1 would otherwise toggle focus mode dozens of times a second.
-        if (event instanceof OsWindowEvent.Key key && key.action() == GLFW.GLFW_PRESS
+        if (event instanceof OsWindowEvent.Key key && key.action() == InputConstants.PRESS
                 && handleShortcut(key.key())) {
             return;
         }
@@ -265,12 +265,12 @@ public class UIDebuggerWindow extends ModularUIWindow {
 
     private boolean handleShortcut(int keyCode) {
         switch (keyCode) {
-            case GLFW.GLFW_KEY_F1 -> debugger.setFocusMode(!debugger.isFocusMode());
-            case GLFW.GLFW_KEY_F4 -> debugger.setRenderUIShaping(!debugger.isRenderUIShaping());
+            case InputConstants.KEY_F1 -> debugger.setFocusMode(!debugger.isFocusMode());
+            case InputConstants.KEY_F4 -> debugger.setRenderUIShaping(!debugger.isRenderUIShaping());
             // F12 - the same key that opens a debugger anywhere else on 26.1 - and not escape:
             // escape belongs to whatever has focus in here — the LSS editor, a text field — and
             // closing the window out from under it would be its own bug report.
-            case GLFW.GLFW_KEY_F12 -> onCloseRequested();
+            case InputConstants.KEY_F12 -> onCloseRequested();
             default -> {
                 return false;
             }

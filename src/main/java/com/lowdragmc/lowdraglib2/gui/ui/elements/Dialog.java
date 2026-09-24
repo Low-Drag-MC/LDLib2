@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
+import com.mojang.blaze3d.Blaze3D;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
@@ -26,7 +27,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Util;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector2f;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import org.jetbrains.annotations.Nullable;
 import java.io.File;
@@ -164,7 +165,7 @@ public class Dialog extends UIElement {
     }
 
     protected void keyDown(UIEvent event) {
-        if (autoClose && event.keyCode == GLFW.GLFW_KEY_ESCAPE) {
+        if (autoClose && event.keyCode == InputConstants.KEY_ESCAPE) {
             close();
             event.stopPropagation();
         }
@@ -643,7 +644,7 @@ public class Dialog extends UIElement {
             layout.gapAll(2);
         }).addChildren(textField.layout(layout -> layout.flex(1)), new Button().setOnClick(e -> {
             // reveal what's selected in the tree, and only fall back to the dialog's own directory
-            Util.getPlatform().openFile(FileDialogActions.openTargetDir(treeList, dir));
+            Blaze3D.openPath(FileDialogActions.openTargetDir(treeList, dir).toPath());
         }).noText().layout(layout -> {
             layout.width(14);
             layout.height(14);

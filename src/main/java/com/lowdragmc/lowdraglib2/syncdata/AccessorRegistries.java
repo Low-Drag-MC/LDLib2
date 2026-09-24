@@ -392,7 +392,7 @@ public class AccessorRegistries {
         registerAccessor(CustomDirectAccessor.builder(BlockPos.class)
                 .codec(BlockPos.CODEC)
                 .streamCodec(BlockPos.STREAM_CODEC)
-                .copyMark(BlockPos::new)
+                .copyMark(BlockPos::immutable)
                 .build());
         registerAccessor(CustomDirectAccessor.builder(ChunkPos.class)
                 .codec(ChunkPos.CODEC)
@@ -423,12 +423,12 @@ public class AccessorRegistries {
         registerAccessor(CustomDirectAccessor.builder(RecipeHolder.class)
                 .codec(RecordCodecBuilder.create(instance -> instance.group(
                         ResourceKey.codec(Registries.RECIPE).fieldOf("id").forGetter(RecipeHolder::id),
-                        Recipe.CODEC.fieldOf("recipe").forGetter(RecipeHolder::value)
+                        Recipe.DIRECT_CODEC.fieldOf("recipe").forGetter(RecipeHolder::value)
                 ).apply(instance, RecipeHolder::new)))
                 .streamCodec((StreamCodec<RegistryFriendlyByteBuf, RecipeHolder>) (Object)RecipeHolder.STREAM_CODEC)
                 .build());
         registerAccessor(CustomDirectAccessor.builder(Recipe.class, true)
-                .codec((Codec<Recipe>) (Object) Recipe.CODEC)
+                .codec((Codec<Recipe>) (Object) Recipe.DIRECT_CODEC)
                 .streamCodec((StreamCodec<RegistryFriendlyByteBuf, Recipe>) (Object)Recipe.STREAM_CODEC)
                 .build());
         registerAccessor(CustomDirectAccessor.builder(IResourcePath.class, true)

@@ -18,7 +18,7 @@ import com.lowdragmc.lowdraglib2.uitest.UIScenario;
 import com.lowdragmc.lowdraglib2.uitest.input.Keys;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.io.File;
 
@@ -88,7 +88,7 @@ public class EditorSaveNotificationScenario implements UIScenario {
                         // reaches the Editor, rather than being delivered to whatever holds focus.
                         .blur()
                         .keyDown(Keys.LEFT_CONTROL)
-                        .key(GLFW.GLFW_KEY_S, Keys.MOD_CONTROL)
+                        .key(InputConstants.KEY_S, Keys.MOD_CONTROL)
                         .keyUp(Keys.LEFT_CONTROL)
                         .waitUntil("the notification is up", ctx -> ctx.count("dialog") > 0)
                         .check("it is the progress bar kind", ctx -> ctx.count(".__dialog_progress-bar__") > 0)

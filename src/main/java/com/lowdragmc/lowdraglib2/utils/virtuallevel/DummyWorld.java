@@ -23,12 +23,10 @@ import net.minecraft.world.attribute.EnvironmentAttributeSystem;
 import net.minecraft.world.clock.ClockManager;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.flag.FeatureFlags;
-import net.minecraft.world.item.alchemy.PotionBrewing;
 import net.minecraft.world.item.crafting.RecipeAccess;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.ExplosionDamageCalculator;
 import net.minecraft.world.level.biome.Biomes;
-import net.minecraft.world.level.block.entity.FuelValues;
 import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.level.chunk.DataLayer;
 import net.minecraft.world.level.dimension.BuiltinDimensionTypes;
@@ -107,7 +105,6 @@ public class DummyWorld extends Level {
     private final ClockManager clockManager;
     private final EnvironmentAttributeSystem environmentAttributes;
     private final WorldBorder worldBorder = new WorldBorder();
-    private final FuelValues fuelValues;
     /**
      * 26.2 no longer auto-assigns entity ids in the {@code Entity} constructor (the old global
      * counter was removed; ids now come from the server / network packets). Dummy-world entities are
@@ -142,7 +139,6 @@ public class DummyWorld extends Level {
         }
         clockManager = new ClientClockManager();
         this.environmentAttributes = EnvironmentAttributeSystem.builder().build();
-        this.fuelValues = new FuelValues.Builder(registryAccess, FeatureFlagSet.of()).build();
         this.updateSkyBrightness();
     }
 
@@ -158,11 +154,6 @@ public class DummyWorld extends Level {
     @Override
     public EnvironmentAttributeSystem environmentAttributes() {
         return environmentAttributes;
-    }
-
-    @Override
-    public FuelValues fuelValues() {
-        return fuelValues;
     }
 
     @Override
@@ -278,11 +269,6 @@ public class DummyWorld extends Level {
     @Override
     public int getSeaLevel() {
         return 0;
-    }
-
-    @Override
-    public PotionBrewing potionBrewing() {
-        return null;
     }
 
     @Override

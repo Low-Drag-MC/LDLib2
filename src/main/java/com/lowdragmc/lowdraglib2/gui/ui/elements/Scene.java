@@ -629,16 +629,16 @@ public class Scene extends UIElement {
 
         private static void renderOverlay(Scene scene, SceneRenderContext ctx) {
             if (scene.lastSelectedPosFace != null && scene.renderSelect) {
-                RenderUtils.renderBlockOverLay(new PoseStack(), scene.lastSelectedPosFace.pos(),
+                RenderUtils.renderBlockOverLay(ctx.renderPass(), new PoseStack(), scene.lastSelectedPosFace.pos(),
                         0.6f, 0, 0, 1.01f);
             }
             var tmp = scene.dragging ? scene.lastClickPosFace : scene.lastHoverPosFace;
             if (scene.renderFacing) {
                 if (scene.lastSelectedPosFace != null) {
-                    drawFacingBorder(scene.lastSelectedPosFace, 0xff00ff00);
+                    drawFacingBorder(ctx, scene.lastSelectedPosFace, 0xff00ff00);
                 }
                 if (tmp != null && !tmp.equals(scene.lastSelectedPosFace)) {
-                    drawFacingBorder(tmp, 0xffffffff);
+                    drawFacingBorder(ctx, tmp, 0xffffffff);
                 }
             }
             if (scene.afterWorldRender != null) {
@@ -649,14 +649,14 @@ public class Scene extends UIElement {
             }
         }
 
-        private static void drawFacingBorder(BlockPosFace posFace, int color) {
+        private static void drawFacingBorder(SceneRenderContext ctx, BlockPosFace posFace, int color) {
             var poseStack = new PoseStack();
             RenderUtils.moveToFace(poseStack, posFace.pos().getX(), posFace.pos().getY(), posFace.pos().getZ(), posFace.facing());
             RenderUtils.rotateToFace(poseStack, posFace.facing(), null);
             poseStack.scale(1f / 16, 1f / 16, 0);
             poseStack.translate(-8, -8, 0);
             final var pose = poseStack.last().pose();
-            RenderUtils.drawImmediate(TransformGizmo.POSITION_COLOR_NO_DEPTH,
+            RenderUtils.drawImmediate(ctx.renderPass(), TransformGizmo.POSITION_COLOR_NO_DEPTH,
                     vc -> drawBorder(pose, vc, 1, 1, 14, 14, color, 1));
         }
 

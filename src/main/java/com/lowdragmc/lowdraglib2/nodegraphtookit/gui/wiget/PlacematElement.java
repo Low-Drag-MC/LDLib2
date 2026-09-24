@@ -31,7 +31,7 @@ import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 public class PlacematElement extends GraphElement<PlacematModel> {
     public static final String PLACEMAT_LAYER = "Placemat";
@@ -269,10 +269,10 @@ public class PlacematElement extends GraphElement<PlacematModel> {
         };
 
         inlineRenameField.addEventListener(UIEvents.KEY_DOWN, e -> {
-            if (e.keyCode == GLFW.GLFW_KEY_ENTER || e.keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+            if (e.keyCode == InputConstants.KEY_RETURN || e.keyCode == InputConstants.KEY_NUMPADENTER) {
                 commit.run();
                 e.stopPropagation();
-            } else if (e.keyCode == GLFW.GLFW_KEY_ESCAPE) {
+            } else if (e.keyCode == InputConstants.KEY_ESCAPE) {
                 cancel.run();
                 e.stopPropagation();
             }

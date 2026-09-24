@@ -225,7 +225,6 @@
   "color_border_texture": "Color Border Texture",
   "animation_texture": "Animation Texture",
   "item_stack_texture": "Item Stack Texture",
-  "shader_texture": "Shader Texture",
   "progress_texture": "Progress Texture",
   "group_texture": "Group Texture",
   "widget.basic.image": "Image",

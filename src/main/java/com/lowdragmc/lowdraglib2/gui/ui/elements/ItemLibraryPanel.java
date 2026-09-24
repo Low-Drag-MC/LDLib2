@@ -24,7 +24,7 @@ import dev.vfyjxf.taffy.style.TaffyDisplay;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -361,17 +361,17 @@ public class ItemLibraryPanel<T extends ILibraryItem> extends UIElement {
 
     protected void onKeyDown(UIEvent event) {
         switch (event.keyCode) {
-            case GLFW.GLFW_KEY_UP -> {
+            case InputConstants.KEY_UP -> {
                 moveKeyboardSelection(-1);
                 event.stopPropagation();
             }
-            case GLFW.GLFW_KEY_DOWN -> {
+            case InputConstants.KEY_DOWN -> {
                 moveKeyboardSelection(1);
                 event.stopPropagation();
             }
-            case GLFW.GLFW_KEY_RIGHT, GLFW.GLFW_KEY_LEFT -> {
+            case InputConstants.KEY_RIGHT, InputConstants.KEY_LEFT -> {
                 if (selectedTree != null && selectedNode != null && selectedNode.isBranch()) {
-                    if (event.keyCode == GLFW.GLFW_KEY_RIGHT) {
+                    if (event.keyCode == InputConstants.KEY_RIGHT) {
                         selectedTree.expandNode(selectedNode);
                     } else {
                         selectedTree.collapseNode(selectedNode);
@@ -379,7 +379,7 @@ public class ItemLibraryPanel<T extends ILibraryItem> extends UIElement {
                     event.stopPropagation();
                 }
             }
-            case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> {
+            case InputConstants.KEY_RETURN, InputConstants.KEY_NUMPADENTER -> {
                 if (selectedNode != null && selectedItem != null && isDecidable(selectedNode)) {
                     onNodeDecided(selectedItem);
                     event.stopPropagation();

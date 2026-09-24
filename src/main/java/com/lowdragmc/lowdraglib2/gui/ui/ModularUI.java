@@ -114,7 +114,7 @@ public class ModularUI {
     @Getter
     int lastMouseDownButton = -1, lastMouseClickButton = -1;
     @Getter
-    int lastPressedKeyCode = - 1, lastPressedScanCode = -1, lastPressedModifiers = -1;
+    int lastPressedKeyCode = - 1, lastPressedShortcutKey = -1, lastPressedModifiers = -1;
     @Getter
     long lastMouseClickTime;
     @Getter
@@ -570,6 +570,9 @@ public class ModularUI {
      * This method can be overridden to perform cleanup tasks.
      */
     public void onRemoved() {
+        if (clientState != null) {
+            ModularUIClientAccess.releaseTextInput(this);
+        }
         removed = true;
         ui.rootElement.onRemoved();
         styleEngine.dispose();
@@ -618,6 +621,11 @@ public class ModularUI {
             UIEventDispatcher.dispatchEvent(focus);
         }
 
+        // Only a UI that has been shown on a client has client state, so this never reaches client
+        // classes from a server-side instance.
+        if (clientState != null) {
+            ModularUIClientAccess.syncTextInput(this);
+        }
     }
 
     public void clearFocus() {

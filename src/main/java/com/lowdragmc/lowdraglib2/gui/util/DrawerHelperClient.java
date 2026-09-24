@@ -8,7 +8,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.renderstate.FloatLineStripRenderSta
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import com.lowdragmc.lowdraglib2.utils.FluidHelperClient;
 import com.lowdragmc.lowdraglib2.math.Rect;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.render.TextureSetup;
@@ -226,6 +226,7 @@ public class DrawerHelperClient {
                     (int) context.localMouseX, (int) context.localMouseY,
                     tooltipPositioner(hoverTooltips),
                     hoverTooltips.background(),
+                    false,
                     stack);
         }
     }

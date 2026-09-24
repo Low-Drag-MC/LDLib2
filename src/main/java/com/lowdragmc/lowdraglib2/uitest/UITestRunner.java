@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.uitest;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.client.LDLib2ClientRegistries;
-import com.lowdragmc.lowdraglib2.client.window.OsWindowHints;
+import com.lowdragmc.lowdraglib2.client.window.OsWindow;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.UISurface;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.CursorOverlay;
 import com.lowdragmc.lowdraglib2.uitest.capture.CaptureRequest;
@@ -24,7 +24,9 @@ import net.neoforged.fml.ModList;
 import net.neoforged.fml.ModLoader;
 import net.neoforged.neoforge.client.gui.LoadingErrorScreen;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.glfw.GLFW;
+import org.lwjgl.sdl.SDLVideo;
+import org.lwjgl.sdl.SDL_Rect;
+import org.lwjgl.system.MemoryStack;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -839,32 +841,31 @@ public final class UITestRunner {
                 // render target and FrameCapture downloads that texture, never the swap chain - so the
                 // only thing lost is the ability of a human to watch, which is the point.
                 //
-                // It has to be hidden after creation, not with a GLFW_VISIBLE hint: the handle comes from
-                // FML's early loading window via ImmediateWindowHandler#setupMinecraftWindow, so
-                // Minecraft never passes hints of ours to glfwCreateWindow.
-                GLFW.glfwHideWindow(window.handle());
-                GLFW.glfwSetWindowSize(window.handle(), config.windowWidth(), config.windowHeight());
+                // It has to be hidden after creation: Minecraft creates its window itself and takes no
+                // flags of ours.
+                SDLVideo.SDL_HideWindow(window.handle());
+                SDLVideo.SDL_SetWindowSize(window.handle(), config.windowWidth(), config.windowHeight());
             } else if (!config.maximizeWindow()) {
-                GLFW.glfwSetWindowSize(window.handle(), config.windowWidth(), config.windowHeight());
+                SDLVideo.SDL_SetWindowSize(window.handle(), config.windowWidth(), config.windowHeight());
             } else if (mayTakeFocus) {
-                GLFW.glfwMaximizeWindow(window.handle());
+                SDLVideo.SDL_MaximizeWindow(window.handle());
             } else {
-                // glfwMaximizeWindow is ShowWindow(SW_MAXIMIZE) on Win32, which *activates* the window -
-                // as much a focus theft as glfwFocusWindow, and one that fires on the default path.
-                // Filling the monitor's work area gives the same big, readable frame; glfwSetWindowPos and
-                // glfwSetWindowSize both pass SWP_NOACTIVATE.
+                // Maximizing is ShowWindow(SW_MAXIMIZE) on Win32, which *activates* the window - as
+                // much a focus theft as raising it, and one that fires on the default path. Filling the
+                // display's usable area gives the same big, readable frame; moving and sizing a window
+                // both pass SWP_NOACTIVATE.
                 fillWorkArea(window.handle());
             }
             if (mayTakeFocus) {
-                // Without focus, GLFW never delivers cursor callbacks, so real-mode input goes nowhere.
+                // Without focus the window receives no pointer events, so real-mode input goes nowhere.
                 // Never reached headless - RunConfig refuses REAL input there, because a hidden window
                 // has no focus to give.
-                GLFW.glfwFocusWindow(window.handle());
+                SDLVideo.SDL_RaiseWindow(window.handle());
             }
             return false;
         }
-        // The resize is asynchronous: GLFW delivers the framebuffer-size callback during
-        // glfwPollEvents, so nothing below may measure the window on the frame that asked for it.
+        // The resize is asynchronous: SDL delivers the pixel-size event from the event pump, so
+        // nothing below may measure the window on the frame that asked for it.
         if (!windowSizeSettled(window) && System.nanoTime() < windowResizeDeadlineNanos) {
             return false;
         }
@@ -942,8 +943,8 @@ public final class UITestRunner {
     /**
      * Whether this run may take the operating system's focus and raise its window.
      *
-     * <p>Real input is the one mode that has to own the window: GLFW delivers cursor callbacks to
-     * nothing else and ignores {@code glfwSetCursorPos} on an unfocused one. Every other mode stays
+     * <p>Real input is the one mode that has to own the window: it moves the real pointer, which has
+     * to be over the game's window, in front, for the game to see it. Every other mode stays
      * out of the way of whoever is using the machine.
      */
     private boolean mayTakeFocus() {
@@ -955,30 +956,36 @@ public final class UITestRunner {
      * installs the virtual cursor and the raw-input gate; this is only the window system.
      */
     private void installBackgroundMode() {
-        OsWindowHints.setFocusOnShow(mayTakeFocus());
+        OsWindow.setActivateOnShow(mayTakeFocus());
     }
 
     private void uninstallBackgroundMode() {
-        OsWindowHints.setFocusOnShow(true);
+        OsWindow.setActivateOnShow(true);
     }
 
     /**
-     * Sizes the window to the monitor's work area, as maximising would, but without activating it.
+     * Sizes the window to the display's usable area, as maximising would, but without activating it.
      * Leaves the window alone if the platform cannot say how big that area is.
      */
     private static void fillWorkArea(long handle) {
-        var monitor = GLFW.glfwGetPrimaryMonitor();
-        if (monitor == 0L) return;
-        int[] areaX = new int[1], areaY = new int[1], areaWidth = new int[1], areaHeight = new int[1];
-        GLFW.glfwGetMonitorWorkarea(monitor, areaX, areaY, areaWidth, areaHeight);
-        // The frame - title bar and borders - sits outside the content area the size below applies to.
-        int[] left = new int[1], top = new int[1], right = new int[1], bottom = new int[1];
-        GLFW.glfwGetWindowFrameSize(handle, left, top, right, bottom);
-        var width = areaWidth[0] - left[0] - right[0];
-        var height = areaHeight[0] - top[0] - bottom[0];
-        if (width <= 0 || height <= 0) return;
-        GLFW.glfwSetWindowPos(handle, areaX[0] + left[0], areaY[0] + top[0]);
-        GLFW.glfwSetWindowSize(handle, width, height);
+        var display = SDLVideo.SDL_GetDisplayForWindow(handle);
+        if (display == 0) display = SDLVideo.SDL_GetPrimaryDisplay();
+        if (display == 0) return;
+        try (var stack = MemoryStack.stackPush()) {
+            var area = SDL_Rect.malloc(stack);
+            if (!SDLVideo.SDL_GetDisplayUsableBounds(display, area)) return;
+            // The frame - title bar and borders - sits outside the content area the size below applies to.
+            var top = stack.callocInt(1);
+            var left = stack.callocInt(1);
+            var bottom = stack.callocInt(1);
+            var right = stack.callocInt(1);
+            SDLVideo.SDL_GetWindowBordersSize(handle, top, left, bottom, right);
+            var width = area.w() - left.get(0) - right.get(0);
+            var height = area.h() - top.get(0) - bottom.get(0);
+            if (width <= 0 || height <= 0) return;
+            SDLVideo.SDL_SetWindowPosition(handle, area.x() + left.get(0), area.y() + top.get(0));
+            SDLVideo.SDL_SetWindowSize(handle, width, height);
+        }
     }
 
     private void collectEnvironment(Minecraft minecraft) {

@@ -12,6 +12,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElementRendererRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.TextCompositionOverlay;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Cursor;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
@@ -44,7 +45,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.util.StringUtil;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
+import org.lwjgl.sdl.SDLKeycode;
 import org.w3c.dom.Element;
 
 import org.jetbrains.annotations.Nullable;
@@ -240,6 +242,14 @@ public class TextArea extends BindableUIElement<String[]> {
     // Validation
     @Setter private Predicate<String[]> textValidator = Predicates.alwaysTrue();
     @Setter private Predicate<Character> charValidator = Predicates.alwaysTrue();
+    /**
+     * The input method's in-progress composition — the client's {@code PreeditEvent} — or {@code null}
+     * when nothing is being composed. Typed as {@code Object} so this element stays loadable on a
+     * dedicated server; only the client renderer looks inside it.
+     */
+    @Getter
+    @Nullable
+    private Object composition;
 
     // Style
     @Getter private final TextAreaStyle textAreaStyle = new TextAreaStyle();
@@ -299,6 +309,7 @@ public class TextArea extends BindableUIElement<String[]> {
 
         // Event wiring
         addEventListener(UIEvents.CHAR_TYPED, this::onCharTyped);
+        addEventListener(UIEvents.PREEDIT, this::onPreedit);
         addEventListener(UIEvents.KEY_DOWN, this::onKeyDown);
         addEventListener(UIEvents.VALIDATE_COMMAND, this::onValidateCommand);
         addEventListener(UIEvents.EXECUTE_COMMAND, this::onExecuteCommand);
@@ -589,6 +600,7 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     protected void onBlur(UIEvent e) {
+        composition = null;
         if (hasSelection()) {
             collapseSelectionToCursor();
         }
@@ -678,9 +690,19 @@ public class TextArea extends BindableUIElement<String[]> {
         return TextAreaClientSupport.getCursorUnderMouse(this, mouseX, mouseY);
     }
 
+    /**
+     * An input method is composing text for this element. Not inserted — it is only drawn beside the
+     * caret until the composition is committed, which arrives as ordinary typed characters.
+     */
+    protected void onPreedit(UIEvent event) {
+        if (!isEditable()) return;
+        composition = event.customData;
+        event.hasHandler = true;
+    }
+
     protected void onCharTyped(UIEvent event) {
         if (!isEditable()) return;
-        if (StringUtil.isAllowedChatCharacter(event.codePoint) && charValidator.test(event.codePoint)) {
+        if (StringUtil.isAllowedChatCharacter(event.codePoint) && isAllowedByValidator(event.codePoint)) {
             insertText(Character.toString(event.codePoint));
         }
     }
@@ -706,10 +728,10 @@ public class TextArea extends BindableUIElement<String[]> {
         return switch (event.keyCode) {
             // ⚠️ Ctrl+Left/Right is this editor's own word jump, so those two are owned with the
             // modifier down as well; every other chord belongs to whatever the container makes of it.
-            case GLFW.GLFW_KEY_LEFT, GLFW.GLFW_KEY_RIGHT -> true;
-            case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_BACKSPACE, GLFW.GLFW_KEY_DELETE, GLFW.GLFW_KEY_UP,
-                 GLFW.GLFW_KEY_DOWN, GLFW.GLFW_KEY_HOME, GLFW.GLFW_KEY_END, GLFW.GLFW_KEY_PAGE_UP,
-                 GLFW.GLFW_KEY_PAGE_DOWN -> !event.isCtrlDown();
+            case InputConstants.KEY_LEFT, InputConstants.KEY_RIGHT -> true;
+            case InputConstants.KEY_RETURN, InputConstants.KEY_BACKSPACE, InputConstants.KEY_DELETE, InputConstants.KEY_UP,
+                 InputConstants.KEY_DOWN, InputConstants.KEY_HOME, InputConstants.KEY_END, InputConstants.KEY_PAGEUP,
+                 InputConstants.KEY_PAGEDOWN -> !event.isCtrlDown();
             default -> !event.isCtrlDown() && KeyState.isTextKey(event.keyCode);
         };
     }
@@ -719,19 +741,19 @@ public class TextArea extends BindableUIElement<String[]> {
             event.stopPropagation();
         }
         switch (event.keyCode) {
-            case GLFW.GLFW_KEY_ENTER -> {
+            case InputConstants.KEY_RETURN -> {
                 if (!isEditable()) return;
                 insertNewLine();
             }
-            case GLFW.GLFW_KEY_BACKSPACE -> {
+            case InputConstants.KEY_BACKSPACE -> {
                 if (!isEditable()) return;
                 deleteChars(-1);
             }
-            case GLFW.GLFW_KEY_DELETE -> {
+            case InputConstants.KEY_DELETE -> {
                 if (!isEditable()) return;
                 deleteChars(1);
             }
-            case GLFW.GLFW_KEY_LEFT -> {
+            case InputConstants.KEY_LEFT -> {
                 if (event.isCtrlDown()) {
                     moveWord(-1);
                 } else {
@@ -739,7 +761,7 @@ public class TextArea extends BindableUIElement<String[]> {
                 }
                 updateSelectionAfterMove();
             }
-            case GLFW.GLFW_KEY_RIGHT -> {
+            case InputConstants.KEY_RIGHT -> {
                 if (event.isCtrlDown()) {
                     moveWord(1);
                 } else {
@@ -747,15 +769,15 @@ public class TextArea extends BindableUIElement<String[]> {
                 }
                 updateSelectionAfterMove();
             }
-            case GLFW.GLFW_KEY_UP -> {
+            case InputConstants.KEY_UP -> {
                 moveUp();
                 updateSelectionAfterMove();
             }
-            case GLFW.GLFW_KEY_DOWN -> {
+            case InputConstants.KEY_DOWN -> {
                 moveDown();
                 updateSelectionAfterMove();
             }
-            case GLFW.GLFW_KEY_HOME -> {
+            case InputConstants.KEY_HOME -> {
                 if (event.isCtrlDown()) {
                     setCursor(0, 0);
                 } else {
@@ -763,7 +785,7 @@ public class TextArea extends BindableUIElement<String[]> {
                 }
                 updateSelectionAfterMove();
             }
-            case GLFW.GLFW_KEY_END -> {
+            case InputConstants.KEY_END -> {
                 if (event.isCtrlDown()) {
                     int lastLine = Math.max(0, lines.size() - 1);
                     setCursor(lastLine, lines.get(lastLine).length());
@@ -772,23 +794,23 @@ public class TextArea extends BindableUIElement<String[]> {
                 }
                 updateSelectionAfterMove();
             }
-            case GLFW.GLFW_KEY_PAGE_UP -> {
+            case InputConstants.KEY_PAGEUP -> {
                 page(-1);
                 updateSelectionAfterMove();
             }
-            case GLFW.GLFW_KEY_PAGE_DOWN -> {
+            case InputConstants.KEY_PAGEDOWN -> {
                 page(1);
                 updateSelectionAfterMove();
             }
             default -> {
-                if (isPrimaryShortcut(event) && event.keyCode == GLFW.GLFW_KEY_A) {
+                if (isPrimaryShortcut(event) && event.shortcutKey == SDLKeycode.SDLK_A) {
                     selectAll();
-                } else if (isPrimaryShortcut(event) && event.keyCode == GLFW.GLFW_KEY_C) {
+                } else if (isPrimaryShortcut(event) && event.shortcutKey == SDLKeycode.SDLK_C) {
                     TextAreaClientSupport.copyHighlightedText(this);
-                } else if (isPrimaryShortcut(event) && event.keyCode == GLFW.GLFW_KEY_V) {
+                } else if (isPrimaryShortcut(event) && event.shortcutKey == SDLKeycode.SDLK_V) {
                     if (!isEditable()) return;
                     insertText(TextAreaClientSupport.getClipboardText());
-                } else if (isPrimaryShortcut(event) && event.keyCode == GLFW.GLFW_KEY_X) {
+                } else if (isPrimaryShortcut(event) && event.shortcutKey == SDLKeycode.SDLK_X) {
                     if (!isEditable()) return;
                     TextAreaClientSupport.copyHighlightedText(this);
                     insertText(""); // replace selection with empty
@@ -798,7 +820,7 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     private boolean isPrimaryShortcut(UIEvent event) {
-        return event.isCtrlDown() || (event.modifiers & GLFW.GLFW_MOD_SUPER) != 0;
+        return event.isCtrlDown() || (event.modifiers & InputConstants.MOD_SUPER) != 0;
     }
 
     protected void updateSelectionAfterMove() {
@@ -1079,6 +1101,17 @@ public class TextArea extends BindableUIElement<String[]> {
         return isActive() && isVisible() && isFocused() && isDisplayed();
     }
 
+    /**
+     * Runs the char validator over a code point. One outside the basic multilingual plane is two
+     * {@code char}s, and has to pass as both.
+     */
+    private boolean isAllowedByValidator(int codePoint) {
+        for (char unit : Character.toChars(codePoint)) {
+            if (!charValidator.test(unit)) return false;
+        }
+        return true;
+    }
+
     /// Rendering hooks (overridable by subclasses such as CodeEditor)
     protected void drawContentLines(GUIContext context, Font font, float scale, float x, float y,
                                     int firstVisibleLine, int lastVisibleLine) {
@@ -1330,6 +1363,13 @@ public class TextArea extends BindableUIElement<String[]> {
         }
 
         private static void drawCursor(TextArea area, GUIContext context, Font font, float scale, float x, float y) {
+            var modularUI = area.getModularUI();
+            if (area.isEditable() && modularUI != null) {
+                float caretX = font.getSplitter().stringWidth(area.styledLineComponent(area.getCursorLine(), 0, area.getCursorCol())) * scale;
+                float caretY = y + area.getCursorLine() * area.lineHeight() - area.getScrollY();
+                TextCompositionOverlay.submit(modularUI, context, area.getComposition(),
+                        x + caretX - area.getScrollX(), caretY, area.getTextAreaStyle().fontSize());
+            }
             if (area.isVisible() && area.isFocused() && area.isDisplayed() && (!area.isActive() || System.currentTimeMillis() % 1000 < 500)) {
                 float cursorPosX = font.getSplitter().stringWidth(area.styledLineComponent(area.getCursorLine(), 0, area.getCursorCol())) * scale;
                 float cursorY = y + area.getCursorLine() * area.lineHeight() - area.getScrollY();

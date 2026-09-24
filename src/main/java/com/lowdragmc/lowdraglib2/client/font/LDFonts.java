@@ -2,8 +2,8 @@ package com.lowdragmc.lowdraglib2.client.font;
 
 import com.lowdragmc.lowdraglib2.client.LDLibClientConfig;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.textures.GpuTextureView;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.textures.GpuTextureView;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.font.TextRenderable;

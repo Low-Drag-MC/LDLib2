@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Lets the process drive the game window's pointer itself, instead of dragging the physical one
- * around with {@code glfwSetCursorPos}.
+ * around with {@code SDL_WarpMouseInWindow}.
  *
  * <p>Descriptors are spelled out on every injection because {@code ldlib2.mixins.json} sets
  * {@code injectors.defaultRequire = 1}: a target that stops resolving must fail loudly at startup
@@ -85,8 +85,8 @@ public class MouseHandlerMixin {
     // the moment a stray click makes the window active again. Cancelling the movement here rather
     // than there also keeps accumulatedDX/DY from growing while the gate is up.
 
-    @Inject(method = "onMove(JDD)V", at = @At("HEAD"), cancellable = true)
-    private void ldlib2$dropOsMove(long windowPointer, double xpos, double ypos, CallbackInfo ci) {
+    @Inject(method = "onMove(JDDDD)V", at = @At("HEAD"), cancellable = true)
+    private void ldlib2$dropOsMove(long windowPointer, double xpos, double ypos, double xrel, double yrel, CallbackInfo ci) {
         if (RawInputGate.isBlocked()) {
             ci.cancel();
         }

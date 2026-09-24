@@ -1,13 +1,12 @@
 package com.lowdragmc.lowdraglib2.gui.ui.rendering;
 
-import com.lowdragmc.lowdraglib2.client.RenderTargetScope;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderPipelines;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.PictureInPictureRendererAccessor;
-import com.mojang.blaze3d.GpuFormat;
+import com.mojang.renderpearl.api.GpuFormat;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.FilterMode;
-import com.mojang.blaze3d.textures.GpuTexture;
-import com.mojang.blaze3d.textures.GpuTextureView;
+import com.mojang.renderpearl.api.textures.FilterMode;
+import com.mojang.renderpearl.api.textures.GpuTexture;
+import com.mojang.renderpearl.api.textures.GpuTextureView;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -107,10 +106,18 @@ public class VisualLayerPipRenderer extends PictureInPictureRenderer<VisualLayer
         }
     }
 
+    /**
+     * Flushes the captured subtree into this renderer's own textures with a gui renderer of its own.
+     *
+     * <p>Drawn immediately rather than submitted: a subtree is gui render states, not world features, so
+     * there is nothing to hand the collector. The base class has already sized and cleared the textures,
+     * and opens its own (empty) pass on them afterwards.
+     */
     @Override
     protected void renderToTexture(VisualLayerPipState state, PoseStack poseStack, SubmitNodeCollector submitNodeCollector) {
-        GpuTextureView subColorView = RenderSystem.outputColorTextureOverride;
-        GpuTextureView subDepthView = RenderSystem.outputDepthTextureOverride;
+        var textures = (PictureInPictureRendererAccessor) (Object) this;
+        GpuTextureView subColorView = textures.ldlib2$getTextureView();
+        GpuTextureView subDepthView = textures.ldlib2$getDepthTextureView();
         if (subColorView == null) return;
 
         int width = subColorView.getWidth(0);
@@ -159,8 +166,7 @@ public class VisualLayerPipRenderer extends PictureInPictureRenderer<VisualLayer
 
         maskTargetWrapper.bind(maskColorView, maskColorTex, maskDepthView, maskDepthTex, width, height);
         subExt.ldlib2$setRenderState(maskState);
-        try (var ignoredOutput = RenderTargetScope.redirect(maskColorView, maskDepthView);
-             var ignoredTarget = IGuiRendererExt.ldlib2$targetOverride(maskTargetWrapper)) {
+        try (var ignoredTarget = IGuiRendererExt.ldlib2$targetOverride(maskTargetWrapper)) {
             sub.render();
         } finally {
             maskTargetWrapper.unbind();
@@ -186,8 +192,7 @@ public class VisualLayerPipRenderer extends PictureInPictureRenderer<VisualLayer
         subExt.ldlib2$setRenderState(compositeState);
         targetWrapper.bind(subColorView, subColorView.texture(), subDepthView,
                 subDepthView != null ? subDepthView.texture() : null, width, height);
-        try (var ignoredOutput = RenderTargetScope.redirect(subColorView, subDepthView);
-             var ignoredTarget = IGuiRendererExt.ldlib2$targetOverride(targetWrapper)) {
+        try (var ignoredTarget = IGuiRendererExt.ldlib2$targetOverride(targetWrapper)) {
             sub.render();
         } finally {
             targetWrapper.unbind();

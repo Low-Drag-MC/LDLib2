@@ -23,7 +23,7 @@ import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -64,7 +64,7 @@ public class UIDebuggerScenario implements UIScenario {
                 .screenshot("01_before_debugger")
 
                 .group("F12 opens it over the game", g -> g
-                        .key(GLFW.GLFW_KEY_F12)
+                        .key(InputConstants.KEY_F12)
                         .frames(10)
                         .check("the UI is in debug mode", ctx -> targetUI(ctx).isDebugMode())
                         .checkScreen(DebugScreen.class)
@@ -78,7 +78,7 @@ public class UIDebuggerScenario implements UIScenario {
                         .screenshot("02_debug_screen_over_the_ui"))
 
                 .group("picking works through the layer's forwarding", g -> g
-                        .key(GLFW.GLFW_KEY_F1)
+                        .key(InputConstants.KEY_F1)
                         .frames(5)
                         .check("focus mode is on", ctx -> debugger(ctx).isFocusMode())
                         .step("move onto the button", ctx -> moveTo(ctx, button(ctx)))
@@ -98,7 +98,7 @@ public class UIDebuggerScenario implements UIScenario {
                         .check("and the button was not pressed by being inspected",
                                 ctx -> clicks(ctx).get() == 0)
                         .screenshot("03_picking_through_the_layer")
-                        .key(GLFW.GLFW_KEY_F1)
+                        .key(InputConstants.KEY_F1)
                         .frames(3)
                         .check("focus mode is off", ctx -> !debugger(ctx).isFocusMode()))
 
@@ -149,7 +149,7 @@ public class UIDebuggerScenario implements UIScenario {
                                         && debugger(ctx).hierarchy.getUi() == targetUI(ctx).ui))
 
                 .group("F12 closes it", g -> g
-                        .key(GLFW.GLFW_KEY_F12)
+                        .key(InputConstants.KEY_F12)
                         .frames(5)
                         .check("the debug screen is gone", ctx -> !(ctx.screen() instanceof DebugScreen))
                         // Popping the layer, not the stack: the inspected UI must survive its inspector.
