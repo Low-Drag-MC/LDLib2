@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.core.mixins.accessor;
 
 import com.mojang.blaze3d.platform.Transparency;
-import com.mojang.math.Transformation;
+import net.minecraft.client.renderer.block.dispatch.ModelState;
 import net.minecraft.client.resources.model.ModelBaker;
 import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.client.resources.model.sprite.Material;
@@ -22,5 +22,5 @@ public interface ObjGeometryAccessor {
                                               Vector4f ambientColor,
                                               Material.Baked material,
                                               Transparency transparency,
-                                              Transformation transform);
+                                              ModelState modelState);
 }
