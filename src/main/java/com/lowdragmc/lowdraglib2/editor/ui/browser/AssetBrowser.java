@@ -126,6 +126,9 @@ public class AssetBrowser extends UIElement {
     @Getter @Setter
     private IGuiTexture selectedTexture = ResourceProviderContainer.defaultSelectedTexture();
 
+    /** What else may be dropped on a folder besides asset files, see {@link #addDropHandler}. */
+    private final List<DropHandler> dropHandlers = new ArrayList<>();
+
     // runtime
     private final Map<File, UIElement> entryUIs = new LinkedHashMap<>();
     @Nullable
@@ -205,7 +208,7 @@ public class AssetBrowser extends UIElement {
                         .ifPresent(node -> openDirectory(node.getKey())))
                 .setOnNodeUICreated((node, ui) -> {
                     attachDragSource(ui, node.getKey(), null);
-                    attachDropTarget(ui, node.getKey());
+                    attachDropTarget(ui, node::getKey);
                 })
                 .addClass("__asset-browser_tree__");
         treeScroller.addScrollViewChild(tree);
@@ -278,6 +281,8 @@ public class AssetBrowser extends UIElement {
                 selectEntry(null);
             }
         });
+        // the empty part of the grid is the folder on show
+        attachDropTarget(gridScroller, () -> currentDirectory);
     }
 
     /**
@@ -636,7 +641,7 @@ public class AssetBrowser extends UIElement {
         entry.addEventListener(UIEvents.DOUBLE_CLICK, e -> activate(file));
         attachDragSource(entry, file, behavior);
         if (isDirectory) {
-            attachDropTarget(entry, file);
+            attachDropTarget(entry, () -> file);
             entry.addClass("__asset-browser_entry-directory__");
         } else {
             entry.addClass(behavior == null ? "__asset-browser_entry-file__" : "__asset-browser_entry-resource__");
@@ -778,31 +783,67 @@ public class AssetBrowser extends UIElement {
         }, true);
     }
 
-    private void attachDropTarget(UIElement ui, File directory) {
+    private void attachDropTarget(UIElement ui, Supplier<File> directory) {
         ui.addEventListener(UIEvents.DRAG_ENTER, e -> {
-            if (acceptsDrop(e, directory)) {
+            if (acceptsDrop(e, directory.get())) {
                 ui.style(style -> style.overlayTexture(ColorPattern.T_GREEN.rectTexture()));
             }
         }, true);
-        ui.addEventListener(UIEvents.DRAG_LEAVE, e -> clearDropHighlight(ui, directory), true);
+        ui.addEventListener(UIEvents.DRAG_LEAVE, e -> clearDropHighlight(ui, directory.get()), true);
         ui.addEventListener(UIEvents.DRAG_PERFORM, e -> {
-            clearDropHighlight(ui, directory);
-            if (!acceptsDrop(e, directory)) return;
-            DraggedAssets assets = e.dragHandler.getDraggingObject();
-            moveFiles(assets.files(), directory);
+            var target = directory.get();
+            clearDropHighlight(ui, target);
+            if (!acceptsDrop(e, target)) return;
+            // the innermost folder takes it, not the grid around it as well
+            e.stopPropagation();
+            var payload = e.dragHandler.getDraggingObject();
+            if (payload instanceof DraggedAssets assets) {
+                moveFiles(assets.files(), target);
+                return;
+            }
+            for (var handler : dropHandlers) {
+                if (handler.accepts(payload, target)) {
+                    handler.drop(payload, target);
+                    requestGridRebuild();
+                    return;
+                }
+            }
         });
     }
 
     /** Drops the drop highlight without losing the selection highlight of the same element. */
-    private void clearDropHighlight(UIElement ui, File file) {
-        var overlay = file.equals(selected) ? selectedTexture : IGuiTexture.EMPTY;
+    private void clearDropHighlight(UIElement ui, @Nullable File file) {
+        var overlay = file != null && file.equals(selected) ? selectedTexture : IGuiTexture.EMPTY;
         ui.style(style -> style.overlayTexture(overlay));
     }
 
-    private boolean acceptsDrop(UIEvent event, File directory) {
-        if (event.dragHandler == null || !directory.isDirectory()) return false;
-        if (!(event.dragHandler.getDraggingObject() instanceof DraggedAssets assets)) return false;
-        return assets.files().stream().anyMatch(file -> canMove(file, directory));
+    private boolean acceptsDrop(UIEvent event, @Nullable File directory) {
+        if (event.dragHandler == null || directory == null || !directory.isDirectory()) return false;
+        var payload = event.dragHandler.getDraggingObject();
+        if (payload instanceof DraggedAssets assets) {
+            return assets.files().stream().anyMatch(file -> canMove(file, directory));
+        }
+        return payload != null && dropHandlers.stream().anyMatch(handler -> handler.accepts(payload, directory));
+    }
+
+    /**
+     * Lets something other than asset files be dropped on a folder: an editor's own drag payload, which the
+     * handler turns into files there (a scene object saved as an asset, say).
+     */
+    public AssetBrowser addDropHandler(DropHandler handler) {
+        dropHandlers.add(handler);
+        return this;
+    }
+
+    public AssetBrowser removeDropHandler(DropHandler handler) {
+        dropHandlers.remove(handler);
+        return this;
+    }
+
+    public interface DropHandler {
+        boolean accepts(Object payload, File directory);
+
+        void drop(Object payload, File directory);
     }
 
     private boolean canMove(File file, File directory) {
