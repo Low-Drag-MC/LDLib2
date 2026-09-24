@@ -358,7 +358,8 @@ public class TreeBuilder<K, V> {
                 layout.width(10);
                 layout.height(10);
             }).style(style -> style.backgroundTexture(node.getA())))
-                    .addChild(new Label().textStyle(textStyle -> textStyle.textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL))
+                    // as wide as its text, so the menu grows to its longest entry
+                    .addChild(new Label().textStyle(textStyle -> textStyle.textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL).adaptiveWidth(true))
                             .setText(node.getB()).layout(layout -> {
                                 layout.setFlexGrow(1);
                             }).setOverflowVisible(false));

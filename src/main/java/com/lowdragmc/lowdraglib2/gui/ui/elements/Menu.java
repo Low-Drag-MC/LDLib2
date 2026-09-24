@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 
 import com.google.common.util.concurrent.Runnables;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.DynamicTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -259,8 +260,9 @@ public class Menu<K, T> extends UIElement {
                     layout.flexDirection(FlexDirection.ROW);
                     layout.alignItems(AlignItems.CENTER);
                 }).style(style -> style.backgroundTexture(textureProvider.apply(child)))
+                        // grow rather than flex: a zero basis keeps the menu from widening to its entries
                         .addChild(new UIElement().layout(layout -> {
-                            layout.flex(1);
+                            layout.flexGrow(1);
                         }).addChild(uiProvider.apply(child.getKey())))
                         .addEventListener(UIEvents.MOUSE_DOWN, e -> {
                             if (e.button == 0 && enabled) {
@@ -315,7 +317,7 @@ public class Menu<K, T> extends UIElement {
                         }, true);
                 if (!enabled) {
                     container.addClass("__menu_disabled-node__");
-                    container.style(style -> style.opacity(0.4f));
+                    greyText(container);
                 }
                 if (child.isLeaf()) {
                     container.addClass("__menu_leaf-node__");
@@ -330,6 +332,16 @@ public class Menu<K, T> extends UIElement {
                 nodeUIs.put(child, container);
                 addChild(container);
             }
+        }
+    }
+
+    /** Dims an entry through its text colour — drawn at an opacity, the entry came out blank. */
+    private static void greyText(UIElement element) {
+        if (element instanceof TextElement text) {
+            text.textStyle(style -> style.textColor(ColorPattern.GRAY.color));
+        }
+        for (var child : element.getChildren()) {
+            greyText(child);
         }
     }
 
