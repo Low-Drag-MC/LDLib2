@@ -9,6 +9,7 @@
     "GlCommandEncoderMixin",
     "ObjModelMixin",
     "ParticleFeatureRendererMixin",
+    "PictureInPictureRendererMixin",
     "SimpleTextureMixin",
     "SpriteSourceListMixin",
     "accessor.BufferBuilderAccessor",

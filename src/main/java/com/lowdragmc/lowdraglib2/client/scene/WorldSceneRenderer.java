@@ -1542,11 +1542,11 @@ public abstract class WorldSceneRenderer {
         if (depthView == null) return lastDepthSample;
         var depthTex = depthView.texture();
         // Vanilla PictureInPictureRenderer creates its depth texture with usage flag 9
-        // (USAGE_RENDER_ATTACHMENT | USAGE_COPY_DST) -- NO USAGE_COPY_SRC. copyTextureToBuffer
-        // would throw IllegalArgumentException("Texture needs USAGE_COPY_SRC..."). When the
-        // bound depth texture isn't readable we fall back to the last completed sample
-        // (initial value: far plane). Subclasses that own their depth texture (e.g.
-        // FBOWorldSceneRenderer) should create it with USAGE_COPY_SRC included to opt in.
+        // (USAGE_RENDER_ATTACHMENT | USAGE_COPY_DST) -- NO USAGE_COPY_SRC, and copyTextureToBuffer
+        // would throw IllegalArgumentException("Texture needs USAGE_COPY_SRC..."). Scene PIP targets
+        // get COPY_SRC from PictureInPictureRendererMixin, and FBOWorldSceneRenderer creates its own
+        // with it; any other bound depth that isn't readable falls back to the last completed sample
+        // (initial value: far plane).
         if ((depthTex.usage() & GpuTexture.USAGE_COPY_SRC) == 0) return lastDepthSample;
         // Caller may pass a mouse outside the scene viewport (e.g. cursor outside the
         // scene element); copyTextureToBuffer would throw "source texture not large enough"
