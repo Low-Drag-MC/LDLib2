@@ -1,4 +1,8 @@
 # ChangeLogs
+## v26.2.2.41.a
+* Fixed OBJ Model with model state
+* Making Scene PIP copiable
+
 ## v26.2.2.41
 * Added a configurable keymap framework for the editor, with rebindable chords, key contexts and a settings page
 * Added auto layout to the graph's contextual menu, with layered, grid and force-directed algorithms, and placemats arranged either as one box or from the inside out
