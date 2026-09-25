@@ -226,15 +226,15 @@ jobs:
             build/libs/!(*-@(all|dev|sources|javadoc|dev-shadow)).jar
             build/libs/*-@(sources).jar
 
-          name: LDLib2-26.2-${{ needs.validate.outputs.version }}-neoforge
-          version: mc26.2-${{ needs.validate.outputs.version }}-neoforge
+          name: LDLib2-26.3-${{ needs.validate.outputs.version }}-neoforge
+          version: mc26.3-${{ needs.validate.outputs.version }}-neoforge
           version-type: ${{ inputs.versionType }}
           changelog-file: CHANGELOG.*
 
           loaders: |
             neoforge
           game-versions: |
-            26.2
+            26.3
           game-version-filter: none
           java: |
             25
