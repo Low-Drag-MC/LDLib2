@@ -1,4 +1,7 @@
 # ChangeLogs
+## v26.3.2.41
+* Hello 26.3
+
 ## v26.2.2.41
 * Added a configurable keymap framework for the editor, with rebindable chords, key contexts and a settings page
 * Added auto layout to the graph's contextual menu, with layered, grid and force-directed algorithms, and placemats arranged either as one box or from the inside out
