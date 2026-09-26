@@ -28,6 +28,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class NodeElement extends GraphElement<AbstractNodeModel> {
@@ -74,6 +75,9 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
 
     @Getter
     private final NodeStyle nodeStyle = new NodeStyle();
+    /** The options the inspector was last built from; null when this node is not the one inspected. */
+    @Nullable
+    private List<NodeOptionsInspector.OptionFieldInfo> inspectedOptions;
     /** Source the cached tints were built from; see {@link #tintedOverlay}. */
     @Nullable
     private IGuiTexture tintedOverlaySource;
@@ -162,6 +166,23 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
                 Style.importantPipeline(getLayout(), l -> l.minWidth(model.getMinWidth()));
             }
         }
+        // an option that decides which other options exist rebuilds the inspector, as it rebuilds the node's rows
+        if (inspectedOptions != null && graphView != null && isSelected() && graphView.getSelected().size() == 1
+                && !inspectedOptions.equals(optionFieldInfos())) {
+            onSelectionInspect(graphView.inspector);
+        }
+    }
+
+    private List<NodeOptionsInspector.OptionFieldInfo> optionFieldInfos() {
+        var infos = new ArrayList<NodeOptionsInspector.OptionFieldInfo>();
+        if (getModel() instanceof InputOutputPortsNodeModel ioNode) {
+            for (var nodeOption : ioNode.getNodeOptions()) {
+                var portModel = nodeOption.getPortModel();
+                infos.add(new NodeOptionsInspector.OptionFieldInfo(portModel.getUniqueName(),
+                        portModel.getDataTypeHandle(), nodeOption.getVisibility(), portModel.isConfiguratorEnabled()));
+            }
+        }
+        return infos;
     }
 
     /**
@@ -196,6 +217,7 @@ public class NodeElement extends GraphElement<AbstractNodeModel> {
             RenameColorConfigurableHelper.build(getModel(), graphView).buildConfigurator(group);
             buildOptionConfigurators(group);
         }));
+        inspectedOptions = optionFieldInfos();
     }
 
     /**
