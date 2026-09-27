@@ -1926,9 +1926,10 @@ public class GraphView extends UIElement {
 
     @Override
     public void screenTick() {
-        super.screenTick();
-        // lets update the graph elements here
+        // update the graph elements before they tick: a port an option just removed must not tick against its
+        // dropped constant
         updateGraphModelChanges();
+        super.screenTick();
         if (requireFitGraph) {
             var size = getTaffyLayout().size();
             // make sure it's a valid graph view size
