@@ -256,8 +256,10 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
             // undo entry) would otherwise get null for a resource that was perfectly good
             var removed = getResource(path);
             if (filePath.file.delete()) {
-                forget(path, filePath.file);
+                // before forget(), which drops the entry the base class clears the lookup cache on —
+                // or a resource made again under this path is still read as the removed one
                 super.removeResource(path);
+                forget(path, filePath.file);
                 return removed;
             }
         }
