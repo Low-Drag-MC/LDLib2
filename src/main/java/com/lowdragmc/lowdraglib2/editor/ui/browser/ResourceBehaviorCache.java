@@ -173,7 +173,7 @@ public class ResourceBehaviorCache {
 
     private <T> Behavior<T> create(Resource<T> resource, File directory) {
         var instance = resource.getResourceInstance();
-        var provider = findRegisteredProvider(instance, directory);
+        var provider = findFileProvider(instance, directory);
         if (provider == null) {
             var created = new FileResourceProvider<T>(instance, directory);
             created.setName(directory.getName());
@@ -196,17 +196,17 @@ public class ResourceBehaviorCache {
     }
 
     /**
-     * Prefers a provider the resource instance already has for this exact directory, so browsing into a
-     * folder that is also shown as a provider tab shares one file cache and one write path instead of
-     * running two providers over the same directory.
+     * The provider the resource instance already has for this exact directory. Preferred over one of the
+     * cache's own, so browsing into a folder that is also shown as a provider tab shares one file cache
+     * and one write path instead of running two providers over the same directory.
      */
     @SuppressWarnings("unchecked")
     @Nullable
-    private <T> IResourceProvider<T> findRegisteredProvider(ResourceInstance<T> instance, File directory) {
+    public static <T> IResourceProvider<T> findFileProvider(ResourceInstance<T> instance, File directory) {
         for (var providers : instance.getBuiltinProviders().values()) {
             for (var provider : providers) {
                 if (provider instanceof FileResourceProvider<?> fileProvider &&
-                        fileProvider.resourceLocation.equals(directory)) {
+                        isSameDirectory(fileProvider.resourceLocation, directory)) {
                     return (IResourceProvider<T>) provider;
                 }
             }
@@ -214,12 +214,28 @@ public class ResourceBehaviorCache {
         for (var providers : instance.getCustomProviders().values()) {
             for (var provider : providers) {
                 if (provider instanceof FileResourceProvider<?> fileProvider &&
-                        fileProvider.resourceLocation.equals(directory)) {
+                        isSameDirectory(fileProvider.resourceLocation, directory)) {
                     return (IResourceProvider<T>) provider;
                 }
             }
         }
         return null;
+    }
+
+    /** A provider read from the meta file and a listed folder need not spell the same path the same way. */
+    private static boolean isSameDirectory(File a, File b) {
+        if (a.equals(b)) return true;
+        return a.toPath().toAbsolutePath().normalize().equals(b.toPath().toAbsolutePath().normalize());
+    }
+
+    /** Drops one type's behavior, so the next lookup builds it again against the registered providers. */
+    public void invalidate(Resource<?> resource) {
+        var behavior = behaviors.remove(resource);
+        if (behavior != null) {
+            // flushes its dirty resources, nothing ticks it after this
+            behavior.container().screenTick();
+            host.removeChild(behavior.container());
+        }
     }
 
     /**

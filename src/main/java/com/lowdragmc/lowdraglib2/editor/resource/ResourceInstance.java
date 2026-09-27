@@ -46,6 +46,10 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
     private Resource.DisplayMode displayMode;
     @Getter
     private int uiWidth;
+    @Getter
+    private Resource.SortMode sortMode = Resource.SortMode.DEFAULT;
+    @Getter
+    private boolean sortAscending = true;
 
     public ResourceInstance(Resource<T> resource) {
         this.resource = resource;
@@ -256,6 +260,18 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
         }
     }
 
+    public void setSortMode(Resource.SortMode sortMode) {
+        if (this.sortMode == sortMode) return;
+        this.sortMode = sortMode;
+        saveResource();
+    }
+
+    public void setSortAscending(boolean sortAscending) {
+        if (this.sortAscending == sortAscending) return;
+        this.sortAscending = sortAscending;
+        saveResource();
+    }
+
     /** Writes the display settings of this instance to its meta file. */
     public void saveSettings() {
         saveResource();
@@ -436,6 +452,8 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
 
         data.putString("displayMode", displayMode.name());
         data.putInt("uiWidth", uiWidth);
+        data.putString("sortMode", sortMode.name());
+        data.putBoolean("sortAscending", sortAscending);
 
         var customProviders = new CompoundTag();
         for (var type : LDLib2Registries.RESOURCE_PROVIDER_TYPES) {
@@ -464,6 +482,14 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
             displayMode = Resource.DisplayMode.valueOf(nbt.getString("displayMode"));
         } catch (IllegalArgumentException ignored) {}
         uiWidth = nbt.getInt("uiWidth");
+        if (nbt.contains("sortMode")) {
+            try {
+                sortMode = Resource.SortMode.valueOf(nbt.getString("sortMode"));
+            } catch (IllegalArgumentException ignored) {}
+        }
+        if (nbt.contains("sortAscending")) {
+            sortAscending = nbt.getBoolean("sortAscending");
+        }
 
         // compatible with previous
         if (nbt.contains("fileProviders")) {

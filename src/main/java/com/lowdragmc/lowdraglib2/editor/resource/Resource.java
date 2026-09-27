@@ -23,6 +23,21 @@ public abstract class Resource<T> {
         LIST,
         GRID,
     }
+
+    /** {@link #DEFAULT} keeps the provider's own order. */
+    public enum SortMode {
+        DEFAULT(false),
+        NAME(false),
+        MODIFIED(true),
+        SIZE(true);
+
+        /** The key is read off the resource's file. */
+        public final boolean fileBased;
+
+        SortMode(boolean fileBased) {
+            this.fileBased = fileBased;
+        }
+    }
     @Getter @Setter
     private DisplayMode defaultDisplayMode = DisplayMode.GRID;
     @Getter @Setter
