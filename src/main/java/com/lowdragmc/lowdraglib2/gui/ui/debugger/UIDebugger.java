@@ -399,8 +399,8 @@ public class UIDebugger extends UIElement {
      *
      * <p>This runs as part of the <em>inspected</em> UI's frame, not the debugger's own, because the
      * two need not be in the same window any more: the debugger can sit in an OS window of its own
-     * while its target is drawn in the game window or in a third one. Coordinates here are that
-     * host's, which is exactly what the element transforms and the mouse position already are.
+     * while its target is drawn in the game window or in a third one. Coordinates here, the mouse
+     * position included, are the inspected UI's root space.
      *
      * <p>Depth testing is off for the duration. The outlines are drawn after the UI content but at
      * the pose the host handed us, so with depth on anything the UI drew closer would occlude them.

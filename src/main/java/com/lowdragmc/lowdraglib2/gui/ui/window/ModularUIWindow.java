@@ -170,12 +170,13 @@ public class ModularUIWindow implements OsWindowHost {
     }
 
     /**
-     * The window hosting {@code ui}, or {@code null} if it is drawn in the game window.
+     * The window hosting {@code ui} (or the UI it is embedded in), or {@code null} if it is drawn in the game window.
      */
     @Nullable
     public static ModularUIWindow windowOf(ModularUI ui) {
+        var outermost = ui.getOutermostUI();
         for (var window : openWindows()) {
-            if (window.getModularUI() == ui) return window;
+            if (window.getModularUI() == outermost) return window;
         }
         return null;
     }

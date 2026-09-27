@@ -41,11 +41,14 @@ public class UICanvas extends UIElement {
     public void startSimulation(UI ui) {
         stopSimulation();
         this.canvasModularUI = new ModularUI(ui);
-        this.canvasModularUI.setAllowDebugMode(false);
+        this.canvasModularUI.embedIn(this, "Simulation");
+        // so keys (and F3) reach the simulation without clicking into it first
+        focus();
     }
 
     public void stopSimulation() {
         if (this.canvasModularUI == null) return;
+        this.canvasModularUI.enableDebugger(false);
         this.canvasModularUI.onRemoved();
         this.canvasModularUI = null;
     }
