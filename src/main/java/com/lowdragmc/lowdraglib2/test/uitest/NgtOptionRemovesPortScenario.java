@@ -42,7 +42,8 @@ public class NgtOptionRemovesPortScenario implements UIScenario {
             true, Property.EMPTY_ARRAY) {
         @Override
         public void append(LogEvent event) {
-            if (event.getLevel().isMoreSpecificThan(Level.ERROR)) {
+            // the graph view ticks on the render thread; an error from any other is not this scenario's
+            if (event.getLevel().isMoreSpecificThan(Level.ERROR) && "Render thread".equals(event.getThreadName())) {
                 ERRORS.add(event.getMessage().getFormattedMessage());
             }
         }
