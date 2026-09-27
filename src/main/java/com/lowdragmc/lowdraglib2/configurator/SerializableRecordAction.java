@@ -7,11 +7,15 @@ import net.minecraft.nbt.Tag;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
 import org.jetbrains.annotations.Nullable;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 @Accessors(chain = true)
 public class SerializableRecordAction<T extends INBTSerializable<?>> implements EditAction {
     public final T serializable;
+    private final Function<T, Tag> snapshotter;
+    private final BiConsumer<T, Tag> restorer;
     @Nullable
     @Setter
     private Consumer<T> onExecute;
@@ -21,13 +25,25 @@ public class SerializableRecordAction<T extends INBTSerializable<?>> implements 
     // runtime
     private Tag snapshot;
 
-    private SerializableRecordAction(T serializable) {
+    private SerializableRecordAction(T serializable, Function<T, Tag> snapshotter, BiConsumer<T, Tag> restorer) {
         this.serializable = serializable;
-        this.snapshot = serializable.serializeNBT(Platform.getFrozenRegistry());
+        this.snapshotter = snapshotter;
+        this.restorer = restorer;
+        this.snapshot = snapshotter.apply(serializable);
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public static <T extends INBTSerializable<?>> SerializableRecordAction<T> of(T serializable) {
-        return new SerializableRecordAction<>(serializable);
+        return new SerializableRecordAction<>(serializable,
+                value -> value.serializeNBT(Platform.getFrozenRegistry()),
+                (value, tag) -> ((INBTSerializable) value).deserializeNBT(Platform.getFrozenRegistry(), tag));
+    }
+
+    /**
+     * Records {@code serializable} through a custom snapshot / restore pair instead of its full NBT.
+     */
+    public static <T extends INBTSerializable<?>> SerializableRecordAction<T> of(T serializable, Function<T, Tag> snapshotter, BiConsumer<T, Tag> restorer) {
+        return new SerializableRecordAction<>(serializable, snapshotter, restorer);
     }
 
     public SerializableRecordAction<T> setOnAction(@Nullable Consumer<T> onAction) {
@@ -37,12 +53,12 @@ public class SerializableRecordAction<T extends INBTSerializable<?>> implements 
     }
 
     public void updateSnapshot() {
-        snapshot = serializable.serializeNBT(Platform.getFrozenRegistry());
+        snapshot = snapshotter.apply(serializable);
     }
 
     @Override
     public void execute() {
-        ((INBTSerializable)serializable).deserializeNBT(Platform.getFrozenRegistry(), snapshot);
+        restorer.accept(serializable, snapshot);
         if (onExecute != null) {
             onExecute.accept(serializable);
         }
@@ -50,7 +66,7 @@ public class SerializableRecordAction<T extends INBTSerializable<?>> implements 
 
     @Override
     public void undo() {
-        ((INBTSerializable)serializable).deserializeNBT(Platform.getFrozenRegistry(), snapshot);
+        restorer.accept(serializable, snapshot);
         if (onUndo != null) {
             onUndo.accept(serializable);
         }

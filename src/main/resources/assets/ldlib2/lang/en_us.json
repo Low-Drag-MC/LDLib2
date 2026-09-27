@@ -446,6 +446,7 @@
   "GraphView.fit": "Fit View",
   "UIEditor.selection_box": "Show/Hide Selection Box",
   "UIEditor.simulation": "Simulation",
+  "UIEditor.history.move": "Move",
   "builtin_styles": "Builtin Styles",
   "UIElement.class": "Class",
   "project.xml": "UI XML File",

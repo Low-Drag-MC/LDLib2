@@ -461,6 +461,7 @@
   "GraphView.fit": "适应视图",
   "UIEditor.selection_box": "显示/隐藏 选择框",
   "UIEditor.simulation": "预览模拟",
+  "UIEditor.history.move": "移动",
   "builtin_styles": "内置样式",
   "UIElement.class": "类 (Class)",
   "project.xml": "UI XML 配置文件",

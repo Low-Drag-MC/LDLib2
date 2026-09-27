@@ -235,7 +235,9 @@ public class TabView extends UIElement {
     @Override
     public void beforeDeserialize() {
         super.beforeDeserialize();
-        tabContents.clear();
+        if (!isRestoringOwnState()) {
+            tabContents.clear();
+        }
     }
 
     @Override
@@ -243,6 +245,13 @@ public class TabView extends UIElement {
         super.deserializeNBT(provider, tag);
         var tabs = tag.getList("tabs", Tag.TAG_COMPOUND);
         var selectedIndex = tag.getInt("selected");
+        if (isRestoringOwnState()) {
+            var tabElements = tabScroller.viewContainer.getChildren();
+            if (selectedIndex >= 0 && selectedIndex < tabElements.size() && tabElements.get(selectedIndex) instanceof Tab tab) {
+                selectTab(tab);
+            }
+            return;
+        }
         for (var i = 0; i < tabs.size(); i++) {
             var tabCompound = tabs.getCompound(i);
             var tabIndex = tabCompound.getInt("tab");

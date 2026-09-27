@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.editor.view;
 
 import com.google.common.util.concurrent.Runnables;
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.configurator.EditAction;
 import com.lowdragmc.lowdraglib2.configurator.ui.ArrayConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.ui.SearchComponentConfigurator;
 import com.lowdragmc.lowdraglib2.editor.ui.View;
@@ -214,6 +215,7 @@ public class UIEditorView extends View {
         });
         hierarchy.addClass("__ui-editor-view_hierarchy__").moveInlineAsDefault();
         hierarchy.setOnSelectedChanged(this::onHierarchyNodeSelected);
+        hierarchy.setHistoryStack(historyStack);
 
         graphView.layout(layout -> {
             layout.heightPercent(100);
@@ -416,16 +418,21 @@ public class UIEditorView extends View {
         if (CommandEvents.REDO.equals(event.command) && !historyStack.getRedoStack().isEmpty()) {
             event.stopPropagation();
         }
-        if (CommandEvents.UNDO.equals(event.command) && !historyStack.getUndoStack().isEmpty()) {
+        if (CommandEvents.UNDO.equals(event.command) && canUndo()) {
             event.stopPropagation();
         }
+    }
+
+    private boolean canUndo() {
+        // the bottom entry is never undone
+        return historyStack.getUndoStack().size() > 1;
     }
 
     protected void onExecuteCommand(UIEvent event) {
         if (CommandEvents.REDO.equals(event.command) && !historyStack.getRedoStack().isEmpty()) {
             historyStack.redo();
         }
-        if (CommandEvents.UNDO.equals(event.command) && !historyStack.getUndoStack().isEmpty()) {
+        if (CommandEvents.UNDO.equals(event.command) && canUndo()) {
             historyStack.undo();
         }
     }
@@ -459,6 +466,8 @@ public class UIEditorView extends View {
         this.currentUI = this.template.createUI();
         this.modularUIPreview.loadUI(currentUI);
         this.hierarchy.loadUI(currentUI);
+        // baseline, so the first edit can be undone
+        this.historyStack.pushHistory(Component.translatable("editor.open"), EditAction.of(() -> {}, () -> {}), false);
         this.modularUIPreview.initPreviewSize((int) graphView.getContentWidth(), (int) graphView.getContentHeight());
         this.onTemplateSaved = onTemplateSaved;
         editBuiltinStyles();

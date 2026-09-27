@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.IConfigurableHistory;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.*;
@@ -2183,6 +2184,57 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     // endregion
 
     // region Serialization
+    /** The element whose {@link #restoreOwnState} is running on this thread, if any. */
+    private static final ThreadLocal<UIElement> OWN_STATE_RESTORE_ROOT = new ThreadLocal<>();
+
+    /**
+     * Records only this element's own state, so undoing an edit on a container keeps its children as they are.
+     */
+    @Override
+    public IConfigurableHistory createHistoryRecorder() {
+        return IConfigurableHistory.ofSnapshot(this, UIElement::snapshotOwnState,
+                (element, tag) -> element.restoreOwnState((CompoundTag) tag));
+    }
+
+    /** This element's NBT with the external children stripped at every internal level. */
+    public CompoundTag snapshotOwnState() {
+        var tag = serializeNBT(Platform.getFrozenRegistry());
+        stripExternalChildren(tag);
+        return tag;
+    }
+
+    private static void stripExternalChildren(CompoundTag tag) {
+        tag.remove("children");
+        for (var internal : tag.getList("internal", Tag.TAG_COMPOUND)) {
+            stripExternalChildren((CompoundTag) internal);
+        }
+    }
+
+    /** Restores a {@link #snapshotOwnState()} in place, keeping the current external children. */
+    public void restoreOwnState(CompoundTag tag) {
+        var previous = OWN_STATE_RESTORE_ROOT.get();
+        OWN_STATE_RESTORE_ROOT.set(this);
+        try {
+            deserializeNBT(Platform.getFrozenRegistry(), tag);
+        } finally {
+            OWN_STATE_RESTORE_ROOT.set(previous);
+        }
+    }
+
+    /**
+     * Whether this element is being deserialized as part of a {@link #restoreOwnState}: it is the element
+     * restored, or one of its internal parts. Elements created while it runs deserialize normally.
+     */
+    protected boolean isRestoringOwnState() {
+        var root = OWN_STATE_RESTORE_ROOT.get();
+        if (root == null) return false;
+        for (var element = this; element != null; element = element.getParent()) {
+            if (element == root) return true;
+            if (!element.isInternalUI()) return false;
+        }
+        return false;
+    }
+
     public UIElement copy() {
         return CODEC.encodeStart(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), this)
                 .result()
@@ -2194,7 +2246,9 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     @Override
     public void beforeDeserialize() {
         IPersistedSerializable.super.beforeDeserialize();
-        clearAllExternalChildren();
+        if (!isRestoringOwnState()) {
+            clearAllExternalChildren();
+        }
         setFocusable(false);
         setVisible(true);
         setActive(true);

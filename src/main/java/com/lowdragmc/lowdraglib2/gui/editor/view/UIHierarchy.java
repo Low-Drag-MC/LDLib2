@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.editor.view;
 
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.configurator.EditAction;
 import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -18,12 +19,14 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.IHistoryStack;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.network.chat.Component;
 
 import javax.annotation.Nonnull;
 
@@ -38,12 +41,26 @@ public class UIHierarchy extends UIElement {
     public record DraggingUINode(UITreeNode draggedNode) {}
     public record NodeCopy(List<CompoundTag> copiedNodes) {}
 
+    /** An element's position under its actual parent. */
+    private record Placement(UIElement element, UIElement parent, int index) {
+        static Placement of(UIElement element) {
+            return new Placement(element, Objects.requireNonNull(element.getParent()), element.getSiblingIndex());
+        }
+
+        void attach() {
+            element.removeSelf();
+            parent.addChildAt(element, Math.min(index, parent.getChildren().size()));
+        }
+    }
+
     public final ScrollerView scrollerView = new ScrollerView();
     public final TreeList<UITreeNode> treeList = new TreeList<>();
 
     // runtime
     @Setter
     protected Consumer<Set<UITreeNode>> onSelectedChanged = Consumers.nop();
+    @Setter @Nullable
+    private IHistoryStack historyStack;
 
     @Getter @Nullable
     private UI ui;
@@ -124,44 +141,9 @@ public class UIHierarchy extends UIElement {
                     nodeUI.addEventListener(UIEvents.DRAG_PERFORM, e -> {
                         e.currentElement.style(style -> style.overlayTexture(IGuiTexture.EMPTY));
                         if (e.dragHandler.getDraggingObject() instanceof DraggingUINode(var dragged) && dragged != node) {
-                            var target = node.getKey();
-                            var toMoved = dragged.getKey();
-                            if (toMoved.isAncestorOf(target)) return;
-                            if (TreeList.isMouseOverNodeAbove(e)) {
-                                // sibling
-                                var originalParent = toMoved.getParent();
-                                var originalSiblingIndex = toMoved.getSiblingIndex();
-                                var newParent = target.getParent();
-                                var newSiblingIndex = target.getSiblingIndex();
-                                if (newParent == null) return;
-                                if (originalParent == newParent) {
-                                    if (originalSiblingIndex < newSiblingIndex) {
-                                        newSiblingIndex--;
-                                    }
-                                    toMoved.removeSelf();
-                                }
-                                newParent.addEditorChild(toMoved, newSiblingIndex);
-                            } else if (TreeList.isMouseOverNodeCenter(e)) {
-                                // children
-                                var originalParent = toMoved.getParent();
-                                if (originalParent != target) {
-                                    target.addEditorChild(toMoved, -1);
-                                }
-                            } else if (TreeList.isMouseOverNodeBelow(e)) {
-                                // sibling
-                                var originalParent = toMoved.getParent();
-                                var originalSiblingIndex = toMoved.getSiblingIndex();
-                                var newParent = target.getParent();
-                                var newSiblingIndex = target.getSiblingIndex() + 1;
-                                if (newParent == null) return;
-                                if (originalParent == newParent) {
-                                    if (originalSiblingIndex < newSiblingIndex) {
-                                        newSiblingIndex--;
-                                    }
-                                    toMoved.removeSelf();
-                                }
-                                newParent.addEditorChild(toMoved, newSiblingIndex);
-                            }
+                            var from = Placement.of(dragged.getKey());
+                            moveNode(dragged.getKey(), node.getKey(), e);
+                            recordMoved(from);
                         }
                     });
                 }));
@@ -171,6 +153,62 @@ public class UIHierarchy extends UIElement {
         setFocusable(true);
         addEventListener(UIEvents.VALIDATE_COMMAND, this::onValidateCommand);
         addEventListener(UIEvents.EXECUTE_COMMAND, this::onExecuteCommand);
+    }
+
+    private void moveNode(UIElement toMoved, UIElement target, UIEvent e) {
+        if (toMoved.isAncestorOf(target)) return;
+        if (TreeList.isMouseOverNodeAbove(e)) {
+            // sibling
+            var originalParent = toMoved.getParent();
+            var originalSiblingIndex = toMoved.getSiblingIndex();
+            var newParent = target.getParent();
+            var newSiblingIndex = target.getSiblingIndex();
+            if (newParent == null) return;
+            if (originalParent == newParent) {
+                if (originalSiblingIndex < newSiblingIndex) {
+                    newSiblingIndex--;
+                }
+                toMoved.removeSelf();
+            }
+            newParent.addEditorChild(toMoved, newSiblingIndex);
+        } else if (TreeList.isMouseOverNodeCenter(e)) {
+            // children
+            var originalParent = toMoved.getParent();
+            if (originalParent != target) {
+                target.addEditorChild(toMoved, -1);
+            }
+        } else if (TreeList.isMouseOverNodeBelow(e)) {
+            // sibling
+            var originalParent = toMoved.getParent();
+            var originalSiblingIndex = toMoved.getSiblingIndex();
+            var newParent = target.getParent();
+            var newSiblingIndex = target.getSiblingIndex() + 1;
+            if (newParent == null) return;
+            if (originalParent == newParent) {
+                if (originalSiblingIndex < newSiblingIndex) {
+                    newSiblingIndex--;
+                }
+                toMoved.removeSelf();
+            }
+            newParent.addEditorChild(toMoved, newSiblingIndex);
+        }
+    }
+
+    private void recordMoved(Placement from) {
+        var element = from.element();
+        if (historyStack == null || element.getParent() == null) return;
+        var to = Placement.of(element);
+        if (to.equals(from)) return;
+        historyStack.pushHistory(Component.translatable("UIEditor.history.move"), EditAction.of(to::attach, from::attach), false);
+    }
+
+    private void recordAdded(Component name, List<UIElement> added) {
+        if (historyStack == null) return;
+        var placements = added.stream().filter(UIElement::hasParent).map(Placement::of).toList();
+        if (placements.isEmpty()) return;
+        historyStack.pushHistory(name, EditAction.of(
+                () -> placements.forEach(Placement::attach),
+                () -> placements.forEach(placement -> placement.element().removeSelf())), false);
     }
 
     protected void onSelectedChanged(Set<UITreeNode> selected) {
@@ -292,6 +330,7 @@ public class UIHierarchy extends UIElement {
                             var uiElement = holder.value().get();
                             uiElement.initEditorTemplate();
                             father.addEditorChild(uiElement, -1);
+                            recordAdded(Component.translatable("ldlib.gui.editor.menu.new"), List.of(uiElement));
                         });
                         if (group.isEmpty()) {
                             buildNode.accept(m);
@@ -305,21 +344,32 @@ public class UIHierarchy extends UIElement {
         }
         var selected = treeList.getSelected();
         if (isSelectedNodeValid(selected)) {
-            menu.leaf(Icons.REMOVE_FILE, "ldlib.gui.editor.menu.remove", () -> {
-                var nodes = treeList.getSelected();
-                if (!isSelectedNodeValid(nodes)) return;
-                for (UITreeNode node : nodes) {
-                    var element = node.getKey();
-                    if (element.isInternalUI()) continue;
-                    element.removeSelf();
-                }
-            });
+            menu.leaf(Icons.REMOVE_FILE, "ldlib.gui.editor.menu.remove", this::removeSelected);
             menu.leaf(Icons.COPY, "ldlib.gui.editor.menu.copy", this::copySelected);
         }
         if (ClipboardManager.INSTANCE.getClipboardType() == NodeCopy.class && selected.size() == 1) {
             menu.leaf(Icons.PASTE, "ldlib.gui.editor.menu.paste", this::pasteToSelected);
         }
         return menu;
+    }
+
+    public void removeSelected() {
+        var nodes = treeList.getSelected();
+        if (!isSelectedNodeValid(nodes)) return;
+        // ascending, so undo re-inserts each at its original index
+        var placements = nodes.stream().map(UITreeNode::getKey)
+                .filter(element -> !element.isInternalUI())
+                .map(Placement::of)
+                .sorted(Comparator.comparingInt(Placement::index))
+                .toList();
+        var action = EditAction.of(
+                () -> placements.forEach(placement -> placement.element().removeSelf()),
+                () -> placements.forEach(Placement::attach));
+        if (historyStack != null) {
+            historyStack.pushHistory(Component.translatable("ldlib.gui.editor.menu.remove"), action, true);
+        } else {
+            action.execute();
+        }
     }
 
     public void copySelected() {
@@ -343,11 +393,14 @@ public class UIHierarchy extends UIElement {
         if (nodes.size() != 1) return;
         var parent = nodes.iterator().next().getKey();
         if (ClipboardManager.INSTANCE.paste() instanceof NodeCopy(List<CompoundTag> copiedNodes)) {
+            var added = new ArrayList<UIElement>();
             copiedNodes.forEach(tag -> {
                 CODEC.parse(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), tag).result().ifPresent(element -> {
                     parent.addEditorChild(element, -1);
+                    added.add(element);
                 });
             });
+            recordAdded(Component.translatable("ldlib.gui.editor.menu.paste"), added);
         }
     }
 
