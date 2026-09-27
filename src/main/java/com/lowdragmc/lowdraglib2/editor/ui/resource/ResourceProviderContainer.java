@@ -13,6 +13,7 @@ import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.LDLibFonts;
 import com.lowdragmc.lowdraglib2.editor.resource.ResourceImportContext;
 import com.lowdragmc.lowdraglib2.editor.resource.ResourceInstance;
+import com.lowdragmc.lowdraglib2.editor.resource.ResourceProvider;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -1029,6 +1030,8 @@ public class ResourceProviderContainer<T> extends UIElement {
         var trimmed = newName.trim();
         var newPath = resourceProvider.createSubPath(trimmed);
         if (newPath.equals(key)) return key;
+        // a name the provider cannot store, e.g. "a/b" for a file provider, which lists one folder
+        if (resourceProvider instanceof ResourceProvider<T> provider && !provider.supportResourcePath(newPath)) return null;
         var count = 0;
         while (resourceProvider.hasResource(newPath)) {
             count++;
@@ -1049,8 +1052,8 @@ public class ResourceProviderContainer<T> extends UIElement {
      */
     private void moveResource(IResourcePath from, IResourcePath to) {
         var value = resourceProvider.getResource(from);
-        if (value == null) return;
-        resourceProvider.addResource(to, value);
+        // the old one is removed only once the new one is written
+        if (value == null || !resourceProvider.addResource(to, value)) return;
         removeResourceInternal(from);
         appendResourceUI(to);
         revealIfFiltered(to);

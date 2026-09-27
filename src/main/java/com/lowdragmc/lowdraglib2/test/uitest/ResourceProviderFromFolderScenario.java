@@ -179,6 +179,14 @@ public class ResourceProviderFromFolderScenario implements UIScenario {
                                 List.of("z_white", "c_blue", "b_red", "a_green")))
                         .screenshot("04_new_resource"))
 
+                // a file provider lists one folder, so "sub/..." is a name it cannot store; the rename
+                // used to remove the old file anyway
+                .group("a rename the provider cannot store keeps the resource", g -> g
+                        .check("the rename is refused", ctx -> grid(ctx).renameResourceTo(
+                                provider(ctx).createSubPath("a_green"), "sub/a_green") == null)
+                        .check("and the resource is still there", ctx ->
+                                provider(ctx).hasResource(provider(ctx).createSubPath("a_green"))))
+
                 // teardowns run after the screen is closed
                 .teardown("put the textures settings back and remove the folder", ctx -> {
                     var instance = instanceOf();
