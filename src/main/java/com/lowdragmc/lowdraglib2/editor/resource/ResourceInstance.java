@@ -211,8 +211,16 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
     @Nullable
     public ResourceEntry<T> findResourceEntry(@Nullable T value) {
         if (value == null) return null;
+        var entries = listAllResourceEntries();
+        // what has been read already comes first: a provider that reads lazily reads a file on getResource,
+        // so asking every entry reads everything listed before the one the value came from
+        for (var entry : entries) {
+            if (entry.provider().getLoadedResource(entry.path()) == value || cache.get(entry.path()) == value) {
+                return entry;
+            }
+        }
         ResourceEntry<T> equalsMatch = null;
-        for (var entry : listAllResourceEntries()) {
+        for (var entry : entries) {
             var resource = entry.getResource();
             if (resource == value) {
                 return entry;
