@@ -41,6 +41,11 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
     private final Map<IResourcePath, T> cache = new ConcurrentHashMap<>();
     private final PackFileResourceProvider<T> packFileProvider = new PackFileResourceProvider<>(this);
     private final DirectFileResourceProvider<T> directFileProvider = new DirectFileResourceProvider<>(this);
+    // providers shown without being registered, e.g. the asset browser's own over a folder no provider covers
+    private final Set<IResourceProvider<T>> unlistedProviders = Collections.newSetFromMap(new IdentityHashMap<>());
+    /** Bumped whenever a provider is added or removed, so whatever was built over the providers can tell it is stale. */
+    @Getter
+    private int providersVersion;
 
     @Getter
     private Resource.DisplayMode displayMode;
@@ -219,6 +224,13 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
                 return entry;
             }
         }
+        for (var provider : unlistedProviders) {
+            for (var entry : provider) {
+                if (provider.getLoadedResource(entry.getKey()) == value) {
+                    return new ResourceEntry<>(provider, entry.getKey());
+                }
+            }
+        }
         ResourceEntry<T> equalsMatch = null;
         for (var entry : entries) {
             var resource = entry.getResource();
@@ -305,17 +317,31 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
         clearCache();
     }
 
+    /**
+     * Lets {@link #findResourceEntry} map what is read through the provider back to its path, without listing or
+     * saving it — for a view over a folder no registered provider covers.
+     */
+    public void addUnlistedProvider(IResourceProvider<T> provider) {
+        unlistedProviders.add(provider);
+    }
+
+    public void removeUnlistedProvider(IResourceProvider<T> provider) {
+        unlistedProviders.remove(provider);
+    }
+
     private void addResourceProvider(Map<ResourceProviderType, List<IResourceProvider<T>>> resourceProviders, IResourceProvider<T> provider) {
         var type = provider.getType();
         if (resourceProviders.containsKey(type)) {
             var providers = resourceProviders.get(type);
             if (!providers.contains(provider)) {
                 providers.add(provider);
+                providersVersion++;
             }
         } else {
             var list = new ArrayList<IResourceProvider<T>>();
             list.add(provider);
             resourceProviders.put(type, list);
+            providersVersion++;
         }
     }
 
@@ -323,7 +349,9 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
         var type = provider.getType();
         if (resourceProviders.containsKey(type)) {
             var providers = resourceProviders.get(type);
-            providers.remove(provider);
+            if (providers.remove(provider)) {
+                providersVersion++;
+            }
             if (providers.isEmpty()) {
                 resourceProviders.remove(type);
             }
@@ -485,6 +513,7 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
     public void deserializeNBT(@Nonnull HolderLookup.Provider provider, @Nonnull CompoundTag nbt) {
         clearCache();
         customProviders.clear();
+        providersVersion++;
 
         try {
             displayMode = Resource.DisplayMode.valueOf(nbt.getString("displayMode"));

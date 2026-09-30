@@ -223,6 +223,83 @@ public class DirectFileResolutionTest {
         }
     }
 
+    /**
+     * What the asset browser reads from a folder no provider covers is dragged by value, and a drop target
+     * looks its path up by that value: an unlisted provider maps it back without being listed.
+     */
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void unlistedProviderMapsValueToPath(GameTestHelper helper) {
+        var directory = makeDirectory("direct_unlisted");
+        var instance = instance();
+        var provider = new FileResourceProvider<Integer>(instance, directory);
+        try {
+            var file = new File(directory, "sample.color.nbt");
+            writeResource(file, "color", 4242);
+            provider.checkAndUpdateResourceProvider();
+            var path = new FilePath(file);
+            var value = provider.getResource(path);
+            if (value == null) {
+                helper.fail("The provider did not read the file");
+                return;
+            }
+            if (instance.findResourcePath(value) != null) {
+                helper.fail("A value no provider of the instance read was found");
+                return;
+            }
+            var before = instance.listAllResourceEntries().size();
+            instance.addUnlistedProvider(provider);
+            if (!path.equals(instance.findResourcePath(value))) {
+                helper.fail("Expected " + path + " for the unlisted provider's value, got " + instance.findResourcePath(value));
+                return;
+            }
+            if (instance.listAllResourceEntries().size() != before) {
+                helper.fail("The unlisted provider was listed");
+                return;
+            }
+            instance.removeUnlistedProvider(provider);
+            if (instance.findResourcePath(value) != null) {
+                helper.fail("The value was still found after the provider was removed");
+                return;
+            }
+            helper.succeed();
+        } catch (IOException e) {
+            helper.fail("IO failure: " + e);
+        } finally {
+            instance.removeUnlistedProvider(provider);
+            deleteRecursively(directory);
+        }
+    }
+
+    /** A view built over the providers, the asset browser's, tells it is stale by this version. */
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void providersVersionMovesOnAddAndRemove(GameTestHelper helper) {
+        var directory = makeDirectory("direct_version");
+        var instance = instance();
+        var provider = new FileResourceProvider<Integer>(instance, directory);
+        try {
+            var start = instance.getProvidersVersion();
+            instance.addBuiltinProvider(provider);
+            var added = instance.getProvidersVersion();
+            instance.addBuiltinProvider(provider);
+            if (added == start || instance.getProvidersVersion() != added) {
+                helper.fail("Expected a change on add and none on adding it again: " + start + " -> " + added
+                        + " -> " + instance.getProvidersVersion());
+                return;
+            }
+            instance.removeBuiltinProvider(provider);
+            if (instance.getProvidersVersion() == added) {
+                helper.fail("The version did not move on remove");
+                return;
+            }
+            helper.succeed();
+        } finally {
+            instance.removeBuiltinProvider(provider);
+            deleteRecursively(directory);
+        }
+    }
+
     // ----------------------------------------------------------------------------------- helpers
 
     private static ResourceInstance<Integer> instance() {

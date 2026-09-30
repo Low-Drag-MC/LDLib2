@@ -49,11 +49,17 @@ public class ResourceBehaviorCache {
     public record Behavior<T>(Resource<T> resource,
                               ResourceInstance<T> instance,
                               IResourceProvider<T> provider,
-                              ResourceProviderContainer<T> container) {
+                              ResourceProviderContainer<T> container,
+                              int providersVersion) {
 
         /** Whether the resource of the given path actually loaded. */
         public boolean isLoaded(@Nullable IResourcePath path) {
             return path != null && provider.hasResource(path);
+        }
+
+        /** Whether a provider was added to or removed from the instance since, which may be this folder's own. */
+        public boolean isStale() {
+            return providersVersion != instance.getProvidersVersion();
         }
 
         /** The contextual entries this resource type adds to a resource's menu, e.g. "copy color". */
@@ -173,10 +179,13 @@ public class ResourceBehaviorCache {
 
     private <T> Behavior<T> create(Resource<T> resource, File directory) {
         var instance = resource.getResourceInstance();
+        var version = instance.getProvidersVersion();
         var provider = findFileProvider(instance, directory);
         if (provider == null) {
             var created = new FileResourceProvider<T>(instance, directory);
             created.setName(directory.getName());
+            // a dragged resource of this folder is referenced by its path, which the drop target looks up by value
+            instance.addUnlistedProvider(created);
             provider = created;
         }
         var container = resource.createResourceProviderContainer(provider);
@@ -192,7 +201,7 @@ public class ResourceBehaviorCache {
         });
         container.setDisplay(false);
         host.addChild(container);
-        return new Behavior<>(resource, instance, provider, container);
+        return new Behavior<>(resource, instance, provider, container, version);
     }
 
     /**
@@ -234,8 +243,13 @@ public class ResourceBehaviorCache {
         if (behavior != null) {
             // flushes its dirty resources, nothing ticks it after this
             behavior.container().screenTick();
-            host.removeChild(behavior.container());
+            release(behavior);
         }
+    }
+
+    private <T> void release(Behavior<T> behavior) {
+        behavior.instance().removeUnlistedProvider(behavior.provider());
+        host.removeChild(behavior.container());
     }
 
     /**
@@ -255,13 +269,22 @@ public class ResourceBehaviorCache {
     public void tick() {
         // copied: a container's tick may add resources, which can create further behaviors
         for (var behavior : List.copyOf(behaviors.values())) {
+            if (behavior.isStale()) {
+                // e.g. "New → file" in a panel, or an import registering this folder: the behavior has to run
+                // over the folder's registered provider, not one of its own beside it
+                invalidate(behavior.resource());
+                if (onResourceInvalidated != null) {
+                    onResourceInvalidated.accept(null);
+                }
+                continue;
+            }
             behavior.container().screenTick();
         }
     }
 
     public void dispose() {
         for (var behavior : behaviors.values()) {
-            host.removeChild(behavior.container());
+            release(behavior);
         }
         behaviors.clear();
     }

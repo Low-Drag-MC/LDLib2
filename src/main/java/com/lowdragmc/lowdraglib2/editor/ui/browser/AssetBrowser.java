@@ -1549,6 +1549,14 @@ public class AssetBrowser extends UIElement {
         }
     }
 
+    @Override
+    protected void onRemoved() {
+        // the behaviors' own providers are known to the resource instances, which outlive this browser
+        behaviors.dispose();
+        requestGridRebuild();
+        super.onRemoved();
+    }
+
     /**
      * A cheap fingerprint of a directory: its own modification time mixed with its entry count.
      * <p>
