@@ -619,6 +619,9 @@ public class AssetBrowser extends UIElement {
         hovered = null;
         var directory = currentDirectory;
         if (directory == null) return;
+        // taken before listing: this listing is what the poll would rebuild for, and a cell rebuilt twice drops a
+        // drag pressed on it in between
+        directoryStamp = stampOf(directory);
 
         var entries = new ArrayList<GridEntry>();
         for (var listed : FileUtility.listDirectory(directory)) {
@@ -1547,14 +1550,6 @@ public class AssetBrowser extends UIElement {
                 }
             }
         }
-    }
-
-    @Override
-    protected void onRemoved() {
-        // the behaviors' own providers are known to the resource instances, which outlive this browser
-        behaviors.dispose();
-        requestGridRebuild();
-        super.onRemoved();
     }
 
     /**

@@ -43,7 +43,8 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
     private final DirectFileResourceProvider<T> directFileProvider = new DirectFileResourceProvider<>(this);
     // providers shown without being registered, e.g. the asset browser's own over a folder no provider covers
     private final Set<IResourceProvider<T>> unlistedProviders = Collections.newSetFromMap(new IdentityHashMap<>());
-    /** Bumped whenever a provider is added or removed, so whatever was built over the providers can tell it is stale. */
+    // bumped whenever a provider is added or removed (unlisted ones aside), so what was built over them can tell
+    // it is stale
     @Getter
     private int providersVersion;
 
@@ -208,10 +209,11 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
 
     /**
      * Looks up the entry of the given resource. The resource is matched by identity first, then by
-     * {@link Object#equals(Object)}.
+     * {@link Object#equals(Object)}. What an {@link #addUnlistedProvider unlisted provider} has read is matched by
+     * identity too.
      *
      * @param value the resource to look up, can be null.
-     * @return the entry of the resource, or null if it's not provided by this instance.
+     * @return the entry of the resource, or null if no provider of this instance, listed or not, holds it.
      */
     @Nullable
     public ResourceEntry<T> findResourceEntry(@Nullable T value) {

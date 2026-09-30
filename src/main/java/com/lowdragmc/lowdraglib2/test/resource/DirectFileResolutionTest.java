@@ -243,11 +243,13 @@ public class DirectFileResolutionTest {
                 helper.fail("The provider did not read the file");
                 return;
             }
-            if (instance.findResourcePath(value) != null) {
+            // a registered color that happens to equal it is an equals match, never this path
+            if (path.equals(instance.findResourcePath(value))) {
                 helper.fail("A value no provider of the instance read was found");
                 return;
             }
             var before = instance.listAllResourceEntries().size();
+            var version = instance.getProvidersVersion();
             instance.addUnlistedProvider(provider);
             if (!path.equals(instance.findResourcePath(value))) {
                 helper.fail("Expected " + path + " for the unlisted provider's value, got " + instance.findResourcePath(value));
@@ -257,8 +259,13 @@ public class DirectFileResolutionTest {
                 helper.fail("The unlisted provider was listed");
                 return;
             }
+            // a view that registers its own provider would otherwise find itself stale on every tick
+            if (instance.getProvidersVersion() != version) {
+                helper.fail("Adding an unlisted provider moved the providers version");
+                return;
+            }
             instance.removeUnlistedProvider(provider);
-            if (instance.findResourcePath(value) != null) {
+            if (path.equals(instance.findResourcePath(value))) {
                 helper.fail("The value was still found after the provider was removed");
                 return;
             }

@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceProviderContainer;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,6 +18,7 @@ import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,17 +51,11 @@ public class ResourceBehaviorCache {
     public record Behavior<T>(Resource<T> resource,
                               ResourceInstance<T> instance,
                               IResourceProvider<T> provider,
-                              ResourceProviderContainer<T> container,
-                              int providersVersion) {
+                              ResourceProviderContainer<T> container) {
 
         /** Whether the resource of the given path actually loaded. */
         public boolean isLoaded(@Nullable IResourcePath path) {
             return path != null && provider.hasResource(path);
-        }
-
-        /** Whether a provider was added to or removed from the instance since, which may be this folder's own. */
-        public boolean isStale() {
-            return providersVersion != instance.getProvidersVersion();
         }
 
         /** The contextual entries this resource type adds to a resource's menu, e.g. "copy color". */
@@ -92,6 +88,8 @@ public class ResourceBehaviorCache {
     private final UIElement host;
     private final Editor editor;
     private final Map<Resource<?>, Behavior<?>> behaviors = new LinkedHashMap<>();
+    // what each behavior was built against, see tick()
+    private final Map<Resource<?>, BuiltAgainst> builtAgainst = new HashMap<>();
     @Getter
     @Nullable
     private File directory;
@@ -103,6 +101,10 @@ public class ResourceBehaviorCache {
     public ResourceBehaviorCache(UIElement host, Editor editor) {
         this.host = host;
         this.editor = editor;
+        // the resource instances outlive the host: its own providers are known to them only while it is on show,
+        // and a host that is only moved (floated, docked back) keeps its behaviors
+        host.addEventListener(UIEvents.REMOVED, e -> setOwnProvidersKnown(false));
+        host.addEventListener(UIEvents.ADDED, e -> setOwnProvidersKnown(true));
     }
 
     /**
@@ -177,10 +179,13 @@ public class ResourceBehaviorCache {
         return behavior;
     }
 
+    /** The instance's providers version, and the folder's registered provider then (null when there was none). */
+    private record BuiltAgainst(int providersVersion, @Nullable IResourceProvider<?> registered) {}
+
     private <T> Behavior<T> create(Resource<T> resource, File directory) {
         var instance = resource.getResourceInstance();
-        var version = instance.getProvidersVersion();
         var provider = findFileProvider(instance, directory);
+        builtAgainst.put(resource, new BuiltAgainst(instance.getProvidersVersion(), provider));
         if (provider == null) {
             var created = new FileResourceProvider<T>(instance, directory);
             created.setName(directory.getName());
@@ -201,7 +206,7 @@ public class ResourceBehaviorCache {
         });
         container.setDisplay(false);
         host.addChild(container);
-        return new Behavior<>(resource, instance, provider, container, version);
+        return new Behavior<>(resource, instance, provider, container);
     }
 
     /**
@@ -240,6 +245,7 @@ public class ResourceBehaviorCache {
     /** Drops one type's behavior, so the next lookup builds it again against the registered providers. */
     public void invalidate(Resource<?> resource) {
         var behavior = behaviors.remove(resource);
+        builtAgainst.remove(resource);
         if (behavior != null) {
             // flushes its dirty resources, nothing ticks it after this
             behavior.container().screenTick();
@@ -250,6 +256,23 @@ public class ResourceBehaviorCache {
     private <T> void release(Behavior<T> behavior) {
         behavior.instance().removeUnlistedProvider(behavior.provider());
         host.removeChild(behavior.container());
+    }
+
+    private void setOwnProvidersKnown(boolean known) {
+        for (var behavior : behaviors.values()) {
+            var built = builtAgainst.get(behavior.resource());
+            if (built != null && built.registered() == null) {
+                setKnown(behavior, known);
+            }
+        }
+    }
+
+    private static <T> void setKnown(Behavior<T> behavior, boolean known) {
+        if (known) {
+            behavior.instance().addUnlistedProvider(behavior.provider());
+        } else {
+            behavior.instance().removeUnlistedProvider(behavior.provider());
+        }
     }
 
     /**
@@ -264,15 +287,15 @@ public class ResourceBehaviorCache {
     /**
      * Drives the behavior containers. They are hidden children, which the framework skips while
      * ticking, so this has to be called by the owner. It flushes dirty resources to disk and picks up
-     * external changes to the directory.
+     * external changes to the directory. A behavior whose folder got or lost a registered provider since,
+     * e.g. through "New → file" in a panel, is built again over the folder's registered provider.
      */
     public void tick() {
         // copied: a container's tick may add resources, which can create further behaviors
         for (var behavior : List.copyOf(behaviors.values())) {
-            if (behavior.isStale()) {
-                // e.g. "New → file" in a panel, or an import registering this folder: the behavior has to run
-                // over the folder's registered provider, not one of its own beside it
+            if (isStale(behavior)) {
                 invalidate(behavior.resource());
+                // what was built from it has to be built again too, the grid's cells
                 if (onResourceInvalidated != null) {
                     onResourceInvalidated.accept(null);
                 }
@@ -282,10 +305,20 @@ public class ResourceBehaviorCache {
         }
     }
 
+    // only a change to this folder's own provider: a rebuild leaves an inspector opened through the old container
+    // writing into it
+    private boolean isStale(Behavior<?> behavior) {
+        var built = builtAgainst.get(behavior.resource());
+        var version = behavior.instance().getProvidersVersion();
+        if (built == null || built.providersVersion() == version) return false;
+        if (findFileProvider(behavior.instance(), directory) != built.registered()) return true;
+        builtAgainst.put(behavior.resource(), new BuiltAgainst(version, built.registered()));
+        return false;
+    }
+
     public void dispose() {
-        for (var behavior : behaviors.values()) {
-            release(behavior);
+        for (var resource : List.copyOf(behaviors.keySet())) {
+            invalidate(resource);
         }
-        behaviors.clear();
     }
 }
