@@ -364,6 +364,11 @@ public class SceneEditor extends UIElement implements IScene {
     }
 
     protected void onMouseDown(UIEvent event) {
+        if (event.button == 1 && transformGizmo.isDragging()) {
+            transformGizmo.cancelDrag();
+            event.stopPropagation();
+            return;
+        }
         if (event.button == 0 && event.target == scene) {
             if (getMouseRay().map(ray -> {
                 // ⚠️ The gizmo first, and on its own: it is drawn over everything and a drag on a

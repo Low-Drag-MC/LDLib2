@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.uitest.ScenarioBuilder;
 import com.lowdragmc.lowdraglib2.uitest.ScenarioOptions;
 import com.lowdragmc.lowdraglib2.uitest.TestContext;
 import com.lowdragmc.lowdraglib2.uitest.UIScenario;
+import com.lowdragmc.lowdraglib2.uitest.input.Keys;
 import org.jetbrains.annotations.Nullable;
 import net.minecraft.util.Mth;
 import org.joml.AxisAngle4f;
@@ -188,23 +189,58 @@ public class GizmoRotateScenario implements UIScenario {
                         .check("the inside of the ball is free rotation",
                                 ctx -> gizmo(ctx).getHoverHandle() == TransformGizmo.Handle.TRACKBALL)
 
+                        // off centre: a grab from a non-unit ray happens to be right at the dead centre
+                        .step("aim off centre inside the ball", ctx -> moveTo(ctx, ballGrabPoint(ctx)))
+                        .frames(HOVER_FRAMES)
+                        .check("off centre is still the ball",
+                                ctx -> gizmo(ctx).getHoverHandle() == TransformGizmo.Handle.TRACKBALL)
                         .step("grab the ball", ctx -> {
                             rememberRotation(ctx);
-                            press(ctx, center(ctx));
+                            press(ctx, ballGrabPoint(ctx));
                         })
                         .frames(2)
                         .check("the ball is being dragged",
                                 ctx -> gizmo(ctx).getDragHandle() == TransformGizmo.Handle.TRACKBALL)
+                        .check("grabbing alone does not turn the target", ctx -> {
+                            ctx.log("turned %.2f degrees on the press".formatted(rotatedBy(ctx)));
+                            return rotatedBy(ctx) < 0.5;
+                        })
                         .step("roll it sideways", ctx -> drag(ctx, ballPoint(ctx, 0.55f)))
                         .frames(2)
                         .check("free rotation turned the target",
                                 ctx -> rotatedBy(ctx) > 15)
-                        .step("drag back to where it was grabbed", ctx -> drag(ctx, center(ctx)))
+                        .step("drag back to where it was grabbed", ctx -> drag(ctx, ballGrabPoint(ctx)))
                         .frames(2)
                         .check("dragging back to the grab restores the rotation",
                                 ctx -> rotatedBy(ctx) < 5)
-                        .step("release", ctx -> release(ctx, center(ctx)))
+                        .step("release", ctx -> release(ctx, ballGrabPoint(ctx)))
                         .check("the drag ended", ctx -> gizmo(ctx).getDragHandle() == null))
+
+                .group("a right-click cancels the drag", g -> g
+                        .step("aim off centre inside the ball", ctx -> moveTo(ctx, ballGrabPoint(ctx)))
+                        .frames(HOVER_FRAMES)
+                        .step("grab the ball", ctx -> {
+                            rememberRotation(ctx);
+                            press(ctx, ballGrabPoint(ctx));
+                        })
+                        .frames(2)
+                        .step("roll it sideways", ctx -> drag(ctx, ballPoint(ctx, 0.55f)))
+                        .frames(2)
+                        .check("the target turned", ctx -> rotatedBy(ctx) > 15)
+                        .step("right-click", ctx -> {
+                            var screen = SceneAiming.require(editor(ctx).scene, ballPoint(ctx, 0.55f));
+                            ctx.input().mouseDown(screen.x, screen.y, Keys.MOUSE_RIGHT);
+                        })
+                        .check("the drag ended", ctx -> gizmo(ctx).getDragHandle() == null)
+                        .check("the target is back where the drag found it", ctx -> rotatedBy(ctx) < 0.5)
+                        .check("the camera did not start flying", ctx -> !editor(ctx).isCameraMoving())
+                        .step("release both buttons", ctx -> {
+                            var screen = SceneAiming.require(editor(ctx).scene, ballPoint(ctx, 0.55f));
+                            ctx.input().mouseUp(screen.x, screen.y, Keys.MOUSE_RIGHT);
+                            ctx.input().mouseUp(screen.x, screen.y, Keys.MOUSE_LEFT);
+                        })
+                        .frames(2)
+                        .check("letting go afterwards changes nothing", ctx -> rotatedBy(ctx) < 0.5))
 
                 .step("park the cursor off the gizmo", ctx -> moveTo(ctx, screenRingPoint(ctx, 0, 2.2f)))
                 .frames(HOVER_FRAMES)
@@ -306,6 +342,10 @@ public class GizmoRotateScenario implements UIScenario {
     /** A point inside the ball, {@code fraction} of the way out towards the rings, in the screen plane. */
     private static Vector3f ballPoint(TestContext ctx, float fraction) {
         return screenRingPoint(ctx, (float) (Math.PI / 2), TransformGizmo.TRACKBALL_RADIUS * fraction);
+    }
+
+    private static Vector3f ballGrabPoint(TestContext ctx) {
+        return screenRingPoint(ctx, 0, TransformGizmo.TRACKBALL_RADIUS * 0.4f);
     }
 
     private static Vector3f circlePoint(TestContext ctx, Vector3f normal, Vector3f reference,

@@ -647,7 +647,9 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
             dragGrabOffset = hit == null ? new Vector3f() : new Vector3f(hit).sub(center);
         } else if (dragHandle == Handle.TRACKBALL) {
             dragBallRadius = TRACKBALL_RADIUS * getGizmoScale();
-            dragBallStart = ballPoint(origin, dir, center, dragBallRadius);
+            dragBallStart = dir.lengthSquared() > 1.0e-12f
+                    ? ballPoint(origin, new Vector3f(dir).normalize(), center, dragBallRadius)
+                    : null;
         } else if (mode == Mode.ROTATE) {
             var hit = rayPlaneIntersect(origin, dir, center, dragAxis);
             var handleDir = hit == null ? new Vector3f() : new Vector3f(hit).sub(center);
@@ -673,6 +675,20 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
 
     @Override
     public void onMouseRelease(Ray mouseRay) {
+        endDrag();
+    }
+
+    /** Ends the drag in progress and puts the target back the way the drag found it. */
+    public void cancelDrag() {
+        if (dragHandle == null) return;
+        if (targetTransform != null) {
+            switch (mode) {
+                case TRANSLATE -> targetTransform.position(new Vector3f(dragStartPosition));
+                case ROTATE -> targetTransform.rotation(new Quaternionf(dragStartRotation));
+                case SCALE -> targetTransform.localScale(new Vector3f(dragStartScale));
+            }
+            if (onTransformChanged != null) onTransformChanged.run();
+        }
         endDrag();
     }
 

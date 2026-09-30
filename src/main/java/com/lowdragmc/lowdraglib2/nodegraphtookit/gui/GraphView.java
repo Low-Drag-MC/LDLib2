@@ -1177,6 +1177,16 @@ public class GraphView extends UIElement {
         return selected.contains(nodeModel);
     }
 
+    /** Selects what a region selection covering the whole canvas would, so the blackboard stays out of it. */
+    public void selectAllElements() {
+        var everywhere = new Vector4f(-1e9f, -1e9f, 2e9f, 2e9f);
+        batchSelection(() -> modelElements.forEach((model, element) -> {
+            if (element.isSelectable() && element.canBeRegionSelected(everywhere)) {
+                addSelected(model);
+            }
+        }));
+    }
+
     @Override
     public boolean isSelfOrChildHover() {
         return !isMenuOpen && super.isSelfOrChildHover();
@@ -1428,12 +1438,13 @@ public class GraphView extends UIElement {
         // Copy is the one that still means something read-only: it takes a snapshot out of the graph
         // rather than putting anything into it, which is exactly how you fork a built-in blueprint.
         if (readOnly) {
-            if (CommandEvents.COPY.equals(event.command)) {
+            if (CommandEvents.COPY.equals(event.command) || CommandEvents.SELECT_ALL.equals(event.command)) {
                 event.stopPropagation();
             }
             return;
         }
         if (
+                CommandEvents.SELECT_ALL.equals(event.command) ||
                 CommandEvents.UNDO.equals(event.command) ||
                 CommandEvents.REDO.equals(event.command) ||
                 CommandEvents.COPY.equals(event.command) ||
@@ -1448,6 +1459,10 @@ public class GraphView extends UIElement {
 
 
     protected void onExecuteCommand(UIEvent event) {
+        if (CommandEvents.SELECT_ALL.equals(event.command)) {
+            selectAllElements();
+            return;
+        }
         if (readOnly) {
             if (CommandEvents.COPY.equals(event.command)) {
                 copySelectedElements();
