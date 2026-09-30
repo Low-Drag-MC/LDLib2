@@ -67,6 +67,8 @@ public class Dialog extends UIElement {
      * first.
      */
     private static final long NOTIFICATION_GRACE_MS = 500;
+    /** The smallest a {@link #windowMode window mode} dialog can be resized to. */
+    static final float MIN_WINDOW_SIZE = 50;
 
     public final UIElement overlay;
     public final UIElement titleBar;
@@ -351,7 +353,7 @@ public class Dialog extends UIElement {
         // move and resize behaviour
         WindowDragHelper.setDragMove(titleBar, overlay, null, null);
         WindowDragHelper.setBorderResize(overlay, overlay, 2,
-                new Vector2f(50),
+                new Vector2f(MIN_WINDOW_SIZE),
                 new Vector2f(Float.MAX_VALUE),
                 e -> windowMode, (e, handle) -> {
                     isResizing = true;

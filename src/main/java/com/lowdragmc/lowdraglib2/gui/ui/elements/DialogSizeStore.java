@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.elements;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.Tag;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
 
@@ -23,9 +24,11 @@ public final class DialogSizeStore {
     @Nullable
     public static Vector2f get(String key) {
         var root = read();
-        if (!root.contains(key)) return null;
+        if (!root.contains(key, Tag.TAG_COMPOUND)) return null;
         var size = root.getCompound(key);
-        return new Vector2f(size.getFloat("width"), size.getFloat("height"));
+        // no smaller than a resize can make it: a damaged entry must not open the dialog at nothing
+        return new Vector2f(Math.max(Dialog.MIN_WINDOW_SIZE, size.getFloat("width")),
+                Math.max(Dialog.MIN_WINDOW_SIZE, size.getFloat("height")));
     }
 
     public static void put(String key, float width, float height) {
