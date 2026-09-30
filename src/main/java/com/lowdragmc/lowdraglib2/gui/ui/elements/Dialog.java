@@ -84,6 +84,10 @@ public class Dialog extends UIElement {
     private Runnable onClose;
     private boolean windowMode = false;
     private boolean isResizing;
+    private float windowWidth, windowHeight;
+    @Nullable
+    private String sizeKey;
+    private boolean resized;
 
     public Dialog() {
         this.titleBar = new UIElement().addClass("__dialog_title__");
@@ -337,6 +341,8 @@ public class Dialog extends UIElement {
 
     public Dialog windowMode(float worldX, float worldY, float width, float height) {
         windowMode = true;
+        windowWidth = width;
+        windowHeight = height;
         setClickOutsideClose(true);
         this.getLayout().justifyContent(AlignContent.FLEX_START);
         this.getLayout().alignItems(AlignItems.STRETCH);
@@ -350,12 +356,21 @@ public class Dialog extends UIElement {
                 e -> windowMode, (e, handle) -> {
                     isResizing = true;
                     return true;
-                }, e -> isResizing = false);
+                }, e -> {
+                    isResizing = false;
+                    resized = true;
+                });
         addEventListener(UIEvents.LAYOUT_CHANGED, e -> {
             var parent = getParent();
             if (parent != null) {
                 var local = parent.worldToLocalLayoutOffset(new Vector2f(worldX, worldY));
                 overlay.getLayout().left(local.x).top(local.y);
+                var mui = getModularUI();
+                if (mui != null && (windowWidth > mui.getScreenWidth() || windowHeight > mui.getScreenHeight())) {
+                    // a remembered size may be more than the screen it opens on
+                    overlay.getLayout().width(Math.min(windowWidth, mui.getScreenWidth()))
+                            .height(Math.min(windowHeight, mui.getScreenHeight()));
+                }
                 e.currentElement.addEventListener(UIEvents.LAYOUT_CHANGED, e2 -> {
                     overlay.adaptPositionToScreen();
                 });
@@ -363,6 +378,29 @@ public class Dialog extends UIElement {
             e.currentElement.removeEventListener(UIEvents.LAYOUT_CHANGED, e.currentListener);
         });
         return this;
+    }
+
+    /**
+     * Opens this {@link #windowMode window mode} dialog at the size the user last resized one with the same key to,
+     * and remembers the size it gets resized to in turn, see {@link DialogSizeStore}. Call it after windowMode.
+     */
+    public Dialog rememberSize(String key) {
+        sizeKey = key;
+        var size = DialogSizeStore.get(key);
+        if (size != null) {
+            windowWidth = size.x;
+            windowHeight = size.y;
+            overlay.getLayout().width(size.x).height(size.y);
+        }
+        return this;
+    }
+
+    @Override
+    protected void onRemoved() {
+        super.onRemoved();
+        if (sizeKey != null && resized) {
+            DialogSizeStore.put(sizeKey, overlay.getSizeWidth(), overlay.getSizeHeight());
+        }
     }
 
     /**

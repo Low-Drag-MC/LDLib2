@@ -409,6 +409,8 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
         });
         var dialog = new Dialog()
                 .windowMode(mouseX, mouseY)
+                // one size for every resource type's selector
+                .rememberSize("resource_selector")
                 .setTitle("resource.selector.select_resource")
                 .addContent(new UIElement().layout(layout -> {
                     layout.widthPercent(100);
