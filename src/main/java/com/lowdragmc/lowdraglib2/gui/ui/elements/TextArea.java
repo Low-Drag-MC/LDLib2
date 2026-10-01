@@ -341,12 +341,35 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     protected void onValidateCommand(UIEvent event) {
-        if ((CommandEvents.UNDO.equals(event.command) || CommandEvents.REDO.equals(event.command)) && isEditable()) {
+        if (isEditable() && isTextCommand(event.command)) {
             event.stopPropagation();
         }
     }
 
+    private static boolean isTextCommand(String command) {
+        return switch (command) {
+            case CommandEvents.COPY, CommandEvents.CUT, CommandEvents.PASTE,
+                 CommandEvents.SELECT_ALL, CommandEvents.UNDO, CommandEvents.REDO -> true;
+            default -> false;
+        };
+    }
+
     protected void onExecuteCommand(UIEvent event) {
+        if (CommandEvents.COPY.equals(event.command)) {
+            TextAreaClientSupport.copyHighlightedText(this);
+            event.stopPropagation();
+            return;
+        }
+        if (!isEditable() || !isTextCommand(event.command)) return;
+        event.stopPropagation();
+        if (CommandEvents.SELECT_ALL.equals(event.command)) {
+            selectAll();
+        } else if (CommandEvents.PASTE.equals(event.command)) {
+            insertText(TextAreaClientSupport.getClipboardText());
+        } else if (CommandEvents.CUT.equals(event.command)) {
+            TextAreaClientSupport.copyHighlightedText(this);
+            insertText("");
+        }
         if (isEditable()) {
             var current = getValue();
             if (historyStack.getCurrent() == null || !Arrays.deepEquals(historyStack.getCurrent().lines, current)) {
@@ -781,18 +804,6 @@ public class TextArea extends BindableUIElement<String[]> {
                 updateSelectionAfterMove();
             }
             default -> {
-                if (isPrimaryShortcut(event) && event.keyCode == GLFW.GLFW_KEY_A) {
-                    selectAll();
-                } else if (isPrimaryShortcut(event) && event.keyCode == GLFW.GLFW_KEY_C) {
-                    TextAreaClientSupport.copyHighlightedText(this);
-                } else if (isPrimaryShortcut(event) && event.keyCode == GLFW.GLFW_KEY_V) {
-                    if (!isEditable()) return;
-                    insertText(TextAreaClientSupport.getClipboardText());
-                } else if (isPrimaryShortcut(event) && event.keyCode == GLFW.GLFW_KEY_X) {
-                    if (!isEditable()) return;
-                    TextAreaClientSupport.copyHighlightedText(this);
-                    insertText(""); // replace selection with empty
-                }
             }
         }
     }
@@ -1162,8 +1173,7 @@ public class TextArea extends BindableUIElement<String[]> {
         }
 
         static String getClipboardText() {
-            var pasted = ClipboardManager.INSTANCE.paste();
-            return pasted instanceof String text ? text : "";
+            return net.minecraft.client.Minecraft.getInstance().keyboardHandler.getClipboard();
         }
 
         static float scale(TextArea area) {

@@ -388,12 +388,36 @@ public class TextField extends BindableUIElement<String> {
     }
 
     protected void onValidateCommand(UIEvent event) {
-        if ((CommandEvents.UNDO.equals(event.command) || CommandEvents.REDO.equals(event.command)) && isEditable()) {
+        if (isEditable() && isTextCommand(event.command)) {
             event.stopPropagation();
         }
     }
 
+    private static boolean isTextCommand(String command) {
+        return switch (command) {
+            case CommandEvents.COPY, CommandEvents.CUT, CommandEvents.PASTE,
+                 CommandEvents.SELECT_ALL, CommandEvents.UNDO, CommandEvents.REDO -> true;
+            default -> false;
+        };
+    }
+
     protected void onExecuteCommand(UIEvent event) {
+        if (CommandEvents.COPY.equals(event.command)) {
+            TextFieldClientSupport.copyHighlightedText(this);
+            event.stopPropagation();
+            return;
+        }
+        if (!isEditable() || !isTextCommand(event.command)) return;
+        event.stopPropagation();
+        if (CommandEvents.SELECT_ALL.equals(event.command)) {
+            setCursor(rawText.length());
+            setSelection(0, rawText.length());
+        } else if (CommandEvents.PASTE.equals(event.command)) {
+            insertText(TextFieldClientSupport.getClipboardText());
+        } else if (CommandEvents.CUT.equals(event.command)) {
+            TextFieldClientSupport.copyHighlightedText(this);
+            insertText("");
+        }
         if (isEditable()) {
             var current = getRawText();
             if (!Objects.deepEquals(historyStack.getCurrent(), current)) {
@@ -526,21 +550,6 @@ public class TextField extends BindableUIElement<String> {
                 }
             }
             default -> {
-                if (isPrimaryShortcut(event) && event.keyCode == GLFW.GLFW_KEY_A) {
-                    setCursor(rawText.length());
-                    setSelection(0, rawText.length());
-                } else if (isPrimaryShortcut(event) && event.keyCode == GLFW.GLFW_KEY_C) {
-                    TextFieldClientSupport.copyHighlightedText(this);
-                } else if (isPrimaryShortcut(event) && event.keyCode == GLFW.GLFW_KEY_V) {
-                    if (this.isEditable()) {
-                        this.insertText(TextFieldClientSupport.getClipboardText());
-                    }
-                } else if (isPrimaryShortcut(event) && event.keyCode == GLFW.GLFW_KEY_X) {
-                    TextFieldClientSupport.copyHighlightedText(this);
-                    if (this.isEditable()) {
-                        this.insertText("");
-                    }
-                }
             }
         }
     }
@@ -1143,8 +1152,7 @@ public class TextField extends BindableUIElement<String> {
         }
 
         static String getClipboardText() {
-            var pasted = ClipboardManager.INSTANCE.paste();
-            return pasted instanceof String text ? text : "";
+            return net.minecraft.client.Minecraft.getInstance().keyboardHandler.getClipboard();
         }
 
         static float computeDisplayOffset(TextField field) {

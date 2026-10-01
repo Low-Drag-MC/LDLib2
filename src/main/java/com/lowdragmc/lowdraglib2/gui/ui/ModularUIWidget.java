@@ -418,7 +418,7 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
 
     protected UIEvent createExecuteCommandEvent(String command, int keyCode, int scanCode, int modifiers) {
         var event = UIEvent.create(UIEvents.EXECUTE_COMMAND);
-        event.hasBubblePhase = false;
+        event.hasBubblePhase = true;
         event.hasCapturePhase = false;
         event.keyCode = keyCode;
         event.scanCode = scanCode;

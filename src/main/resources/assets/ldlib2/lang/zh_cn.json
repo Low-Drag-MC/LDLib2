@@ -24,6 +24,8 @@
   "ldlib.gui.tips.fluid_selector": "流体名称",
   "ldlib.gui.tips.fluid_tag": "流体标签",
   "ldlib.gui.tips.open_folder": "打开文件夹",
+  "ldlib.gui.file_dialog.select_folder": "选择文件夹",
+  "ldlib.gui.file_dialog.jump_to": "跳转到",
   "ldlib.gui.text_field.number.0": "从 %d 到 %d",
   "ldlib.gui.text_field.number.1": "大于 %d",
   "ldlib.gui.text_field.number.2": "小于 %d",
