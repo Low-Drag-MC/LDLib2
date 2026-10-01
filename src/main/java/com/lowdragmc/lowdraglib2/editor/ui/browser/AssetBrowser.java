@@ -440,6 +440,7 @@ public class AssetBrowser extends UIElement {
 
     public void openDirectory(@Nullable File directory) {
         if (directory == null || !directory.isDirectory()) return;
+        directory = spelledFromRoot(directory);
         if (isGlobalSearchActive()) {
             exitGlobalSearch();
         }
@@ -456,10 +457,23 @@ public class AssetBrowser extends UIElement {
 
     /** Opens the folder a file is in and selects it there. */
     public void revealFile(File file) {
+        file = spelledFromRoot(file);
         var parent = file.getParentFile();
         if (parent == null || !parent.isDirectory()) return;
         openDirectory(parent);
         pendingSelection = file;
+    }
+
+    /**
+     * A file inside the root spelled from the root, as the tree, the breadcrumb and the providers' folders are: they
+     * compare files by path, so the same folder given absolute or normalized would match none of them.
+     */
+    private File spelledFromRoot(File file) {
+        if (root == null) return file;
+        var rootPath = root.toPath().toAbsolutePath().normalize();
+        var path = file.toPath().toAbsolutePath().normalize();
+        if (!path.startsWith(rootPath)) return file;
+        return path.equals(rootPath) ? root : new File(root, rootPath.relativize(path).toString());
     }
 
     /** Expands the tree down to the folder on show and selects it. */
