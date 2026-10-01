@@ -62,8 +62,8 @@ public class CustomNodeModelImpl extends NodeModel implements ICustomNodeModel {
     }
 
     protected void callOnDefineOptions(NodeDefinitionScope<? extends NodeModel> definitionScope) {
-        var context = NodeDefinitionScope.optionContextFor(definitionScope);
         assert node != null;
+        var context = NodeDefinitionScope.optionContextFor(definitionScope);
         try {
             node.onDefineOptions(context);
             context.finish();
@@ -73,8 +73,8 @@ public class CustomNodeModelImpl extends NodeModel implements ICustomNodeModel {
     }
 
     protected void callOnDefineNode(NodeDefinitionScope<? extends NodeModel> definitionScope) {
-        var context = NodeDefinitionScope.portContextFor(definitionScope);
         assert node != null;
+        var context = NodeDefinitionScope.portContextFor(definitionScope);
         try {
             node.onDefinePorts(context);
             context.finish();
