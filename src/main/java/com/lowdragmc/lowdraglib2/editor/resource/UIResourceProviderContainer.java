@@ -68,9 +68,9 @@ public class UIResourceProviderContainer extends ResourceProviderContainer<UITem
             newView.setCanRemove(true);
             newView.setIcon(Icons.WIDGET_BASIC);
             newView.setDynamicName(() -> {
-                var name = openedViews.containsKey(uuid)
-                        ? openedViews.get(uuid).getA().getResourceName()
-                        : pathCache.get().getResourceName();
+                // the provider's name for it, as the resource panel shows it
+                var name = resourceProvider.getResourceName(openedViews.containsKey(uuid)
+                        ? openedViews.get(uuid).getA() : pathCache.get());
                 // Said in the tab rather than left to be discovered: a view that silently discards
                 // edits is worse than one that will not take them.
                 return Component.literal(editable ? name : name + " (read-only)");

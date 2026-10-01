@@ -123,11 +123,12 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
         });
         newView.setCanRemove(true);
         newView.setIcon(graphResource.getIcon());
+        // the provider's name for it, as the resource panel shows it — the path's own drops only the last extension
         newView.setDynamicName(() -> {
             if (openedViews.containsKey(uuid)) {
-                return Component.literal(openedViews.get(uuid).getA().getResourceName());
+                return Component.literal(resourceProvider.getResourceName(openedViews.get(uuid).getA()));
             } else {
-                return Component.literal(pathCache.get().getResourceName());
+                return Component.literal(resourceProvider.getResourceName(pathCache.get()));
             }
         });
         editor.placeView(newView, () -> editor.centerWindow.getLeftTop());
