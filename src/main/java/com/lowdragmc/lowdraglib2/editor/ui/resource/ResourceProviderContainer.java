@@ -1054,10 +1054,20 @@ public class ResourceProviderContainer<T> extends UIElement {
         var value = resourceProvider.getResource(from);
         // the old one is removed only once the new one is written
         if (value == null || !resourceProvider.addResource(to, value)) return;
+        // told before the old one goes, so whatever is kept beside the old path can still be moved
+        onResourceMoved(from, to);
         removeResourceInternal(from);
         appendResourceUI(to);
         revealIfFiltered(to);
         selectResource(to);
+    }
+
+    /**
+     * Called when a resource moves from {@code from} to {@code to} — by a rename, and by its undo and redo, which
+     * {@link #onRename} does not see — once it is stored at {@code to} and before {@code from} is removed. Where an
+     * editor open on the resource follows it.
+     */
+    protected void onResourceMoved(IResourcePath from, IResourcePath to) {
     }
 
 }
