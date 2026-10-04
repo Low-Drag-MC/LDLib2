@@ -430,9 +430,11 @@ public class UIEditorView extends View {
 
     protected void onExecuteCommand(UIEvent event) {
         if (CommandEvents.REDO.equals(event.command) && !historyStack.getRedoStack().isEmpty()) {
+            event.stopPropagation();
             historyStack.redo();
         }
         if (CommandEvents.UNDO.equals(event.command) && canUndo()) {
+            event.stopPropagation();
             historyStack.undo();
         }
     }

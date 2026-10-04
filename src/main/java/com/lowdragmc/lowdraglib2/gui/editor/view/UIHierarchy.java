@@ -290,9 +290,11 @@ public class UIHierarchy extends UIElement {
 
     protected void onExecuteCommand(UIEvent event) {
         if (CommandEvents.COPY.equals(event.command)) {
+            event.stopPropagation();
             copySelected();
         }
         if (CommandEvents.PASTE.equals(event.command)) {
+            event.stopPropagation();
             pasteToSelected();
         }
     }

@@ -1435,30 +1435,31 @@ public class GraphView extends UIElement {
     }
 
     protected void onValidateCommand(UIEvent event) {
-        // Copy is the one that still means something read-only: it takes a snapshot out of the graph
-        // rather than putting anything into it, which is exactly how you fork a built-in blueprint.
-        if (readOnly) {
-            if (CommandEvents.COPY.equals(event.command) || CommandEvents.SELECT_ALL.equals(event.command)) {
-                event.stopPropagation();
-            }
-            return;
-        }
-        if (
-                CommandEvents.SELECT_ALL.equals(event.command) ||
-                CommandEvents.UNDO.equals(event.command) ||
-                CommandEvents.REDO.equals(event.command) ||
-                CommandEvents.COPY.equals(event.command) ||
-                CommandEvents.CUT.equals(event.command) ||
-                CommandEvents.DUPLICATE.equals(event.command) ||
-                CommandEvents.PASTE.equals(event.command) ||
-                CommandEvents.SAVE.equals(event.command)
-        ) {
+        if (claimsCommand(event.command)) {
             event.stopPropagation();
         }
     }
 
+    /**
+     * The commands this view answers for. Executing one has to stop it as well: commands bubble, and the
+     * enclosing {@link GraphEditorView} would otherwise undo the same history a second time.
+     */
+    protected boolean claimsCommand(String command) {
+        // Copy is the one that still means something read-only: it takes a snapshot out of the graph
+        // rather than putting anything into it, which is exactly how you fork a built-in blueprint.
+        if (readOnly) {
+            return CommandEvents.COPY.equals(command) || CommandEvents.SELECT_ALL.equals(command);
+        }
+        return switch (command) {
+            case CommandEvents.SELECT_ALL, CommandEvents.UNDO, CommandEvents.REDO, CommandEvents.COPY,
+                 CommandEvents.CUT, CommandEvents.DUPLICATE, CommandEvents.PASTE, CommandEvents.SAVE -> true;
+            default -> false;
+        };
+    }
 
     protected void onExecuteCommand(UIEvent event) {
+        if (!claimsCommand(event.command)) return;
+        event.stopPropagation();
         if (CommandEvents.SELECT_ALL.equals(event.command)) {
             selectAllElements();
             return;

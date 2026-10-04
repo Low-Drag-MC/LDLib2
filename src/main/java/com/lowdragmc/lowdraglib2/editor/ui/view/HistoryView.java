@@ -75,9 +75,11 @@ public class HistoryView extends View implements IHistoryStack {
 
     protected void onExecuteCommand(UIEvent event) {
         if (CommandEvents.REDO.equals(event.command) && !redoStack.isEmpty()) {
+            event.stopPropagation();
             redo();
         }
         if (CommandEvents.UNDO.equals(event.command) && !undoStack.isEmpty()) {
+            event.stopPropagation();
             undo();
         }
     }
