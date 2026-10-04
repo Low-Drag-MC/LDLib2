@@ -171,7 +171,7 @@ public class HDRColorConfigurator extends ValueConfigurator<HDRColor> {
     protected void onClick(UIEvent event) {
         if (this.dialog.getParent() != null) {
             hide();
-        } else {
+        } else if (isActiveInHierarchy()) {
             show();
         }
     }

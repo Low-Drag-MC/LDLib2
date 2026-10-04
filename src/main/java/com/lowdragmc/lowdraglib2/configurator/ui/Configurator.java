@@ -321,7 +321,8 @@ public class Configurator extends UIElement {
                 } catch (Exception ignored) {}
             });
         }
-        if (canPaste != null && ClipboardManager.INSTANCE.getClipboardType() != null && canPaste.test(ClipboardManager.INSTANCE.getClipboardType())) {
+        if (canPaste != null && isActiveInHierarchy() && ClipboardManager.INSTANCE.getClipboardType() != null
+                && canPaste.test(ClipboardManager.INSTANCE.getClipboardType())) {
             menu.leaf(Icons.PASTE, Component.translatable("ldlib.gui.editor.menu.paste.type", ClipboardManager.INSTANCE.getClipboardType().getSimpleName()), () -> {
                 try {
                     var pasted = ClipboardManager.INSTANCE.paste();
