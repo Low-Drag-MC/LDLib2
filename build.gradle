@@ -32,6 +32,19 @@ configurations {
 }
 
 repositories {
+    // NeoGradle's mirrors are asked before mavenCentral(), and a 5xx from one fails the build instead of
+    // falling through, so test-only libraries skip them
+    exclusiveContent {
+        forRepository { mavenCentral() }
+        filter {
+            includeGroupByRegex 'org\\.junit(\\..*)?'
+            includeGroup 'org.mockito'
+            includeGroup 'org.opentest4j'
+            includeGroup 'org.apiguardian'
+            includeGroup 'net.bytebuddy'
+            includeGroup 'org.objenesis'
+        }
+    }
     mavenCentral()
     mavenLocal()
     maven { url = "https://maven.shedaniel.me/" } // Cloth Config, REI
