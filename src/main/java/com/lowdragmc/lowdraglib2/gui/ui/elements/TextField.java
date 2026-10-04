@@ -825,7 +825,7 @@ public class TextField extends BindableUIElement<String> {
     }
 
     public boolean isEditable() {
-        return isActive() && isVisible() && isFocused() && isDisplayed();
+        return isActiveInHierarchy() && isVisible() && isFocused() && isDisplayed();
     }
 
     private void deleteText(int count) {

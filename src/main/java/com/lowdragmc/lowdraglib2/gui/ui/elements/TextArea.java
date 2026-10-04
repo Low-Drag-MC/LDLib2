@@ -1163,7 +1163,7 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     public boolean isEditable() {
-        return isActive() && isVisible() && isFocused() && isDisplayed();
+        return isActiveInHierarchy() && isVisible() && isFocused() && isDisplayed();
     }
 
     // Rendering

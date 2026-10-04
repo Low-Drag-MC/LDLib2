@@ -155,9 +155,12 @@ public abstract class Slider extends BindableUIElement<Float> {
         this.handle.noText();
 
         this.handle.addEventListener(UIEvents.MOUSE_DOWN, e -> {
+            e.stopPropagation();
+            if (!isActiveInHierarchy()) {
+                return;
+            }
             handle.startDrag(getValue(), null);
             isDragging = true;
-            e.stopPropagation();
         });
         this.handle.addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDraggingHandle);
         this.handle.addEventListener(UIEvents.DRAG_END, e -> {
@@ -171,9 +174,13 @@ public abstract class Slider extends BindableUIElement<Float> {
         this.trackContainer.addEventListener(UIEvents.MOUSE_ENTER, e -> {
             if (e.target == handle && isDragging) e.stopPropagation();
         }, true);
-        this.trackContainer.addEventListener(UIEvents.MOUSE_DOWN, this::clickTrackContainer);
-        // the wheel still reaches an inactive subtree (a disabled panel scrolls), so a slider in one
-        // has to refuse it itself — turning it is setting a value
+        // a slider inside a disabled panel is disabled too, though its own flag is not: pressing it,
+        // and turning the wheel over it, are setting a value
+        this.trackContainer.addEventListener(UIEvents.MOUSE_DOWN, e -> {
+            if (isActiveInHierarchy()) {
+                clickTrackContainer(e);
+            }
+        });
         this.trackContainer.addEventListener(UIEvents.MOUSE_WHEEL, e -> {
             if (isActiveInHierarchy()) {
                 onScrollWheel(e);

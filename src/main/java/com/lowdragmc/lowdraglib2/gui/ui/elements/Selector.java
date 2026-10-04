@@ -325,7 +325,8 @@ public class Selector<T> extends BindableUIElement<T> {
 
     ///  events
     protected void onMouseDown(UIEvent event) {
-        if (event.button == 0) {
+        // opening the list is choosing a value, which a selector in a disabled panel does not do
+        if (event.button == 0 && isActiveInHierarchy()) {
             if (isOpen()) {
                 hide();
             } else {

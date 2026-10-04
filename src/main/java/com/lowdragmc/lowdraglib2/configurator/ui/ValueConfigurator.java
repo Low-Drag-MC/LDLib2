@@ -150,7 +150,9 @@ public class ValueConfigurator<T> extends Configurator {
     }
 
     protected void onDragPerform(UIEvent event) {
-        if (event.dragHandler.draggingObject != null && canDropObject(event.dragHandler.draggingObject) && event.dragHandler.dragSource != this) {
+        // a drop is setting the value; a configurator in a disabled panel (a read-only inspector) refuses it
+        if (isActiveInHierarchy() && event.dragHandler.draggingObject != null
+                && canDropObject(event.dragHandler.draggingObject) && event.dragHandler.dragSource != this) {
             onDropObject(event.dragHandler.draggingObject);
         }
         hideDroppableOverlay();

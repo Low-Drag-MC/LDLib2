@@ -896,9 +896,12 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      * Whether this element and every one of its ancestors is active.
      *
      * <p>An inactive element disables its whole subtree: it is not ticked ({@link #screenTick}), it is
-     * skipped when an event drills down ({@code UIEventDispatcher}), and no element under it takes input
-     * or focus. {@link #isActive()} alone only answers for the element's own flag, which is what a
-     * container like a read-only inspector sets — so anything deciding "may this be used" asks here.</p>
+     * skipped when an event drills down ({@code UIEventDispatcher}), focus does not land under it
+     * ({@code ModularUI}), and the widgets that <em>set a value</em> — a button, a toggle, a field, a
+     * selector, a slider, a colour picker, a drop onto a configurator — refuse under it. Reading stays:
+     * a foldout still opens, a scroller still scrolls, a list still selects, because a disabled panel is
+     * still read. {@link #isActive()} alone only answers for the element's own flag, which is what a
+     * container like a read-only inspector sets — so anything deciding "may this edit" asks here.</p>
      */
     public boolean isActiveInHierarchy() {
         for (UIElement element = this; element != null; element = element.getParent()) {

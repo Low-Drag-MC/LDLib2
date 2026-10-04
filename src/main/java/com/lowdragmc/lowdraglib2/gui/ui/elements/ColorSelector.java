@@ -186,6 +186,9 @@ public class ColorSelector extends BindableUIElement<Integer> {
     }
 
     protected void onAdjustColorSlider(UIEvent event) {
+        if (!isActiveInHierarchy()) {
+            return;
+        }
         float normalizedY = (event.y - event.target.getPositionY()) / event.target.getSizeHeight();
         if (normalizedY < 0) normalizedY = 0;
         if (normalizedY > 1) normalizedY = 1;
@@ -202,6 +205,9 @@ public class ColorSelector extends BindableUIElement<Integer> {
     }
 
     protected void onAdjustAlphaSlider(UIEvent event) {
+        if (!isActiveInHierarchy()) {
+            return;
+        }
         var localMouse = getLocalMouse(event.x, event.y);
         float normalizedX = (localMouse.x - event.target.getPositionX()) / event.target.getSizeWidth();
         if (normalizedX < 0) normalizedX = 0;
@@ -215,6 +221,10 @@ public class ColorSelector extends BindableUIElement<Integer> {
     }
 
     private void onAdjustHsbContext(UIEvent event) {
+        // a colour picker inside a disabled panel is disabled too, though its own flag is not
+        if (!isActiveInHierarchy()) {
+            return;
+        }
         var localMouse = getLocalMouse(event.x, event.y);
         float normalizedX = (localMouse.x - event.target.getPositionX()) / event.target.getSizeWidth();
         float normalizedY = (localMouse.y - event.target.getPositionY()) / event.target.getSizeHeight();
