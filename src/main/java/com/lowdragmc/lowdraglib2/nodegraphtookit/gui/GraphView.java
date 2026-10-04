@@ -1440,10 +1440,7 @@ public class GraphView extends UIElement {
         }
     }
 
-    /**
-     * The commands this view answers for. Executing one has to stop it as well: commands bubble, and the
-     * enclosing {@link GraphEditorView} would otherwise undo the same history a second time.
-     */
+    /** Executing a claimed command must stop it, or the enclosing {@link GraphEditorView} applies it again. */
     protected boolean claimsCommand(String command) {
         // Copy is the one that still means something read-only: it takes a snapshot out of the graph
         // rather than putting anything into it, which is exactly how you fork a built-in blueprint.

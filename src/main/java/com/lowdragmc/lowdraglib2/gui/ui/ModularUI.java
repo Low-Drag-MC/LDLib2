@@ -1170,8 +1170,6 @@ public class ModularUI {
             lastMouseDownButton = button;
             lastMouseDownElement = getLastHoveredElement();
             if (lastMouseDownElement != null) {
-                // ⚠️ Focus never lands in an inactive subtree — a focused field is a typed-into field, and
-                // a field inside a disabled panel was focusable while only the panel was disabled.
                 if (!lastMouseDownElement.isFocusable()) {
                     clearFocus();
                     var structurePath = lastMouseDownElement.getStructurePath();
@@ -1440,10 +1438,8 @@ public class ModularUI {
         /**
          * Runs one of the {@link CommandEvents} against the UI, the way a key chord does.
          *
-         * <p>With something focused the command goes to it first — a copy belongs to whatever has the
-         * selection — and bubbles on to its ancestors from there. A handler that acts on a command must
-         * stop it, or an ancestor answering the same command runs it a second time. With nothing focused
-         * the UI is asked who wants it and the first taker gets it.
+         * <p>With something focused the command starts there and bubbles, so a handler that acts on it must
+         * stop it. With nothing focused the first element to claim it gets it.
          *
          * <p>Public because a keymap resolves its own chords and then needs this exact routing to reach
          * the same handlers a built-in chord would have.

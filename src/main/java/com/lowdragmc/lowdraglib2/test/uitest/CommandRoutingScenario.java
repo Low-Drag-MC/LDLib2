@@ -28,10 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Commands start at the focused element and bubble: whoever handles one has to stop it, or an ancestor
- * answering the same command runs it again — a graph inside a graph editor used to undo twice per Ctrl+Z.
- */
+/** A handled command must not bubble on: a graph inside a graph editor used to undo twice per Ctrl+Z. */
 @LDLRegisterClient(name = "command_routing", group = "ldlib2", registry = UIScenario.REGISTRY,
         environment = RegistrationEnvironment.DEV_ONLY)
 public class CommandRoutingScenario implements UIScenario {
@@ -57,7 +54,6 @@ public class CommandRoutingScenario implements UIScenario {
                 .awaitScreen(ModularUIScreen.class)
                 .awaitModularUI()
                 .waitUntil("the graph editor has laid out", ctx -> graphEditor(ctx).getSizeHeight() > 0)
-                // the run drives the real system clipboard; hand the user theirs back at the end
                 .step("remember the clipboard", ctx -> ctx.put(USER_CLIPBOARD, clipboard()))
 
                 .group("a focused text field handles the clipboard commands itself", g -> g

@@ -174,8 +174,6 @@ public abstract class Slider extends BindableUIElement<Float> {
         this.trackContainer.addEventListener(UIEvents.MOUSE_ENTER, e -> {
             if (e.target == handle && isDragging) e.stopPropagation();
         }, true);
-        // a slider inside a disabled panel is disabled too, though its own flag is not: pressing it,
-        // and turning the wheel over it, are setting a value
         this.trackContainer.addEventListener(UIEvents.MOUSE_DOWN, e -> {
             if (isActiveInHierarchy()) {
                 clickTrackContainer(e);

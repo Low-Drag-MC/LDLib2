@@ -221,7 +221,6 @@ public class ColorSelector extends BindableUIElement<Integer> {
     }
 
     private void onAdjustHsbContext(UIEvent event) {
-        // a colour picker inside a disabled panel is disabled too, though its own flag is not
         if (!isActiveInHierarchy()) {
             return;
         }

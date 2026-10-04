@@ -96,8 +96,7 @@ public class NodeOptionsInspector extends ModelElement {
                 inspector.setFieldName(portModel.getDisplayName());
                 if (getGraphView() != null) inspector.setHistoryStack(getGraphView().getHistoryStack());
                 inspector.loadValueField(configurable);
-                // an option row writes its node directly, not through a command, so read-only is
-                // enforced here, as PortConstantEditorElement does for a port's constant
+                // option rows write the node directly, bypassing the commands' read-only check
                 inspector.setActive(!isGraphReadOnly());
                 addChildren(inspector);
                 rowCount++;
