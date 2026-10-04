@@ -390,12 +390,36 @@ public class TextField extends BindableUIElement<String> {
     }
 
     protected void onValidateCommand(UIEvent event) {
-        if ((CommandEvents.UNDO.equals(event.command) || CommandEvents.REDO.equals(event.command)) && isEditable()) {
+        if (isEditable() && isTextCommand(event.command)) {
             event.stopPropagation();
         }
     }
 
+    private static boolean isTextCommand(String command) {
+        return switch (command) {
+            case CommandEvents.COPY, CommandEvents.CUT, CommandEvents.PASTE,
+                 CommandEvents.SELECT_ALL, CommandEvents.UNDO, CommandEvents.REDO -> true;
+            default -> false;
+        };
+    }
+
     protected void onExecuteCommand(UIEvent event) {
+        if (CommandEvents.COPY.equals(event.command)) {
+            ClipboardManager.INSTANCE.copyDirect(getHighlighted());
+            event.stopPropagation();
+            return;
+        }
+        if (!isEditable() || !isTextCommand(event.command)) return;
+        event.stopPropagation();
+        if (CommandEvents.SELECT_ALL.equals(event.command)) {
+            setCursor(rawText.length());
+            setSelection(0, rawText.length());
+        } else if (CommandEvents.PASTE.equals(event.command)) {
+            insertText(Minecraft.getInstance().keyboardHandler.getClipboard());
+        } else if (CommandEvents.CUT.equals(event.command)) {
+            ClipboardManager.INSTANCE.copyDirect(getHighlighted());
+            insertText("");
+        }
         if (isEditable()) {
             var current = getRawText();
             if (!Objects.deepEquals(historyStack.getCurrent(), current)) {
@@ -528,23 +552,6 @@ public class TextField extends BindableUIElement<String> {
                 }
             }
             default -> {
-                if (KeyState.isSelectAll(event.keyCode)) {
-                    setCursor(rawText.length());
-                    setSelection(0, rawText.length());
-                } else if (KeyState.isCopy(event.keyCode)) {
-                    ClipboardManager.INSTANCE.copyDirect(this.getHighlighted());
-                } else if (KeyState.isPaste(event.keyCode)) {
-                    if (this.isEditable()) {
-                        this.insertText(Minecraft.getInstance().keyboardHandler.getClipboard());
-                    }
-                } else {
-                    if (KeyState.isCut(event.keyCode)) {
-                        ClipboardManager.INSTANCE.copyDirect(this.getHighlighted());
-                        if (this.isEditable()) {
-                            this.insertText("");
-                        }
-                    }
-                }
             }
         }
     }

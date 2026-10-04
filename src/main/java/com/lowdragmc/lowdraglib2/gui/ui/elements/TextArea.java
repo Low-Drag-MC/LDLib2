@@ -350,12 +350,35 @@ public class TextArea extends BindableUIElement<String[]> {
     }
 
     protected void onValidateCommand(UIEvent event) {
-        if ((CommandEvents.UNDO.equals(event.command) || CommandEvents.REDO.equals(event.command)) && isEditable()) {
+        if (isEditable() && isTextCommand(event.command)) {
             event.stopPropagation();
         }
     }
 
+    private static boolean isTextCommand(String command) {
+        return switch (command) {
+            case CommandEvents.COPY, CommandEvents.CUT, CommandEvents.PASTE,
+                 CommandEvents.SELECT_ALL, CommandEvents.UNDO, CommandEvents.REDO -> true;
+            default -> false;
+        };
+    }
+
     protected void onExecuteCommand(UIEvent event) {
+        if (CommandEvents.COPY.equals(event.command)) {
+            ClipboardManager.INSTANCE.copyDirect(getHighlightedText());
+            event.stopPropagation();
+            return;
+        }
+        if (!isEditable() || !isTextCommand(event.command)) return;
+        event.stopPropagation();
+        if (CommandEvents.SELECT_ALL.equals(event.command)) {
+            selectAll();
+        } else if (CommandEvents.PASTE.equals(event.command)) {
+            insertText(Minecraft.getInstance().keyboardHandler.getClipboard());
+        } else if (CommandEvents.CUT.equals(event.command)) {
+            ClipboardManager.INSTANCE.copyDirect(getHighlightedText());
+            insertText("");
+        }
         if (isEditable()) {
             var current = getValue();
             if (historyStack.getCurrent() == null || !Arrays.deepEquals(historyStack.getCurrent().lines, current)) {
@@ -865,18 +888,6 @@ public class TextArea extends BindableUIElement<String[]> {
                 updateSelectionAfterMove();
             }
             default -> {
-                if (KeyState.isSelectAll(event.keyCode)) {
-                    selectAll();
-                } else if (KeyState.isCopy(event.keyCode)) {
-                    ClipboardManager.INSTANCE.copyDirect(getHighlightedText());
-                } else if (KeyState.isPaste(event.keyCode)) {
-                    if (!isEditable()) return;
-                    insertText(Minecraft.getInstance().keyboardHandler.getClipboard());
-                } else if (KeyState.isCut(event.keyCode)) {
-                    if (!isEditable()) return;
-                    ClipboardManager.INSTANCE.copyDirect(getHighlightedText());
-                    insertText(""); // replace selection with empty
-                }
             }
         }
     }
