@@ -1170,17 +1170,21 @@ public class ModularUI {
             lastMouseDownButton = button;
             lastMouseDownElement = getLastHoveredElement();
             if (lastMouseDownElement != null) {
+                // ⚠️ Focus never lands in an inactive subtree — a focused field is a typed-into field, and
+                // a field inside a disabled panel was focusable while only the panel was disabled.
                 if (!lastMouseDownElement.isFocusable()) {
                     clearFocus();
                     var structurePath = lastMouseDownElement.getStructurePath();
                     for (int i = structurePath.size() - 1; i >= 0; i--) {
                         var element = structurePath.get(i);
                         if (element.isFocusable()) {
-                            requestFocus(element);
+                            if (element.isActiveInHierarchy()) {
+                                requestFocus(element);
+                            }
                             break;
                         }
                     }
-                } else if (lastMouseDownElement.isActive()) {
+                } else if (lastMouseDownElement.isActiveInHierarchy()) {
                     requestFocus(lastMouseDownElement);
                 }
                 var event = UIEvent.create(UIEvents.MOUSE_DOWN);

@@ -892,6 +892,23 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return setActive(false);
     }
 
+    /**
+     * Whether this element and every one of its ancestors is active.
+     *
+     * <p>An inactive element disables its whole subtree: it is not ticked ({@link #screenTick}), it is
+     * skipped when an event drills down ({@code UIEventDispatcher}), and no element under it takes input
+     * or focus. {@link #isActive()} alone only answers for the element's own flag, which is what a
+     * container like a read-only inspector sets — so anything deciding "may this be used" asks here.</p>
+     */
+    public boolean isActiveInHierarchy() {
+        for (UIElement element = this; element != null; element = element.getParent()) {
+            if (!element.isActive()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /// Style
     public boolean hasClass(String clazz) {
         return classes.contains(clazz);

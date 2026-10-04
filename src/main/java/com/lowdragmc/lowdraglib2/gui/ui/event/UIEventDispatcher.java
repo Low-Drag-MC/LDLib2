@@ -50,11 +50,16 @@ public final class UIEventDispatcher {
         // 1. build path from root to target
         var target = event.target;
         var path = target.getStructurePath();
+        // Input never reaches an inactive subtree: from the first inactive element on the path down,
+        // nothing hears a press, a release, a drop or a key. Before this only the inactive element
+        // itself refused (each widget checking its own flag), so a read-only inspector — inactive as a
+        // whole — still let every field inside it be typed into, toggled and dropped onto.
+        int inactiveFrom = isInput(event.type) ? firstInactive(path) : path.size();
 
         // 2. capture phase: root -> target.parent
         if (capturePhase && event.hasCapturePhase) {
             event.phase = UIEvent.EventPhase.CAPTURE;
-            for (int i = 0; i < path.size() - 1; i++) {
+            for (int i = 0; i < Math.min(path.size() - 1, inactiveFrom); i++) {
                 UIElement elem = path.get(i);
                 event.currentElement = elem;
                 // call capture listeners
@@ -80,35 +85,39 @@ public final class UIEventDispatcher {
         // 3. Target phase: target
         event.phase = UIEvent.EventPhase.AT_TARGET;
         event.currentElement = target;
-        // For target element, execute both capture and bubble listeners
-        var targetCaptures = target.getCaptureListeners(event.type);
-        for (UIEventListener listener : targetCaptures) {
-            handleCaptureEventListener(event, target, listener);
-            if (event.laterPropagationStopped) break;
-        }
-        var targetBubbles = target.getBubbleListeners(event.type);
-        for (UIEventListener listener : targetBubbles) {
-            handleBubbleEventListener(event, target, listener);
-            if (event.laterPropagationStopped) break;
-        }
-        if (sendServer) {
-            var serverEvent = target.getCaptureServerEvent(event.type);
-            if (serverEvent != null) {
-                target.sendEvent(serverEvent, event);
+        // the target in an inactive subtree hears nothing; the active part of the path above it still
+        // bubbles, as it would past a target that ignored the event
+        if (inactiveFrom == path.size()) {
+            // For target element, execute both capture and bubble listeners
+            var targetCaptures = target.getCaptureListeners(event.type);
+            for (UIEventListener listener : targetCaptures) {
+                handleCaptureEventListener(event, target, listener);
+                if (event.laterPropagationStopped) break;
             }
-            serverEvent = target.getBaubleServerEvent(event.type);
-            if (serverEvent != null) {
-                target.sendEvent(serverEvent, event);
+            var targetBubbles = target.getBubbleListeners(event.type);
+            for (UIEventListener listener : targetBubbles) {
+                handleBubbleEventListener(event, target, listener);
+                if (event.laterPropagationStopped) break;
             }
-        }
-        if (event.propagationStopped) {
-            return;  // stop propagation, exit loop
+            if (sendServer) {
+                var serverEvent = target.getCaptureServerEvent(event.type);
+                if (serverEvent != null) {
+                    target.sendEvent(serverEvent, event);
+                }
+                serverEvent = target.getBaubleServerEvent(event.type);
+                if (serverEvent != null) {
+                    target.sendEvent(serverEvent, event);
+                }
+            }
+            if (event.propagationStopped) {
+                return;  // stop propagation, exit loop
+            }
         }
 
         // 4. Bubbling phase: from target's parent back to root
         if (bubblePhase && event.hasBubblePhase) {
             event.phase = UIEvent.EventPhase.BUBBLE;
-            for (int j = path.size() - 2; j >= 0; j--) {
+            for (int j = Math.min(path.size() - 2, inactiveFrom - 1); j >= 0; j--) {
                 UIElement elem = path.get(j);
                 event.currentElement = elem;
                 var bubbles = elem.getBubbleListeners(event.type);
@@ -127,6 +136,30 @@ public final class UIEventDispatcher {
                 }
             }
         }
+    }
+
+    /**
+     * The events that are somebody <b>using</b> an element — pressing, releasing, dropping, typing — which
+     * an inactive subtree does not hear. Moving over it, hovering for a tooltip and scrolling still reach
+     * it: a disabled panel is still read, and reading a long one means scrolling it.
+     */
+    private static boolean isInput(String type) {
+        return switch (type) {
+            case UIEvents.MOUSE_DOWN, UIEvents.MOUSE_UP, UIEvents.CLICK, UIEvents.DOUBLE_CLICK,
+                 UIEvents.DRAG_PERFORM, UIEvents.FILE_DROP,
+                 UIEvents.KEY_DOWN, UIEvents.KEY_UP, UIEvents.CHAR_TYPED -> true;
+            default -> false;
+        };
+    }
+
+    /** The index of the first inactive element on a root-to-target path, or the path's length. */
+    private static int firstInactive(java.util.List<UIElement> path) {
+        for (int i = 0; i < path.size(); i++) {
+            if (!path.get(i).isActive()) {
+                return i;
+            }
+        }
+        return path.size();
     }
 
     public static void dispatchDirectEvent(UIEvent event) {
