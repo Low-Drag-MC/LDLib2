@@ -4,8 +4,6 @@ import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegister;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegisterClient;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 import org.jetbrains.annotations.Nullable;
 
@@ -15,7 +13,6 @@ public interface IConfigurable {
     static IConfigurable create(Consumer<ConfiguratorGroup> consumer) {
         return new IConfigurable() {
             @Override
-            @OnlyIn(Dist.CLIENT)
             public void buildConfigurator(ConfiguratorGroup father) {
                 consumer.accept(father);
             }
@@ -26,7 +23,6 @@ public interface IConfigurable {
      * Add configurators into given group
      * @param father father group
      */
-    @OnlyIn(Dist.CLIENT)
     default void buildConfigurator(ConfiguratorGroup father) {
         ConfiguratorParser.createConfigurators(father, this);
     }
@@ -34,7 +30,6 @@ public interface IConfigurable {
     /**
      * Creates and returns a configurator directly instead of build it.
      */
-    @OnlyIn(Dist.CLIENT)
     default Configurator createDirectConfigurator() {
         var group = new ConfiguratorGroup();
         buildConfigurator(group);
