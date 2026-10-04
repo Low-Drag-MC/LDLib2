@@ -24,6 +24,8 @@
   "ldlib.gui.tips.fluid_selector": "Fluid Name",
   "ldlib.gui.tips.fluid_tag": "Fluid Tag",
   "ldlib.gui.tips.open_folder": "Open Folder",
+  "ldlib.gui.file_dialog.select_folder": "Choose Folder",
+  "ldlib.gui.file_dialog.jump_to": "Go to Path",
   "ldlib.gui.text_field.number.0": "From %d to %d",
   "ldlib.gui.text_field.number.1": "Bigger than %d",
   "ldlib.gui.text_field.number.2": "Smaller than %d",
