@@ -175,7 +175,13 @@ dependencies {
     libraries("org.jetbrains.kotlin:kotlin-stdlib:${kotlin_stdlib_version}") {
         exclude group: "org.jetbrains", module: "annotations"
     }
-    jarJar(group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: "[${kotlin_stdlib_version},)")
+    // a bare range embeds the newest release, pre-releases included; prefer pins what the jar ships
+    jarJar(group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib') {
+        version {
+            require "[${kotlin_stdlib_version},)"
+            prefer kotlin_stdlib_version
+        }
+    }
 
     // JEI
     compileOnly("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}") { transitive = false }
@@ -214,11 +220,21 @@ dependencies {
 
     // Yoga
     libraries("org.appliedenergistics.yoga:yoga:${yoga_version}")
-    jarJar(group: 'org.appliedenergistics.yoga', name: 'yoga', version: "[${yoga_version},)")
+    jarJar(group: 'org.appliedenergistics.yoga', name: 'yoga') {
+        version {
+            require "[${yoga_version},)"
+            prefer yoga_version
+        }
+    }
 
     // Taffy
     libraries("dev.vfyjxf:taffy:${taffy_version}")
-    jarJar(group: 'dev.vfyjxf', name: 'taffy', version: "[${taffy_version},)")
+    jarJar(group: 'dev.vfyjxf', name: 'taffy') {
+        version {
+            require "[${taffy_version},)"
+            prefer taffy_version
+        }
+    }
 
     // JUnit 5
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
