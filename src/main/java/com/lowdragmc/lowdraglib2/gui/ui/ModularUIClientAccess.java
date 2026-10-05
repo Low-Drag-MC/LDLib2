@@ -110,8 +110,8 @@ public final class ModularUIClientAccess {
      */
     public static boolean onFilesDrop(ModularUI modularUI, List<File> files, UISurface surface, double windowX, double windowY) {
         if (files.isEmpty()) return false;
-        var mouseX = windowX * surface.guiScaledWidth() / Math.max(1, surface.screenWidth());
-        var mouseY = windowY * surface.guiScaledHeight() / Math.max(1, surface.screenHeight());
+        var mouseX = toGuiX(windowX, surface);
+        var mouseY = toGuiY(windowY, surface);
 
         var hit = modularUI.ui.rootElement.hitTest(mouseX, mouseY);
         if (hit == null) return false;
@@ -122,6 +122,86 @@ public final class ModularUIClientAccess {
         event.target = hit.getA();
         UIEventDispatcher.dispatchEvent(event);
         return event.hasHandler;
+    }
+
+    /**
+     * Files from outside the game are being dragged over this UI, now at a point in {@code surface}'s window
+     * coordinates. The element under them is tracked the way the pointer's hover is: a
+     * {@link UIEvents#FILE_DRAG_LEAVE} for the one they left and a {@link UIEvents#FILE_DRAG_ENTER} for the one
+     * they moved onto, then a {@link UIEvents#FILE_DRAG_UPDATE} for every report.
+     */
+    public static void onFileDragUpdate(ModularUI modularUI, UISurface surface, double windowX, double windowY) {
+        var mouseX = (float) toGuiX(windowX, surface);
+        var mouseY = (float) toGuiY(windowY, surface);
+        var hit = modularUI.ui.rootElement.hitTest(mouseX, mouseY);
+        var current = hit == null ? null : hit.getA();
+        var state = getState(modularUI);
+        var previous = state.fileDragElement;
+        if (previous != current) {
+            state.fileDragElement = current;
+            dispatchFileDrag(modularUI, UIEvents.FILE_DRAG_LEAVE, previous, current, mouseX, mouseY);
+            dispatchFileDrag(modularUI, UIEvents.FILE_DRAG_ENTER, current, previous, mouseX, mouseY);
+        }
+        dispatchFileDrag(modularUI, UIEvents.FILE_DRAG_UPDATE, current, null, mouseX, mouseY);
+    }
+
+    /**
+     * The files being dragged over this UI left it, or the drag ended: let go outside the window, or dropped,
+     * in which case {@link #onFilesDrop} follows.
+     */
+    public static void onFileDragEnd(ModularUI modularUI) {
+        var state = getState(modularUI);
+        var previous = state.fileDragElement;
+        state.fileDragElement = null;
+        dispatchFileDrag(modularUI, UIEvents.FILE_DRAG_LEAVE, previous, null, 0, 0);
+    }
+
+    private static void dispatchFileDrag(ModularUI modularUI, String type, @Nullable UIElement target,
+                                         @Nullable UIElement related, float x, float y) {
+        // one removed since it was entered has no path back to the listeners that saw it enter
+        if (target == null || target.getModularUI() != modularUI) return;
+        var event = UIEvent.create(type);
+        event.x = x;
+        event.y = y;
+        event.target = target;
+        event.relatedTarget = related;
+        UIEventDispatcher.dispatchEvent(event, true, true, false);
+    }
+
+    /** The UI in the game window that files from outside are being dragged over, if any. */
+    @Nullable
+    private static ModularUI gameWindowFileDragUI;
+
+    /**
+     * Files from outside the game are being dragged over the game window, at a point in its window coordinates.
+     * Vanilla ignores this, so it comes from {@code SDLEventHandlerMixin} and goes to the screen's UI.
+     */
+    public static void onGameWindowFileDrag(double windowX, double windowY) {
+        var ui = of(Minecraft.getInstance().gui.screen());
+        if (ui != gameWindowFileDragUI) {
+            onGameWindowFileDragEnd();
+            gameWindowFileDragUI = ui;
+        }
+        if (ui != null) {
+            onFileDragUpdate(ui, UISurface.main(), windowX, windowY);
+        }
+    }
+
+    /** The drag over the game window ended. On a drop, the screen's {@code onFilesDrop} follows. */
+    public static void onGameWindowFileDragEnd() {
+        var ui = gameWindowFileDragUI;
+        gameWindowFileDragUI = null;
+        if (ui != null) {
+            onFileDragEnd(ui);
+        }
+    }
+
+    private static double toGuiX(double windowX, UISurface surface) {
+        return windowX * surface.guiScaledWidth() / Math.max(1, surface.screenWidth());
+    }
+
+    private static double toGuiY(double windowY, UISurface surface) {
+        return windowY * surface.guiScaledHeight() / Math.max(1, surface.screenHeight());
     }
 
     /**

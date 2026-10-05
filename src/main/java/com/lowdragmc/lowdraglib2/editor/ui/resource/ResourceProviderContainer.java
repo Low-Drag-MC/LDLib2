@@ -128,6 +128,8 @@ public class ResourceProviderContainer<T> extends UIElement {
      */
     @Setter @Getter
     protected boolean headless = false;
+    /** Where files dragged in from outside would land, see {@link #onFileDragUpdate}. */
+    protected final DropHighlight dropHighlight = new DropHighlight();
     /**
      * Notified with the affected path, or null meaning "everything", whenever a resource UI would have
      * been (re)built, and whenever a resource is removed. Only {@link #headless} owners wire this up;
@@ -187,6 +189,10 @@ public class ResourceProviderContainer<T> extends UIElement {
 
         addChildren(toolbar, scrollerView, bottomBar);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
+        addEventListener(UIEvents.FILE_DRAG_UPDATE, this::onFileDragUpdate);
+        addEventListener(UIEvents.FILE_DRAG_LEAVE, e -> {
+            if (!isAncestorOf(e.relatedTarget)) dropHighlight.clear();
+        });
         addEventListener(UIEvents.FILE_DROP, this::onFilesDropped);
         // clicking the empty space around the cells clears the selection. Listening on the scroller
         // rather than the whole container keeps the bottom bar's own controls out of it.
@@ -364,18 +370,11 @@ public class ResourceProviderContainer<T> extends UIElement {
     }
 
     /**
-     * Briefly tints an element to show where a dropped file landed.
-     * <p>
-     * This is the only drop feedback there can be: the operating system does not tell the game anything
-     * while files are being dragged over the window, so nothing can light up beforehand.
+     * Briefly tints an element to show where a dropped file landed. While files are still being dragged
+     * over it, {@link DropHighlight} shows where they would.
      */
     public static void flashDropTarget(UIElement element) {
-        var flash = new UIElement();
-        flash.getLayout().positionType(TaffyPosition.ABSOLUTE);
-        flash.getLayout().widthPercent(100);
-        flash.getLayout().heightPercent(100);
-        flash.setAllowHitTest(false);
-        flash.style(style -> style.backgroundTexture(new ColorRectTexture(0x554852ff)));
+        var flash = dropTint();
         flash.addClass("__drop-flash__");
         var expiry = System.currentTimeMillis() + 400;
         flash.addEventListener(UIEvents.TICK, e -> {
@@ -384,6 +383,46 @@ public class ResourceProviderContainer<T> extends UIElement {
             }
         });
         element.addChild(flash);
+    }
+
+    private static UIElement dropTint() {
+        var tint = new UIElement();
+        tint.getLayout().positionType(TaffyPosition.ABSOLUTE);
+        tint.getLayout().widthPercent(100);
+        tint.getLayout().heightPercent(100);
+        tint.setAllowHitTest(false);
+        tint.style(style -> style.backgroundTexture(new ColorRectTexture(0x554852ff)));
+        return tint;
+    }
+
+    /**
+     * Tints the element that files dragged in from outside the game would be dropped on, for as long as
+     * they are over it: {@link #show} moves the tint from element to element, and a
+     * {@link UIEvents#FILE_DRAG_LEAVE} that leaves the drop target, which every drag ends with, should
+     * {@link #clear} it.
+     */
+    public static final class DropHighlight {
+        @Nullable
+        private UIElement tint;
+        @Nullable
+        private UIElement shownOn;
+
+        public void show(UIElement element) {
+            if (shownOn == element && tint != null && tint.getParent() != null) return;
+            clear();
+            tint = dropTint();
+            tint.addClass("__drop-target__");
+            shownOn = element;
+            element.addChild(tint);
+        }
+
+        public void clear() {
+            if (tint != null && tint.getParent() != null) {
+                tint.removeSelf();
+            }
+            tint = null;
+            shownOn = null;
+        }
     }
 
     /**
@@ -410,6 +449,13 @@ public class ResourceProviderContainer<T> extends UIElement {
                     addNewResource(value, name);
                     next.run();
                 }, next));
+    }
+
+    /** The whole panel lights up: a drop imports into it wherever it lands. */
+    protected void onFileDragUpdate(UIEvent event) {
+        if (headless || !resourceProvider.supportAdd()) return;
+        event.stopPropagation();
+        dropHighlight.show(this);
     }
 
     protected void onFilesDropped(UIEvent event) {

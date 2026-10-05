@@ -255,7 +255,13 @@ public final class OsWindow {
                     droppingFiles.add(new File(path));
                 }
             }
+            case SDLEvents.SDL_EVENT_DROP_POSITION -> {
+                var drop = event.drop();
+                enqueueFileDragOver(drop.x(), drop.y());
+            }
             case SDLEvents.SDL_EVENT_DROP_COMPLETE -> {
+                // SDL completes a drag that leaves the window too, with nothing dropped
+                enqueue(new OsWindowEvent.FileDragEnd());
                 if (!droppingFiles.isEmpty()) {
                     var drop = event.drop();
                     enqueue(new OsWindowEvent.FileDrop(List.copyOf(droppingFiles), drop.x(), drop.y()));
@@ -315,6 +321,17 @@ public final class OsWindow {
                 return;
             }
             pending.add(new OsWindowEvent.CursorPos(x, y));
+        }
+    }
+
+    private void enqueueFileDragOver(double x, double y) {
+        if (destroyed) return;
+        synchronized (pending) {
+            if (!pending.isEmpty() && pending.top() instanceof OsWindowEvent.FileDragOver) {
+                pending.set(pending.size() - 1, new OsWindowEvent.FileDragOver(x, y));
+                return;
+            }
+            pending.add(new OsWindowEvent.FileDragOver(x, y));
         }
     }
 

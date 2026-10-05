@@ -146,6 +146,8 @@ public class AssetBrowser extends UIElement {
 
     // runtime
     private final Map<File, UIElement> entryUIs = new LinkedHashMap<>();
+    /** The folder files dragged in from outside would be dropped into, see {@link #onFileDragUpdate}. */
+    private final ResourceProviderContainer.DropHighlight dropHighlight = new ResourceProviderContainer.DropHighlight();
     @Nullable
     private File selected;
     @Nullable
@@ -211,6 +213,10 @@ public class AssetBrowser extends UIElement {
 
         bottomBar.setOnValueChanged(this::setUiWidth);
         addChild(splitView);
+        addEventListener(UIEvents.FILE_DRAG_UPDATE, this::onFileDragUpdate);
+        addEventListener(UIEvents.FILE_DRAG_LEAVE, e -> {
+            if (!isAncestorOf(e.relatedTarget)) dropHighlight.clear();
+        });
         addEventListener(UIEvents.FILE_DROP, this::onFilesDropped);
 
         addClass("__asset-browser__");
@@ -997,6 +1003,14 @@ public class AssetBrowser extends UIElement {
     }
 
     // ------------------------------------------------------------------- external file drop
+
+    /** Lights up the folder a drop would go into: the folder cell under the files, else the open folder's grid. */
+    protected void onFileDragUpdate(UIEvent event) {
+        if (currentDirectory == null) return;
+        event.stopPropagation();
+        var cell = entryUIs.get(directoryOf(event.target));
+        dropHighlight.show(cell == null ? gridScroller : cell);
+    }
 
     /**
      * Files dropped onto the browser from outside the game. They can either be copied in as they are or

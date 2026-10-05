@@ -78,6 +78,20 @@ public sealed interface OsWindowEvent {
     }
 
     /**
+     * Files from outside the game are being dragged over the window, now at {@code (x, y)}. Which files
+     * is not known until they are dropped. Coalesced on enqueue, like {@link CursorPos}.
+     */
+    record FileDragOver(double x, double y) implements OsWindowEvent {
+    }
+
+    /**
+     * The drag that {@link FileDragOver} reported is over: let go outside the window, or dropped, in
+     * which case a {@link FileDrop} follows.
+     */
+    record FileDragEnd() implements OsWindowEvent {
+    }
+
+    /**
      * Files dragged in from outside the game and dropped at {@code (x, y)}.
      */
     record FileDrop(List<File> files, double x, double y) implements OsWindowEvent {

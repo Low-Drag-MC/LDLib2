@@ -147,12 +147,28 @@ public interface UIEvents {
     String LAYOUT_CHANGED = "layoutChanged";
 
     /**
+     * The {@code fileDragEnter} is sent when files dragged in from outside the game move onto an element.
+     * It bubbles; {@link UIEvent#relatedTarget} is the element they came from, if any.
+     * <p>
+     * Which files they are is not known until they are dropped, so a drop target can only say that a
+     * drop would land on it, not whether it would accept what lands.
+     */
+    String FILE_DRAG_ENTER = "fileDragEnter";
+    /**
+     * The {@code fileDragUpdate} is sent to the element under files dragged in from outside the game,
+     * every time the platform reports where they are. It bubbles.
+     */
+    String FILE_DRAG_UPDATE = "fileDragUpdate";
+    /**
+     * The {@code fileDragLeave} is sent when files dragged in from outside the game move off an element.
+     * It bubbles; {@link UIEvent#relatedTarget} is the element they moved onto, or null when the drag
+     * left the UI or ended. Every drag ends with one, a drop included: drop feedback should go away
+     * here, and the {@link #FILE_DROP} follows.
+     */
+    String FILE_DRAG_LEAVE = "fileDragLeave";
+    /**
      * The {@code fileDrop} is sent when files are dropped onto the window from outside the game, to the
      * element under the cursor. The paths are in {@link UIEvent#droppedFiles}.
-     * <p>
-     * The operating system only tells the game about the drop itself: there is no drag-enter or
-     * drag-over notification while the files are being dragged, and the cursor position is not updated
-     * either, so an element cannot highlight itself as a drop target beforehand.
      */
     String FILE_DROP = "fileDrop";
 

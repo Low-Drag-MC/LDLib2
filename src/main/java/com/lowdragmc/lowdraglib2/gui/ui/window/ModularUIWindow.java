@@ -476,6 +476,8 @@ public class ModularUIWindow implements OsWindowHost {
                 }
                 widget.setFocused(focus.focused());
             }
+            case OsWindowEvent.FileDragOver over -> ModularUIClientAccess.onFileDragUpdate(modularUI, currentSurface, over.x(), over.y());
+            case OsWindowEvent.FileDragEnd ignored -> ModularUIClientAccess.onFileDragEnd(modularUI);
             case OsWindowEvent.FileDrop drop -> ModularUIClientAccess.onFilesDrop(modularUI, drop.files(), currentSurface, drop.x(), drop.y());
             case OsWindowEvent.CloseRequest ignored -> onCloseRequested();
             case OsWindowEvent.WindowPos ignored -> {

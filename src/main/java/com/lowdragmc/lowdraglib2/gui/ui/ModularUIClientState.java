@@ -26,6 +26,9 @@ final class ModularUIClientState {
     final List<Rect2i> extraAreas = new ArrayList<>();
     /** Whether this UI has text input switched on for its window, see {@link ModularUIClientAccess#syncTextInput}. */
     boolean textInputActive;
+    /** The element files dragged in from outside are over, see {@link ModularUIClientAccess#onFileDragUpdate}. */
+    @Nullable
+    UIElement fileDragElement;
 
     ModularUIClientState(ModularUI modularUI) {
         this.widget = new ModularUIWidget(modularUI);

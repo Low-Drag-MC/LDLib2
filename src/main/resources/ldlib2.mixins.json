@@ -23,6 +23,7 @@
     "ui.MouseHandlerMixin",
     "ui.ScreenMixin",
     "ui.ScreenRectangleMixin",
+    "ui.SDLEventHandlerMixin",
     "accessor.MouseHandlerAccessor",
     "accessor.PictureInPictureRendererPoolAccessor",
     "accessor.ObjGeometryAccessor"
