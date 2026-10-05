@@ -28,6 +28,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.TextureFilteringMethod;
 import net.minecraft.client.gui.screens.LoadingOverlay;
 import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.block.*;
@@ -185,7 +186,7 @@ public abstract class WorldSceneRenderer {
     @Setter
     @Nullable
     protected ProjectionMatrixBuffer projectionMatrixBuffer;
-    /** Scene-private Globals UBO (camera = eyePos) used while drawing the core/terrain pass. */
+    /** Scene-private Globals UBO (camera = eyePos, screen = viewport), active for the whole of {@link #drawWorld}. */
     @Nullable
     private GlobalSettingsUniform sceneGlobals;
     /** Lazily-created 4-byte readback buffer for async depth pixel sampling. */
@@ -746,6 +747,24 @@ public abstract class WorldSceneRenderer {
 
         var ctx = new SceneRenderContext(this, poseStack, storage, cameraRenderState, partialTicks);
 
+        // Point the Globals UBO at this scene for everything drawn into it, then restore the game's. Two
+        // readers care: core/terrain takes CameraBlockPos/CameraOffset as the scene camera, and
+        // rendertype_lines widens a line by LineWidth / ScreenSize in NDC, which spans the scene's
+        // target - with the game window's size there, lines in a scene smaller than the window come out
+        // thinner than their width. Swapping the buffer reference (not its contents) leaves the game's
+        // Globals intact for the rest of the frame.
+        var savedGlobals = RenderSystem.getGlobalSettingsUniform();
+        updateSceneGlobals(mc);
+        try {
+            drawScene(mc, dispatcher, storage, cameraRenderState, poseStack, partialTicks, ctx);
+        } finally {
+            if (savedGlobals != null) RenderSystem.setGlobalSettingsUniform(savedGlobals);
+        }
+    }
+
+    private void drawScene(Minecraft mc, FeatureRenderDispatcher dispatcher, SubmitNodeStorage storage,
+                           CameraRenderState cameraRenderState, PoseStack poseStack, float partialTicks,
+                           SceneRenderContext ctx) {
         // (1) Terrain mesh pass — section-local meshes drawn via the vanilla core/terrain pipeline
         //     with a per-section ChunkSection offset UBO (mirrors LevelRenderer.prepareChunkRenders +
         //     ChunkSectionsToRender.renderGroup). Honors RenderSystem.outputColor/DepthTextureOverride
@@ -948,12 +967,7 @@ public abstract class WorldSceneRenderer {
                 ? RenderSystem.outputDepthTextureOverride
                 : (mainTarget.useDepth ? mainTarget.getDepthTextureView() : null);
 
-        // Point the Globals UBO at the scene camera (CameraBlockPos/CameraOffset = eyePos) for the
-        // duration of the terrain pass, then restore the game's. bindDefaultUniforms binds whatever
-        // RenderSystem.getGlobalSettingsUniform() currently points at; swapping the buffer reference
-        // (not its contents) means later passes in this frame keep the game's Globals.
-        var savedGlobals = RenderSystem.getGlobalSettingsUniform();
-        updateSceneGlobals(mc);
+        // bindDefaultUniforms binds the scene's Globals here: drawWorld holds it for the whole scene.
         try (RenderPass pass = device.createCommandEncoder().createRenderPass(
                 () -> "scene terrain", color, java.util.Optional.empty(), depth, java.util.OptionalDouble.empty())) {
             RenderSystem.bindDefaultUniforms(pass);
@@ -969,20 +983,22 @@ public abstract class WorldSceneRenderer {
                 pass.drawMultipleIndexed(draws, defaultIndexBuffer, defaultIndexType,
                         List.of("ChunkSection"), infoSlices);
             }
-        } finally {
-            if (savedGlobals != null) RenderSystem.setGlobalSettingsUniform(savedGlobals);
         }
     }
 
-    /** Write {@link #eyePos} into a scene-private Globals UBO and make it the active one. */
+    /**
+     * Write this scene into a scene-private Globals UBO and make it the active one: {@link #eyePos} as the
+     * camera, the viewport as the screen size, and the player's own options for the rest, as vanilla does.
+     */
     private void updateSceneGlobals(Minecraft mc) {
         if (sceneGlobals == null) {
             sceneGlobals = new GlobalSettingsUniform();
         }
         long gameTime = world != null ? world.getGameTime() : 0L;
-        sceneGlobals.update(viewportWidth, viewportHeight, 1.0,
+        sceneGlobals.update(viewportWidth, viewportHeight, mc.options.glintStrength().get(),
                 gameTime, mc.getDeltaTracker(), 0,
-                new Vec3(eyePos.x(), eyePos.y(), eyePos.z()), false);
+                new Vec3(eyePos.x(), eyePos.y(), eyePos.z()),
+                mc.options.textureFiltering().get() == TextureFilteringMethod.RGSS);
     }
 
     public boolean isCompiling() {
