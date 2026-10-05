@@ -33,7 +33,9 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
      */
     @Getter @Setter
     private Supplier<? extends GraphView> graphViewFactory;
-    private final Map<UUID, Tuple<IResourcePath, GraphEditorView>> openedViews = Maps.newHashMap();
+    // static: one graph is reachable from more than one container — the resource panel's, the asset browser's — and a
+    // rename made through either has to reach the editor the other opened
+    private static final Map<UUID, Tuple<IResourcePath, GraphEditorView>> OPENED_VIEWS = Maps.newHashMap();
 
     public GraphResourceProviderContainer(GraphResource<G> graphResource, IResourceProvider<CompoundTag> provider) {
         super(provider);
@@ -80,7 +82,7 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
     /** The full double-click-to-edit flow. Subclasses normally override the hooks above, not this. */
     protected void openGraphForEdit(ResourceProviderContainer<CompoundTag> container, IResourcePath path) {
         // if there is an existing view open, don't open a new one
-        if (openedViews.values().stream().map(Tuple::getA).anyMatch(path::equals)) return;
+        if (OPENED_VIEWS.values().stream().map(Tuple::getA).anyMatch(path::equals)) return;
 
         var tag = resourceProvider.getResource(path);
         if (tag == null) return;
@@ -98,8 +100,8 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
         var editorView = createEditorView();
         editorView.setReadOnly(!resourceProvider.canEdit(path));
         var newView = editorView.loadGraph(graph, savedTag -> {
-            if (!openedViews.containsKey(uuid)) return;
-            var realPath = openedViews.get(uuid).getA();
+            if (!OPENED_VIEWS.containsKey(uuid)) return;
+            var realPath = OPENED_VIEWS.get(uuid).getA();
             resourceProvider.addResource(realPath, savedTag);
             container.reloadSpecificResource(realPath);
             // broadcast: every other open editor that references this path must refresh ports
@@ -113,21 +115,22 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
         // cache path for renaming cases
         AtomicReference<IResourcePath> pathCache = new AtomicReference<>(path);
         newView.addEventListener(UIEvents.ADDED, e -> {
-            openedViews.put(uuid, new Tuple<>(pathCache.get(), newView));
+            OPENED_VIEWS.put(uuid, new Tuple<>(pathCache.get(), newView));
         });
         newView.addEventListener(UIEvents.REMOVED, e -> {
-            var pair = openedViews.remove(uuid);
+            var pair = OPENED_VIEWS.remove(uuid);
             if (pair != null) {
                 pathCache.set(pair.getA());
             }
         });
         newView.setCanRemove(true);
         newView.setIcon(graphResource.getIcon());
+        // the provider's name for it, as the resource panel shows it — the path's own drops only the last extension
         newView.setDynamicName(() -> {
-            if (openedViews.containsKey(uuid)) {
-                return Component.literal(openedViews.get(uuid).getA().getResourceName());
+            if (OPENED_VIEWS.containsKey(uuid)) {
+                return Component.literal(resourceProvider.getResourceName(OPENED_VIEWS.get(uuid).getA()));
             } else {
-                return Component.literal(pathCache.get().getResourceName());
+                return Component.literal(resourceProvider.getResourceName(pathCache.get()));
             }
         });
         editor.placeView(newView, () -> editor.centerWindow.getLeftTop());
@@ -250,12 +253,11 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
     }
 
     @Override
-    protected void onRename(IResourcePath oldPath, IResourcePath newPath) {
-        super.onRename(oldPath, newPath);
-        for (var openedView : openedViews.values()) {
-            if (openedView.getA().equals(oldPath)) {
-                openedView.setA(newPath);
-                openedView.getB().setRootPath(newPath);
+    protected void onResourceMoved(IResourcePath from, IResourcePath to) {
+        for (var openedView : OPENED_VIEWS.values()) {
+            if (openedView.getA().equals(from)) {
+                openedView.setA(to);
+                openedView.getB().setRootPath(to);
             }
         }
     }

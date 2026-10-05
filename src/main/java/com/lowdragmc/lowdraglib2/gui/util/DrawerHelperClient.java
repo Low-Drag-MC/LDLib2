@@ -14,7 +14,6 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.render.TextureSetup;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
-import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -248,10 +247,14 @@ public class DrawerHelperClient {
         return hoverTooltips.tooltipFont() instanceof Font font ? font : context.mc.font;
     }
 
+    /**
+     * The tooltip's own positioner, or vanilla's placement kept inside all four edges — see
+     * {@link ClampedTooltipPositioner}.
+     */
     public static ClientTooltipPositioner tooltipPositioner(HoverTooltips hoverTooltips) {
         return hoverTooltips.positioner() instanceof ClientTooltipPositioner positioner
                 ? positioner
-                : DefaultTooltipPositioner.INSTANCE;
+                : ClampedTooltipPositioner.INSTANCE;
     }
 
     /**

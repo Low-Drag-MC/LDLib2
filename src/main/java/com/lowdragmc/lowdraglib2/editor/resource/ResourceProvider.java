@@ -32,7 +32,12 @@ public abstract class ResourceProvider<T> implements IResourceProvider<T> {
             return contents.get(path);
         }
         return null;
-    } 
+    }
+
+    @Override
+    public T getLoadedResource(IResourcePath path) {
+        return contents.get(path);
+    }
 
     public boolean addResource(IResourcePath path, T resource) {
         if (resource == null) return false;

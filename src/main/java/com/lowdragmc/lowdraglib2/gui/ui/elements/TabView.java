@@ -228,13 +228,22 @@ public class TabView extends UIElement {
     @Override
     public void beforeDeserialize() {
         super.beforeDeserialize();
-        tabContents.clear();
+        if (!isRestoringOwnState()) {
+            tabContents.clear();
+        }
     }
 
     @Override
     public void deserialize(ValueInput valueInput) {
         super.deserialize(valueInput);
         var selectedIndex = valueInput.getInt("selected").orElse(-1);
+        if (isRestoringOwnState()) {
+            var tabElements = tabScroller.viewContainer.getChildren();
+            if (selectedIndex >= 0 && selectedIndex < tabElements.size() && tabElements.get(selectedIndex) instanceof Tab tab) {
+                selectTab(tab);
+            }
+            return;
+        }
         valueInput.childrenList("tabs").ifPresent(tabs -> {
             var index = 0;
             var containers = tabScroller.viewContainer.getChildren();

@@ -56,14 +56,15 @@ public class DebugScreen extends ModularUIScreen {
 
     /**
      * Lets the user pick which UI to inspect when more than one is on screen at once — the game
-     * window's, or any UI living in its own OS window. Absolutely positioned over the debugger rather
+     * window's, any UI living in its own OS window, or one embedded in either. Absolutely positioned over the debugger rather
      * than laid out beside it, so the debugger's own layout is untouched.
      */
     private final UIElement targetPicker = new UIElement();
 
     /**
      * The UI drawn in the game window, remembered at construction so the picker can always offer a
-     * way back to it. Null when the debugger was opened straight from a floating window.
+     * way back to it. Null when the debugger was opened straight from a floating window. For an
+     * embedded target this is the UI it is embedded in.
      */
     @Nullable
     private final ModularUI localUI;
@@ -74,7 +75,7 @@ public class DebugScreen extends ModularUIScreen {
                 Component.literal("Debug Screen"));
         this.uiDebugger = debugger;
         this.targetUI = debugger.modularUI;
-        this.localUI = ModularUIWindow.windowOf(targetUI) == null ? targetUI : null;
+        this.localUI = ModularUIWindow.windowOf(targetUI) == null ? targetUI.getOutermostUI() : null;
 
         this.targetPicker.layout(layout -> {
             layout.positionType(TaffyPosition.ABSOLUTE);
@@ -115,10 +116,11 @@ public class DebugScreen extends ModularUIScreen {
      * <p>A UI in its own OS window receives its input from that window's event queue, so forwarding
      * this screen's key presses and mouse coordinates into it would be both redundant and aimed at
      * the wrong place. Inspection of the tree still works either way — that is what the picker is
-     * for — but the forwarding below is limited to a local target.
+     * for — but the forwarding below is limited to a local target. An embedded target gets input
+     * directly, since its host is drawn under this layer without a pointer.
      */
     public boolean isTargetLocal() {
-        return targetUI == localUI;
+        return localUI != null && targetUI.getOutermostUI() == localUI;
     }
 
     private void rebuildTargetPicker() {
@@ -126,9 +128,11 @@ public class DebugScreen extends ModularUIScreen {
         var candidates = new LinkedHashMap<String, ModularUI>();
         if (localUI != null) {
             candidates.put("Game Window", localUI);
+            localUI.visitEmbeddedUIs("Game Window", candidates::put);
         }
         for (var window : ModularUIWindow.openWindows()) {
             candidates.put(window.getTitle(), window.getModularUI());
+            window.getModularUI().visitEmbeddedUIs(window.getTitle(), candidates::put);
         }
         // One candidate means there is nothing to choose between; do not spend screen space on it.
         targetPicker.setDisplay(candidates.size() > 1);

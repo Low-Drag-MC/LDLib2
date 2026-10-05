@@ -45,11 +45,21 @@ public class ResourceInstance<T> implements ValueIOSerializable {
     private final Map<IResourcePath, T> cache = new ConcurrentHashMap<>();
     private final PackFileResourceProvider<T> packFileProvider = new PackFileResourceProvider<>(this);
     private final DirectFileResourceProvider<T> directFileProvider = new DirectFileResourceProvider<>(this);
+    // providers shown without being registered, e.g. the asset browser's own over a folder no provider covers
+    private final Set<IResourceProvider<T>> unlistedProviders = Collections.newSetFromMap(new IdentityHashMap<>());
+    // bumped whenever a provider is added or removed (unlisted ones aside), so what was built over them can tell
+    // it is stale
+    @Getter
+    private int providersVersion;
 
     @Getter
     private Resource.DisplayMode displayMode;
     @Getter
     private int uiWidth;
+    @Getter
+    private Resource.SortMode sortMode = Resource.SortMode.DEFAULT;
+    @Getter
+    private boolean sortAscending = true;
 
     public ResourceInstance(Resource<T> resource) {
         this.resource = resource;
@@ -209,16 +219,32 @@ public class ResourceInstance<T> implements ValueIOSerializable {
 
     /**
      * Looks up the entry of the given resource. The resource is matched by identity first, then by
-     * {@link Object#equals(Object)}.
+     * {@link Object#equals(Object)}. What an {@link #addUnlistedProvider unlisted provider} has read is matched by
+     * identity too.
      *
      * @param value the resource to look up, can be null.
-     * @return the entry of the resource, or null if it's not provided by this instance.
+     * @return the entry of the resource, or null if no provider of this instance, listed or not, holds it.
      */
     @Nullable
     public ResourceEntry<T> findResourceEntry(@Nullable T value) {
         if (value == null) return null;
+        var entries = listAllResourceEntries();
+        // what has been read already comes first: a provider that reads lazily reads a file on getResource,
+        // so asking every entry reads everything listed before the one the value came from
+        for (var entry : entries) {
+            if (entry.provider().getLoadedResource(entry.path()) == value || cache.get(entry.path()) == value) {
+                return entry;
+            }
+        }
+        for (var provider : unlistedProviders) {
+            for (var entry : provider) {
+                if (provider.getLoadedResource(entry.getKey()) == value) {
+                    return new ResourceEntry<>(provider, entry.getKey());
+                }
+            }
+        }
         ResourceEntry<T> equalsMatch = null;
-        for (var entry : listAllResourceEntries()) {
+        for (var entry : entries) {
             var resource = entry.getResource();
             if (resource == value) {
                 return entry;
@@ -266,6 +292,18 @@ public class ResourceInstance<T> implements ValueIOSerializable {
         }
     }
 
+    public void setSortMode(Resource.SortMode sortMode) {
+        if (this.sortMode == sortMode) return;
+        this.sortMode = sortMode;
+        saveResource();
+    }
+
+    public void setSortAscending(boolean sortAscending) {
+        if (this.sortAscending == sortAscending) return;
+        this.sortAscending = sortAscending;
+        saveResource();
+    }
+
     /** Writes the display settings of this instance to its meta file. */
     public void saveSettings() {
         saveResource();
@@ -291,17 +329,31 @@ public class ResourceInstance<T> implements ValueIOSerializable {
         clearCache();
     }
 
+    /**
+     * Lets {@link #findResourceEntry} map what is read through the provider back to its path, without listing or
+     * saving it — for a view over a folder no registered provider covers.
+     */
+    public void addUnlistedProvider(IResourceProvider<T> provider) {
+        unlistedProviders.add(provider);
+    }
+
+    public void removeUnlistedProvider(IResourceProvider<T> provider) {
+        unlistedProviders.remove(provider);
+    }
+
     private void addResourceProvider(Map<ResourceProviderType, List<IResourceProvider<T>>> resourceProviders, IResourceProvider<T> provider) {
         var type = provider.getType();
         if (resourceProviders.containsKey(type)) {
             var providers = resourceProviders.get(type);
             if (!providers.contains(provider)) {
                 providers.add(provider);
+                providersVersion++;
             }
         } else {
             var list = new ArrayList<IResourceProvider<T>>();
             list.add(provider);
             resourceProviders.put(type, list);
+            providersVersion++;
         }
     }
 
@@ -309,7 +361,9 @@ public class ResourceInstance<T> implements ValueIOSerializable {
         var type = provider.getType();
         if (resourceProviders.containsKey(type)) {
             var providers = resourceProviders.get(type);
-            providers.remove(provider);
+            if (providers.remove(provider)) {
+                providersVersion++;
+            }
             if (providers.isEmpty()) {
                 resourceProviders.remove(type);
             }
@@ -367,6 +421,8 @@ public class ResourceInstance<T> implements ValueIOSerializable {
         });
         var dialog = new Dialog()
                 .windowMode(mouseX, mouseY)
+                // one size for every resource type's selector
+                .rememberSize("resource_selector")
                 .setTitle("resource.selector.select_resource")
                 .addContent(new UIElement().layout(layout -> {
                     layout.widthPercent(100);
@@ -444,6 +500,8 @@ public class ResourceInstance<T> implements ValueIOSerializable {
     public void serialize(@NotNull ValueOutput output) {
         output.putString("displayMode", displayMode.name());
         output.putInt("uiWidth", uiWidth);
+        output.putString("sortMode", sortMode.name());
+        output.putBoolean("sortAscending", sortAscending);
 
         var customProviders = new CompoundTag();
         for (var type : LDLib2Registries.RESOURCE_PROVIDER_TYPES) {
@@ -466,11 +524,18 @@ public class ResourceInstance<T> implements ValueIOSerializable {
     public void deserialize(@NotNull ValueInput input) {
         clearCache();
         customProviders.clear();
+        providersVersion++;
 
         try {
             input.getString("displayMode").ifPresent(mode -> displayMode = Resource.DisplayMode.valueOf(mode));
         } catch (IllegalArgumentException ignored) {}
         uiWidth = input.getInt("uiWidth").orElse(uiWidth);
+        input.getString("sortMode").ifPresent(mode -> {
+            try {
+                sortMode = Resource.SortMode.valueOf(mode);
+            } catch (IllegalArgumentException ignored) {}
+        });
+        sortAscending = input.getBooleanOr("sortAscending", sortAscending);
 
         // compatible with previous
         if (input.read("customProviders", ExtraCodecs.NBT).orElse(null) instanceof CompoundTag customProviders) {

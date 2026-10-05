@@ -64,6 +64,11 @@ public class SceneEditor extends UIElement implements IScene {
     public final TextElement screenTips;
 
     protected float moveSpeed = 0.1f;
+    /**
+     * Whether the right button is held and the fly controls are polling W/A/S/D/Q/E. A shortcut bound
+     * to any of those has to stand down while it is true.
+     */
+    @Getter
     protected boolean isCameraMoving = false;
     protected int tipsDuration = 0;
     @Getter
@@ -80,6 +85,9 @@ public class SceneEditor extends UIElement implements IScene {
             layout.paddingAll(1);
             layout.gapAll(1);
         }).style(style -> style.backgroundTexture(Sprites.RECT_SOLID)).moveInlineAsDefault().addClass("__ui-editor-view_header__");
+        // Clipped: the bar is a fixed-height row of controls over a viewport that can be dragged
+        // narrower than they are, and without this they spill out across the scene.
+        topBar.setOverflowVisible(false);
 
         this.scene = new Scene();
         this.scene.setRenderFacing(false);
@@ -378,6 +386,11 @@ public class SceneEditor extends UIElement implements IScene {
     }
 
     protected void onMouseDown(UIEvent event) {
+        if (event.button == 1 && transformGizmo.isDragging()) {
+            transformGizmo.cancelDrag();
+            event.stopPropagation();
+            return;
+        }
         if (event.button == 0 && event.target == scene) {
             if (getMouseRay().map(ray -> {
                 // ⚠️ The gizmo first, and on its own: it is drawn over everything and a drag on a

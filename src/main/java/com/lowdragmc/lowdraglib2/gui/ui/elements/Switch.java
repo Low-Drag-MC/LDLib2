@@ -147,7 +147,7 @@ public class Switch extends BindableUIElement<Boolean> {
     }
 
     protected void onSwitchClick(UIEvent event) {
-        if (!isActive()) return;
+        if (!isActiveInHierarchy()) return;
         setOn(!isOn, true);
     }
 

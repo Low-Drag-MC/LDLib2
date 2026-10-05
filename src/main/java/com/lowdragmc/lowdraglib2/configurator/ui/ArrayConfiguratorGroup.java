@@ -303,8 +303,7 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
         }
 
         private void onLabelMouseDown(UIEvent event) {
-            // prepare for drag
-            if (canReorder) {
+            if (canReorder && isActiveInHierarchy()) {
                 startDrag(null, null);
             }
         }

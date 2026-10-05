@@ -33,6 +33,7 @@ CLAUDE.md
 /mc_src
 /docs
 /.codex
+/.vscode
 /.gradle-user-home
 .narrafork/
 AGENTS.md

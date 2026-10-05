@@ -318,19 +318,22 @@ public class UIDebuggerWindow extends ModularUIWindow {
     // ------------------------------------------------------------------------------------ picking
 
     /**
-     * Every UI this window could be pointed at: the game window's, and each floating window's.
+     * Every UI this window could be pointed at: the game window's, each floating window's, and any
+     * embedded in one of those.
      */
     private List<Candidate> candidates() {
         var candidates = new ArrayList<Candidate>();
         var screenUI = ModularUIClientAccess.of(Minecraft.getInstance().screen);
         if (screenUI != null) {
             candidates.add(new Candidate("Game Window", screenUI));
+            screenUI.visitEmbeddedUIs("Game Window", (label, ui) -> candidates.add(new Candidate(label, ui)));
         }
         for (var window : ModularUIWindow.openWindows()) {
             // Not other debuggers. Inspecting one from another is a hall of mirrors, and inspecting
             // this one from itself would have the tree redraw itself as you walked it.
             if (window instanceof UIDebuggerWindow) continue;
             candidates.add(new Candidate(window.getTitle(), window.getModularUI()));
+            window.getModularUI().visitEmbeddedUIs(window.getTitle(), (label, ui) -> candidates.add(new Candidate(label, ui)));
         }
         // The current target may be hosted by neither, or its host may have just gone; it still has to
         // be offered or the picker would show no way back to what is actually on screen.
@@ -369,11 +372,12 @@ public class UIDebuggerWindow extends ModularUIWindow {
      *
      * <p>{@link ModularUI#isRemoved()} and not "is it {@code Minecraft#screen}": pushing a gui layer
      * — a dialog, or the debugger's own screen host on the way back — leaves the screen underneath
-     * perfectly alive but no longer current, and closing on that would be maddening.
+     * perfectly alive but no longer current, and closing on that would be maddening. An embedded
+     * target can also go while its host window stays open.
      */
     private boolean isTargetShown() {
-        if (hostWindow != null) return hostWindow.isOpen();
-        return !target.isRemoved();
+        if (target.isRemoved()) return false;
+        return hostWindow == null || hostWindow.isOpen();
     }
 
     @Override

@@ -35,6 +35,8 @@ public final class DirectFileResolutionGameTest {
     private static final String NEGATIVE_CACHE_DOES_NOT_BLOCK_CREATION = "direct_file_resolution_negative_cache_does_not_block_creation";
     private static final String REGISTERED_PROVIDER_STILL_WINS = "direct_file_resolution_registered_provider_still_wins";
     private static final String LIST_ALL_RESOURCES_UNAFFECTED = "direct_file_resolution_list_all_resources_unaffected";
+    private static final String UNLISTED_PROVIDER_MAPS_VALUE_TO_PATH = "direct_file_resolution_unlisted_provider_maps_value_to_path";
+    private static final String PROVIDERS_VERSION_MOVES_ON_ADD_AND_REMOVE = "direct_file_resolution_providers_version_moves_on_add_and_remove";
 
     private DirectFileResolutionGameTest() {
     }
@@ -47,6 +49,8 @@ public final class DirectFileResolutionGameTest {
         ResourceGameTests.registerFunction(NEGATIVE_CACHE_DOES_NOT_BLOCK_CREATION, DirectFileResolutionGameTest::negativeCacheDoesNotBlockCreation);
         ResourceGameTests.registerFunction(REGISTERED_PROVIDER_STILL_WINS, DirectFileResolutionGameTest::registeredProviderStillWins);
         ResourceGameTests.registerFunction(LIST_ALL_RESOURCES_UNAFFECTED, DirectFileResolutionGameTest::listAllResourcesUnaffected);
+        ResourceGameTests.registerFunction(UNLISTED_PROVIDER_MAPS_VALUE_TO_PATH, DirectFileResolutionGameTest::unlistedProviderMapsValueToPath);
+        ResourceGameTests.registerFunction(PROVIDERS_VERSION_MOVES_ON_ADD_AND_REMOVE, DirectFileResolutionGameTest::providersVersionMovesOnAddAndRemove);
     }
 
     static void register(RegisterGameTestsEvent event, Holder<TestEnvironmentDefinition<?>> environment) {
@@ -58,6 +62,8 @@ public final class DirectFileResolutionGameTest {
         ResourceGameTests.registerFunctionTest(event, NEGATIVE_CACHE_DOES_NOT_BLOCK_CREATION, ResourceGameTests.functionKey(NEGATIVE_CACHE_DOES_NOT_BLOCK_CREATION), testData);
         ResourceGameTests.registerFunctionTest(event, REGISTERED_PROVIDER_STILL_WINS, ResourceGameTests.functionKey(REGISTERED_PROVIDER_STILL_WINS), testData);
         ResourceGameTests.registerFunctionTest(event, LIST_ALL_RESOURCES_UNAFFECTED, ResourceGameTests.functionKey(LIST_ALL_RESOURCES_UNAFFECTED), testData);
+        ResourceGameTests.registerFunctionTest(event, UNLISTED_PROVIDER_MAPS_VALUE_TO_PATH, ResourceGameTests.functionKey(UNLISTED_PROVIDER_MAPS_VALUE_TO_PATH), testData);
+        ResourceGameTests.registerFunctionTest(event, PROVIDERS_VERSION_MOVES_ON_ADD_AND_REMOVE, ResourceGameTests.functionKey(PROVIDERS_VERSION_MOVES_ON_ADD_AND_REMOVE), testData);
     }
 
     public static void resolvesFileOutsideAnyProvider(GameTestHelper helper) {
@@ -237,6 +243,86 @@ public final class DirectFileResolutionGameTest {
         } catch (IOException e) {
             helper.fail("IO failure: " + e);
         } finally {
+            deleteRecursively(directory);
+        }
+    }
+
+    /**
+     * What the asset browser reads from a folder no provider covers is dragged by value, and a drop target
+     * looks its path up by that value: an unlisted provider maps it back without being listed.
+     */
+    public static void unlistedProviderMapsValueToPath(GameTestHelper helper) {
+        var directory = makeDirectory("direct_unlisted");
+        var instance = instance();
+        var provider = new FileResourceProvider<Integer>(instance, directory);
+        try {
+            var file = new File(directory, "sample.color.nbt");
+            writeResource(file, "color", 4242);
+            provider.checkAndUpdateResourceProvider();
+            var path = new FilePath(file);
+            var value = provider.getResource(path);
+            if (value == null) {
+                helper.fail("The provider did not read the file");
+                return;
+            }
+            // a registered color that happens to equal it is an equals match, never this path
+            if (path.equals(instance.findResourcePath(value))) {
+                helper.fail("A value no provider of the instance read was found");
+                return;
+            }
+            var before = instance.listAllResourceEntries().size();
+            var version = instance.getProvidersVersion();
+            instance.addUnlistedProvider(provider);
+            if (!path.equals(instance.findResourcePath(value))) {
+                helper.fail("Expected " + path + " for the unlisted provider's value, got " + instance.findResourcePath(value));
+                return;
+            }
+            if (instance.listAllResourceEntries().size() != before) {
+                helper.fail("The unlisted provider was listed");
+                return;
+            }
+            // a view that registers its own provider would otherwise find itself stale on every tick
+            if (instance.getProvidersVersion() != version) {
+                helper.fail("Adding an unlisted provider moved the providers version");
+                return;
+            }
+            instance.removeUnlistedProvider(provider);
+            if (path.equals(instance.findResourcePath(value))) {
+                helper.fail("The value was still found after the provider was removed");
+                return;
+            }
+            helper.succeed();
+        } catch (IOException e) {
+            helper.fail("IO failure: " + e);
+        } finally {
+            instance.removeUnlistedProvider(provider);
+            deleteRecursively(directory);
+        }
+    }
+
+    /** A view built over the providers, the asset browser's, tells it is stale by this version. */
+    public static void providersVersionMovesOnAddAndRemove(GameTestHelper helper) {
+        var directory = makeDirectory("direct_version");
+        var instance = instance();
+        var provider = new FileResourceProvider<Integer>(instance, directory);
+        try {
+            var start = instance.getProvidersVersion();
+            instance.addBuiltinProvider(provider);
+            var added = instance.getProvidersVersion();
+            instance.addBuiltinProvider(provider);
+            if (added == start || instance.getProvidersVersion() != added) {
+                helper.fail("Expected a change on add and none on adding it again: " + start + " -> " + added
+                        + " -> " + instance.getProvidersVersion());
+                return;
+            }
+            instance.removeBuiltinProvider(provider);
+            if (instance.getProvidersVersion() == added) {
+                helper.fail("The version did not move on remove");
+                return;
+            }
+            helper.succeed();
+        } finally {
+            instance.removeBuiltinProvider(provider);
             deleteRecursively(directory);
         }
     }

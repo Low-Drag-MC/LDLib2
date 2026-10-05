@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSelector;
 import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
+import com.lowdragmc.lowdraglib2.utils.LocalizationUtils;
 import com.lowdragmc.lowdraglib2.utils.ReflectionUtils;
 import net.minecraft.util.StringRepresentable;
 import org.apache.commons.lang3.ArrayUtils;
@@ -48,6 +49,25 @@ public class EnumAccessor implements IConfiguratorAccessor<Enum> {
         return (Enum) type.getEnumConstants()[0];
     }
 
+    /**
+     * ⚠️ <b>Without a field, the enum class is the only thing that can name the constants.</b>
+     * A graph variable has no {@code Field} behind it and starts on a null value, so neither the
+     * annotations nor {@code supplier.get().getClass()} can be asked — and this used to hand back
+     * the bare row of the interface default, which draws a label and nothing else. An enum variable
+     * was declarable and not editable.
+     */
+    @Override
+    public Configurator create(String name, @Nullable Class<?> type, Supplier<Enum> supplier, Consumer<Enum> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
+        if (field == null && type != null && type.isEnum()) {
+            List<Enum> candidates = Arrays.stream(type.getEnumConstants()).map(Enum.class::cast).toList();
+            var selector = new SelectorConfigurator<>(name, supplier, consumer,
+                    defaultValue(null, type), forceUpdate, candidates, EnumAccessor::getEnumDisplayKey);
+            selector.setCopiable(value -> value);
+            return selector;
+        }
+        return create(name, supplier, consumer, forceUpdate, field, owner);
+    }
+
     @Override
     public Configurator create(String name, Supplier<Enum> supplier, Consumer<Enum> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
         if (field == null) return IConfiguratorAccessor.super.create(name, supplier, consumer, forceUpdate, field, owner);
@@ -81,7 +101,7 @@ public class EnumAccessor implements IConfiguratorAccessor<Enum> {
                     builderMethod.setAccessible(true);
                     Method finalBuilderMethod = builderMethod;
                     selector = new ConfiguratorSelectorConfigurator<>(name, supplier, consumer, defaultValue,
-                            forceUpdate, candidates.toList(), EnumAccessor::getEnumName,
+                            forceUpdate, candidates.toList(), EnumAccessor::getEnumDisplayKey,
                             (value, group) -> {
                                 try {
                                     finalBuilderMethod.invoke(owner, value, group);
@@ -92,7 +112,7 @@ public class EnumAccessor implements IConfiguratorAccessor<Enum> {
                 }
             }
             if (selector == null) {
-                selector = new SelectorConfigurator<>(name, supplier, consumer, defaultValue, forceUpdate, candidates.toList(), EnumAccessor::getEnumName);
+                selector = new SelectorConfigurator<>(name, supplier, consumer, defaultValue, forceUpdate, candidates.toList(), EnumAccessor::getEnumDisplayKey);
                 selector.setCopiable(value -> value);
             }
             if (configSelector != null) {
@@ -113,15 +133,25 @@ public class EnumAccessor implements IConfiguratorAccessor<Enum> {
         }
     }
 
+    /**
+     * What a selector shows for a constant: the key {@code <enum class>.<CONSTANT>} ({@link Class#getName()}) when a
+     * language file has it, which is how an enum is translated; else {@link #getEnumName}, read as a key as before.
+     */
+    public static String getEnumDisplayKey(Enum enumValue) {
+        if (enumValue == null) return "null";
+        String key = enumValue.getDeclaringClass().getName() + "." + enumValue.name();
+        return LocalizationUtils.exist(key) ? key : getEnumName(enumValue);
+    }
+
     public static <T extends Enum<T>> SelectorConfigurator<T> create(String name, List<T> candidates, Supplier<T> supplier, Consumer<T> consumer, T defaultValue, boolean forceUpdate) {
-        var selector = new SelectorConfigurator<>(name, supplier, consumer, defaultValue, forceUpdate, candidates, EnumAccessor::getEnumName);
+        var selector = new SelectorConfigurator<>(name, supplier, consumer, defaultValue, forceUpdate, candidates, EnumAccessor::getEnumDisplayKey);
         selector.setCopiable(value -> value);
         return selector;
     }
 
     public static <T extends Enum<T>> ToggleSelectorConfigurator<T> create(String name, List<T> candidates, Supplier<T> supplier, Consumer<T> consumer, T defaultValue, boolean forceUpdate, Function<T, IGuiTexture> iconProvider) {
         var selector = new ToggleSelectorConfigurator<>(name, supplier, consumer, defaultValue, forceUpdate,
-                candidates, EnumAccessor::getEnumName, iconProvider);
+                candidates, EnumAccessor::getEnumDisplayKey, iconProvider);
         selector.setCopiable(value -> value);
         return selector;
     }

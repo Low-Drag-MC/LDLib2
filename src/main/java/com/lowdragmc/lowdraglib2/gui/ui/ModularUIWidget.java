@@ -109,11 +109,13 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
                 for (int i = structurePath.size() - 1; i >= 0; i--) {
                     var element = structurePath.get(i);
                     if (element.isFocusable()) {
-                        modularUI.requestFocus(element);
+                        if (element.isActiveInHierarchy()) {
+                            modularUI.requestFocus(element);
+                        }
                         break;
                     }
                 }
-            } else if (modularUI.lastMouseDownElement.isActive()) {
+            } else if (modularUI.lastMouseDownElement.isActiveInHierarchy()) {
                 modularUI.requestFocus(modularUI.lastMouseDownElement);
             }
             var event = UIEvent.create(UIEvents.MOUSE_DOWN);
@@ -307,7 +309,10 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
         var scanCode = keyEvent.scancode();
         var modifiers = keyEvent.modifiers();
         if (modularUI.isAllowDebugMode() && keyCode == GLFW.GLFW_KEY_F12) {
-            ModularUIClientAccess.enableDebugger(modularUI, !modularUI.isDebugMode());
+            var target = modularUI.debugTargetAtFocus();
+            ModularUIClientAccess.enableDebugger(target, !target.isDebugMode());
+            // consume it, or the host forwards the same F12 into the embedded UI and toggles it back
+            if (target != modularUI) return true;
         }
         // The debugger's own chords, handled here so they work with the pointer over the UI being
         // inspected — which, now that the debugger is a window of its own, is not where its
@@ -353,9 +358,8 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
     /**
      * Runs one of the {@link CommandEvents} against the UI, the way a key chord does.
      *
-     * <p>With something focused the command goes straight to it — a copy belongs to whatever has
-     * the selection, not to whichever ancestor listens for copies. With nothing focused there is no
-     * such answer, so the UI is asked who wants it and the first taker gets it.
+     * <p>With something focused the command starts there and bubbles, so a handler that acts on it must
+     * stop it. With nothing focused the first element to claim it gets it.
      *
      * <p>Public because a keymap resolves its own chords and then needs this exact routing to reach
      * the same handlers a built-in chord would have.
@@ -403,6 +407,8 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
             return CommandEvents.FIND;
         } else if (keyCode == GLFW.GLFW_KEY_S && UIElement.isCtrlOrCmdDown() && !UIElement.isShiftDown() && !UIElement.isAltDown()) {
             return CommandEvents.SAVE;
+        } else if (keyCode == GLFW.GLFW_KEY_D && UIElement.isCtrlOrCmdDown() && !UIElement.isShiftDown() && !UIElement.isAltDown()) {
+            return CommandEvents.DUPLICATE;
         }
         return null;
     }
@@ -420,7 +426,7 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
 
     protected UIEvent createExecuteCommandEvent(String command, int keyCode, int scanCode, int modifiers) {
         var event = UIEvent.create(UIEvents.EXECUTE_COMMAND);
-        event.hasBubblePhase = false;
+        event.hasBubblePhase = true;
         event.hasCapturePhase = false;
         event.keyCode = keyCode;
         event.scanCode = scanCode;
@@ -524,7 +530,8 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
         // frame, because the debugger showing these outlines may well be in a different window.
         var debugger = ModularUIClientAccess.activeDebugger(modularUI);
         if (debugger != null) {
-            debugger.renderHostOverlay(context, guiGraphics, mouseX, mouseY);
+            // root-local mouse, the raw one is offset by the host when this UI is embedded
+            debugger.renderHostOverlay(context, guiGraphics, (int) context.localMouseX, (int) context.localMouseY);
         }
 
         if (ModularUIClientAccess.getScreen(modularUI) instanceof AbstractContainerScreen<?> containerScreen

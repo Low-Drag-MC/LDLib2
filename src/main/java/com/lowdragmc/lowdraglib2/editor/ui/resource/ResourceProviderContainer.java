@@ -3,13 +3,17 @@ package com.lowdragmc.lowdraglib2.editor.ui.resource;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.EditAction;
 import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
+import com.lowdragmc.lowdraglib2.editor.resource.FilePath;
+import com.lowdragmc.lowdraglib2.editor.resource.FileResourceProvider;
 import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath;
 import com.lowdragmc.lowdraglib2.editor.resource.IResourceProvider;
 import com.lowdragmc.lowdraglib2.editor.resource.Resource;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
+import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.LDLibFonts;
 import com.lowdragmc.lowdraglib2.editor.resource.ResourceImportContext;
 import com.lowdragmc.lowdraglib2.editor.resource.ResourceInstance;
+import com.lowdragmc.lowdraglib2.editor.resource.ResourceProvider;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -40,10 +44,15 @@ import org.lwjgl.glfw.GLFW;
 import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.*;
 
@@ -53,10 +62,14 @@ public class ResourceProviderContainer<T> extends UIElement {
     public static final int MIN_UI_WIDTH = 10;
     public static final int MAX_UI_WIDTH = 100;
 
+    public final UIElement toolbar = new UIElement();
+    public final TextField searchField = new TextField();
     public final ScrollerView scrollerView = new ScrollerView();
     public final ResourceBottomBar bottomBar = new ResourceBottomBar(MIN_UI_WIDTH, MAX_UI_WIDTH);
     public final IResourceProvider<T> resourceProvider;
     private final Map<IResourcePath, UIElement> resourceUIs = new HashMap<>();
+    /** Lower-cased; empty shows everything. */
+    private String searchFilter = "";
     @Setter @Getter
     protected UIElementProvider<IResourcePath> uiSupplier = path -> new UIElement().layout(layout -> {
         layout.widthPercent(100);
@@ -170,8 +183,9 @@ public class ResourceProviderContainer<T> extends UIElement {
         this.bottomBar.setOnValueChanged(width -> setUiWidth(width, false));
         this.bottomBar.setOnValueCommitted(() -> resourceProvider.getResourceInstance().saveSettings());
         updateBottomBar();
+        setupToolbar();
 
-        addChildren(scrollerView, bottomBar);
+        addChildren(toolbar, scrollerView, bottomBar);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         addEventListener(UIEvents.FILE_DROP, this::onFilesDropped);
         // clicking the empty space around the cells clears the selection. Listening on the scroller
@@ -187,6 +201,161 @@ public class ResourceProviderContainer<T> extends UIElement {
         if (event.button == 1 && editor != null) {
             editor.openMenu(this, event.x, event.y, getMenu());
         }
+    }
+
+    private void setupToolbar() {
+        searchField.setTextResponder(text -> {
+            searchFilter = text == null ? "" : text.trim().toLowerCase(Locale.ROOT);
+            applySearchFilter();
+        });
+        searchField.layout(layout -> {
+            layout.height(14);
+            layout.flex(1);
+        }).style(style -> style.tooltips("editor.resource.search"))
+                .addClass("__resource-toolbar_search-field__").moveInlineAsDefault();
+
+        var sortButton = createToolbarButton(Icons.SORT, "editor.assets.sort", () -> {});
+        sortButton.setOnClick(e -> {
+            e.stopPropagation();
+            if (editor != null) {
+                editor.openMenu(sortButton, sortButton.getPositionX(),
+                        sortButton.getPositionY() + sortButton.getSizeHeight(), createSortMenu());
+            }
+        });
+        sortButton.addClass("__resource-toolbar_button__");
+
+        toolbar.layout(layout -> {
+            layout.widthPercent(100);
+            layout.height(14);
+            layout.flexDirection(FlexDirection.ROW);
+            layout.alignItems(AlignItems.CENTER);
+            layout.gapAll(2);
+            layout.paddingHorizontal(2);
+        }).addChildren(sortButton, searchField).addClass("__resource-toolbar__").moveInlineAsDefault();
+    }
+
+    public static Button createToolbarButton(IGuiTexture icon, String tooltip, Runnable onClick) {
+        var button = new Button().setOnClick(e -> {
+            e.stopPropagation();
+            onClick.run();
+        }).noText().buttonStyle(style -> {
+            style.baseTexture(icon);
+            style.hoverTexture(icon.copy().setColor(ColorPattern.GRAY.color));
+            style.pressedTexture(icon);
+        });
+        button.layout(layout -> {
+            layout.width(10);
+            layout.height(10);
+            layout.paddingAll(0);
+        });
+        button.style(style -> style.tooltips(tooltip));
+        return button;
+    }
+
+    protected TreeBuilder.Menu createSortMenu() {
+        var instance = resourceProvider.getResourceInstance();
+        var menu = TreeBuilder.Menu.start();
+        for (var mode : Resource.SortMode.values()) {
+            if (mode.fileBased && !(resourceProvider instanceof FileResourceProvider<?>)) continue;
+            menu.leaf(instance.getSortMode() == mode ? Icons.CHECK_SPRITE : IGuiTexture.EMPTY,
+                    "editor.resource.sort_" + mode.name().toLowerCase(Locale.ROOT), () -> setSortMode(mode));
+        }
+        menu.crossLine();
+        menu.leaf(instance.isSortAscending() ? Icons.CHECK_SPRITE : IGuiTexture.EMPTY,
+                "editor.assets.sort_ascending", () -> setSortAscending(true));
+        menu.leaf(instance.isSortAscending() ? IGuiTexture.EMPTY : Icons.CHECK_SPRITE,
+                "editor.assets.sort_descending", () -> setSortAscending(false));
+        return menu;
+    }
+
+    public void setSortMode(Resource.SortMode sortMode) {
+        var instance = resourceProvider.getResourceInstance();
+        if (instance.getSortMode() == sortMode) return;
+        instance.setSortMode(sortMode);
+        reloadResourceContainer();
+    }
+
+    public void setSortAscending(boolean sortAscending) {
+        var instance = resourceProvider.getResourceInstance();
+        if (instance.isSortAscending() == sortAscending) return;
+        instance.setSortAscending(sortAscending);
+        reloadResourceContainer();
+    }
+
+    public String getSearchText() {
+        return searchField.getText();
+    }
+
+    public void setSearchText(String text) {
+        searchField.setText(text, true);
+    }
+
+    public boolean matchesSearch(IResourcePath path) {
+        return searchFilter.isEmpty() || nameSupplier.apply(path).toLowerCase(Locale.ROOT).contains(searchFilter);
+    }
+
+    /** Hides cells instead of rebuilding them: some thumbnails (renderers) are expensive to build. */
+    protected void applySearchFilter() {
+        for (var entry : resourceUIs.entrySet()) {
+            entry.getValue().setDisplay(matchesSearch(entry.getKey()));
+        }
+        // the menu would otherwise act on a selection nobody can see
+        if (selected != null && !matchesSearch(selected)) {
+            selectResource(null, false);
+        }
+    }
+
+    private void revealIfFiltered(IResourcePath path) {
+        if (!matchesSearch(path)) {
+            setSearchText("");
+        }
+    }
+
+    protected void sortPaths(List<IResourcePath> paths) {
+        var instance = resourceProvider.getResourceInstance();
+        var comparator = pathComparator(instance.getSortMode());
+        if (comparator != null) {
+            paths.sort(comparator);
+        }
+        if (!instance.isSortAscending()) {
+            Collections.reverse(paths);
+        }
+    }
+
+    /** Ascending order of a mode, or null for {@link Resource.SortMode#DEFAULT}: the provider's own order. */
+    @Nullable
+    protected Comparator<IResourcePath> pathComparator(Resource.SortMode mode) {
+        return switch (mode) {
+            case DEFAULT -> null;
+            case NAME -> Comparator.comparing(nameSupplier, String.CASE_INSENSITIVE_ORDER);
+            case MODIFIED -> byFileKey(File::lastModified);
+            case SIZE -> byFileKey(File::length);
+        };
+    }
+
+    /** Resolves the key once per path: it is a stat call, and a comparator asks once per comparison. */
+    private static Comparator<IResourcePath> byFileKey(ToLongFunction<File> key) {
+        var keys = new HashMap<IResourcePath, Long>();
+        return Comparator.comparingLong(path -> keys.computeIfAbsent(path,
+                p -> p instanceof FilePath filePath ? key.applyAsLong(filePath.file) : 0L));
+    }
+
+    private int insertionIndex(IResourcePath path) {
+        var instance = resourceProvider.getResourceInstance();
+        var ascending = instance.isSortAscending();
+        var children = scrollerView.viewContainer.getChildren();
+        var comparator = pathComparator(instance.getSortMode());
+        // a new resource is last in the provider's own order
+        if (comparator == null) return ascending ? children.size() : 0;
+        var pathOfCell = new IdentityHashMap<UIElement, IResourcePath>(resourceUIs.size());
+        resourceUIs.forEach((key, ui) -> pathOfCell.put(ui, key));
+        for (var i = 0; i < children.size(); i++) {
+            var other = pathOfCell.get(children.get(i));
+            if (other == null) continue;
+            var order = comparator.compare(path, other);
+            if (ascending ? order < 0 : order > 0) return i;
+        }
+        return children.size();
     }
 
     /** The shared selection look: a light blue wash over the cell, no outline. */
@@ -353,7 +522,12 @@ public class ResourceProviderContainer<T> extends UIElement {
             return;
         }
         scrollerView.clearAllScrollViewChildren();
-        resourceProvider.forEach(entry -> appendResourceUI(entry.getKey()));
+        var paths = new ArrayList<IResourcePath>();
+        resourceProvider.forEach(entry -> paths.add(entry.getKey()));
+        sortPaths(paths);
+        for (var path : paths) {
+            addResourceUI(path, scrollerView.viewContainer.getChildren().size());
+        }
         // the cells are new, so the highlight has to be put back on the one that is still selected,
         // and dropped if that resource is no longer here
         var previous = selected;
@@ -380,6 +554,7 @@ public class ResourceProviderContainer<T> extends UIElement {
         }
         if (!resourceUIs.containsKey(path) || !resourceProvider.hasResource(path)) return;
         var ui = createResourceUI(path);
+        ui.setDisplay(matchesSearch(path));
         var index = scrollerView.viewContainer.getChildren().indexOf(resourceUIs.get(path));
         scrollerView.removeScrollViewChild(resourceUIs.get(path));
         scrollerView.addScrollViewChildAt(ui, index);
@@ -395,9 +570,15 @@ public class ResourceProviderContainer<T> extends UIElement {
             notifyInvalidated(resourcePath);
             return;
         }
+        addResourceUI(resourcePath, insertionIndex(resourcePath));
+    }
+
+    private void addResourceUI(IResourcePath resourcePath, int index) {
+        if (resourceUIs.containsKey(resourcePath) || !resourceProvider.hasResource(resourcePath)) return;
         var ui = createResourceUI(resourcePath);
+        ui.setDisplay(matchesSearch(resourcePath));
         resourceUIs.put(resourcePath, ui);
-        scrollerView.addScrollViewChild(ui);
+        scrollerView.addScrollViewChildAt(ui, index);
     }
 
     public void selectResource(IResourcePath resourcePath) {
@@ -759,6 +940,7 @@ public class ResourceProviderContainer<T> extends UIElement {
     private void addResourceInternal(T value, IResourcePath finalKey) {
         resourceProvider.addResource(finalKey, value);
         appendResourceUI(finalKey);
+        revealIfFiltered(finalKey);
         selectResource(finalKey);
     }
 
@@ -848,6 +1030,8 @@ public class ResourceProviderContainer<T> extends UIElement {
         var trimmed = newName.trim();
         var newPath = resourceProvider.createSubPath(trimmed);
         if (newPath.equals(key)) return key;
+        // a name the provider cannot store, e.g. "a/b" for a file provider, which lists one folder
+        if (resourceProvider instanceof ResourceProvider<T> provider && !provider.supportResourcePath(newPath)) return null;
         var count = 0;
         while (resourceProvider.hasResource(newPath)) {
             count++;
@@ -868,11 +1052,22 @@ public class ResourceProviderContainer<T> extends UIElement {
      */
     private void moveResource(IResourcePath from, IResourcePath to) {
         var value = resourceProvider.getResource(from);
-        if (value == null) return;
-        resourceProvider.addResource(to, value);
+        // the old one is removed only once the new one is written
+        if (value == null || !resourceProvider.addResource(to, value)) return;
+        // told before the old one goes, so whatever is kept beside the old path can still be moved
+        onResourceMoved(from, to);
         removeResourceInternal(from);
         appendResourceUI(to);
+        revealIfFiltered(to);
         selectResource(to);
+    }
+
+    /**
+     * Called when a resource moves from {@code from} to {@code to} — by a rename, and by its undo and redo, which
+     * {@link #onRename} does not see — once it is stored at {@code to} and before {@code from} is removed. Where an
+     * editor open on the resource follows it.
+     */
+    protected void onResourceMoved(IResourcePath from, IResourcePath to) {
     }
 
 }

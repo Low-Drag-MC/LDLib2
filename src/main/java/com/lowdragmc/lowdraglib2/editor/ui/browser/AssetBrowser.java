@@ -5,8 +5,10 @@ import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.EditAction;
 import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
 import com.lowdragmc.lowdraglib2.editor.resource.FilePath;
+import com.lowdragmc.lowdraglib2.editor.resource.FileResourceProvider;
 import com.lowdragmc.lowdraglib2.editor.project.ProjectType;
 import com.lowdragmc.lowdraglib2.editor.resource.Resource;
+import com.lowdragmc.lowdraglib2.editor.resource.ResourceInstance;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceBottomBar;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceProviderContainer;
@@ -17,6 +19,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
+import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
@@ -43,6 +46,7 @@ import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
@@ -50,6 +54,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -82,6 +87,12 @@ public class AssetBrowser extends UIElement {
      * some types (renderers) build a whole scene renderer per thumbnail.
      */
     private static final int LIVE_THUMBNAIL_LIMIT = 200;
+    /** A global search stops walking at this many matches, and shows at most {@link #SEARCH_SHOWN_LIMIT}. */
+    private static final int SEARCH_LIMIT = 2000;
+    private static final int SEARCH_SHOWN_LIMIT = 500;
+    /** Results added to the grid per tick while a search streams in. */
+    private static final int SEARCH_BATCH = 100;
+    private static final long SEARCH_DEBOUNCE_MS = 150;
 
     public final Editor editor;
     public final SplitView.Horizontal splitView = new SplitView.Horizontal();
@@ -94,6 +105,8 @@ public class AssetBrowser extends UIElement {
     public final UIElement toolbar = new UIElement();
     public final TextField searchField = new TextField();
     public final UIElement breadcrumb = new UIElement();
+    /** Replaces the breadcrumb during a global search. */
+    public final Label searchStatus = new Label();
     public final ScrollerView gridScroller = new ScrollerView();
     public final ResourceBottomBar bottomBar = new ResourceBottomBar(
             ResourceProviderContainer.MIN_UI_WIDTH, ResourceProviderContainer.MAX_UI_WIDTH);
@@ -110,6 +123,8 @@ public class AssetBrowser extends UIElement {
     private boolean showAllFiles = false;
     /** Lower-cased name filter from the search field; empty means everything is shown. */
     private String searchFilter = "";
+    @Getter
+    private boolean globalSearch = false;
     /** What the grid is ordered by, within the folders-first rule. */
     @Getter
     private SortMode sortMode = SortMode.NAME;
@@ -126,6 +141,9 @@ public class AssetBrowser extends UIElement {
     @Getter @Setter
     private IGuiTexture selectedTexture = ResourceProviderContainer.defaultSelectedTexture();
 
+    /** What else may be dropped on a folder besides asset files, see {@link #addDropHandler}. */
+    private final List<DropHandler> dropHandlers = new ArrayList<>();
+
     // runtime
     private final Map<File, UIElement> entryUIs = new LinkedHashMap<>();
     @Nullable
@@ -137,6 +155,24 @@ public class AssetBrowser extends UIElement {
     private boolean gridDirty;
     private int pollCounter;
     private long directoryStamp;
+    /** Selected and scrolled to once the grid it belongs in is built. */
+    @Nullable
+    private File pendingSelection;
+
+    // global search runtime
+    @Nullable
+    private AssetSearch search;
+    /** The running search re-runs the query on show: swap its results in when done instead of streaming. */
+    private boolean searchReplacesGrid;
+    /** 0 when no walk is pending. */
+    private long searchDueAt;
+    private final List<AssetSearch.Hit> searchHits = new ArrayList<>();
+    private int searchRendered;
+    /** In grid order, for binary search insertion. */
+    private final List<GridEntry> searchEntries = new ArrayList<>();
+    private Comparator<GridEntry> searchComparator = (a, b) -> 0;
+    @Nullable
+    private Component searchStatusText;
 
     public AssetBrowser(Editor editor) {
         this(editor, new File(Platform.getGamePath().toFile(), LDLib2.MOD_ID));
@@ -205,7 +241,7 @@ public class AssetBrowser extends UIElement {
                         .ifPresent(node -> openDirectory(node.getKey())))
                 .setOnNodeUICreated((node, ui) -> {
                     attachDragSource(ui, node.getKey(), null);
-                    attachDropTarget(ui, node.getKey());
+                    attachDropTarget(ui, node::getKey);
                 })
                 .addClass("__asset-browser_tree__");
         treeScroller.addScrollViewChild(tree);
@@ -218,15 +254,16 @@ public class AssetBrowser extends UIElement {
     }
 
     private void setupToolbar() {
-        searchField.setTextResponder(text -> {
-            searchFilter = text == null ? "" : text.trim().toLowerCase(Locale.ROOT);
-            requestGridRebuild();
-        });
+        searchField.setTextResponder(text ->
+                onSearchTextChanged(text == null ? "" : text.trim().toLowerCase(Locale.ROOT)));
         searchField.layout(layout -> {
-            layout.height(12);
+            layout.height(14);
             layout.flex(1);
         }).style(style -> style.tooltips("editor.assets.search"))
                 .addClass("__asset-browser_search-field__").moveInlineAsDefault();
+        var searchScopeButton = iconButton(DynamicTexture.of(() -> globalSearch ? Icons.GLOBAL : Icons.LOCAL),
+                "editor.assets.search_scope", () -> setGlobalSearch(!globalSearch));
+        searchScopeButton.addClass("__asset-browser_search-scope__");
 
         toolbar.layout(layout -> {
             layout.widthPercent(100);
@@ -247,6 +284,7 @@ public class AssetBrowser extends UIElement {
                 menuButton(Icons.SORT, "editor.assets.sort", this::createSortMenu),
                 menuButton(DynamicTexture.of(() -> typeFilter.isEmpty() ? Icons.FILTER : Icons.FILTER_CHECK),
                         "editor.assets.filter", this::createFilterMenu, false),
+                searchScopeButton,
                 searchField
         ).addClass("__asset-browser_toolbar__").moveInlineAsDefault();
     }
@@ -260,6 +298,14 @@ public class AssetBrowser extends UIElement {
             layout.paddingHorizontal(2);
         }).addClass("__asset-browser_breadcrumb__").moveInlineAsDefault();
         breadcrumb.setOverflowVisible(false);
+        searchStatus.textStyle(style -> style.textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL).fontSize(7))
+                .setText("", false)
+                .setOverflowVisible(false)
+                .layout(layout -> {
+                    layout.flex(1);
+                    layout.heightPercent(100);
+                });
+        searchStatus.addClass("__asset-browser_search-status__").moveInlineAsDefault();
 
         gridScroller.scrollerStyle(style ->
                 style.mode(ScrollerMode.VERTICAL).verticalScrollDisplay(ScrollDisplay.ALWAYS)
@@ -273,11 +319,19 @@ public class AssetBrowser extends UIElement {
         });
         gridScroller.addEventListener(UIEvents.MOUSE_DOWN, event -> {
             if (event.button == 1) {
-                openMenu(event, hovered, hovered == null || hovered.isDirectory());
+                if (isGlobalSearchActive()) {
+                    if (editor != null) {
+                        editor.openMenu(this, event.x, event.y, createSearchResultMenu(hovered));
+                    }
+                } else {
+                    openMenu(event, hovered, hovered == null || hovered.isDirectory());
+                }
             } else if (event.button == 0 && hovered == null) {
                 selectEntry(null);
             }
         });
+        // the empty part of the grid is the folder on show
+        attachDropTarget(gridScroller, () -> isGlobalSearchActive() ? null : currentDirectory);
     }
 
     /**
@@ -361,20 +415,7 @@ public class AssetBrowser extends UIElement {
     }
 
     private Button iconButton(IGuiTexture icon, String tooltip, Runnable onClick) {
-        var button = new Button().setOnClick(e -> {
-            e.stopPropagation();
-            onClick.run();
-        }).noText().buttonStyle(style -> {
-            style.baseTexture(icon);
-            style.hoverTexture(icon.copy().setColor(ColorPattern.GRAY.color));
-            style.pressedTexture(icon);
-        });
-        button.layout(layout -> {
-            layout.width(10);
-            layout.height(10);
-            layout.paddingAll(0);
-        });
-        button.style(style -> style.tooltips(tooltip));
+        var button = ResourceProviderContainer.createToolbarButton(icon, tooltip, onClick);
         button.addClass("__asset-browser_toolbar-button__");
         return button;
     }
@@ -399,17 +440,76 @@ public class AssetBrowser extends UIElement {
 
     public void openDirectory(@Nullable File directory) {
         if (directory == null || !directory.isDirectory()) return;
+        directory = spelledFromRoot(directory);
+        if (isGlobalSearchActive()) {
+            exitGlobalSearch();
+        }
         this.currentDirectory = directory;
         this.selected = null;
         this.hovered = null;
+        this.pendingSelection = null;
         behaviors.setDirectory(directory);
         rebuildBreadcrumb();
         this.directoryStamp = stampOf(directory);
+        syncTree(directory);
         requestGridRebuild();
+    }
+
+    /** Opens the folder a file is in and selects it there. */
+    public void revealFile(File file) {
+        file = spelledFromRoot(file);
+        var parent = file.getParentFile();
+        if (parent == null || !parent.isDirectory()) return;
+        openDirectory(parent);
+        pendingSelection = file;
+    }
+
+    /**
+     * A file inside the root spelled from the root, as the tree, the breadcrumb and the providers' folders are: they
+     * compare files by path, so the same folder given absolute or normalized would match none of them.
+     */
+    private File spelledFromRoot(File file) {
+        if (root == null) return file;
+        var rootPath = root.toPath().toAbsolutePath().normalize();
+        var path = file.toPath().toAbsolutePath().normalize();
+        if (!path.startsWith(rootPath)) return file;
+        return path.equals(rootPath) ? root : new File(root, rootPath.relativize(path).toString());
+    }
+
+    /** Expands the tree down to the folder on show and selects it. */
+    private void syncTree(File directory) {
+        var node = tree.getRoot();
+        if (node == null) return;
+        var chain = new ArrayList<File>();
+        var file = directory;
+        while (file != null && !file.equals(node.getKey())) {
+            chain.add(0, file);
+            file = file.getParentFile();
+        }
+        if (file == null) return;
+        for (var step : chain) {
+            tree.expandNode(node);
+            FileNode next = null;
+            for (var child : node.getChildren()) {
+                if (child.getKey().equals(step)) {
+                    next = child;
+                    break;
+                }
+            }
+            if (next == null) return;
+            node = next;
+        }
+        // not notified, openDirectory is what called this
+        tree.setSelected(Set.of(node), false);
     }
 
     private void rebuildBreadcrumb() {
         breadcrumb.clearAllChildren();
+        if (isGlobalSearchActive()) {
+            breadcrumb.addChild(searchStatus);
+            updateSearchStatus();
+            return;
+        }
         var segments = new ArrayList<File>();
         for (var file = currentDirectory; file != null; file = file.getParentFile()) {
             segments.add(0, file);
@@ -521,11 +621,21 @@ public class AssetBrowser extends UIElement {
                              boolean directory, long size, long lastModified) {}
 
     protected void rebuildGrid() {
+        if (isGlobalSearchActive()) {
+            // walk again, keeping the old results up until the walk is done
+            if (searchDueAt == 0) {
+                startSearch(search != null);
+            }
+            return;
+        }
         gridScroller.clearAllScrollViewChildren();
         entryUIs.clear();
         hovered = null;
         var directory = currentDirectory;
         if (directory == null) return;
+        // taken before listing: this listing is what the poll would rebuild for, and a cell rebuilt twice drops a
+        // drag pressed on it in between
+        directoryStamp = stampOf(directory);
 
         var entries = new ArrayList<GridEntry>();
         for (var listed : FileUtility.listDirectory(directory)) {
@@ -548,9 +658,14 @@ public class AssetBrowser extends UIElement {
             gridScroller.addScrollViewChild(ui);
         }
         // re-applies the highlight on the new cell, and drops the selection if it is gone
-        var previous = selected;
+        var revealed = pendingSelection;
+        var previous = revealed != null ? revealed : selected;
+        pendingSelection = null;
         selected = null;
         selectEntry(previous);
+        if (revealed != null && selected != null) {
+            gridScroller.scrollToChildDelayed(entryUIs.get(selected));
+        }
     }
 
     /** Whether a file passes the "show all files" toggle, the type filter and the search box. */
@@ -579,11 +694,15 @@ public class AssetBrowser extends UIElement {
         return editor.fileMenu.getProjectType(file);
     }
 
-    /** Folders always come first, whichever way the rest is sorted. */
     private void sortEntries(List<GridEntry> entries) {
+        entries.sort(entryComparator());
+    }
+
+    /** Folders always come first. The TYPE key cache lives in the instance, so reuse it for one set only. */
+    private Comparator<GridEntry> entryComparator() {
         Comparator<GridEntry> comparator = switch (sortMode) {
             case NAME -> Comparator.comparing(this::displayNameOf, String.CASE_INSENSITIVE_ORDER);
-            case TYPE -> byResolvedKey(entries, this::typeNameOf)
+            case TYPE -> byResolvedKey(this::typeNameOf)
                     .thenComparing(this::displayNameOf, String.CASE_INSENSITIVE_ORDER);
             case SIZE -> Comparator.comparingLong(GridEntry::size);
             case MODIFIED -> Comparator.comparingLong(GridEntry::lastModified);
@@ -591,8 +710,7 @@ public class AssetBrowser extends UIElement {
         if (!sortAscending) {
             comparator = comparator.reversed();
         }
-        entries.sort(Comparator.<GridEntry, Boolean>comparing(entry -> !entry.directory())
-                .thenComparing(comparator));
+        return Comparator.<GridEntry, Boolean>comparing(entry -> !entry.directory()).thenComparing(comparator);
     }
 
     /**
@@ -600,12 +718,9 @@ public class AssetBrowser extends UIElement {
      * {@link #typeNameOf}, which reaches for the project type and so touches the file system.
      * {@link #displayNameOf} is string arithmetic and does not need it.
      */
-    private Comparator<GridEntry> byResolvedKey(List<GridEntry> entries, Function<GridEntry, String> key) {
-        var resolved = new IdentityHashMap<GridEntry, String>(entries.size());
-        for (var entry : entries) {
-            resolved.put(entry, key.apply(entry));
-        }
-        return Comparator.comparing(resolved::get, String.CASE_INSENSITIVE_ORDER);
+    private Comparator<GridEntry> byResolvedKey(Function<GridEntry, String> key) {
+        var resolved = new IdentityHashMap<GridEntry, String>();
+        return Comparator.comparing(entry -> resolved.computeIfAbsent(entry, key), String.CASE_INSENSITIVE_ORDER);
     }
 
     private String displayNameOf(GridEntry entry) {
@@ -636,7 +751,7 @@ public class AssetBrowser extends UIElement {
         entry.addEventListener(UIEvents.DOUBLE_CLICK, e -> activate(file));
         attachDragSource(entry, file, behavior);
         if (isDirectory) {
-            attachDropTarget(entry, file);
+            attachDropTarget(entry, () -> file);
             entry.addClass("__asset-browser_entry-directory__");
         } else {
             entry.addClass(behavior == null ? "__asset-browser_entry-file__" : "__asset-browser_entry-resource__");
@@ -660,6 +775,9 @@ public class AssetBrowser extends UIElement {
                 if (liveThumbnail) {
                     return behavior.container().getUiSupplier().apply(path);
                 }
+                icon = behavior.resource().getIcon();
+            } else if (!Objects.equals(file.getParentFile(), behaviors.getDirectory())) {
+                // a search result the behaviors of the open folder cannot load
                 icon = behavior.resource().getIcon();
             } else {
                 // a resource file that failed to load, tinted so it stands out but stays manageable
@@ -747,6 +865,10 @@ public class AssetBrowser extends UIElement {
             openDirectory(file);
             return;
         }
+        if (isGlobalSearchActive()) {
+            // behaviors are bound to the open folder, so open the result from its own
+            revealFile(file);
+        }
         var behavior = behaviors.forFile(file);
         if (behavior != null) {
             var path = behaviors.pathOf(file);
@@ -778,31 +900,67 @@ public class AssetBrowser extends UIElement {
         }, true);
     }
 
-    private void attachDropTarget(UIElement ui, File directory) {
+    private void attachDropTarget(UIElement ui, Supplier<File> directory) {
         ui.addEventListener(UIEvents.DRAG_ENTER, e -> {
-            if (acceptsDrop(e, directory)) {
+            if (acceptsDrop(e, directory.get())) {
                 ui.style(style -> style.overlayTexture(ColorPattern.T_GREEN.rectTexture()));
             }
         }, true);
-        ui.addEventListener(UIEvents.DRAG_LEAVE, e -> clearDropHighlight(ui, directory), true);
+        ui.addEventListener(UIEvents.DRAG_LEAVE, e -> clearDropHighlight(ui, directory.get()), true);
         ui.addEventListener(UIEvents.DRAG_PERFORM, e -> {
-            clearDropHighlight(ui, directory);
-            if (!acceptsDrop(e, directory)) return;
-            DraggedAssets assets = e.dragHandler.getDraggingObject();
-            moveFiles(assets.files(), directory);
+            var target = directory.get();
+            clearDropHighlight(ui, target);
+            if (!acceptsDrop(e, target)) return;
+            // the innermost folder takes it, not the grid around it as well
+            e.stopPropagation();
+            var payload = e.dragHandler.getDraggingObject();
+            if (payload instanceof DraggedAssets assets) {
+                moveFiles(assets.files(), target);
+                return;
+            }
+            for (var handler : dropHandlers) {
+                if (handler.accepts(payload, target)) {
+                    handler.drop(payload, target);
+                    requestGridRebuild();
+                    return;
+                }
+            }
         });
     }
 
     /** Drops the drop highlight without losing the selection highlight of the same element. */
-    private void clearDropHighlight(UIElement ui, File file) {
-        var overlay = file.equals(selected) ? selectedTexture : IGuiTexture.EMPTY;
+    private void clearDropHighlight(UIElement ui, @Nullable File file) {
+        var overlay = file != null && file.equals(selected) ? selectedTexture : IGuiTexture.EMPTY;
         ui.style(style -> style.overlayTexture(overlay));
     }
 
-    private boolean acceptsDrop(UIEvent event, File directory) {
-        if (event.dragHandler == null || !directory.isDirectory()) return false;
-        if (!(event.dragHandler.getDraggingObject() instanceof DraggedAssets assets)) return false;
-        return assets.files().stream().anyMatch(file -> canMove(file, directory));
+    private boolean acceptsDrop(UIEvent event, @Nullable File directory) {
+        if (event.dragHandler == null || directory == null || !directory.isDirectory()) return false;
+        var payload = event.dragHandler.getDraggingObject();
+        if (payload instanceof DraggedAssets assets) {
+            return assets.files().stream().anyMatch(file -> canMove(file, directory));
+        }
+        return payload != null && dropHandlers.stream().anyMatch(handler -> handler.accepts(payload, directory));
+    }
+
+    /**
+     * Lets something other than asset files be dropped on a folder: an editor's own drag payload, which the
+     * handler turns into files there (a scene object saved as an asset, say).
+     */
+    public AssetBrowser addDropHandler(DropHandler handler) {
+        dropHandlers.add(handler);
+        return this;
+    }
+
+    public AssetBrowser removeDropHandler(DropHandler handler) {
+        dropHandlers.remove(handler);
+        return this;
+    }
+
+    public interface DropHandler {
+        boolean accepts(Object payload, File directory);
+
+        void drop(Object payload, File directory);
     }
 
     private boolean canMove(File file, File directory) {
@@ -946,6 +1104,7 @@ public class AssetBrowser extends UIElement {
         }
         menu.leaf(Icons.FOLDER, "ldlib.gui.tips.open_folder", () -> Util.getPlatform().openFile(directory));
         menu.leaf("editor.assets.refresh", this::requestGridRebuild);
+        appendAddProviderMenu(menu, directory);
         if (target != null && !target.equals(root) && target.isDirectory()) {
             menu.crossLine();
             menu.leaf("ldlib.gui.editor.menu.rename", () -> renameEntry(target));
@@ -969,10 +1128,13 @@ public class AssetBrowser extends UIElement {
 
         menu.leaf("ldlib.gui.editor.menu.copy_path", () -> ClipboardManager.INSTANCE.copyDirect(
                 path == null ? target.getAbsolutePath() : path.getPathWithType()));
+        var projectType = projectTypeOf(target);
         if (container != null && container.getOnEdit() != null && container.getCanEdit().test(path)) {
             menu.leaf(Icons.EDIT_FILE, "ldlib.gui.editor.menu.edit", () -> activate(target));
-        } else if (projectTypeOf(target) != null) {
+        } else if (projectType != null) {
             menu.leaf(Icons.OPEN_FILE, "ldlib.gui.editor.menu.open", () -> activate(target));
+            // the project type's own entries, beside its Open — see ProjectType#appendFileMenu
+            projectType.appendFileMenu(editor, target, menu);
         }
         menu.leaf("ldlib.gui.editor.menu.rename", () -> renameEntry(target));
         menu.crossLine();
@@ -1006,6 +1168,62 @@ public class AssetBrowser extends UIElement {
         }
         appendViewOptions(menu);
         return menu;
+    }
+
+    /** Leads to a result rather than editing it: that goes through the behaviors of its own folder. */
+    protected TreeBuilder.Menu createSearchResultMenu(@Nullable File target) {
+        var menu = TreeBuilder.Menu.start();
+        if (target != null) {
+            if (target.isDirectory()) {
+                menu.leaf(Icons.OPEN_FILE, "editor.assets.open", () -> openDirectory(target));
+            }
+            menu.leaf(Icons.FOLDER, "editor.assets.show_in_folder", () -> revealFile(target));
+            var resource = behaviors.resourceOf(target);
+            menu.leaf("ldlib.gui.editor.menu.copy_path", () -> ClipboardManager.INSTANCE.copyDirect(
+                    resource == null ? target.getAbsolutePath() : behaviors.pathOf(target).getPathWithType()));
+            var parent = target.getParentFile();
+            if (parent != null) {
+                menu.leaf(Icons.OPEN_FILE, "ldlib.gui.tips.open_folder", () -> Util.getPlatform().openFile(parent));
+            }
+            if (target.isDirectory()) {
+                appendAddProviderMenu(menu, target);
+            }
+            menu.crossLine();
+        }
+        menu.leaf("editor.assets.refresh", this::requestGridRebuild);
+        appendViewOptions(menu);
+        return menu;
+    }
+
+    /** Offers the folder as a file provider to every resource type it is not one of yet. */
+    protected void appendAddProviderMenu(TreeBuilder.Menu menu, File directory) {
+        var missing = new ArrayList<Resource<?>>();
+        for (var resource : List.copyOf(behaviors.availableResources())) {
+            if (ResourceBehaviorCache.findFileProvider(resource.getResourceInstance(), directory) == null) {
+                missing.add(resource);
+            }
+        }
+        if (missing.isEmpty()) return;
+        menu.branch(Icons.RESOURCE, "editor.assets.add_provider", branch -> {
+            for (var resource : missing) {
+                branch.leaf(resource.getIcon(), resource.getDisplayName(),
+                        () -> addFileProvider(resource.getResourceInstance(), directory));
+            }
+        });
+    }
+
+    /** @return false when the folder already is a file provider of that type. */
+    public <T> boolean addFileProvider(ResourceInstance<T> instance, File directory) {
+        if (!directory.isDirectory() || ResourceBehaviorCache.findFileProvider(instance, directory) != null) {
+            return false;
+        }
+        instance.addCustomProvider(new FileResourceProvider<>(instance, directory));
+        // rebuilt, the behavior shares the registered provider instead of running its own over the same files
+        if (directory.equals(behaviors.getDirectory())) {
+            behaviors.invalidate(instance.resource);
+        }
+        requestGridRebuild();
+        return true;
     }
 
     /**
@@ -1120,6 +1338,188 @@ public class AssetBrowser extends UIElement {
         requestGridRebuild();
     }
 
+    // ----------------------------------------------------------------------------- global search
+
+    public boolean isGlobalSearchActive() {
+        return globalSearch && !searchFilter.isEmpty();
+    }
+
+    public AssetBrowser setGlobalSearch(boolean globalSearch) {
+        if (this.globalSearch == globalSearch) return this;
+        var wasActive = isGlobalSearchActive();
+        this.globalSearch = globalSearch;
+        searchField.style(style -> style.tooltips(globalSearch ? "editor.assets.search_global" : "editor.assets.search"));
+        if (isGlobalSearchActive()) {
+            scheduleSearch(0);
+            rebuildBreadcrumb();
+        } else if (wasActive) {
+            stopSearch();
+            rebuildBreadcrumb();
+            requestGridRebuild();
+        }
+        return this;
+    }
+
+    private void onSearchTextChanged(String filter) {
+        var wasActive = isGlobalSearchActive();
+        searchFilter = filter;
+        if (isGlobalSearchActive()) {
+            scheduleSearch(SEARCH_DEBOUNCE_MS);
+            if (!wasActive) {
+                rebuildBreadcrumb();
+            }
+            return;
+        }
+        if (wasActive) {
+            // cleared: go to the picked result's folder, as Unity does
+            var picked = selected != null ? selected : pendingSelection;
+            stopSearch();
+            if (picked != null && picked.exists()) {
+                revealFile(picked);
+                return;
+            }
+            pendingSelection = null;
+            rebuildBreadcrumb();
+        }
+        requestGridRebuild();
+    }
+
+    private void scheduleSearch(long delayMs) {
+        searchDueAt = System.currentTimeMillis() + delayMs;
+    }
+
+    /** @param replaceGrid keep the grid until the walk is over, instead of clearing it and streaming in. */
+    private void startSearch(boolean replaceGrid) {
+        searchDueAt = 0;
+        if (search != null) {
+            search.cancel();
+        }
+        var extensions = behaviors.availableResources().stream().map(Resource::getFileExtension).toList();
+        search = AssetSearch.start(root, searchFilter, extensions, SEARCH_LIMIT);
+        searchHits.clear();
+        searchRendered = 0;
+        searchReplacesGrid = replaceGrid;
+        if (!replaceGrid) {
+            pendingSelection = null;
+            clearSearchGrid();
+        }
+        updateSearchStatus();
+    }
+
+    private void stopSearch() {
+        if (search != null) {
+            search.cancel();
+            search = null;
+        }
+        searchDueAt = 0;
+        searchReplacesGrid = false;
+        searchHits.clear();
+        searchEntries.clear();
+        searchRendered = 0;
+    }
+
+    /** Clears the query without going to the picked result. */
+    private void exitGlobalSearch() {
+        stopSearch();
+        searchFilter = "";
+        searchField.setText("", false);
+    }
+
+    private void clearSearchGrid() {
+        gridScroller.clearAllScrollViewChildren();
+        entryUIs.clear();
+        hovered = null;
+        searchEntries.clear();
+        searchComparator = entryComparator();
+        if (selected != null) {
+            selected = null;
+            updateBottomBar();
+        }
+    }
+
+    private void tickSearch() {
+        if (searchDueAt != 0 && System.currentTimeMillis() >= searchDueAt) {
+            startSearch(false);
+        }
+        var search = this.search;
+        if (search == null) return;
+        // read before draining, so a finished walk is drained completely
+        var finished = search.isFinished();
+        for (var hit = search.poll(); hit != null; hit = search.poll()) {
+            searchHits.add(hit);
+        }
+        if (searchReplacesGrid) {
+            if (!finished) return;
+            searchReplacesGrid = false;
+            if (selected != null) {
+                pendingSelection = selected;
+            }
+            clearSearchGrid();
+            renderSearchHits(Integer.MAX_VALUE);
+            // not found again: deleted or renamed
+            pendingSelection = null;
+        } else {
+            renderSearchHits(SEARCH_BATCH);
+        }
+        updateSearchStatus();
+    }
+
+    private void renderSearchHits(int budget) {
+        while (budget-- > 0 && searchRendered < searchHits.size() && searchEntries.size() < SEARCH_SHOWN_LIMIT) {
+            showSearchHit(searchHits.get(searchRendered++));
+        }
+    }
+
+    /** Filtered like a folder listing, then inserted where the current sort puts it. */
+    private void showSearchHit(AssetSearch.Hit hit) {
+        var file = hit.file();
+        var behavior = hit.directory() ? null : behaviors.forNonDirectory(file);
+        if (!hit.directory() && !accepts(file, behavior)) return;
+        var entry = new GridEntry(file, behavior, hit.directory(), hit.size(), hit.lastModified());
+        var index = Collections.binarySearch(searchEntries, entry, searchComparator);
+        if (index < 0) {
+            index = -index - 1;
+        }
+        searchEntries.add(index, entry);
+        // no live thumbnails, the behaviors only load the open folder
+        var ui = createEntryUI(file, behavior, hit.directory(), false);
+        ui.style(style -> style.tooltips(Component.literal(relativePathOf(file))));
+        entryUIs.put(file, ui);
+        gridScroller.addScrollViewChildAt(ui, index);
+        if (file.equals(pendingSelection)) {
+            pendingSelection = null;
+            selectEntry(file);
+        }
+    }
+
+    private String relativePathOf(File file) {
+        try {
+            return root.toPath().relativize(file.toPath()).toString().replace(File.separatorChar, '/');
+        } catch (IllegalArgumentException e) {
+            return file.getPath();
+        }
+    }
+
+    private void updateSearchStatus() {
+        var search = this.search;
+        var shown = searchEntries.size();
+        var backlog = searchRendered < searchHits.size();
+        String key;
+        if (search == null || searchDueAt != 0 || !search.isFinished() || (backlog && shown < SEARCH_SHOWN_LIMIT)) {
+            key = "editor.assets.search_running";
+        } else if (search.isTruncated() || backlog) {
+            key = "editor.assets.search_truncated";
+        } else {
+            key = "editor.assets.search_done";
+        }
+        var text = Component.translatable(key, root.getName(), shown);
+        // setText relayouts even when the text is unchanged
+        if (!text.equals(searchStatusText)) {
+            searchStatusText = text;
+            searchStatus.setText(text);
+        }
+    }
+
     // -------------------------------------------------------------------------------------- tick
 
     /**
@@ -1147,6 +1547,11 @@ public class AssetBrowser extends UIElement {
         if (gridDirty) {
             gridDirty = false;
             rebuildGrid();
+        }
+        if (isGlobalSearchActive()) {
+            // no folder to poll: results refresh on file operations made here and on "refresh"
+            tickSearch();
+            return;
         }
         if (++pollCounter >= POLL_INTERVAL) {
             pollCounter = 0;

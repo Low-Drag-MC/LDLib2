@@ -45,7 +45,6 @@ public class IGuiTextureConfigurator extends ValueConfigurator<IGuiTexture> {
             value = defaultValue;
         }
 
-        var preview = new UIElement();
         preview.layout(layout -> {
                     layout.setPipelineState(StyleOrigin.DEFAULT);
                     layout.height(14);
@@ -90,6 +89,7 @@ public class IGuiTextureConfigurator extends ValueConfigurator<IGuiTexture> {
     }
 
     protected void showTextureDialog(UIEvent event) {
+        if (!isActiveInHierarchy()) return;
         var previous = getValue();
         var resourceInstance = TexturesResource.INSTANCE.getResourceInstance();
         // a texture referencing a resource knows its path, otherwise look the raw texture up in the resources.
@@ -133,7 +133,7 @@ public class IGuiTextureConfigurator extends ValueConfigurator<IGuiTexture> {
     protected TreeBuilder.Menu createMenu() {
         var menu = super.createMenu();
         var value = getValue();
-        if (value != null && value != IGuiTexture.EMPTY) {
+        if (value != null && value != IGuiTexture.EMPTY && isActiveInHierarchy()) {
             menu.leaf(Icons.REMOVE, "ldlib.gui.editor.menu.remove", () -> {
                 updateValueActively(IGuiTexture.EMPTY);
                 updateValue();

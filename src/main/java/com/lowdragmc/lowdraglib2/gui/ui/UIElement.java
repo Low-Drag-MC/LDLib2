@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.LDLib2Registries;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.IConfigurableHistory;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.*;
@@ -49,6 +50,9 @@ import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import org.joml.*;
@@ -828,6 +832,19 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
 
     public UIElement disabled() {
         return setActive(false);
+    }
+
+    /**
+     * Whether this element and all its ancestors are active. A disabled panel only clears its own flag,
+     * so a widget that sets a value checks this rather than {@link #isActive()}.
+     */
+    public boolean isActiveInHierarchy() {
+        for (UIElement element = this; element != null; element = element.getParent()) {
+            if (!element.isActive()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /// Style
@@ -2027,6 +2044,62 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     // endregion
 
     // region Serialization
+    /** The element whose {@link #restoreOwnState} is running on this thread, if any. */
+    private static final ThreadLocal<UIElement> OWN_STATE_RESTORE_ROOT = new ThreadLocal<>();
+
+    /**
+     * Records only this element's own state, so undoing an edit on a container keeps its children as they are.
+     */
+    @Override
+    public IConfigurableHistory createHistoryRecorder() {
+        return IConfigurableHistory.ofSnapshot(this, UIElement::snapshotOwnState, UIElement::restoreOwnState);
+    }
+
+    /** This element's serialized state with the external children stripped at every internal level. */
+    public CompoundTag snapshotOwnState() {
+        try (var reporter = new ProblemReporter.ScopedCollector(LDLib2.LOGGER)) {
+            var output = TagValueOutput.createWithContext(reporter, Platform.getFrozenRegistry());
+            serialize(output);
+            var tag = output.buildResult();
+            stripExternalChildren(tag);
+            return tag;
+        }
+    }
+
+    private static void stripExternalChildren(CompoundTag tag) {
+        tag.remove("children");
+        for (var internal : tag.getListOrEmpty("internal")) {
+            if (internal instanceof CompoundTag internalTag) {
+                stripExternalChildren(internalTag);
+            }
+        }
+    }
+
+    /** Restores a {@link #snapshotOwnState()} in place, keeping the current external children. */
+    public void restoreOwnState(CompoundTag tag) {
+        var previous = OWN_STATE_RESTORE_ROOT.get();
+        OWN_STATE_RESTORE_ROOT.set(this);
+        try (var reporter = new ProblemReporter.ScopedCollector(LDLib2.LOGGER)) {
+            deserialize(TagValueInput.create(reporter, Platform.getFrozenRegistry(), tag));
+        } finally {
+            OWN_STATE_RESTORE_ROOT.set(previous);
+        }
+    }
+
+    /**
+     * Whether this element is being deserialized as part of a {@link #restoreOwnState}: it is the element
+     * restored, or one of its internal parts. Elements created while it runs deserialize normally.
+     */
+    protected boolean isRestoringOwnState() {
+        var root = OWN_STATE_RESTORE_ROOT.get();
+        if (root == null) return false;
+        for (var element = this; element != null; element = element.getParent()) {
+            if (element == root) return true;
+            if (!element.isInternalUI()) return false;
+        }
+        return false;
+    }
+
     public UIElement copy() {
         return CODEC.encodeStart(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), this)
                 .result()
@@ -2038,7 +2111,9 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     @Override
     public void beforeDeserialize() {
         IPersistedSerializable.super.beforeDeserialize();
-        clearAllExternalChildren();
+        if (!isRestoringOwnState()) {
+            clearAllExternalChildren();
+        }
         setFocusable(false);
         setVisible(true);
         setActive(true);
@@ -2119,10 +2194,12 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
 
         // deserialize internal children
         input.childrenList("internal").ifPresent(internal -> {
+            // matched against the internal children only: a restoreOwnState keeps the external ones in place
+            var internalChildren = getChildren().stream().filter(UIElement::isInternalUI).toList();
             var i = 0;
             for (ValueInput valueInput : internal) {
-                if (i < getChildren().size()) {
-                    getChildren().get(i).deserialize(valueInput);
+                if (i < internalChildren.size()) {
+                    internalChildren.get(i).deserialize(valueInput);
                 }
                 i++;
             }
