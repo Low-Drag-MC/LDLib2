@@ -448,8 +448,9 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
     public void collapseNode(NODE node) {
         if (!isNodeExpanded(node) || node.isLeaf()) return;
         var selected = getSelected();
-        for (var child : node.getChildren()) {
-            removeNodeUI((NODE) child);
+        // the rows on screen, not the model's children: a child that left the model since the last re-diff is still shown
+        for (var child : displayedChildren.getOrDefault(node, Collections.emptyList())) {
+            removeNodeUI(child);
         }
         if (!selected.equals(getSelected())) {
             onSelectedChanged.accept(getSelected());
