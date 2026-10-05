@@ -193,8 +193,7 @@ public class Button extends UIElement {
     }
 
     protected void onMouseDown(UIEvent event) {
-        // Handle button click
-        if (event.button == 0 && isActive()) {
+        if (event.button == 0 && isActiveInHierarchy()) {
             UISoundUtils.playButtonClickSound();
             if (onClick != null) {
                 onClick.handleEvent(event);

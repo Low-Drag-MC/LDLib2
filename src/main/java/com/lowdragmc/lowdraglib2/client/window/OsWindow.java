@@ -56,8 +56,6 @@ public final class OsWindow {
     /** Paths of a drop in progress: SDL reports one file per event between a begin and a complete. */
     private final List<File> droppingFiles = new ArrayList<>();
     private int currentCursorShape = -1;
-    /** {@code InputConstants.MOUSE_BUTTON_*} bits currently held, tracked from this window's own events. */
-    private int heldButtons;
     private boolean textInputStarted;
 
     @Getter
@@ -209,11 +207,6 @@ public final class OsWindow {
                 var index = button.button() & 0xFF;
                 cursorX = button.x();
                 cursorY = button.y();
-                if (button.down()) {
-                    heldButtons |= 1 << index;
-                } else {
-                    heldButtons &= ~(1 << index);
-                }
                 enqueue(new OsWindowEvent.MouseButton(index, button.down() ? InputConstants.PRESS : InputConstants.RELEASE,
                         SDLKeyboard.SDL_GetModState() & 0xFFFF));
             }
@@ -252,10 +245,6 @@ public final class OsWindow {
             }
             case SDLEvents.SDL_EVENT_WINDOW_FOCUS_GAINED, SDLEvents.SDL_EVENT_WINDOW_FOCUS_LOST -> {
                 focused = event.type() == SDLEvents.SDL_EVENT_WINDOW_FOCUS_GAINED;
-                if (!focused) {
-                    // A release that happens elsewhere is never reported here.
-                    heldButtons = 0;
-                }
                 enqueue(new OsWindowEvent.Focus(focused));
             }
             case SDLEvents.SDL_EVENT_WINDOW_CLOSE_REQUESTED -> enqueue(new OsWindowEvent.CloseRequest());
@@ -298,22 +287,15 @@ public final class OsWindow {
      * difference and the whole dispatch path is exercised rather than bypassed.
      */
     public void post(OsWindowEvent event) {
-        // A cursor move and a button update the cached state as well as queueing, exactly as a real
-        // event does. Without that, a posted click - which re-reads the cursor rather than trusting the
-        // last event, see ModularUIWindow#handleEvent - would land wherever the physical pointer
-        // happens to be rather than where the caller just moved to.
+        // A cursor move updates the cached position as well as queueing, exactly as a real event does.
+        // Without that, a posted click - which re-reads the cursor rather than trusting the last event,
+        // see ModularUIWindow#handleEvent - would land wherever the physical pointer happens to be
+        // rather than where the caller just moved to.
         if (event instanceof OsWindowEvent.CursorPos cursor) {
             cursorX = cursor.x();
             cursorY = cursor.y();
             enqueueCursorPos(cursor.x(), cursor.y());
             return;
-        }
-        if (event instanceof OsWindowEvent.MouseButton button) {
-            if (button.action() == InputConstants.PRESS) {
-                heldButtons |= 1 << button.button();
-            } else {
-                heldButtons &= ~(1 << button.button());
-            }
         }
         enqueue(event);
     }
@@ -364,13 +346,6 @@ public final class OsWindow {
      */
     public boolean isKeyDown(int keyCode) {
         return !destroyed && focused && InputConstants.isKeyDown(keyCode);
-    }
-
-    /**
-     * @param button an {@code InputConstants.MOUSE_BUTTON_*} value
-     */
-    public boolean isMouseButtonDown(int button) {
-        return !destroyed && (heldButtons & (1 << button)) != 0;
     }
 
     /**

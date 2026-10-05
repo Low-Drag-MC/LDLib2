@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.uitest.ScenarioBuilder;
 import com.lowdragmc.lowdraglib2.uitest.ScenarioOptions;
 import com.lowdragmc.lowdraglib2.uitest.TestContext;
 import com.lowdragmc.lowdraglib2.uitest.UIScenario;
+import com.lowdragmc.lowdraglib2.uitest.input.Keys;
 import org.joml.Vector3f;
 
 import java.util.List;
@@ -134,6 +135,33 @@ public class GizmoTranslateScenario implements UIScenario {
                         .check("the target moved along X only, by what was dragged", ctx ->
                                 movedBy(ctx, new Vector3f(DRAG_DISTANCE, 0, 0)))
                         .step("put the target back", ctx -> restorePosition(ctx)))
+
+                .group("a right-click cancels the drag", g -> g
+                        .step("hover the X arrow", ctx -> moveTo(ctx, axisPoint(ctx, 0, TransformGizmo.AXIS_LENGTH)))
+                        .frames(HOVER_FRAMES)
+                        .step("press on the X arrow", ctx -> {
+                            rememberPosition(ctx);
+                            press(ctx, axisPoint(ctx, 0, TransformGizmo.AXIS_LENGTH));
+                        })
+                        .frames(2)
+                        .step("drag it out along X", ctx ->
+                                drag(ctx, axisPoint(ctx, 0, TransformGizmo.AXIS_LENGTH + DRAG_DISTANCE)))
+                        .frames(2)
+                        .check("the target moved", ctx -> movedBy(ctx, new Vector3f(DRAG_DISTANCE, 0, 0)))
+                        .step("right-click", ctx -> {
+                            var screen = SceneAiming.require(editor(ctx).scene, position(ctx));
+                            ctx.input().mouseDown(screen.x, screen.y, Keys.MOUSE_RIGHT);
+                        })
+                        .check("the drag ended", ctx -> gizmo(ctx).getDragHandle() == null)
+                        .check("the target is back where the drag found it", ctx -> movedBy(ctx, new Vector3f()))
+                        .check("the camera did not start flying", ctx -> !editor(ctx).isCameraMoving())
+                        .step("release both buttons", ctx -> {
+                            var screen = SceneAiming.require(editor(ctx).scene, position(ctx));
+                            ctx.input().mouseUp(screen.x, screen.y, Keys.MOUSE_RIGHT);
+                            ctx.input().mouseUp(screen.x, screen.y, Keys.MOUSE_LEFT);
+                        })
+                        .frames(2)
+                        .check("letting go afterwards changes nothing", ctx -> movedBy(ctx, new Vector3f())))
 
                 .group("a planar square", g -> g
                         .step("hover the square in the YZ plane", ctx -> moveTo(ctx, planePoint(ctx, 0)))

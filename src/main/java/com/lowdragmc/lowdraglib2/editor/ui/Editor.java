@@ -1279,6 +1279,7 @@ public abstract class Editor extends UIElement implements EditorHost {
 
     protected void onExecuteCommand(UIEvent event) {
         if (CommandEvents.SAVE.equals(event.command) && getCurrentProject() != null) {
+            event.stopPropagation();
             if (getCurrentProjectFile() != null) {
                 saveProject(null);
             } else {

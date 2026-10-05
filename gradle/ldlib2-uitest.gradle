@@ -9,7 +9,8 @@
 //
 // Inert unless -PldTest is given, and scoped to the invocation that gives it: nothing is written to
 // build/moddev, so a later `gradlew runClient` - or a launch from the IDE, which reuses whatever
-// ModDev last wrote there - is completely unaffected.
+// ModDev last wrote there - is completely unaffected. The run plays in runs/uiTest, emptied first, so
+// run/ neither feeds it state nor collects its leftovers (see ldTestGameDir).
 //
 // The one thing every run task carries unconditionally is the early-window check at the bottom, which
 // is two File.exists() calls and does nothing without a marker to act on. It has to run on the plain
@@ -19,6 +20,15 @@
 // delegate rather than the project, so ldTestOutDir would not be visible where it is needed.
 def ldTestOutDir = layout.buildDirectory.dir('ldlib2-uitest').get().asFile.absolutePath
 def ldTestRequested = project.hasProperty('ldTest')
+
+// ⚠️ A UI test run gets a game directory of its own, emptied before every run, rather than the developer's
+// run/. Whatever their own sessions leave there is read back by the scenarios: measured, an editor's
+// remembered gui scale and theme in run/config/ldlib2/editor.json ("windowSize": 3) made three editor
+// scenarios lay out too cramped to click, while the same code passed 40/40 from an empty directory. It also
+// keeps the suite's own leftovers - layouts, settings, test worlds - out of the developer's directory.
+// The parallel shards already have one each (runs/uiTestShard<n>), and are emptied the same way.
+def ldTestGameDir = file('runs/uiTest')
+def ldTestRunsDir = file('runs')
 
 // -PldTestHeadless: run without a visible window, on a machine that need not have a monitor at all.
 // For a display-less build box, a locked console, or a run triggered over SSH.
@@ -194,6 +204,12 @@ tasks.configureEach { task ->
     task.finalizedBy 'verifyUiTest'
     task.dependsOn 'ldlib2CleanUiTestReport'
 
+    // On the task for the reason the flags below are, see there: ModDev sets the task's directory from the run
+    // definition, and the run definition is what the IDE launches with.
+    if (ldTestRequested) {
+        task.gameDirectory.set(ldTestGameDir)
+    }
+
     // On the task, not on `neoForge.runs.client`. That distinction is the whole difference between a
     // flag that applies to this invocation and one that applies forever:
     //
@@ -228,6 +244,8 @@ tasks.configureEach { task ->
     if (ldTestHeadless) {
         task.jvmArgs '-Dldlib2.uitest.headless=true'
     }
+    // Decided here, while `project` may still be asked - see ldTestGameDir at the top.
+    def ldTestOwnsGameDir = (task.name == 'runClient' && ldTestRequested) || task.name ==~ /runUiTestShard\d+/
     // FML's early loading window calls glfwGetPrimaryMonitor and treats NULL as fatal, so on a
     // machine with no monitor it dies long before Minecraft is reached - and it dies behind a modal
     // dialog nobody is there to dismiss, so the run hangs rather than fails. Minecraft's own Window
@@ -254,6 +272,14 @@ tasks.configureEach { task ->
     // for their own reasons has no marker, and keeps it disabled.
     task.doFirst { t ->
         def dir = t.gameDirectory.get().asFile
+        // First, so the early window below is decided for the directory as the client will find it. Only ever a
+        // directory directly under runs/, whatever the task ended up pointed at: never the developer's run/.
+        if (ldTestOwnsGameDir && dir.exists() && dir.parentFile?.canonicalFile == ldTestRunsDir.canonicalFile) {
+            if (!dir.deleteDir()) {
+                throw new GradleException("LDLib2 UI test: could not empty ${dir} - is a client from an earlier run still open?")
+            }
+            t.logger.lifecycle("LDLib2 UI test: starting from an empty game directory ${dir}")
+        }
         def toml = new File(dir, 'config/fml.toml')
         def marker = new File(dir, 'config/.ldlib2-early-window-flipped')
         if (ldTestHeadless && !ldHasDisplay) {

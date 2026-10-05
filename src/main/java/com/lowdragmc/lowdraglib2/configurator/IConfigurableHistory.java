@@ -1,9 +1,13 @@
 package com.lowdragmc.lowdraglib2.configurator;
 
 import com.lowdragmc.lowdraglib2.gui.ui.utils.IHistoryStack;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.common.util.ValueIOSerializable;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 /**
  * Strategy for recording {@link IConfigurable} edits into a {@link IHistoryStack}.
@@ -32,21 +36,34 @@ public interface IConfigurableHistory {
      * Default snapshot-based recorder backed by {@link SerializableRecordAction}.
      */
     static <T extends ValueIOSerializable> IConfigurableHistory ofSerializable(T serializable) {
-        return (stack, name, source) -> {
-            var action = stack.recordSerializableObject(name, serializable, source);
-            return new Handle() {
-                @Override
-                public Handle setOnExecute(@Nullable Runnable onExecute) {
-                    action.setOnExecute(onExecute == null ? null : value -> onExecute.run());
-                    return this;
-                }
+        return (stack, name, source) -> handleOf(stack.recordSerializableObject(name, serializable, source));
+    }
 
-                @Override
-                public Handle setOnUndo(@Nullable Runnable onUndo) {
-                    action.setOnUndo(onUndo == null ? null : value -> onUndo.run());
-                    return this;
-                }
-            };
+    /**
+     * Same as {@link #ofSerializable}, but snapshots and restores through {@code snapshotter} / {@code restorer}
+     * rather than the object's full serialized state.
+     */
+    static <T extends ValueIOSerializable> IConfigurableHistory ofSnapshot(T serializable, Function<T, CompoundTag> snapshotter, BiConsumer<T, CompoundTag> restorer) {
+        return (stack, name, source) -> {
+            var action = SerializableRecordAction.of(serializable, snapshotter, restorer);
+            stack.pushHistory(name, action, source, false);
+            return handleOf(action);
+        };
+    }
+
+    private static Handle handleOf(SerializableRecordAction<?> action) {
+        return new Handle() {
+            @Override
+            public Handle setOnExecute(@Nullable Runnable onExecute) {
+                action.setOnExecute(onExecute == null ? null : value -> onExecute.run());
+                return this;
+            }
+
+            @Override
+            public Handle setOnUndo(@Nullable Runnable onUndo) {
+                action.setOnUndo(onUndo == null ? null : value -> onUndo.run());
+                return this;
+            }
         };
     }
 }

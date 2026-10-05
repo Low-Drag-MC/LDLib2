@@ -85,7 +85,10 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
 
     public FileResourceProvider(ResourceInstance<T> resourceInstance, File resourceLocation) {
         super(resourceInstance);
-        this.resourceLocation = resourceLocation;
+        // Resolved the way FilePath resolves the paths under it, and saved game-relative (serializeNBT). Kept as
+        // given, a relative folder - one built on Minecraft#gameDirectory, which is "." under ModDev - never equals
+        // the absolute parent of its own FilePaths, and every resource added to it was refused.
+        this.resourceLocation = new FilePath(resourceLocation).file;
         this.resourceSuffix = resourceInstance.resource.getFileExtension();
         setName(resourceLocation.getName());
         checkAndUpdateResourceProvider();
@@ -256,8 +259,10 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
             // undo entry) would otherwise get null for a resource that was perfectly good
             var removed = getResource(path);
             if (filePath.file.delete()) {
-                forget(path, filePath.file);
+                // before forget(), which drops the entry the base class clears the lookup cache on —
+                // or a resource made again under this path is still read as the removed one
                 super.removeResource(path);
+                forget(path, filePath.file);
                 return removed;
             }
         }

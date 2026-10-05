@@ -29,6 +29,7 @@ public final class ClipboardManager {
     }
 
     public synchronized void copyDirect(Object obj) {
+        pasteSupplier = null;
         clipboardContent = obj;
         clipboardType = obj.getClass();
         if (obj instanceof String string) {
@@ -37,11 +38,13 @@ public final class ClipboardManager {
     }
 
     public synchronized void copy(Supplier<?> pasteSupplier) {
+        clipboardContent = null;
         this.pasteSupplier = pasteSupplier;
         this.clipboardType = pasteSupplier.get().getClass();
     }
 
     public synchronized void copy(Supplier<?> pasteSupplier, Class<?> type) {
+        clipboardContent = null;
         this.pasteSupplier = pasteSupplier;
         this.clipboardType = type;
     }

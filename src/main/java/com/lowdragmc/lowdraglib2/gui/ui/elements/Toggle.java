@@ -206,7 +206,7 @@ public class Toggle extends BindableUIElement<Boolean> {
     }
 
     protected void onToggleClick(UIEvent event) {
-        if (!isActive()) return;
+        if (!isActiveInHierarchy()) return;
         if (toggleGroup != null) {
             if (isOn && !toggleGroup.allowEmpty) return;
         }

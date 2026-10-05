@@ -1684,6 +1684,34 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
     }
 
     /**
+     * A blank declaration for deserialization to read into — <b>of this graph's own type</b>.
+     *
+     * <p>⚠️ Deserialization used to write {@code new VariableDeclarationModel()} in as many words,
+     * which meant {@link #getVariableDeclarationModelType()} was honoured when a variable was
+     * <i>created</i> and discarded when one was <i>read back</i>. A graph that supplied its own
+     * subclass therefore kept it exactly until the first reload, and whatever state that subclass
+     * carried vanished with nothing logged and nothing thrown — an extension point that works right
+     * up until you save.
+     *
+     * <p>Falls back to the base type if the subclass has no accessible no-argument constructor, so
+     * a graph whose declaration type cannot be built still loads its variables rather than losing
+     * the lot. {@code createGraphVariableDeclaration} would have refused such a type at creation
+     * time anyway ({@code instantiateVariableDeclaration} catches the same failure).
+     */
+    protected VariableDeclarationModel newVariableDeclarationForLoad() {
+        Class<? extends VariableDeclarationModel> type = getVariableDeclarationModelType();
+        if (type != null && type != VariableDeclarationModel.class) {
+            try {
+                return type.getConstructor().newInstance();
+            } catch (Exception e) {
+                LDLib2.LOGGER.error("Cannot instantiate variable declaration type {}; "
+                        + "loading its variables as plain ones instead", type.getName(), e);
+            }
+        }
+        return new VariableDeclarationModel();
+    }
+
+    /**
      * Indicates whether a {@link VariableDeclarationModel} requires initialization.
      * @param decl The variable declaration model to query.
      * @return True if the variable declaration model requires initialization, false otherwise.
@@ -2775,7 +2803,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
             var variablesTag = compound.getListOrEmpty("variables");
             for (int i = 0; i < variablesTag.size(); i++) {
                 var varTag = variablesTag.getCompoundOrEmpty(i);
-                var variable = new VariableDeclarationModel();
+                var variable = newVariableDeclarationForLoad();
                 variable.setGraphModel(this);
                 deserializeModel(variable, varTag, provider);
                 variable.setModifiers(variable.getModifiers());
@@ -3352,7 +3380,7 @@ public abstract class GraphModel extends GraphElementModel implements IGraphElem
             var variablesTag = compound.getListOrEmpty("variables");
             for (int i = 0; i < variablesTag.size(); i++) {
                 var varTag = variablesTag.getCompoundOrEmpty(i);
-                var variable = new VariableDeclarationModel();
+                var variable = newVariableDeclarationForLoad();
                 variable.setGraphModel(this);
                 deserializeModel(variable, varTag, provider);
                 variable.setModifiers(variable.getModifiers());

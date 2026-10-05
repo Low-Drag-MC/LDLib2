@@ -237,7 +237,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
     }
 
     protected void onMouseDown(UIEvent event) {
-        if (event.button == 0) {
+        if (event.button == 0 && isActiveInHierarchy()) {
             textField.focus();
         }
     }

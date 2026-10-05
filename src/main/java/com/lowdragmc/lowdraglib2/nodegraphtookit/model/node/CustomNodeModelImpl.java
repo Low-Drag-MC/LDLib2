@@ -62,19 +62,25 @@ public class CustomNodeModelImpl extends NodeModel implements ICustomNodeModel {
     }
 
     protected void callOnDefineOptions(NodeDefinitionScope<? extends NodeModel> definitionScope) {
-        var context = NodeDefinitionScope.optionContext.get();
-        context.setScope(definitionScope);
         assert node != null;
-        node.onDefineOptions(context);
-        context.finish();
+        var context = NodeDefinitionScope.optionContextFor(definitionScope);
+        try {
+            node.onDefineOptions(context);
+            context.finish();
+        } finally {
+            context.release();
+        }
     }
 
     protected void callOnDefineNode(NodeDefinitionScope<? extends NodeModel> definitionScope) {
-        var context = NodeDefinitionScope.portContext.get();
-        context.setScope(definitionScope);
         assert node != null;
-        node.onDefinePorts(context);
-        context.finish();
+        var context = NodeDefinitionScope.portContextFor(definitionScope);
+        try {
+            node.onDefinePorts(context);
+            context.finish();
+        } finally {
+            context.release();
+        }
     }
 
     @Override

@@ -160,6 +160,7 @@ public class ResourceContainer<T> extends UIElement {
             }
         }
         providerContainer.clearAllChildren();
+        var searchText = selectedProviderContainer == null ? "" : selectedProviderContainer.getSearchText();
         selectedProvider = provider;
         selectedProviderContainer = null;
         if (selectedProvider != null) {
@@ -172,6 +173,9 @@ public class ResourceContainer<T> extends UIElement {
             var providerView = resourceInstance.resource.createResourceProviderContainer(selectedProvider);
             providerView.setEditor(editor);
             providerView.reloadResourceContainer();
+            if (!searchText.isEmpty()) {
+                providerView.setSearchText(searchText);
+            }
             providerView.setOnResourceSelect(res -> {
                 if (onResourceSelect != null) {
                     onResourceSelect.accept(res);

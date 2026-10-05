@@ -150,7 +150,8 @@ public class ValueConfigurator<T> extends Configurator {
     }
 
     protected void onDragPerform(UIEvent event) {
-        if (event.dragHandler.draggingObject != null && canDropObject(event.dragHandler.draggingObject) && event.dragHandler.dragSource != this) {
+        if (isActiveInHierarchy() && event.dragHandler.draggingObject != null
+                && canDropObject(event.dragHandler.draggingObject) && event.dragHandler.dragSource != this) {
             onDropObject(event.dragHandler.draggingObject);
         }
         hideDroppableOverlay();

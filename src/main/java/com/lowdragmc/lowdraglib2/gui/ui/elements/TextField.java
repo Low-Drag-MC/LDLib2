@@ -33,6 +33,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import it.unimi.dsi.fastutil.Pair;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.FontDescription;
@@ -55,7 +56,6 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.StringUtil;
 import com.mojang.blaze3d.platform.InputConstants;
-import org.lwjgl.sdl.SDLKeycode;
 import org.w3c.dom.Element;
 
 import org.jetbrains.annotations.Nullable;
@@ -400,12 +400,36 @@ public class TextField extends BindableUIElement<String> {
     }
 
     protected void onValidateCommand(UIEvent event) {
-        if ((CommandEvents.UNDO.equals(event.command) || CommandEvents.REDO.equals(event.command)) && isEditable()) {
+        if (isEditable() && isTextCommand(event.command)) {
             event.stopPropagation();
         }
     }
 
+    private static boolean isTextCommand(String command) {
+        return switch (command) {
+            case CommandEvents.COPY, CommandEvents.CUT, CommandEvents.PASTE,
+                 CommandEvents.SELECT_ALL, CommandEvents.UNDO, CommandEvents.REDO -> true;
+            default -> false;
+        };
+    }
+
     protected void onExecuteCommand(UIEvent event) {
+        if (CommandEvents.COPY.equals(event.command)) {
+            TextFieldClientSupport.copyHighlightedText(this);
+            event.stopPropagation();
+            return;
+        }
+        if (!isEditable() || !isTextCommand(event.command)) return;
+        event.stopPropagation();
+        if (CommandEvents.SELECT_ALL.equals(event.command)) {
+            setCursor(rawText.length());
+            setSelection(0, rawText.length());
+        } else if (CommandEvents.PASTE.equals(event.command)) {
+            insertText(TextFieldClientSupport.getClipboardText());
+        } else if (CommandEvents.CUT.equals(event.command)) {
+            TextFieldClientSupport.copyHighlightedText(this);
+            insertText("");
+        }
         if (isEditable()) {
             var current = getRawText();
             if (!Objects.deepEquals(historyStack.getCurrent(), current)) {
@@ -537,28 +561,7 @@ public class TextField extends BindableUIElement<String> {
                     setSelection(cursorPos, cursorPos);
                 }
             }
-            default -> {
-                if (isPrimaryShortcut(event) && event.shortcutKey == SDLKeycode.SDLK_A) {
-                    setCursor(rawText.length());
-                    setSelection(0, rawText.length());
-                } else if (isPrimaryShortcut(event) && event.shortcutKey == SDLKeycode.SDLK_C) {
-                    TextFieldClientSupport.copyHighlightedText(this);
-                } else if (isPrimaryShortcut(event) && event.shortcutKey == SDLKeycode.SDLK_V) {
-                    if (this.isEditable()) {
-                        this.insertText(TextFieldClientSupport.getClipboardText());
-                    }
-                } else if (isPrimaryShortcut(event) && event.shortcutKey == SDLKeycode.SDLK_X) {
-                    TextFieldClientSupport.copyHighlightedText(this);
-                    if (this.isEditable()) {
-                        this.insertText("");
-                    }
-                }
-            }
         }
-    }
-
-    private boolean isPrimaryShortcut(UIEvent event) {
-        return event.isCtrlDown() || (event.modifiers & InputConstants.MOD_SUPER) != 0;
     }
 
     /// logic
@@ -840,7 +843,7 @@ public class TextField extends BindableUIElement<String> {
     }
 
     public boolean isEditable() {
-        return isActive() && isVisible() && isFocused() && isDisplayed();
+        return isActiveInHierarchy() && isVisible() && isFocused() && isDisplayed();
     }
 
     /**
@@ -1176,8 +1179,8 @@ public class TextField extends BindableUIElement<String> {
         }
 
         static String getClipboardText() {
-            var pasted = ClipboardManager.INSTANCE.paste();
-            return pasted instanceof String text ? text : "";
+            // the system clipboard: text copied outside the game has to paste too
+            return Minecraft.getInstance().keyboardHandler.getClipboard();
         }
 
         static float computeDisplayOffset(TextField field) {

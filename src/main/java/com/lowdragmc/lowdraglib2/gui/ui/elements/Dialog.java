@@ -28,6 +28,11 @@ import net.minecraft.util.Util;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector2f;
 import com.mojang.blaze3d.platform.InputConstants;
+import com.lowdragmc.lowdraglib2.client.window.NativeDialogs;
+import com.lowdragmc.lowdraglib2.gui.ui.window.ModularUIWindow;
+import net.minecraft.client.Minecraft;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 
 import org.jetbrains.annotations.Nullable;
 import java.io.File;
@@ -46,7 +51,7 @@ public class Dialog extends UIElement {
     public interface FileFeature {
         /** A plain file picker: no folder button, no editing. */
         int NONE = 0;
-        /** The button that reveals the selected directory in the system file browser. */
+        /** The button that selects a directory with the system folder picker. */
         int OPEN_FOLDER = 1;
         /** Right click on the tree to create a folder. */
         int NEW_FOLDER = 1 << 1;
@@ -68,6 +73,8 @@ public class Dialog extends UIElement {
      * first.
      */
     private static final long NOTIFICATION_GRACE_MS = 500;
+    /** The smallest a {@link #windowMode window mode} dialog can be resized to. */
+    static final float MIN_WINDOW_SIZE = 50;
 
     public final UIElement overlay;
     public final UIElement titleBar;
@@ -85,6 +92,10 @@ public class Dialog extends UIElement {
     private Runnable onClose;
     private boolean windowMode = false;
     private boolean isResizing;
+    private float windowWidth, windowHeight;
+    @Nullable
+    private String sizeKey;
+    private boolean resized;
 
     public Dialog() {
         this.titleBar = new UIElement().addClass("__dialog_title__");
@@ -330,6 +341,8 @@ public class Dialog extends UIElement {
 
     public Dialog windowMode(float worldX, float worldY, float width, float height) {
         windowMode = true;
+        windowWidth = width;
+        windowHeight = height;
         setClickOutsideClose(true);
         this.getLayout().justifyContent(AlignContent.FLEX_START);
         this.getLayout().alignItems(AlignItems.STRETCH);
@@ -338,17 +351,26 @@ public class Dialog extends UIElement {
         // move and resize behaviour
         WindowDragHelper.setDragMove(titleBar, overlay, null, null);
         WindowDragHelper.setBorderResize(overlay, overlay, 2,
-                new Vector2f(50),
+                new Vector2f(MIN_WINDOW_SIZE),
                 new Vector2f(Float.MAX_VALUE),
                 e -> windowMode, (e, handle) -> {
                     isResizing = true;
                     return true;
-                }, e -> isResizing = false);
+                }, e -> {
+                    isResizing = false;
+                    resized = true;
+                });
         addEventListener(UIEvents.LAYOUT_CHANGED, e -> {
             var parent = getParent();
             if (parent != null) {
                 var local = parent.worldToLocalLayoutOffset(new Vector2f(worldX, worldY));
                 overlay.getLayout().left(local.x).top(local.y);
+                var mui = getModularUI();
+                if (mui != null && (windowWidth > mui.getScreenWidth() || windowHeight > mui.getScreenHeight())) {
+                    // a remembered size may be more than the screen it opens on
+                    overlay.getLayout().width(Math.min(windowWidth, mui.getScreenWidth()))
+                            .height(Math.min(windowHeight, mui.getScreenHeight()));
+                }
                 e.currentElement.addEventListener(UIEvents.LAYOUT_CHANGED, e2 -> {
                     overlay.adaptPositionToScreen();
                 });
@@ -356,6 +378,29 @@ public class Dialog extends UIElement {
             e.currentElement.removeEventListener(UIEvents.LAYOUT_CHANGED, e.currentListener);
         });
         return this;
+    }
+
+    /**
+     * Opens this {@link #windowMode window mode} dialog at the size the user last resized one with the same key to,
+     * and remembers the size it gets resized to in turn, see {@link DialogSizeStore}. Call it after windowMode.
+     */
+    public Dialog rememberSize(String key) {
+        sizeKey = key;
+        var size = DialogSizeStore.get(key);
+        if (size != null) {
+            windowWidth = size.x;
+            windowHeight = size.y;
+            overlay.getLayout().width(size.x).height(size.y);
+        }
+        return this;
+    }
+
+    @Override
+    protected void onRemoved() {
+        super.onRemoved();
+        if (sizeKey != null && resized) {
+            DialogSizeStore.put(sizeKey, overlay.getSizeWidth(), overlay.getSizeHeight());
+        }
     }
 
     /**
@@ -627,7 +672,7 @@ public class Dialog extends UIElement {
      */
     public static Dialog showFileDialog(String title, File dir, boolean isSelector, @Nullable File defaultValue,
                                         @Nullable Predicate<FileNode> valid, int features, Consumer<File> result) {
-        var dialog = new Dialog();
+        var dialog = new Dialog().setAutoClose(false);
         var textField = new TextField();
         var treeList = new TreeList<FileNode>();
         if (!dir.isDirectory()) {
@@ -635,23 +680,59 @@ public class Dialog extends UIElement {
                 return dialog;
             }
         }
-        var root = new FileNode(dir).setValid(valid);
-        dialog.overlay.layout(layout -> layout.width(200));
+        var root = new FileNode[]{new FileNode(dir).setValid(valid)};
+        var pickingFolder = new AtomicBoolean();
+        dialog.overlay.layout(layout -> layout.width(240).maxWidthPercent(95));
         dialog.setTitle(title);
-        dialog.addContent(new UIElement().layout(layout -> {
-            layout.widthPercent(100);
-            layout.flexDirection(FlexDirection.ROW);
-            layout.gapAll(2);
-        }).addChildren(textField.layout(layout -> layout.flex(1)), new Button().setOnClick(e -> {
-            // reveal what's selected in the tree, and only fall back to the dialog's own directory
-            Blaze3D.openPath(FileDialogActions.openTargetDir(treeList, dir).toPath());
-        }).noText().layout(layout -> {
-            layout.width(14);
-            layout.height(14);
-            layout.paddingAll(3);
-        }).style(style -> style.tooltips("ldlib.gui.tips.open_folder"))
+        Consumer<File> navigate = target -> {
+            var folder = FileDialogActions.navigationDirectory(target, !isSelector);
+            if (folder == null) {
+                showFileDialogPathError(dialog);
+                return;
+            }
+            root[0] = new FileNode(folder).setValid(valid);
+            treeList.setRoot(root[0]);
+            applyFileDialogDefault(treeList, textField, root[0], isSelector, target);
+        };
+        dialog.addContent(textField.layout(layout -> layout.widthPercent(100).minWidth(0).height(14)));
+        var jumpButton = fileDialogToolButton(Icons.RIGHT, "ldlib.gui.file_dialog.jump_to").setOnClick(e -> {
+            var target = FileDialogActions.resolveTypedPath(textField.getText(), root[0].getKey());
+            if (target == null) showFileDialogPathError(dialog);
+            else navigate.accept(target);
+        });
+        var openButton = fileDialogToolButton(Icons.FOLDER, "ldlib.gui.tips.open_folder").setOnClick(e -> {
+            var target = FileDialogActions.resolveTypedPath(textField.getText(), root[0].getKey());
+            var folder = FileDialogActions.navigationDirectory(target, !isSelector);
+            if (folder == null) showFileDialogPathError(dialog);
+            else Blaze3D.openPath(folder.toPath());
+        });
+        var selectButton = fileDialogToolButton(Icons.OPEN_FILE, "ldlib.gui.file_dialog.select_folder").setOnClick(e -> {
+            if (!pickingFolder.compareAndSet(false, true)) return;
+            var previousAutoClose = dialog.autoClose;
+            dialog.setAutoClose(false);
+            var target = FileDialogActions.resolveTypedPath(textField.getText(), root[0].getKey());
+            var typedDir = FileDialogActions.navigationDirectory(target, !isSelector);
+            var initialDir = typedDir != null ? typedDir : FileDialogActions.openTargetDir(treeList, root[0].getKey());
+            var initialName = isSelector || target == null || target.isDirectory() ? "" : target.getName();
+            DialogClientSupport.selectFolder(dialog, Component.translatable(title).getString(), initialDir, (path, error) -> {
+                pickingFolder.set(false);
+                dialog.setAutoClose(previousAutoClose);
+                if (dialog.getParent() == null) return;
+                dialog.focus();
+                if (error != null) {
+                    Dialog.showNotification("editor.error", "ldlib.gui.file_dialog.failed", null).show(dialog.getParent());
+                    return;
+                }
+                if (path == null || path.isBlank()) return;
+                var folder = new File(path);
+                if (!folder.isDirectory()) return;
+                navigate.accept(initialName.isEmpty() ? folder : new File(folder, initialName));
+            });
+        });
+        dialog.addContent(new UIElement().layout(layout -> layout.widthPercent(100)
+                        .flexDirection(FlexDirection.ROW).gapAll(2))
                 .setDisplay(FileFeature.has(features, FileFeature.OPEN_FOLDER))
-                .addChild(new UIElement().addClass("__white_icon__").layout(layout -> layout.widthPercent(100)).style(style -> style.backgroundTexture(Icons.FOLDER)))));
+                .addChildren(jumpButton, openButton, selectButton));
         treeList.setOnSelectedChanged(selected -> {
             if (selected.isEmpty()) return;
             var first = selected.stream().findFirst().get();
@@ -674,8 +755,8 @@ public class Dialog extends UIElement {
                         Icons.getIcon(node.getKey().getName()
                                 .substring(node.getKey().getName().lastIndexOf('.') + 1)),
                 node -> Component.translatable(node.getKey().getName())))
-                .setRoot(root);
-        applyFileDialogDefault(treeList, textField, root, isSelector, defaultValue);
+                .setRoot(root[0]);
+        applyFileDialogDefault(treeList, textField, root[0], isSelector, defaultValue);
         var scrollerView = new ScrollerView().addScrollViewChild(treeList).layout(layout -> {
             layout.widthPercent(100);
             layout.height(180);
@@ -684,7 +765,7 @@ public class Dialog extends UIElement {
         // still offers to create a folder in the root.
         scrollerView.addEventListener(UIEvents.MOUSE_DOWN, e -> {
             if (e.button == 1) {
-                FileDialogActions.openContextMenu(dialog, treeList, root, features, e.x, e.y);
+                FileDialogActions.openContextMenu(dialog, treeList, root[0], features, e.x, e.y);
             }
         });
         dialog.addContent(scrollerView);
@@ -725,6 +806,25 @@ public class Dialog extends UIElement {
                 .setText("ldlib.gui.tips.cancel")
                 .addClass("__cancel-button__"));
         return dialog;
+    }
+
+    private static Button fileDialogToolButton(com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture icon, String tooltip) {
+        var button = new Button().noText();
+        button.layout(layout -> layout.width(14).height(14).flexShrink(0).paddingAll(3));
+        button.style(style -> style.tooltips(tooltip));
+        button.addChild(new UIElement().addClass("__white_icon__")
+                .layout(layout -> layout.widthPercent(100).heightPercent(100))
+                .style(style -> style.backgroundTexture(icon)));
+        return button;
+    }
+
+    private static void showFileDialogPathError(Dialog dialog) {
+        var parent = dialog.getParent();
+        if (parent == null) return;
+        var error = Dialog.showNotification("editor.error", "editor.file_not_found", null);
+        dialog.addExternalElement(error);
+        error.setOnClose(() -> dialog.removeExternalElement(error));
+        error.show(parent);
     }
 
     static void applyFileDialogDefault(TreeList<FileNode> treeList, TextField textField, FileNode root, boolean isSelector, @Nullable File defaultValue) {
@@ -771,6 +871,22 @@ public class Dialog extends UIElement {
         super.drawBackgroundAdditional(context);
         if (windowMode && !isResizing) {
             WindowDragHelper.drawResizeIcon(context, overlay, 2);
+        }
+    }
+
+    static final class DialogClientSupport {
+        private DialogClientSupport() {
+        }
+
+        /**
+         * Opens the system folder picker over the window {@code dialog} is in. It does not block, so the game
+         * keeps drawing underneath it; {@code done} gets the picked path, or SDL's error, back on the client thread.
+         */
+        static void selectFolder(Dialog dialog, String title, File initialDir, BiConsumer<@Nullable String, @Nullable String> done) {
+            var mui = dialog.getModularUI();
+            var host = mui == null ? null : ModularUIWindow.windowOf(mui);
+            var parent = host != null && host.isOpen() ? host.window().handle() : Minecraft.getInstance().getWindow().handle();
+            NativeDialogs.selectFolder(parent, title, initialDir, done);
         }
     }
 }

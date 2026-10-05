@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.test.gametest.resource;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.editor.resource.ColorsResource;
 import com.lowdragmc.lowdraglib2.editor.resource.FilePath;
 import com.lowdragmc.lowdraglib2.editor.resource.FileResourceProvider;
@@ -34,6 +35,7 @@ public final class ResourcePathMigrationGameTest {
     private static final String IDEMPOTENT = "resource_path_migration_idempotent";
     private static final String RESOLVE_FILE_ROUND_TRIP = "resource_path_migration_resolve_file_round_trip";
     private static final String PROVIDER_NBT_ROUND_TRIP = "resource_path_migration_provider_nbt_round_trip";
+    private static final String RELATIVE_PROVIDER_ACCEPTS_ITS_PATHS = "resource_path_migration_relative_provider_accepts_its_paths";
     private static final String TO_RESOURCE_LOCATION_STILL_DERIVES = "resource_path_migration_to_resource_location_still_derives";
     private static final String LEGACY_CODECS_STILL_DECODE = "resource_path_migration_legacy_codecs_still_decode";
 
@@ -48,6 +50,7 @@ public final class ResourcePathMigrationGameTest {
         ResourceGameTests.registerFunction(IDEMPOTENT, ResourcePathMigrationGameTest::idempotent);
         ResourceGameTests.registerFunction(RESOLVE_FILE_ROUND_TRIP, ResourcePathMigrationGameTest::resolveFileRoundTrip);
         ResourceGameTests.registerFunction(PROVIDER_NBT_ROUND_TRIP, ResourcePathMigrationGameTest::providerNbtRoundTrip);
+        ResourceGameTests.registerFunction(RELATIVE_PROVIDER_ACCEPTS_ITS_PATHS, ResourcePathMigrationGameTest::relativeProviderAcceptsItsPaths);
         ResourceGameTests.registerFunction(TO_RESOURCE_LOCATION_STILL_DERIVES, ResourcePathMigrationGameTest::toResourceLocationStillDerives);
         ResourceGameTests.registerFunction(LEGACY_CODECS_STILL_DECODE, ResourcePathMigrationGameTest::legacyCodecsStillDecode);
     }
@@ -61,6 +64,7 @@ public final class ResourcePathMigrationGameTest {
         ResourceGameTests.registerFunctionTest(event, IDEMPOTENT, ResourceGameTests.functionKey(IDEMPOTENT), testData);
         ResourceGameTests.registerFunctionTest(event, RESOLVE_FILE_ROUND_TRIP, ResourceGameTests.functionKey(RESOLVE_FILE_ROUND_TRIP), testData);
         ResourceGameTests.registerFunctionTest(event, PROVIDER_NBT_ROUND_TRIP, ResourceGameTests.functionKey(PROVIDER_NBT_ROUND_TRIP), testData);
+        ResourceGameTests.registerFunctionTest(event, RELATIVE_PROVIDER_ACCEPTS_ITS_PATHS, ResourceGameTests.functionKey(RELATIVE_PROVIDER_ACCEPTS_ITS_PATHS), testData);
         ResourceGameTests.registerFunctionTest(event, TO_RESOURCE_LOCATION_STILL_DERIVES, ResourceGameTests.functionKey(TO_RESOURCE_LOCATION_STILL_DERIVES), testData);
         ResourceGameTests.registerFunctionTest(event, LEGACY_CODECS_STILL_DECODE, ResourceGameTests.functionKey(LEGACY_CODECS_STILL_DECODE), testData);
     }
@@ -171,6 +175,25 @@ public final class ResourcePathMigrationGameTest {
         // the provider only accepts paths whose direct parent is its own directory
         if (!provider.supportResourcePath(reparsed)) {
             helper.fail("Provider rejected its own path after a string round trip");
+            return;
+        }
+        helper.succeed();
+    }
+
+    /**
+     * A provider made over a game-relative folder — the asset browser's under ModDev, whose game directory is "." —
+     * resolves it as its paths are resolved, so it accepts the paths it creates itself.
+     */
+    public static void relativeProviderAcceptsItsPaths(GameTestHelper helper) {
+        var inside = new File(LDLib2.getAssetsDir(), "ldlib2/resources/global");
+        var relative = new File("./" + Platform.getGamePath().relativize(inside.toPath()));
+        var provider = new FileResourceProvider<>(ColorsResource.INSTANCE.getResourceInstance(), relative);
+        if (!provider.resourceLocation.equals(inside)) {
+            helper.fail("Relative location " + relative + " resolved to " + provider.resourceLocation + ", not " + inside);
+            return;
+        }
+        if (!provider.supportResourcePath(provider.createSubPath("relative"))) {
+            helper.fail("Provider over " + relative + " rejected its own path");
             return;
         }
         helper.succeed();

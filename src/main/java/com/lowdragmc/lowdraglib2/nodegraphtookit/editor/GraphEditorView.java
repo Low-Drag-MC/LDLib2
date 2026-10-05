@@ -420,9 +420,11 @@ public class GraphEditorView extends View implements SubgraphRegistry.Listener {
 
     protected void onExecuteCommand(UIEvent event) {
         if (CommandEvents.REDO.equals(event.command) && canRedo()) {
+            event.stopPropagation();
             getCurrentView().getHistoryStack().redo();
         }
         if (CommandEvents.UNDO.equals(event.command) && canUndo()) {
+            event.stopPropagation();
             getCurrentView().getHistoryStack().undo();
         }
     }

@@ -65,18 +65,24 @@ public class CustomBlockNodeModelImpl extends BlockNodeModel implements ICustomN
         if (node == null) return;
         optionsById.clear();
         try {
-            var optCtx = NodeDefinitionScope.optionContext.get();
-            optCtx.setScope(definitionScope);
-            node.onDefineOptions(optCtx);
-            optCtx.finish();
+            var optCtx = NodeDefinitionScope.optionContextFor(definitionScope);
+            try {
+                node.onDefineOptions(optCtx);
+                optCtx.finish();
+            } finally {
+                optCtx.release();
+            }
             for (var nodeOption : getNodeOptions()) {
                 optionsById.put(nodeOption.getId(), nodeOption);
             }
 
-            var portCtx = NodeDefinitionScope.portContext.get();
-            portCtx.setScope(definitionScope);
-            node.onDefinePorts(portCtx);
-            portCtx.finish();
+            var portCtx = NodeDefinitionScope.portContextFor(definitionScope);
+            try {
+                node.onDefinePorts(portCtx);
+                portCtx.finish();
+            } finally {
+                portCtx.release();
+            }
         } catch (Exception e) {
             LDLib2.LOGGER.error("Failed to define block node {}", node, e);
         }

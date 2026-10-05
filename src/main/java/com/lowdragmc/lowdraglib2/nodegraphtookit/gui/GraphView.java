@@ -1177,6 +1177,16 @@ public class GraphView extends UIElement {
         return selected.contains(nodeModel);
     }
 
+    /** Selects what a region selection covering the whole canvas would, so the blackboard stays out of it. */
+    public void selectAllElements() {
+        var everywhere = new Vector4f(-1e9f, -1e9f, 2e9f, 2e9f);
+        batchSelection(() -> modelElements.forEach((model, element) -> {
+            if (element.isSelectable() && element.canBeRegionSelected(everywhere)) {
+                addSelected(model);
+            }
+        }));
+    }
+
     @Override
     public boolean isSelfOrChildHover() {
         return !isMenuOpen && super.isSelfOrChildHover();
@@ -1425,29 +1435,32 @@ public class GraphView extends UIElement {
     }
 
     protected void onValidateCommand(UIEvent event) {
-        // Copy is the one that still means something read-only: it takes a snapshot out of the graph
-        // rather than putting anything into it, which is exactly how you fork a built-in blueprint.
-        if (readOnly) {
-            if (CommandEvents.COPY.equals(event.command)) {
-                event.stopPropagation();
-            }
-            return;
-        }
-        if (
-                CommandEvents.UNDO.equals(event.command) ||
-                CommandEvents.REDO.equals(event.command) ||
-                CommandEvents.COPY.equals(event.command) ||
-                CommandEvents.CUT.equals(event.command) ||
-                CommandEvents.DUPLICATE.equals(event.command) ||
-                CommandEvents.PASTE.equals(event.command) ||
-                CommandEvents.SAVE.equals(event.command)
-        ) {
+        if (claimsCommand(event.command)) {
             event.stopPropagation();
         }
     }
 
+    /** Executing a claimed command must stop it, or the enclosing {@link GraphEditorView} applies it again. */
+    protected boolean claimsCommand(String command) {
+        // Copy is the one that still means something read-only: it takes a snapshot out of the graph
+        // rather than putting anything into it, which is exactly how you fork a built-in blueprint.
+        if (readOnly) {
+            return CommandEvents.COPY.equals(command) || CommandEvents.SELECT_ALL.equals(command);
+        }
+        return switch (command) {
+            case CommandEvents.SELECT_ALL, CommandEvents.UNDO, CommandEvents.REDO, CommandEvents.COPY,
+                 CommandEvents.CUT, CommandEvents.DUPLICATE, CommandEvents.PASTE, CommandEvents.SAVE -> true;
+            default -> false;
+        };
+    }
 
     protected void onExecuteCommand(UIEvent event) {
+        if (!claimsCommand(event.command)) return;
+        event.stopPropagation();
+        if (CommandEvents.SELECT_ALL.equals(event.command)) {
+            selectAllElements();
+            return;
+        }
         if (readOnly) {
             if (CommandEvents.COPY.equals(event.command)) {
                 copySelectedElements();
@@ -1938,9 +1951,10 @@ public class GraphView extends UIElement {
 
     @Override
     public void screenTick() {
-        super.screenTick();
-        // lets update the graph elements here
+        // update the graph elements before they tick: a port an option just removed must not tick against its
+        // dropped constant
         updateGraphModelChanges();
+        super.screenTick();
         if (requireFitGraph) {
             var size = getTaffyLayout().size();
             // make sure it's a valid graph view size

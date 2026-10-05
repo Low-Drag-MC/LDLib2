@@ -28,6 +28,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.TextureFilteringMethod;
 import net.minecraft.client.gui.screens.LoadingOverlay;
 import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.block.*;
@@ -185,7 +186,7 @@ public abstract class WorldSceneRenderer {
     @Setter
     @Nullable
     protected ProjectionMatrixBuffer projectionMatrixBuffer;
-    /** Scene-private Globals UBO (camera = eyePos) used while drawing the core/terrain pass. */
+    /** Scene-private Globals UBO (camera = eyePos, screen = viewport), active for the whole of {@link #drawWorld}. */
     @Nullable
     private GlobalSettingsUniform sceneGlobals;
     /**
@@ -728,9 +729,11 @@ public abstract class WorldSceneRenderer {
         // renderers that defer their draw to afterRender() (Photon's particle pipeline does) would otherwise
         // fall back to the main world camera and reconstruct position from depth wrongly.
         SceneCameraContext.set(camera.getViewRotationMatrix(new Matrix4f()), projectionMatrix);
-        // The scene's own Globals (camera = eyePos) for the whole pass: terrain places itself relative to
-        // CameraBlockPos, and everything else is drawn from the same eye. Swapping the buffer reference,
-        // not its contents, leaves the game's Globals untouched for the rest of its frame.
+        // The scene's own Globals (camera = eyePos, screen = viewport) for the whole pass: terrain places itself
+        // relative to CameraBlockPos, everything else is drawn from the same eye, and rendertype_lines widens a
+        // line by LineWidth / ScreenSize, so the game window's size there would thin lines in a smaller scene.
+        // Swapping the buffer reference, not its contents, leaves the game's Globals untouched for the rest of
+        // its frame.
         var savedGlobals = RenderSystem.getGlobalSettingsUniform();
         updateSceneGlobals(mc);
         currentDepthTarget = depth;
@@ -962,15 +965,20 @@ public abstract class WorldSceneRenderer {
                 owned ? meshesByLayer : null);
     }
 
-    /** Write {@link #eyePos} into a scene-private Globals UBO and make it the active one. */
+    /**
+     * Write this scene into a scene-private Globals UBO and make it the active one: {@link #eyePos} as the
+     * camera, the viewport as the screen size, and the player's own options for the rest, as vanilla does.
+     */
     private void updateSceneGlobals(Minecraft mc) {
         if (sceneGlobals == null) {
             sceneGlobals = new GlobalSettingsUniform();
         }
         long gameTime = world != null ? world.getGameTime() : 0L;
-        sceneGlobals.update(viewportWidth, viewportHeight, 1.0,
+        var options = mc.gameRenderer.gameRenderState().optionsRenderState;
+        sceneGlobals.update(viewportWidth, viewportHeight, options.glintStrength,
                 gameTime, mc.getDeltaTracker().getGameTimeDeltaPartialTick(false), 0,
-                new Vec3(eyePos.x(), eyePos.y(), eyePos.z()), false);
+                new Vec3(eyePos.x(), eyePos.y(), eyePos.z()),
+                options.textureFiltering == TextureFilteringMethod.RGSS);
     }
 
     public boolean isCompiling() {

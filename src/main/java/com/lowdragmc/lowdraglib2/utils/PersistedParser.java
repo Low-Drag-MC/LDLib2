@@ -39,6 +39,50 @@ import java.util.function.Supplier;
  */
 @UtilityClass
 public final class PersistedParser {
+
+    /**
+     * The key {@code field} is saved under, or null when it is not saved at all — the rule the
+     * serializer below follows, in one place: {@link Configurable#key()} or {@link Persisted#key()}
+     * when given, the field's name otherwise, and nothing for a {@link Configurable} field that is
+     * not {@link Configurable#persisted() persisted}.
+     *
+     * <p>For anything that has to find a field's value in what an object saved — an editor marking a
+     * row whose value differs from a template's, with the row's field in hand
+     * ({@link com.lowdragmc.lowdraglib2.configurator.ui.Configurator#getSourceField()}).
+     */
+    @org.jetbrains.annotations.Nullable
+    public static String persistedKey(Field field) {
+        if (field.isAnnotationPresent(Configurable.class)) {
+            Configurable configurable = field.getAnnotation(Configurable.class);
+            if (!configurable.persisted()) {
+                return null;
+            }
+            return Strings.isNullOrEmpty(configurable.key()) ? field.getName() : configurable.key();
+        }
+        if (field.isAnnotationPresent(Persisted.class)) {
+            Persisted persisted = field.getAnnotation(Persisted.class);
+            return Strings.isNullOrEmpty(persisted.key()) ? field.getName() : persisted.key();
+        }
+        return null;
+    }
+
+    /**
+     * Whether a saved sub-object field writes its values into its owner's rather than under its own
+     * key — {@link Configurable#subFlattenPersisted()} / {@link Persisted#subFlattenPersisted()} — so
+     * that a path to one of its values has no segment for it.
+     */
+    public static boolean isPersistedFlat(Field field) {
+        if (field.isAnnotationPresent(Configurable.class)) {
+            Configurable configurable = field.getAnnotation(Configurable.class);
+            return configurable.subConfigurable() && configurable.subFlattenPersisted();
+        }
+        if (field.isAnnotationPresent(Persisted.class)) {
+            Persisted persisted = field.getAnnotation(Persisted.class);
+            return persisted.subPersisted() && persisted.subFlattenPersisted();
+        }
+        return false;
+    }
+
     /**
      * Creates a {@link MapCodec} for a specific type utilizing the provided {@link Supplier}.
      * This method internally constructs a codec through {@link PersistedParser#createCodec(Supplier)}

@@ -147,7 +147,7 @@ public class FileMenu extends MenuTab {
         var type = getProjectType(file);
         if (type == null) return false;
         try {
-            editor.loadProject(type.loadProjectFromFile(file), file);
+            type.openProject(editor, file);
         } catch (Exception e) {
             LDLib2.LOGGER.error("Failed to load the project {}: ", file, e);
             Dialog.showNotification("editor.error", "editor.loading_failed", null).show(editor);

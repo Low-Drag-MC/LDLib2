@@ -47,4 +47,12 @@ public class OptionDefinitionContext implements IOptionDefinitionContext {
             active.getFirst().build();
         }
     }
+
+    /** Done with this node's definition: free for the next one. */
+    public void release() {
+        while (!active.isEmpty()) {
+            freeBuilder(active.getFirst());
+        }
+        scope = null;
+    }
 }

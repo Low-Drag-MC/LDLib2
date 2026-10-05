@@ -9,6 +9,9 @@ import org.joml.Vector2f;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.InvalidPathException;
+import org.jetbrains.annotations.Nullable;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
@@ -75,6 +78,28 @@ final class FileDialogActions {
             return dir;
         }
         return root.isDirectory() ? root : root.getParentFile();
+    }
+
+    static @Nullable File resolveTypedPath(String text, File currentDirectory) {
+        var value = text.trim();
+        if (value.length() >= 2 && value.startsWith("\"") && value.endsWith("\"")) {
+            value = value.substring(1, value.length() - 1);
+        }
+        if (value.isBlank()) return currentDirectory;
+        try {
+            var path = Path.of(value);
+            if (!path.isAbsolute()) path = currentDirectory.toPath().resolve(path);
+            return path.normalize().toFile();
+        } catch (InvalidPathException exception) {
+            return null;
+        }
+    }
+
+    static @Nullable File navigationDirectory(@Nullable File target, boolean allowNewFile) {
+        if (target == null) return null;
+        if (target.isDirectory()) return target;
+        var parent = target.getParentFile();
+        return (target.isFile() || allowNewFile) && parent != null && parent.isDirectory() ? parent : null;
     }
 
     private static void newFolder(Dialog dialog, File parentDir) {

@@ -13,6 +13,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Stylesheet;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
+import com.lowdragmc.lowdraglib2.gui.ui.window.WindowBounds;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.utils.PersistedParser;
@@ -41,6 +42,24 @@ public class AppearanceSettings implements Settings {
     @Persisted(key = "windowSize")
     @Getter @Setter
     private int screenScale = -1;
+    /**
+     * Whether this editor opens in a window of its own rather than as a screen in the game window.
+     * Off by default; the title bar's toggle writes it too, so moving the editor once is remembered.
+     */
+    @Configurable(name = "settings.ldlib2.appearance.preferOsWindow",
+            tips = "settings.ldlib2.appearance.preferOsWindow.tips")
+    @Persisted(key = "preferOsWindow")
+    @Getter @Setter
+    private boolean preferOsWindow = false;
+    /** Where that window was last left. Four ints so an older settings file still loads. */
+    @Persisted(key = "editorWindowX")
+    private int editorWindowX = Integer.MIN_VALUE;
+    @Persisted(key = "editorWindowY")
+    private int editorWindowY = Integer.MIN_VALUE;
+    @Persisted(key = "editorWindowWidth")
+    private int editorWindowWidth;
+    @Persisted(key = "editorWindowHeight")
+    private int editorWindowHeight;
 
     // runtime
     @Nullable
@@ -54,6 +73,20 @@ public class AppearanceSettings implements Settings {
         return ID;
     }
 
+    /** The remembered window rectangle, or null if there is not one yet. */
+    @Nullable
+    public WindowBounds getEditorWindowBounds() {
+        if (editorWindowWidth <= 0 || editorWindowHeight <= 0) return null;
+        return new WindowBounds(editorWindowX, editorWindowY, editorWindowWidth, editorWindowHeight);
+    }
+
+    public void setEditorWindowBounds(WindowBounds bounds) {
+        editorWindowX = bounds.x();
+        editorWindowY = bounds.y();
+        editorWindowWidth = bounds.width();
+        editorWindowHeight = bounds.height();
+    }
+
     @Override
     public String getPath() {
         return "Appearance";
@@ -65,10 +98,16 @@ public class AppearanceSettings implements Settings {
             editor.addEventListener(UIEvents.MUI_CHANGED, onMuiChangedListener);
         }
         applyStylesheet(editor);
+        applyPreferredHost(editor);
         // screenScale. -1 means the player never picked an editor-specific scale, so their own GUI scale
         // stands. Without this the value would reach options#guiScale, be clamped to 0, and silently
         // switch the game to "auto" the first time any editor is created.
         if (screenScale < 0) return;
+        // ⚠️ There is one gui scale and it is the game's - a surface cannot have its own (see
+        // UISurface). For an editor in a window of its own this setting would resize the HUD of the
+        // game being played next to it, so it does not apply there.
+        var window = editor.getWindow();
+        if (window != null && window.isInOsWindow()) return;
         var minecraft = Minecraft.getInstance();
         var guiScale = minecraft.options.guiScale();
         var maxScale =  minecraft.getWindow().calculateScale(0, minecraft.isEnforceUnicode());
@@ -78,6 +117,22 @@ public class AppearanceSettings implements Settings {
         if (guiScale.get() != screenScale) {
             guiScale.set(screenScale);
             Minecraft.getInstance().resizeGui();
+        }
+    }
+
+    /**
+     * Moves the editor to the host this setting asks for.
+     *
+     * <p>Only once it is actually being shown: {@code onApply} also runs while the editor is being
+     * built, and re-hosting a tree that has not been hosted yet has nowhere to move it from.
+     */
+    private void applyPreferredHost(Editor editor) {
+        var window = editor.getWindow();
+        if (window == null || editor.getModularUI() == null) return;
+        if (preferOsWindow) {
+            window.popOutToOsWindow();
+        } else if (window.isInOsWindow()) {
+            window.dockIntoGameWindow();
         }
     }
 

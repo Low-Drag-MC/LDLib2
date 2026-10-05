@@ -45,6 +45,14 @@ public class PortDefinitionContext implements IPortDefinitionContext {
         }
     }
 
+    /** Done with this node's definition: free for the next one. */
+    public void release() {
+        while (!active.isEmpty()) {
+            freeBuilder(active.getFirst());
+        }
+        scope = null;
+    }
+
     @Override
     public PortBuilder addInputPort(String portId, TypeHandle typeHandle) {
         return getFreeBuilder().addInputPort(this, portId, typeHandle);

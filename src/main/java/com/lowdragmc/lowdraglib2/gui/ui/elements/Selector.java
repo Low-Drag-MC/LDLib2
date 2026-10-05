@@ -325,7 +325,7 @@ public class Selector<T> extends BindableUIElement<T> {
 
     ///  events
     protected void onMouseDown(UIEvent event) {
-        if (event.button == 0) {
+        if (event.button == 0 && isActiveInHierarchy()) {
             if (isOpen()) {
                 hide();
             } else {

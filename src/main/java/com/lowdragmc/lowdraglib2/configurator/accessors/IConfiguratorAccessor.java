@@ -49,4 +49,20 @@ public interface IConfiguratorAccessor<T> extends ILDLRegisterClient<IConfigurat
     default Configurator create(String name, Supplier<T> supplier, Consumer<T> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
         return new Configurator(name);
     }
+
+    /**
+     * The same, told the value's TYPE as well — for a value that has no Java field behind it.
+     *
+     * <p>⚠️ A graph variable declared at run time is such a value: there is no {@code Field} to
+     * reflect on, so an accessor that needs more than the current value to build its editor has
+     * nothing to go on. {@code EnumAccessor} is the one that does — an enum's constants can only be
+     * listed from the enum class, and the value starts null — and without this it fell back to the
+     * bare row above: a label with nothing beside it. A caller that knows the declared type should
+     * prefer this overload; the default keeps every existing one behaving as before.
+     *
+     * @param type the declared type of the value, when the caller knows it; {@code null} otherwise
+     */
+    default Configurator create(String name, @Nullable Class<?> type, Supplier<T> supplier, Consumer<T> consumer, boolean forceUpdate, @Nullable Field field, @Nullable Object owner) {
+        return create(name, supplier, consumer, forceUpdate, field, owner);
+    }
 }
