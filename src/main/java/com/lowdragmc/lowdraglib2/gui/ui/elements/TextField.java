@@ -32,6 +32,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import it.unimi.dsi.fastutil.Pair;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.FontDescription;
@@ -554,10 +555,6 @@ public class TextField extends BindableUIElement<String> {
         }
     }
 
-    private boolean isPrimaryShortcut(UIEvent event) {
-        return event.isCtrlDown() || (event.modifiers & GLFW.GLFW_MOD_SUPER) != 0;
-    }
-
     /// logic
     public TextField setText(String text, boolean notify) {
         return setValue(text, notify);
@@ -827,7 +824,7 @@ public class TextField extends BindableUIElement<String> {
     }
 
     public boolean isEditable() {
-        return isActive() && isVisible() && isFocused() && isDisplayed();
+        return isActiveInHierarchy() && isVisible() && isFocused() && isDisplayed();
     }
 
     private void deleteText(int count) {
@@ -1152,7 +1149,8 @@ public class TextField extends BindableUIElement<String> {
         }
 
         static String getClipboardText() {
-            return net.minecraft.client.Minecraft.getInstance().keyboardHandler.getClipboard();
+            // the system clipboard: text copied outside the game has to paste too
+            return Minecraft.getInstance().keyboardHandler.getClipboard();
         }
 
         static float computeDisplayOffset(TextField field) {

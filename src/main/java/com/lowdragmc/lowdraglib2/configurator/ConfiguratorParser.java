@@ -105,6 +105,8 @@ public final class ConfiguratorParser {
                             ConfiguratorGroup newGroup = new ConfiguratorGroup(name, configurable.collapse());
                             newGroup.setCanCollapse(configurable.canCollapse());
                             newGroup.setTips(configurable.tips());
+                            // the group is the field's, so a row inside it can say where it sits
+                            newGroup.setSourceField(field);
                             group = newGroup;
                         }
 
@@ -153,7 +155,8 @@ public final class ConfiguratorParser {
                         }
                         searchConfiguratorMethod.setAccessible(true);
                         var searchConfigurator = (SearchComponentConfigurator.ISearchConfigurator) searchConfiguratorMethod.invoke(object);
-                        father.addConfigurators(new SearchComponentConfigurator<>(name, getter, setter, searchConfigurator, configurable.forceUpdate()));
+                        father.addConfigurators(new SearchComponentConfigurator<>(name, getter, setter, searchConfigurator, configurable.forceUpdate())
+                                .setSourceField(field));
                     } catch (Exception e) {
                         LDLib2.LOGGER.error("Error while creating search component configurator for field {} with @ConfigSearch in class {}", field.getName(), clazz.getName(), e);
                     }
@@ -163,6 +166,8 @@ public final class ConfiguratorParser {
                 // try to find accessor based on type
                 IConfiguratorAccessor accessor = ConfiguratorAccessors.findByType(field.getGenericType());
                 var configurator = accessor.create(name, getter, setter, configurable.forceUpdate(), field, object).setTips(configurable.tips());
+                // which field it edits — see Configurator#setSourceField
+                configurator.setSourceField(field);
                 father.addConfigurators(configurator);
             }
         }

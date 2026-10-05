@@ -421,7 +421,9 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
     }
 
     protected void onMouseDown(UIEvent event) {
-        clickEvent.send(event.isShiftDown());
+        if (isActiveInHierarchy()) {
+            clickEvent.send(event.isShiftDown());
+        }
     }
 
     public FluidSlot  setFluid(FluidStack fluid) {

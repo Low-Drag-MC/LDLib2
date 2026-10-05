@@ -58,6 +58,14 @@ public interface IResourceProvider<T> extends Iterable<Map.Entry<IResourcePath, 
      */
     @Nullable T getResource(IResourcePath path);
 
+    /**
+     * Get a resource the provider has already read, without reading it.
+     * @return the resource, or null if it has not been read yet or the provider cannot tell.
+     */
+    default @Nullable T getLoadedResource(IResourcePath path) {
+        return null;
+    }
+
     default @Nullable CompoundTag serializeNBT() {
         return null;
     }

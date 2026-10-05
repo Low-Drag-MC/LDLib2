@@ -16,7 +16,9 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class UIResourceProviderContainer extends ResourceProviderContainer<UITemplate> {
-    private final Map<UUID, Pair<IResourcePath, UIEditorView>> openedViews = Maps.newHashMap();
+    // static: one template is reachable from more than one container, and a rename made through either has to reach
+    // the editor the other opened
+    private static final Map<UUID, Pair<IResourcePath, UIEditorView>> OPENED_VIEWS = Maps.newHashMap();
 
     public UIResourceProviderContainer(IResourceProvider<UITemplate> provider) {
         super(provider);
@@ -35,7 +37,7 @@ public class UIResourceProviderContainer extends ResourceProviderContainer<UITem
         }).style(style -> style.backgroundTexture(Icons.WIDGET_BASIC)))
         .setOnEdit((container, path) -> {
             // if there is an existing view open, don't open a new one'
-            if (openedViews.values().stream().map(Pair::left).anyMatch(path::equals)) return;
+            if (OPENED_VIEWS.values().stream().map(Pair::left).anyMatch(path::equals)) return;
 
             var template = provider.getResource(path);
             if (template == null) return;
@@ -46,21 +48,21 @@ public class UIResourceProviderContainer extends ResourceProviderContainer<UITem
             // A null save handler is what makes the view read-only: UIEditorView only writes back
             // when it has one, so a built-in can be opened and read without any way to change it.
             var newView = new UIEditorView().loadTemplate(template, !editable ? null : newTemplate -> {
-                if (!openedViews.containsKey(uuid)) {
+                if (!OPENED_VIEWS.containsKey(uuid)) {
                     // invalid already.
                     return;
                 }
-                var realPath = openedViews.get(uuid).left();
+                var realPath = OPENED_VIEWS.get(uuid).left();
                 provider.addResource(realPath, newTemplate);
                 container.reloadSpecificResource(realPath);
             });
             // cache path for renaming cases
             AtomicReference<IResourcePath> pathCache = new AtomicReference<>(path);
             newView.addEventListener(UIEvents.ADDED, e -> {
-                openedViews.put(uuid, Pair.of(pathCache.get(), newView));
+                OPENED_VIEWS.put(uuid, Pair.of(pathCache.get(), newView));
             });
             newView.addEventListener(UIEvents.REMOVED, e -> {
-                var pair = openedViews.remove(uuid);
+                var pair = OPENED_VIEWS.remove(uuid);
                 if (pair != null) {
                     pathCache.set(pair.left());
                 }
@@ -68,9 +70,9 @@ public class UIResourceProviderContainer extends ResourceProviderContainer<UITem
             newView.setCanRemove(true);
             newView.setIcon(Icons.WIDGET_BASIC);
             newView.setDynamicName(() -> {
-                var name = openedViews.containsKey(uuid)
-                        ? openedViews.get(uuid).left().getResourceName()
-                        : pathCache.get().getResourceName();
+                // the provider's name for it, as the resource panel shows it
+                var name = resourceProvider.getResourceName(OPENED_VIEWS.containsKey(uuid)
+                        ? OPENED_VIEWS.get(uuid).left() : pathCache.get());
                 // Said in the tab rather than left to be discovered: a view that silently discards
                 // edits is worse than one that will not take them.
                 return Component.literal(editable ? name : name + " (read-only)");
@@ -80,16 +82,11 @@ public class UIResourceProviderContainer extends ResourceProviderContainer<UITem
     }
 
     @Override
-    protected void onRename(IResourcePath oldPath, IResourcePath newPath) {
-        super.onRename(oldPath, newPath);
+    protected void onResourceMoved(IResourcePath from, IResourcePath to) {
         // update open view name as well
-        for (var entry : openedViews.entrySet()) {
-            var openedView = entry.getValue();
-
-            if (openedView.left().equals(oldPath)) {
-                entry.setValue(
-                        Pair.of(newPath, openedView.right())
-                );
+        for (var entry : OPENED_VIEWS.entrySet()) {
+            if (entry.getValue().left().equals(from)) {
+                entry.setValue(Pair.of(to, entry.getValue().right()));
             }
         }
     }

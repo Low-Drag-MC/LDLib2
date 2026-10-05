@@ -31,6 +31,7 @@ import org.lwjgl.util.tinyfd.TinyFileDialogs;
 import net.minecraft.client.Minecraft;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 
 import org.jetbrains.annotations.Nullable;
 import java.io.File;
@@ -71,6 +72,8 @@ public class Dialog extends UIElement {
      * first.
      */
     private static final long NOTIFICATION_GRACE_MS = 500;
+    /** The smallest a {@link #windowMode window mode} dialog can be resized to. */
+    static final float MIN_WINDOW_SIZE = 50;
 
     public final UIElement overlay;
     public final UIElement titleBar;
@@ -88,6 +91,10 @@ public class Dialog extends UIElement {
     private Runnable onClose;
     private boolean windowMode = false;
     private boolean isResizing;
+    private float windowWidth, windowHeight;
+    @Nullable
+    private String sizeKey;
+    private boolean resized;
 
     public Dialog() {
         this.titleBar = new UIElement().addClass("__dialog_title__");
@@ -333,6 +340,8 @@ public class Dialog extends UIElement {
 
     public Dialog windowMode(float worldX, float worldY, float width, float height) {
         windowMode = true;
+        windowWidth = width;
+        windowHeight = height;
         setClickOutsideClose(true);
         this.getLayout().justifyContent(AlignContent.FLEX_START);
         this.getLayout().alignItems(AlignItems.STRETCH);
@@ -341,17 +350,26 @@ public class Dialog extends UIElement {
         // move and resize behaviour
         WindowDragHelper.setDragMove(titleBar, overlay, null, null);
         WindowDragHelper.setBorderResize(overlay, overlay, 2,
-                new Vector2f(50),
+                new Vector2f(MIN_WINDOW_SIZE),
                 new Vector2f(Float.MAX_VALUE),
                 e -> windowMode, (e, handle) -> {
                     isResizing = true;
                     return true;
-                }, e -> isResizing = false);
+                }, e -> {
+                    isResizing = false;
+                    resized = true;
+                });
         addEventListener(UIEvents.LAYOUT_CHANGED, e -> {
             var parent = getParent();
             if (parent != null) {
                 var local = parent.worldToLocalLayoutOffset(new Vector2f(worldX, worldY));
                 overlay.getLayout().left(local.x).top(local.y);
+                var mui = getModularUI();
+                if (mui != null && (windowWidth > mui.getScreenWidth() || windowHeight > mui.getScreenHeight())) {
+                    // a remembered size may be more than the screen it opens on
+                    overlay.getLayout().width(Math.min(windowWidth, mui.getScreenWidth()))
+                            .height(Math.min(windowHeight, mui.getScreenHeight()));
+                }
                 e.currentElement.addEventListener(UIEvents.LAYOUT_CHANGED, e2 -> {
                     overlay.adaptPositionToScreen();
                 });
@@ -359,6 +377,29 @@ public class Dialog extends UIElement {
             e.currentElement.removeEventListener(UIEvents.LAYOUT_CHANGED, e.currentListener);
         });
         return this;
+    }
+
+    /**
+     * Opens this {@link #windowMode window mode} dialog at the size the user last resized one with the same key to,
+     * and remembers the size it gets resized to in turn, see {@link DialogSizeStore}. Call it after windowMode.
+     */
+    public Dialog rememberSize(String key) {
+        sizeKey = key;
+        var size = DialogSizeStore.get(key);
+        if (size != null) {
+            windowWidth = size.x;
+            windowHeight = size.y;
+            overlay.getLayout().width(size.x).height(size.y);
+        }
+        return this;
+    }
+
+    @Override
+    protected void onRemoved() {
+        super.onRemoved();
+        if (sizeKey != null && resized) {
+            DialogSizeStore.put(sizeKey, overlay.getSizeWidth(), overlay.getSizeHeight());
+        }
     }
 
     /**
@@ -672,23 +713,20 @@ public class Dialog extends UIElement {
             var typedDir = FileDialogActions.navigationDirectory(target, !isSelector);
             var initialDir = typedDir != null ? typedDir : FileDialogActions.openTargetDir(treeList, root[0].getKey());
             var initialName = isSelector || target == null || target.isDirectory() ? "" : target.getName();
-            // The native modal may remain open for a while; keep rendering the game underneath it.
-            CompletableFuture.supplyAsync(() -> TinyFileDialogs.tinyfd_selectFolderDialog(
-                    Component.translatable(title).getString(), initialDir.getAbsolutePath()))
-                    .whenComplete((path, error) -> Minecraft.getInstance().execute(() -> {
-                        pickingFolder.set(false);
-                        dialog.setAutoClose(previousAutoClose);
-                        if (dialog.getParent() == null) return;
-                        dialog.focus();
-                        if (error != null) {
-                            Dialog.showNotification("editor.error", "ldlib.gui.file_dialog.failed", null).show(dialog.getParent());
-                            return;
-                        }
-                        if (path == null || path.isBlank()) return;
-                        var folder = new File(path);
-                        if (!folder.isDirectory()) return;
-                        navigate.accept(initialName.isEmpty() ? folder : new File(folder, initialName));
-                    }));
+            DialogClientSupport.selectFolder(Component.translatable(title).getString(), initialDir, (path, error) -> {
+                pickingFolder.set(false);
+                dialog.setAutoClose(previousAutoClose);
+                if (dialog.getParent() == null) return;
+                dialog.focus();
+                if (error != null) {
+                    Dialog.showNotification("editor.error", "ldlib.gui.file_dialog.failed", null).show(dialog.getParent());
+                    return;
+                }
+                if (path == null || path.isBlank()) return;
+                var folder = new File(path);
+                if (!folder.isDirectory()) return;
+                navigate.accept(initialName.isEmpty() ? folder : new File(folder, initialName));
+            });
         });
         dialog.addContent(new UIElement().layout(layout -> layout.widthPercent(100)
                         .flexDirection(FlexDirection.ROW).gapAll(2))
@@ -832,6 +870,20 @@ public class Dialog extends UIElement {
         super.drawBackgroundAdditional(context);
         if (windowMode && !isResizing) {
             WindowDragHelper.drawResizeIcon(context, overlay, 2);
+        }
+    }
+
+    static final class DialogClientSupport {
+        private DialogClientSupport() {
+        }
+
+        /**
+         * Opens the system folder picker. The native modal may remain open for a while, so it runs off the render
+         * thread to keep the game drawing underneath it; {@code done} gets the picked path back on the client thread.
+         */
+        static void selectFolder(String title, File initialDir, BiConsumer<@Nullable String, @Nullable Throwable> done) {
+            CompletableFuture.supplyAsync(() -> TinyFileDialogs.tinyfd_selectFolderDialog(title, initialDir.getAbsolutePath()))
+                    .whenComplete((path, error) -> Minecraft.getInstance().execute(() -> done.accept(path, error)));
         }
     }
 }

@@ -240,6 +240,31 @@ public class TreeBuilder<K, V> {
             return this;
         }
 
+        /**
+         * What a {@link #disabledLeaf} runs, which is nothing — and how the menu tells that it cannot be
+         * picked ({@code Menu#isEnabled}).
+         */
+        public static final Runnable DISABLED = () -> {
+        };
+
+        /**
+         * An entry that is shown and cannot be picked — Unity's {@code AddDisabledItem}: dimmed, and a click
+         * on it leaves the menu open. For an entry whose absence would hide that the action exists at all,
+         * where it is only unavailable here.
+         */
+        public Menu disabledLeaf(IGuiTexture icon, Component name) {
+            super.leaf(Pair.of(icon, name), DISABLED);
+            return this;
+        }
+
+        public Menu disabledLeaf(String name) {
+            return disabledLeaf(IGuiTexture.EMPTY, Component.translatable(name));
+        }
+
+        public Menu disabledLeaf(Component name) {
+            return disabledLeaf(IGuiTexture.EMPTY, name);
+        }
+
         public Menu remove(String name) {
             return remove(Component.translatable(name));
         }
@@ -302,7 +327,8 @@ public class TreeBuilder<K, V> {
                 layout.width(10);
                 layout.height(10);
             }).style(style -> style.backgroundTexture(node.left())))
-                    .addChild(new Label().textStyle(textStyle -> textStyle.textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL))
+                    // as wide as its text, so the menu grows to its longest entry
+                    .addChild(new Label().textStyle(textStyle -> textStyle.textAlignVertical(Vertical.CENTER).textWrap(TextWrap.HOVER_ROLL).adaptiveWidth(true))
                             .setText(node.right()).layout(layout -> {
                                 layout.setFlexGrow(1);
                             }).setOverflowVisible(false));

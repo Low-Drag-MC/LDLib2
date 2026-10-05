@@ -159,6 +159,15 @@ public class ModularUIWindow implements OsWindowHost {
     private double lastGuiScale;
     private final List<Stylesheet> mirroredStylesheets = new ArrayList<>();
 
+    /**
+     * Which buttons this window has told the UI are down, as a bitmask over GLFW button ids.
+     *
+     * <p>⚠️ Not {@code glfwGetMouseButton}: a press {@link #beginGesture} took to move the window is
+     * one the UI never saw, and a synthesised event stream never touches the device at all — so
+     * asking it drags UI content during a window move, and drops every drag in an automated run.
+     */
+    private int buttonsHeldByUI;
+
     private Gesture gesture = Gesture.NONE;
     private int resizeEdges;
     private double grabGlobalX;
@@ -189,12 +198,13 @@ public class ModularUIWindow implements OsWindowHost {
     }
 
     /**
-     * The window hosting {@code ui}, or {@code null} if it is drawn in the game window.
+     * The window hosting {@code ui} (or the UI it is embedded in), or {@code null} if it is drawn in the game window.
      */
     @Nullable
     public static ModularUIWindow windowOf(ModularUI ui) {
+        var outermost = ui.getOutermostUI();
         for (var window : openWindows()) {
-            if (window.getModularUI() == ui) return window;
+            if (window.getModularUI() == outermost) return window;
         }
         return null;
     }
@@ -386,7 +396,7 @@ public class ModularUIWindow implements OsWindowHost {
                 modularUI.refreshHoveredElementAtScreen(mouseX, mouseY);
                 widget.mouseMoved(mouseX, mouseY);
                 for (int button = GLFW.GLFW_MOUSE_BUTTON_1; button <= GLFW.GLFW_MOUSE_BUTTON_3; button++) {
-                    if (current.isMouseButtonDown(button)) {
+                    if (isButtonHeldByUI(button)) {
                         widget.mouseDragged(mouseEvent(button), mouseX - previousX, mouseY - previousY);
                         break;
                     }
@@ -412,10 +422,12 @@ public class ModularUIWindow implements OsWindowHost {
                 lastModifiers = mouse.mods();
                 var mouseEvent = mouseEvent(mouse.button());
                 if (mouse.action() == GLFW.GLFW_PRESS) {
+                    setButtonHeldByUI(mouse.button(), true);
                     // Double-click bookkeeping is the widget's own; vanilla only passes this so a
                     // screen can special-case it, and ModularUIWidget does not.
                     widget.mouseClicked(mouseEvent, false);
                 } else if (mouse.action() == GLFW.GLFW_RELEASE) {
+                    setButtonHeldByUI(mouse.button(), false);
                     widget.mouseReleased(mouseEvent);
                 }
             }
@@ -455,12 +467,33 @@ public class ModularUIWindow implements OsWindowHost {
                         current.getWindowWidth(), current.getWindowHeight());
                 modularUI.init(currentSurface.guiScaledWidth(), currentSurface.guiScaledHeight());
             }
-            case OsWindowEvent.Focus focus -> widget.setFocused(focus.focused());
+            case OsWindowEvent.Focus focus -> {
+                if (!focus.focused()) {
+                    // A button released elsewhere never reports a RELEASE here, and a button believed
+                    // held for ever is a drag that never ends.
+                    buttonsHeldByUI = 0;
+                }
+                widget.setFocused(focus.focused());
+            }
             case OsWindowEvent.FileDrop drop -> ModularUIClientAccess.onFilesDrop(modularUI, drop.files(), currentSurface);
             case OsWindowEvent.CloseRequest ignored -> onCloseRequested();
             case OsWindowEvent.WindowPos ignored -> {
                 // Recorded on the window; nothing in the UI depends on where it sits.
             }
+        }
+    }
+
+    /** Whether the UI believes {@code button} is held — see {@link #buttonsHeldByUI}. */
+    private boolean isButtonHeldByUI(int button) {
+        return (buttonsHeldByUI & (1 << button)) != 0;
+    }
+
+    private void setButtonHeldByUI(int button, boolean held) {
+        if (button < 0 || button >= Integer.SIZE) return;
+        if (held) {
+            buttonsHeldByUI |= 1 << button;
+        } else {
+            buttonsHeldByUI &= ~(1 << button);
         }
     }
 

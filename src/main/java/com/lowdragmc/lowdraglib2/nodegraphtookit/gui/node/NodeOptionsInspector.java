@@ -96,6 +96,8 @@ public class NodeOptionsInspector extends ModelElement {
                 inspector.setFieldName(portModel.getDisplayName());
                 if (getGraphView() != null) inspector.setHistoryStack(getGraphView().getHistoryStack());
                 inspector.loadValueField(configurable);
+                // option rows write the node directly, bypassing the commands' read-only check
+                inspector.setActive(!isGraphReadOnly());
                 addChildren(inspector);
                 rowCount++;
             }

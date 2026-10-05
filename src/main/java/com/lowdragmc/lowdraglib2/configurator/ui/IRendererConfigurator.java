@@ -91,6 +91,7 @@ public class IRendererConfigurator extends ValueConfigurator<IRenderer> {
     }
 
     protected void showRendererDialog(UIEvent event) {
+        if (!isActiveInHierarchy()) return;
         var previous = getValue();
         IRendererResource.INSTANCE.getResourceInstance().createSelectorDialog(event.x, event.y, renderer -> {
             onValueUpdatePassively(renderer);
@@ -106,7 +107,7 @@ public class IRendererConfigurator extends ValueConfigurator<IRenderer> {
     protected TreeBuilder.Menu createMenu() {
         var menu = super.createMenu();
         var value = getValue();
-        if (value != null && value != IRenderer.EMPTY) {
+        if (value != null && value != IRenderer.EMPTY && isActiveInHierarchy()) {
             menu.leaf(Icons.REMOVE, "ldlib.gui.editor.menu.remove", () -> {
                 updateValueActively(IRenderer.EMPTY);
                 updateValue();

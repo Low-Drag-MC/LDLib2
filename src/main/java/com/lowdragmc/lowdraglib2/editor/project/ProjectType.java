@@ -2,8 +2,10 @@ package com.lowdragmc.lowdraglib2.editor.project;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
+import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import net.minecraft.nbt.NbtIo;
@@ -157,6 +159,30 @@ public class ProjectType {
             }
         }
         return project;
+    }
+
+    /**
+     * Opens one of this type's files in {@code editor} — what the file menu's Open, its recent projects
+     * and a double click in the asset browser all do. Loads it, by default.
+     * <p>
+     * A type whose files are not all meant to be edited — one an importer writes again on every import,
+     * say — can answer differently here: explain, or offer something else to open instead. The file
+     * counts as handled either way.
+     *
+     * @throws Exception when the file could not be loaded; the caller tells the user
+     */
+    public void openProject(Editor editor, File file) throws Exception {
+        editor.loadProject(loadProjectFromFile(file), file);
+    }
+
+    /**
+     * Adds this type's own entries to the asset browser's menu of one of its files, after Open — the
+     * way a resource type adds its own to its resources' menus. Nothing, by default.
+     *
+     * @param editor the editor the browser belongs to
+     * @param file   the file the menu is for
+     */
+    public void appendFileMenu(Editor editor, File file, TreeBuilder.Menu menu) {
     }
 
     /**

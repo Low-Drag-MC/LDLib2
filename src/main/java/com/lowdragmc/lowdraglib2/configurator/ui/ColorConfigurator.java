@@ -106,7 +106,7 @@ public class ColorConfigurator extends ValueConfigurator<Integer> {
     protected void onClick(UIEvent event) {
         if (this.colorSelector.getParent() != null) {
             hide();
-        } else {
+        } else if (isActiveInHierarchy()) {
             show();
         }
     }

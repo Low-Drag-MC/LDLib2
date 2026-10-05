@@ -31,6 +31,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -128,6 +129,11 @@ public class ModularUI {
     private boolean allowDebugMode = true;
     @Getter @Setter
     private boolean debugMode = false;
+    /** Live UIs drawn inside an element of another UI, see {@link #embedIn}. Global because the host element may move between UIs. */
+    private static final Set<ModularUI> EMBEDDED_UIS = new LinkedHashSet<>();
+    @Nullable
+    private UIElement embeddingHost;
+    private String embeddedName = "";
     /**
      * Whether this UI has been torn down and not re-initialised since.
      *
@@ -571,6 +577,7 @@ public class ModularUI {
      */
     public void onRemoved() {
         removed = true;
+        EMBEDDED_UIS.remove(this);
         ui.rootElement.onRemoved();
         styleEngine.dispose();
     }
@@ -711,5 +718,58 @@ public class ModularUI {
     }
 
     // Tooltip/widget/rendering methods are in ModularUIClientAccess and ModularUIWidget (extracted from here)
+
+    /**
+     * Marks this UI as drawn inside {@code host}, an element of another UI (e.g. the UI editor's simulation canvas),
+     * so the debugger can reach it: F12 with focus inside the host targets it and the target pickers list it.
+     * The host still draws it and feeds it input. Undone by {@link #onRemoved()}.
+     *
+     * @param name label shown in the debugger's target picker
+     */
+    public void embedIn(UIElement host, String name) {
+        this.embeddingHost = host;
+        this.embeddedName = name;
+        EMBEDDED_UIS.add(this);
+    }
+
+    /** The UI owning the screen or window this one is shown in: itself unless embedded. */
+    public ModularUI getOutermostUI() {
+        var current = this;
+        while (current.embeddingHost != null && current.embeddingHost.getModularUI() != null) {
+            current = current.embeddingHost.getModularUI();
+        }
+        return current;
+    }
+
+    /** The UIs embedded directly in an element of this one. */
+    public List<ModularUI> getEmbeddedUIs() {
+        var result = new ArrayList<ModularUI>();
+        for (var embedded : EMBEDDED_UIS) {
+            if (!embedded.removed && embedded.embeddingHost != null && embedded.embeddingHost.getModularUI() == this) {
+                result.add(embedded);
+            }
+        }
+        return result;
+    }
+
+    /** Visits every UI embedded in this one, however deeply, labelled by its path from {@code label}, e.g. {@code "Game Window / Simulation"}. */
+    public void visitEmbeddedUIs(String label, BiConsumer<String, ModularUI> visitor) {
+        for (var embedded : getEmbeddedUIs()) {
+            var path = label + " / " + embedded.embeddedName;
+            visitor.accept(path, embedded);
+            embedded.visitEmbeddedUIs(path, visitor);
+        }
+    }
+
+    /** The UI the debugger key opens a debugger on: the embedded UI whose host holds focus, otherwise this one. */
+    ModularUI debugTargetAtFocus() {
+        if (focusedElement == null) return this;
+        for (var embedded : getEmbeddedUIs()) {
+            if (embedded.allowDebugMode && embedded.embeddingHost.isAncestorOf(focusedElement)) {
+                return embedded.debugTargetAtFocus();
+            }
+        }
+        return this;
+    }
 
 }
