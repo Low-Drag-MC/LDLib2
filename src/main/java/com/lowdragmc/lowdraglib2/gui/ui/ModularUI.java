@@ -896,11 +896,11 @@ public class ModularUI {
      * <p>For a keymap that resolved the chord itself: the action still has to reach whatever holds the
      * selection, and that routing lives in one place.
      *
-     * @return true if anything handled it.
+     * @return true if a handler stopped or claimed it.
      */
     @OnlyIn(Dist.CLIENT)
     public boolean dispatchCommand(String command) {
-        return getWidget().dispatchCommand(command, lastPressedKeyCode, lastPressedScanCode, lastPressedModifiers);
+        return getWidget().dispatchCommand(command, lastPressedKeyCode, lastPressedScanCode, lastPressedModifiers, true);
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -1447,23 +1447,31 @@ public class ModularUI {
          * @return true if anything handled the command.
          */
         public boolean dispatchCommand(String command, int keyCode, int scanCode, int modifiers) {
+            return dispatchCommand(command, keyCode, scanCode, modifiers, false);
+        }
+
+        /**
+         * @param taken answer whether a handler stopped or claimed it, not whether any listener heard it — which is
+         *              what decides if the key press is kept from the game.
+         */
+        public boolean dispatchCommand(String command, int keyCode, int scanCode, int modifiers, boolean taken) {
             if (focusedElement != null) {
                 var event = createExecuteCommandEvent(command, keyCode, scanCode, modifiers);
                 event.target = focusedElement;
                 UIEventDispatcher.dispatchEvent(event);
-                return event.hasHandler;
+                return taken ? event.propagationStopped : event.hasHandler;
             }
             var event = createValidCommandEvent(command, keyCode, scanCode, modifiers);
             event.target = ui.rootElement;
-            var handled = UIEventDispatcher.dispatchAllChildren(event);
+            var claimed = UIEventDispatcher.dispatchAllChildren(event) && event.currentElement != null;
             var hasHandler = event.hasHandler;
-            if (handled && event.currentElement != null) {
+            if (claimed) {
                 var executeCommandEvent = createExecuteCommandEvent(command, keyCode, scanCode, modifiers);
                 executeCommandEvent.target = event.currentElement;
                 UIEventDispatcher.dispatchEvent(executeCommandEvent);
                 hasHandler |= executeCommandEvent.hasHandler;
             }
-            return hasHandler;
+            return taken ? claimed : hasHandler;
         }
 
         protected UIEvent createValidCommandEvent(String command, int keyCode, int scanCode, int modifiers) {

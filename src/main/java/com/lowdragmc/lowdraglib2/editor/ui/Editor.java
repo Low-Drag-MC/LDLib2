@@ -341,8 +341,8 @@ public abstract class Editor extends UIElement implements EditorHost {
                         .defaultChord(KeyChord.ctrl(GLFW.GLFW_KEY_S))
                         // The focused view gets first refusal, because a graph editor's save means
                         // "write this level back", not "write the project file". Only if nobody claims
-                        // it does the project itself get saved.
-                        .onAction(context -> command(CommandEvents.SAVE) || saveCurrentProject())
+                        // it does the project itself get saved, by the editor as the last ancestor.
+                        .onAction(context -> command(CommandEvents.SAVE))
                         .build(),
                 EditorAction.builder(EditorActions.SAVE_AS)
                         .category(KeymapCategories.FILE)
@@ -433,7 +433,7 @@ public abstract class Editor extends UIElement implements EditorHost {
     /**
      * Runs a {@link CommandEvents} command, reaching the same handler its built-in chord would.
      *
-     * @return true if anything handled it.
+     * @return true if a handler stopped or claimed it.
      */
     protected boolean command(String command) {
         var ui = getModularUI();
@@ -1283,13 +1283,8 @@ public abstract class Editor extends UIElement implements EditorHost {
     }
 
     protected void onExecuteCommand(UIEvent event) {
-        if (CommandEvents.SAVE.equals(event.command) && getCurrentProject() != null) {
+        if (CommandEvents.SAVE.equals(event.command) && saveCurrentProject()) {
             event.stopPropagation();
-            if (getCurrentProjectFile() != null) {
-                saveProject(null);
-            } else {
-                saveAsProject(null);
-            }
         }
     }
 

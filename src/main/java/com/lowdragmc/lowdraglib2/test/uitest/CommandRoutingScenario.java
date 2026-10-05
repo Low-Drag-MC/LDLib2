@@ -91,7 +91,11 @@ public class CommandRoutingScenario implements UIScenario {
                         .check("it has the focus", ctx -> plain(ctx).isFocused())
                         .key(GLFW.GLFW_KEY_Z, Keys.MOD_CONTROL)
                         .check("the container got the undo", ctx -> saw(ctx, PANEL_SAW).equals(List.of(CommandEvents.UNDO)))
-                        .check("and so did the root", ctx -> saw(ctx, ROOT_SAW).equals(List.of(CommandEvents.UNDO))))
+                        .check("and so did the root", ctx -> saw(ctx, ROOT_SAW).equals(List.of(CommandEvents.UNDO)))
+                        .step("listening without stopping it does not count as taking it", ctx -> {
+                            var taken = plain(ctx).getModularUI().dispatchCommand(CommandEvents.UNDO);
+                            ctx.check("dispatchCommand", !taken, false, taken);
+                        }))
 
                 .group("the graph view's commands run once and stop there", g -> g
                         .step("record two undoable edits on the graph", ctx -> {
@@ -118,7 +122,12 @@ public class CommandRoutingScenario implements UIScenario {
                         .step("ctrl+s saves the graph once", ctx -> ctx.check("saves",
                                 count(ctx, SAVES) == 1, 1, count(ctx, SAVES)))
                         .step("none of them reached the root",
-                                ctx -> ctx.check("root saw", saw(ctx, ROOT_SAW).isEmpty(), "[]", saw(ctx, ROOT_SAW))))
+                                ctx -> ctx.check("root saw", saw(ctx, ROOT_SAW).isEmpty(), "[]", saw(ctx, ROOT_SAW)))
+                        .step("a command the graph takes is reported taken", ctx -> {
+                            var taken = graphView(ctx).getModularUI().dispatchCommand(CommandEvents.SAVE);
+                            ctx.check("dispatchCommand", taken, true, taken);
+                            ctx.check("saves", count(ctx, SAVES) == 2, 2, count(ctx, SAVES));
+                        }))
 
                 .step("give the clipboard back", ctx -> Minecraft.getInstance().keyboardHandler
                         .setClipboard(ctx.<String>get(USER_CLIPBOARD)))

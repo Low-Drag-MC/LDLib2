@@ -12,6 +12,9 @@ import lombok.Setter;
 import net.minecraft.network.chat.Component;
 
 import org.jetbrains.annotations.Nullable;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Set;
 import java.util.Stack;
 
 public class HistoryStack implements IHistoryStack {
@@ -113,14 +116,26 @@ public class HistoryStack implements IHistoryStack {
     public void jumpToHistory(HistoryItem historyItem) {
         if (currentHistory == historyItem) return;
         if (undoStack.contains(historyItem)) {
+            Set<Object> reverted = Collections.newSetFromMap(new IdentityHashMap<>());
             while(undoStack.peek() != historyItem) {
                 var popped = undoStack.pop();
                 popped.action().undo();
                 redoStack.push(popped);
+                if (popped.action() instanceof SerializableRecordAction<?> serializableRecord) {
+                    reverted.add(serializableRecord.serializable);
+                }
             }
             currentHistory = undoStack.peek();
             if (currentHistory.action() instanceof SerializableRecordAction<?> serializableRecord) {
                 serializableRecord.execute();
+                reverted.remove(serializableRecord.serializable);
+            }
+            // undoing a snapshot restores the object's previous one, which may lie below plain actions
+            for (int i = undoStack.size() - 2; i >= 0 && !reverted.isEmpty(); i--) {
+                if (undoStack.get(i).action() instanceof SerializableRecordAction<?> serializableRecord
+                        && reverted.remove(serializableRecord.serializable)) {
+                    serializableRecord.execute();
+                }
             }
         } else if (redoStack.contains(historyItem)) {
             while (redoStack.peek() != historyItem) {

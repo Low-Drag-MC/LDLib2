@@ -36,8 +36,7 @@ public class UIResourceProviderContainer extends ResourceProviderContainer<UITem
             layout.heightPercent(100);
         }).style(style -> style.backgroundTexture(Icons.WIDGET_BASIC)))
         .setOnEdit((container, path) -> {
-            // if there is an existing view open, don't open a new one'
-            if (OPENED_VIEWS.values().stream().map(Tuple::getA).anyMatch(path::equals)) return;
+            if (selectOpenedView(OPENED_VIEWS.values(), path)) return;
 
             var template = provider.getResource(path);
             if (template == null) return;

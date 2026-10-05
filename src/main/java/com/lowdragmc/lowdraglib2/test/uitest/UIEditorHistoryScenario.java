@@ -6,6 +6,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.UITemplate;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Tab;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.TabView;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.registry.RegistrationEnvironment;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
@@ -30,6 +32,7 @@ import java.util.List;
 public class UIEditorHistoryScenario implements UIScenario {
     private static final String VIEW = "view";
     private static final String A = "a", B = "b", C = "c", PASTED = "pasted";
+    private static final String TAB = "tab", TAB_CONTENT = "tab_content", PASTED_TAB = "pasted_tab", PASTED_CONTENT = "pasted_content";
 
     @Override
     public void configure(ScenarioOptions options) {
@@ -105,13 +108,87 @@ public class UIEditorHistoryScenario implements UIScenario {
                         .checkEquals("and removes c from the live panel", List.of("a", "b"), UIEditorHistoryScenario::panelIds)
                         .check("c itself is detached", ctx -> ctx.<UIElement>get(C).getParent() == null))
 
+                .group("a property edit right after a paste undoes on its own", g -> g
+                        .step("copy a", ctx -> {
+                            view(ctx).focusElement(ctx.get(A));
+                            view(ctx).hierarchy.copySelected();
+                        })
+                        .step("paste into the panel", ctx -> {
+                            view(ctx).focusElement(panel(ctx));
+                            view(ctx).hierarchy.pasteToSelected();
+                        })
+                        .step("rename the panel while it is still the one inspected", ctx -> {
+                            var panel = panel(ctx);
+                            panel.setId("panel_edited");
+                            panel.createHistoryRecorder().record(view(ctx).historyStack, Component.literal("rename"), "rename");
+                        })
+                        .step("focus the editor", ctx -> view(ctx).focus())
+                        .key(GLFW.GLFW_KEY_Z, Keys.MOD_CONTROL)
+                        .checkEquals("undo takes the rename back", "panel_renamed", ctx -> panel(ctx).getId())
+                        .checkEquals("and leaves the paste", List.of("a", "b", "a"), UIEditorHistoryScenario::panelIds)
+                        .key(GLFW.GLFW_KEY_Z, Keys.MOD_CONTROL)
+                        .checkEquals("the next undo takes the paste back", List.of("a", "b"), UIEditorHistoryScenario::panelIds)
+                        .key(GLFW.GLFW_KEY_Y, Keys.MOD_CONTROL)
+                        .key(GLFW.GLFW_KEY_Y, Keys.MOD_CONTROL)
+                        .checkEquals("redo pastes again", List.of("a", "b", "a"), UIEditorHistoryScenario::panelIds)
+                        .checkEquals("and renames again", "panel_edited", ctx -> panel(ctx).getId()))
+
+                .group("removing a loaded tab takes its content along, and undo brings both back", g -> g
+                        .step("remember the tab and its content", ctx -> {
+                            var entry = tabs(ctx).getTabContents().entrySet().iterator().next();
+                            ctx.put(TAB, entry.getKey());
+                            ctx.put(TAB_CONTENT, entry.getValue());
+                        })
+                        .check("the content was loaded with what is inside it",
+                                ctx -> ctx.<UIElement>get(TAB_CONTENT).getChildren().size() == 1)
+                        .step("remove the tab", ctx -> {
+                            view(ctx).focusElement(ctx.get(TAB));
+                            view(ctx).hierarchy.removeSelected();
+                        })
+                        .check("the tab is gone", ctx -> tabs(ctx).getTabContents().isEmpty())
+                        .check("and its content with it", ctx -> ctx.<UIElement>get(TAB_CONTENT).getParent() == null)
+                        .step("focus the editor", ctx -> view(ctx).focus())
+                        .key(GLFW.GLFW_KEY_Z, Keys.MOD_CONTROL)
+                        .check("undo puts the tab back with the same content", UIEditorHistoryScenario::tabHasItsContent)
+                        .check("selected, as it was", ctx -> tabs(ctx).getSelectedTab() == ctx.get(TAB))
+                        .key(GLFW.GLFW_KEY_Y, Keys.MOD_CONTROL)
+                        .check("redo removes both again", ctx -> ctx.<UIElement>get(TAB_CONTENT).getParent() == null)
+                        .key(GLFW.GLFW_KEY_Z, Keys.MOD_CONTROL)
+                        .check("and undo restores them", UIEditorHistoryScenario::tabHasItsContent))
+
+                .group("redoing a pasted tab brings its content back", g -> g
+                        .step("copy the tab", ctx -> {
+                            view(ctx).focusElement(ctx.get(TAB));
+                            view(ctx).hierarchy.copySelected();
+                        })
+                        .step("paste it into the tab view", ctx -> {
+                            var tabs = tabs(ctx);
+                            view(ctx).focusElement(tabs);
+                            view(ctx).hierarchy.pasteToSelected();
+                            var pasted = tabs.tabScroller.viewContainer.getChildren().getLast();
+                            ctx.put(PASTED_TAB, pasted);
+                            ctx.put(PASTED_CONTENT, tabs.getTabContents().get(pasted));
+                        })
+                        .check("the pasted tab has a content", ctx -> ctx.get(PASTED_CONTENT) != null)
+                        .step("focus the editor", ctx -> view(ctx).focus())
+                        .key(GLFW.GLFW_KEY_Z, Keys.MOD_CONTROL)
+                        .check("undo takes the tab out with its content", ctx ->
+                                !tabs(ctx).getTabContents().containsKey(ctx.<Tab>get(PASTED_TAB))
+                                        && ctx.<UIElement>get(PASTED_CONTENT).getParent() == null)
+                        .key(GLFW.GLFW_KEY_Y, Keys.MOD_CONTROL)
+                        .check("redo puts both back", ctx ->
+                                tabs(ctx).getTabContents().get(ctx.<Tab>get(PASTED_TAB)) == ctx.get(PASTED_CONTENT)
+                                        && ctx.<UIElement>get(PASTED_CONTENT).getParent() == tabs(ctx).tabContentContainer))
+
                 .closeScreen();
     }
 
     private static ModularUI buildUI(TestContext ctx) {
         var panel = new UIElement().setId("panel").addChildren(
                 new UIElement().setId("a"), new UIElement().setId("b"), new UIElement().setId("c"));
-        var root = new UIElement().setId("doc").addChild(panel);
+        var tabs = new TabView();
+        tabs.addTab(new Tab().setText("one"), new UIElement().addChild(new UIElement().setId("inside")));
+        var root = new UIElement().setId("doc").addChildren(panel, tabs);
         var view = new UIEditorView().loadTemplate(UITemplate.of(root), template -> {});
         view.layout(layout -> layout.widthPercent(100).heightPercent(100));
         ctx.put(VIEW, view);
@@ -125,6 +202,16 @@ public class UIEditorHistoryScenario implements UIScenario {
     private static UIElement panel(TestContext ctx) {
         var root = view(ctx).getCurrentUI().rootElement;
         return root.getChildren().getFirst();
+    }
+
+    private static TabView tabs(TestContext ctx) {
+        return (TabView) view(ctx).getCurrentUI().rootElement.getChildren().get(1);
+    }
+
+    private static boolean tabHasItsContent(TestContext ctx) {
+        var content = ctx.<UIElement>get(TAB_CONTENT);
+        return tabs(ctx).getTabContents().get(ctx.<Tab>get(TAB)) == content
+                && content.getParent() == tabs(ctx).tabContentContainer;
     }
 
     private static List<String> panelIds(TestContext ctx) {

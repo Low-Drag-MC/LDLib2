@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath;
 import com.lowdragmc.lowdraglib2.editor.resource.IResourceProvider;
 import com.lowdragmc.lowdraglib2.editor.resource.Resource;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
+import com.lowdragmc.lowdraglib2.editor.ui.View;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.LDLibFonts;
 import com.lowdragmc.lowdraglib2.editor.resource.ResourceImportContext;
@@ -39,12 +40,14 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Tuple;
 import org.lwjgl.glfw.GLFW;
 
 import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
@@ -1068,6 +1071,20 @@ public class ResourceProviderContainer<T> extends UIElement {
      * editor open on the resource follows it.
      */
     protected void onResourceMoved(IResourcePath from, IResourcePath to) {
+    }
+
+    /** @return false if none is open on {@code path} in this container's editor; one in another editor, a minimized one say, does not count */
+    protected boolean selectOpenedView(Collection<? extends Tuple<IResourcePath, ? extends View>> opened, IResourcePath path) {
+        for (var entry : opened) {
+            var view = entry.getB();
+            if (!entry.getA().equals(path) || view.getEditor() != editor) continue;
+            var container = view.getViewContainer();
+            if (container != null) {
+                container.selectView(view);
+            }
+            return true;
+        }
+        return false;
     }
 
 }

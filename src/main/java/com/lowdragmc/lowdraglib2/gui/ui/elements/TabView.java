@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.UISoundUtils;
@@ -48,6 +49,12 @@ public class TabView extends UIElement {
     private final BiMap<Tab, UIElement> tabContents = HashBiMap.create();
     @Setter
     private Consumer<Tab> onTabSelected = Consumers.nop();
+    private final UIEventListener tabPressListener = event -> {
+        if (event.button == 0 && event.currentElement instanceof Tab tab) {
+            UISoundUtils.playButtonClickSound();
+            selectTab(tab);
+        }
+    };
     // runtime
     @Nullable
     @Getter
@@ -94,12 +101,7 @@ public class TabView extends UIElement {
         if (index < 0) {
             index = tabContents.size() + 1 + index;
         }
-        tab.addEventListener(UIEvents.MOUSE_DOWN, event -> {
-            if (event.button == 0) {
-                UISoundUtils.playButtonClickSound();
-                selectTab(tab);
-            }
-        });
+        tab.addEventListener(UIEvents.MOUSE_DOWN, tabPressListener);
         content.setDisplay(false);
         tabScroller.addScrollViewChildAt(tab, clampIndex(index, tabScroller.viewContainer));
         tabContentContainer.addChildAt(content, clampIndex(index, tabContentContainer));
@@ -129,6 +131,7 @@ public class TabView extends UIElement {
         if (tab.getTabView() == this) {
             tab.setTabView(null);
         }
+        tab.removeEventListener(UIEvents.MOUSE_DOWN, tabPressListener);
         var content = tabContents.remove(tab);
         if (content != null) {
             // Not necessarily in the scroller: a header can have been moved elsewhere to pin it, so
@@ -262,12 +265,8 @@ public class TabView extends UIElement {
                     if (contentIndex < tabContentContainer.getChildren().size()) {
                         var content = tabContentContainer.getChildren().get(contentIndex);
                         tabContents.put(tabElement, content);
-                        tabElement.addEventListener(UIEvents.MOUSE_DOWN, event -> {
-                            if (event.button == 0) {
-                                UISoundUtils.playButtonClickSound();
-                                selectTab(tabElement);
-                            }
-                        });
+                        tabElement.setTabView(this);
+                        tabElement.addEventListener(UIEvents.MOUSE_DOWN, tabPressListener);
                         content.setDisplay(false);
                         if (selectedIndex == i) {
                             selectTab(tabElement);
