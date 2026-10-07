@@ -121,6 +121,15 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
                 cache.put(path, result.get());
                 return result.get();
             }
+            // a folder the asset browser has open: one copy, the one it edits and saves, rather than a second read
+            for (var provider : unlistedProviders) {
+                if (!provider.hasResource(path)) continue;
+                var unlisted = provider.getResource(path);
+                if (unlisted != null) {
+                    cache.put(path, unlisted);
+                    return unlisted;
+                }
+            }
             // a resource file inside the game dir that no provider owns, e.g. one stored in a folder the
             // user created through the asset browser. Checked before the pack tier because
             // PackFileResourceProvider caches for the whole session and only invalidates on a resource
@@ -320,15 +329,34 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
     }
 
     /**
-     * Lets {@link #findResourceEntry} map what is read through the provider back to its path, without listing or
-     * saving it — for a view over a folder no registered provider covers.
+     * A provider over a folder no registered provider covers, e.g. the asset browser's own, that is known without
+     * being listed or saved. While it is, {@link #getResource} hands out what it reads, so the copy the browser
+     * shows and edits is the one everything else draws with; and {@link #findResourceEntry} maps it back to its path.
      */
     public void addUnlistedProvider(IResourceProvider<T> provider) {
-        unlistedProviders.add(provider);
+        // what was resolved before has to be resolved again, through it
+        if (unlistedProviders.add(provider)) clearCache();
     }
 
     public void removeUnlistedProvider(IResourceProvider<T> provider) {
-        unlistedProviders.remove(provider);
+        if (unlistedProviders.remove(provider)) clearCache();
+    }
+
+    /**
+     * Writes a resource that no registered provider owns: through the unlisted provider holding it, else straight to
+     * its file. A provider is not required to edit a file the editor reached, wherever it lies in the game folder.
+     *
+     * @return whether it was written.
+     */
+    public boolean writeUnowned(IResourcePath path, T value) {
+        for (var provider : unlistedProviders) {
+            if (provider.hasResource(path) && provider.canEdit(path)) {
+                return provider.addResource(path, value);
+            }
+        }
+        if (!directFileProvider.writeResource(path, value)) return false;
+        cache.put(path, value);
+        return true;
     }
 
     private void addResourceProvider(Map<ResourceProviderType, List<IResourceProvider<T>>> resourceProviders, IResourceProvider<T> provider) {

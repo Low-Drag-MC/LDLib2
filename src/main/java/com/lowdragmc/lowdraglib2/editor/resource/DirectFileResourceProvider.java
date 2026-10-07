@@ -81,6 +81,33 @@ public final class DirectFileResourceProvider<T> {
         cache.clear();
     }
 
+    /**
+     * Writes {@code value} to its file, in the form {@link FileResourceProvider} writes, and remembers it as the value
+     * read at the file's new stamp, so the next lookup does not read back what was just written.
+     *
+     * @return whether it was written.
+     */
+    public boolean writeResource(IResourcePath path, T value) {
+        if (value == null || !supportResourcePath(path)) return false;
+        var file = ((FilePath) path).file;
+        var tag = resourceInstance.resource.serializeResource(value, Platform.getFrozenRegistry());
+        if (tag == null) return false;
+        var nbt = new CompoundTag();
+        nbt.put("data", tag);
+        nbt.putString("type", resourceInstance.resource.getName());
+        try {
+            if (!file.getParentFile().exists()) {
+                file.getParentFile().mkdirs();
+            }
+            NbtIo.write(nbt, file.toPath());
+        } catch (Exception e) {
+            LDLib2.LOGGER.error("Failed to write resource file {} as {}: ", file, resourceInstance.resource.getName(), e);
+            return false;
+        }
+        cache.put(path, new Entry<>(value, file.lastModified(), System.currentTimeMillis()));
+        return true;
+    }
+
     @Nullable
     private T readResourceFromFile(File file) {
         if (!file.isFile()) return null;
