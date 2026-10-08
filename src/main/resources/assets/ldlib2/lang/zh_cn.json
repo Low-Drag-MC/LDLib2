@@ -658,6 +658,7 @@
   "ldlib.gui.file_dialog.name_exists": "同名文件已存在。",
   "ldlib.gui.file_dialog.invalid_name": "该名称不能用作文件名。",
   "ldlib.gui.file_dialog.failed": "操作失败。",
+  "ldlib.gui.file_dialog.outside_root": "该路径不在此对话框可选的文件夹范围内。",
 
   "ldlib2.configuration.title": "%s 设置",
   "ldlib2.configuration.font": "文字渲染",

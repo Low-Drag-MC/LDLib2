@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 @KJSBindings
 public class Dialog extends UIElement {
@@ -686,43 +687,44 @@ public class Dialog extends UIElement {
                 return dialog;
             }
         }
-        var root = new FileNode[]{new FileNode(dir).setValid(valid)};
+        var root = new FileNode(dir).setValid(valid);
         var pickingFolder = new AtomicBoolean();
         dialog.overlay.layout(layout -> layout.width(240).maxWidthPercent(95));
         dialog.setTitle(title);
+        Supplier<File> typedTarget = () -> FileDialogActions.typedTarget(textField.getText(), isSelector,
+                new File("").getAbsoluteFile(), FileDialogActions.openTargetDir(treeList, dir));
         Consumer<File> navigate = target -> {
-            var folder = FileDialogActions.navigationDirectory(target, !isSelector);
-            if (folder == null) {
-                showFileDialogPathError(dialog);
-                return;
+            if (!isInsideFileDialogRoot(dialog, dir, target)) return;
+            if (FileDialogDefaults.resolve(root, isSelector, target).selectedNode() == null) {
+                showFileDialogError(dialog, "editor.file_not_found");
+            } else {
+                applyFileDialogDefault(treeList, textField, root, isSelector, target);
             }
-            root[0] = new FileNode(folder).setValid(valid);
-            treeList.setRoot(root[0]);
-            applyFileDialogDefault(treeList, textField, root[0], isSelector, target);
         };
         dialog.addContent(textField.layout(layout -> layout.widthPercent(100).minWidth(0).height(14)));
-        var jumpButton = fileDialogToolButton(Icons.RIGHT, "ldlib.gui.file_dialog.jump_to").setOnClick(e -> {
-            var target = FileDialogActions.resolveTypedPath(textField.getText(), root[0].getKey());
-            if (target == null) showFileDialogPathError(dialog);
-            else navigate.accept(target);
-        });
-        var openButton = fileDialogToolButton(Icons.FOLDER, "ldlib.gui.tips.open_folder").setOnClick(e -> {
-            var target = FileDialogActions.resolveTypedPath(textField.getText(), root[0].getKey());
+        var jumpButton = fileDialogToolButton(Icons.RIGHT, "ldlib.gui.file_dialog.jump_to", "__file-dialog_jump-to__")
+                .setOnClick(e -> navigate.accept(typedTarget.get()));
+        var openButton = fileDialogToolButton(Icons.FOLDER, "ldlib.gui.tips.open_folder", "__file-dialog_open-folder__").setOnClick(e -> {
+            var target = typedTarget.get();
+            if (!isInsideFileDialogRoot(dialog, dir, target)) return;
             var folder = FileDialogActions.navigationDirectory(target, !isSelector);
-            if (folder == null) showFileDialogPathError(dialog);
+            if (folder == null) showFileDialogError(dialog, "editor.file_not_found");
             else Util.getPlatform().openFile(folder);
         });
-        var selectButton = fileDialogToolButton(Icons.OPEN_FILE, "ldlib.gui.file_dialog.select_folder").setOnClick(e -> {
+        var selectButton = fileDialogToolButton(Icons.OPEN_FILE, "ldlib.gui.file_dialog.select_folder", "__file-dialog_choose-folder__").setOnClick(e -> {
             if (!pickingFolder.compareAndSet(false, true)) return;
             var previousAutoClose = dialog.autoClose;
             dialog.setAutoClose(false);
-            var target = FileDialogActions.resolveTypedPath(textField.getText(), root[0].getKey());
-            var typedDir = FileDialogActions.navigationDirectory(target, !isSelector);
-            var initialDir = typedDir != null ? typedDir : FileDialogActions.openTargetDir(treeList, root[0].getKey());
+            var target = typedTarget.get();
+            var typedDir = target != null && FileDialogActions.isWithin(dir, target)
+                    ? FileDialogActions.navigationDirectory(target, !isSelector) : null;
+            var initialDir = typedDir != null ? typedDir : FileDialogActions.openTargetDir(treeList, dir);
             var initialName = isSelector || target == null || target.isDirectory() ? "" : target.getName();
+            // the native picker takes no "." segments: given one it opens at its default location
+            var initialPath = FileDialogDefaults.normalizeFile(initialDir).getPath();
             // The native modal may remain open for a while; keep rendering the game underneath it.
             CompletableFuture.supplyAsync(() -> TinyFileDialogs.tinyfd_selectFolderDialog(
-                    Component.translatable(title).getString(), initialDir.getAbsolutePath()))
+                    Component.translatable(title).getString(), initialPath))
                     .whenComplete((path, error) -> Minecraft.getInstance().execute(() -> {
                         pickingFolder.set(false);
                         dialog.setAutoClose(previousAutoClose);
@@ -764,8 +766,8 @@ public class Dialog extends UIElement {
                         Icons.getIcon(node.getKey().getName()
                                 .substring(node.getKey().getName().lastIndexOf('.') + 1)),
                 node -> Component.translatable(node.getKey().getName())))
-                .setRoot(root[0]);
-        applyFileDialogDefault(treeList, textField, root[0], isSelector, defaultValue);
+                .setRoot(root);
+        applyFileDialogDefault(treeList, textField, root, isSelector, defaultValue);
         var scrollerView = new ScrollerView().addScrollViewChild(treeList).layout(layout -> {
             layout.widthPercent(100);
             layout.height(180);
@@ -774,7 +776,7 @@ public class Dialog extends UIElement {
         // still offers to create a folder in the root.
         scrollerView.addEventListener(UIEvents.MOUSE_DOWN, e -> {
             if (e.button == 1) {
-                FileDialogActions.openContextMenu(dialog, treeList, root[0], features, e.x, e.y);
+                FileDialogActions.openContextMenu(dialog, treeList, root, features, e.x, e.y);
             }
         });
         dialog.addContent(scrollerView);
@@ -788,7 +790,9 @@ public class Dialog extends UIElement {
                             return;
                         }
                         var file = new File(textField.getText());
-                        if (file.isDirectory() || file.exists()) {
+                        if (!FileDialogActions.isWithin(dir, file)) {
+                            if (parent != null) Dialog.showNotification("editor.error", "ldlib.gui.file_dialog.outside_root", null).show(parent);
+                        } else if (file.isDirectory() || file.exists()) {
                             result.accept(file);
                         } else if (parent != null){
                             Dialog.showNotification("editor.error", "editor.file_not_found", null).show(parent);
@@ -802,8 +806,12 @@ public class Dialog extends UIElement {
                             if (file.isFile()) {
                                 file = file.getParentFile();
                             }
-                            if (file.isDirectory()) {
-                                result.accept(new File(file, fileName));
+                            if (!file.isDirectory()) return;
+                            var picked = new File(file, fileName);
+                            if (FileDialogActions.isWithin(dir, picked)) {
+                                result.accept(picked);
+                            } else if (parent != null) {
+                                Dialog.showNotification("editor.error", "ldlib.gui.file_dialog.outside_root", null).show(parent);
                             }
                         }
                     }
@@ -817,8 +825,9 @@ public class Dialog extends UIElement {
         return dialog;
     }
 
-    private static Button fileDialogToolButton(com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture icon, String tooltip) {
+    private static Button fileDialogToolButton(com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture icon, String tooltip, String clazz) {
         var button = new Button().noText();
+        button.addClass(clazz);
         button.layout(layout -> layout.width(14).height(14).flexShrink(0).paddingAll(3));
         button.style(style -> style.tooltips(tooltip));
         button.addChild(new UIElement().addClass("__white_icon__")
@@ -827,10 +836,23 @@ public class Dialog extends UIElement {
         return button;
     }
 
-    private static void showFileDialogPathError(Dialog dialog) {
+    /** Everything the dialog shows or picks is inside {@code root}. */
+    private static boolean isInsideFileDialogRoot(Dialog dialog, File root, @Nullable File target) {
+        if (target == null) {
+            showFileDialogError(dialog, "editor.file_not_found");
+            return false;
+        }
+        if (!FileDialogActions.isWithin(root, target)) {
+            showFileDialogError(dialog, "ldlib.gui.file_dialog.outside_root");
+            return false;
+        }
+        return true;
+    }
+
+    private static void showFileDialogError(Dialog dialog, String info) {
         var parent = dialog.getParent();
         if (parent == null) return;
-        var error = Dialog.showNotification("editor.error", "editor.file_not_found", null);
+        var error = Dialog.showNotification("editor.error", info, null);
         dialog.addExternalElement(error);
         error.setOnClose(() -> dialog.removeExternalElement(error));
         error.show(parent);

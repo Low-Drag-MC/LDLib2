@@ -70,7 +70,7 @@ final class FileDialogActions {
         rootElement.addChild(menu);
     }
 
-    /** The directory the "open folder" button reveals: the selected one, falling back to the root. */
+    /** The selected directory, or the selected file's, falling back to the root. */
     static File openTargetDir(TreeList<FileNode> treeList, File root) {
         var selected = treeList.getSelected().stream().findFirst().map(FileNode::getKey).orElse(null);
         var dir = selected == null ? null : selected.isDirectory() ? selected : selected.getParentFile();
@@ -78,6 +78,22 @@ final class FileDialogActions {
             return dir;
         }
         return root.isDirectory() ? root : root.getParentFile();
+    }
+
+    /**
+     * What the path box names. A picker's box holds the selection's {@link File} spelling, so a relative path is
+     * relative to the working directory; a save dialog's holds a name inside {@code openDir}.
+     */
+    static @Nullable File typedTarget(String text, boolean isSelector, File workingDir, File openDir) {
+        if (text.isBlank()) return openDir;
+        return resolveTypedPath(text, isSelector ? workingDir : openDir);
+    }
+
+    /** Compared as strings: the confirm button passes raw text, and {@code toPath()} throws on names like {@code a?b}. */
+    static boolean isWithin(File root, File file) {
+        var rootPath = FileDialogDefaults.normalizeFile(root).getPath();
+        var path = FileDialogDefaults.normalizeFile(file).getPath();
+        return path.equals(rootPath) || path.startsWith(rootPath.endsWith(File.separator) ? rootPath : rootPath + File.separator);
     }
 
     static @Nullable File resolveTypedPath(String text, File currentDirectory) {

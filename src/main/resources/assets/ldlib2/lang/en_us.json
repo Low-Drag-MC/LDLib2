@@ -651,6 +651,7 @@
   "ldlib.gui.file_dialog.name_exists": "A file with that name already exists.",
   "ldlib.gui.file_dialog.invalid_name": "That name cannot be used for a file.",
   "ldlib.gui.file_dialog.failed": "The operation failed.",
+  "ldlib.gui.file_dialog.outside_root": "That path is outside the folder this dialog picks from.",
   "ldlib.gui.file_dialog.error": "File Error",
 
   "editor.tab.maximize": "Maximize Pane",
