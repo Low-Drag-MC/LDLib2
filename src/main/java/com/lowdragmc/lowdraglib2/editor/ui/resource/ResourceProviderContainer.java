@@ -1078,13 +1078,18 @@ public class ResourceProviderContainer<T> extends UIElement {
         for (var entry : opened) {
             var view = entry.getB();
             if (!entry.getA().equals(path) || view.getEditor() != editor) continue;
-            var container = view.getViewContainer();
-            if (container != null) {
-                container.selectView(view);
-            }
+            bringToFront(view);
             return true;
         }
         return false;
+    }
+
+    /** Selects {@code view}'s tab: adding a view to a container leaves the tab already selected there in front. */
+    protected static void bringToFront(View view) {
+        var container = view.getViewContainer();
+        if (container != null) {
+            container.selectView(view);
+        }
     }
 
 }

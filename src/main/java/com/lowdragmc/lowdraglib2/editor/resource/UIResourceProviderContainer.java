@@ -77,6 +77,7 @@ public class UIResourceProviderContainer extends ResourceProviderContainer<UITem
                 return Component.literal(editable ? name : name + " (read-only)");
             });
             editor.placeView(newView, () -> editor.centerWindow.getLeftTop());
+            bringToFront(newView);
         });
     }
 

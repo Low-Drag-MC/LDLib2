@@ -133,6 +133,7 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
             }
         });
         editor.placeView(newView, () -> editor.centerWindow.getLeftTop());
+        bringToFront(newView);
     }
 
     /**
