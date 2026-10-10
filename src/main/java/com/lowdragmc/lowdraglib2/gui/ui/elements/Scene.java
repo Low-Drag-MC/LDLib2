@@ -112,7 +112,7 @@ public class Scene extends UIElement {
     protected boolean tickWorld = true;
     protected Consumer<Scene> beforeWorldRender;
     protected Consumer<Scene> afterWorldRender;
-    /** Ctx-aware overlay hook fired during the renderer's {@code afterTranslucentDispatch}.
+    /** Ctx-aware overlay hook fired during the renderer's {@code afterAllDispatch}.
      *  Use this when you need to submit / draw via {@link SceneRenderContext}, e.g. gizmos. */
     @Nullable
     @Setter
@@ -572,7 +572,11 @@ public class Scene extends UIElement {
 
         public static void configureRenderer(Scene scene, WorldSceneRenderer renderer) {
             renderer.setOnLookingAt(hit -> updateHoverState(scene, hit));
-            renderer.setAfterTranslucentDispatch(ctx -> renderOverlay(scene, ctx));
+            // last, over the particles too: gizmos and borders draw without a depth test
+            renderer.setAfterAllDispatch(ctx -> {
+                renderOverlay(scene, ctx);
+                ctx.bufferSource().endBatch();
+            });
             syncBeforeWorldRender(scene);
         }
 

@@ -17,8 +17,8 @@ import net.minecraft.client.renderer.state.level.CameraRenderState;
  *       use {@code submitStorage} (vanilla pipeline)</li>
  *   <li>{@code afterTranslucentDispatch} — after translucent features endBatch, before
  *       particle dispatch; raw {@code bufferSource.getBuffer(noDepthRT)} draws auto-flushed</li>
- *   <li>{@code afterAllDispatch} — after all dispatch; raw draws need manual
- *       {@code bufferSource.endBatch()}</li>
+ *   <li>{@code afterAllDispatch} — after all dispatch, the particle manager's {@code afterRender}
+ *       included; raw draws need manual {@code bufferSource.endBatch()}</li>
  * </ul>
  */
 public record SceneRenderContext(

@@ -730,12 +730,12 @@ public abstract class WorldSceneRenderer {
 
                 dispatcher.renderTranslucentParticles();
                 bs.endBatch();
-
-                if (afterAllDispatch != null) afterAllDispatch.apply(ctx);
             } finally {
                 dispatcher.clearSubmitNodes();
                 if (particleManager != null) particleManager.afterRender();
             }
+            // after afterRender(), where a particle manager may still draw (Photon does)
+            if (afterAllDispatch != null) afterAllDispatch.apply(ctx);
         } finally {
             SceneCameraContext.clear();
         }
