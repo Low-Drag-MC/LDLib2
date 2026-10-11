@@ -626,6 +626,9 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
                 }
             }
         });
+        // the arrow's clicks are its own: they neither select the row nor double-click it
+        arrow.addEventListener(UIEvents.CLICK, e -> stopArrowClick(e, node));
+        arrow.addEventListener(UIEvents.DOUBLE_CLICK, e -> stopArrowClick(e, node));
         var ui = nodeUISupplier.apply(node);
         container.addChildren(arrow, ui);
         container.addEventListener(UIEvents.CLICK, e -> onNodeClicked(e, node));
@@ -695,6 +698,12 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
                 selectedNodes.add(node);
             }
             onSelectedChanged.accept(getSelected());
+        }
+    }
+
+    private void stopArrowClick(UIEvent event, NODE node) {
+        if (event.button == 0 && node.isBranch() && !expandsOnClick(node)) {
+            event.stopPropagation();
         }
     }
 
