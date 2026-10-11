@@ -19,7 +19,7 @@ import java.util.List;
 /**
  * A {@link TreeList} row's arrow takes its own clicks: a click on it opens or folds the row without selecting it, a double
  * click on it turns the row twice and is no double click on the row. The row itself still selects, and a leaf's empty arrow
- * is part of its row.
+ * is part of its row. With click to expand the arrow is part of its row too, but for a branch the filter turns away.
  */
 @LDLRegisterClient(name = "tree_list_arrow", group = "ldlib2", registry = UIScenario.REGISTRY,
         environment = RegistrationEnvironment.DEV_ONLY)
@@ -29,6 +29,7 @@ public class TreeListArrowScenario implements UIScenario {
     private static final String ROOT = "tree_root";
     private static final String SELECTIONS = "tree_selections";
     private static final String DOUBLE_CLICKS = "tree_double_clicks";
+    private static final String A_OPEN = "tree_a_open";
 
     @Override
     public void configure(ScenarioOptions options) {
@@ -79,6 +80,25 @@ public class TreeListArrowScenario implements UIScenario {
                         .frames(3)
                         .check("B selected", ctx -> selectedKeys(ctx).equals(List.of("B"))))
 
+                .group("with click to expand, a click on the arrow is a click on the row, but for a branch the filter turns away", g -> g
+                        .waitMs(400)
+                        .step("click to expand, all but C", ctx -> {
+                            tree(ctx).setClickToExpand(true).setClickToExpandFilter(node -> !node.key.equals("C"));
+                            ctx.put(A_OPEN, new boolean[]{tree(ctx).isNodeExpanded(a(ctx))});
+                        })
+                        .click("#arrow_A")
+                        .frames(3)
+                        .check("A turned once and selected", ctx -> tree(ctx).isNodeExpanded(a(ctx)) != ((boolean[]) ctx.get(A_OPEN))[0]
+                                && selectedKeys(ctx).equals(List.of("A")))
+                        .waitMs(400)
+                        .click("#arrow_C")
+                        .frames(3)
+                        .check("C opened by its arrow, nothing else selected", ctx -> ctx.exists("#row_C1") && selectedKeys(ctx).equals(List.of("A")))
+                        .waitMs(400)
+                        .click("#label_C")
+                        .frames(3)
+                        .check("C selected by its row and left open", ctx -> ctx.exists("#row_C1") && selectedKeys(ctx).equals(List.of("C"))))
+
                 .teardown("close the screen", ctx -> ctx.mc().setScreen(null));
     }
 
@@ -88,6 +108,7 @@ public class TreeListArrowScenario implements UIScenario {
         var model = new Node(null, "root");
         model.add("A").add("A1");
         model.add("B");
+        model.add("C").add("C1");
         ctx.put(ROOT, model);
         ctx.put(SELECTIONS, new int[1]);
         ctx.put(DOUBLE_CLICKS, new int[1]);
