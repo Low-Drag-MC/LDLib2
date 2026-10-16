@@ -408,8 +408,6 @@ public class FluidSlot extends BindableUIElement<FluidStack> {
     }
 
     protected void onHoverTooltips(UIEvent event) {
-        var item = getValue();
-        if (item.isEmpty()) return;
         // an XEI recipe slot renders the name of the fluid itself, do not repeat it there
         var withFluidName = event.customData != XEITooltipContext.RECIPE_SLOT;
         event.hoverTooltips = new HoverTooltips(getFullTooltipTexts(withFluidName), null, null, null);
