@@ -85,7 +85,7 @@ public abstract class BindableUIElement<T> extends UIElement implements IBindabl
         }
         var subscription = dataProvider.registerListener(v -> setValue(v, notify), true);
         if (tickableListener != null) {
-            subscription.andThen(() -> removeEventListener(UIEvents.TICK, tickableListener));
+            subscription = subscription.andThen(() -> removeEventListener(UIEvents.TICK, tickableListener));
         }
         dataSources.put(dataProvider, subscription);
         return this;
