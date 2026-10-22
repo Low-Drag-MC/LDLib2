@@ -242,7 +242,15 @@ public class AccessorRegistries {
     }
 
     /**
-     * @throws IllegalArgumentException if the named methods can't be called or return the wrong kind of value
+     * The accessor a {@link ManagedCodec} field names: the {@link IAccessor} its method returns, or one built from
+     * its codec and stream codec. Resolved by calling the named methods on {@code holder} the first time, then
+     * kept per field and holder class, so a subclass that overrides them gets its own. Safe to call from any thread.
+     *
+     * @param field  a field annotated with {@link ManagedCodec}
+     * @param holder the object the field belongs to, whose class decides which overrides apply
+     * @throws IllegalArgumentException if a named method can't be found or called, throws, returns {@code null},
+     *                                  or returns the wrong kind of value
+     * @see com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey#getFieldAccessor(Object)
      */
     public static IAccessor<?> findByManagedCodec(Field field, Object holder) {
         var key = new ManagedCodecKey(field, holder.getClass());

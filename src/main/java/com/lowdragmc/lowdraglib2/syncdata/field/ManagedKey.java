@@ -103,6 +103,13 @@ public final class ManagedKey {
 
     private IAccessor<?> fieldAccessor;
 
+    /**
+     * The accessor registered for the field's type. This ignores {@link ManagedCodec}, which may pick a different
+     * accessor per holder class; use {@link #getFieldAccessor(Object)} for the one the field is actually saved and
+     * synced with.
+     *
+     * @throws IllegalArgumentException if no accessor is registered for the type
+     */
     public IAccessor<?> getFieldAccessor() {
         if (fieldAccessor == null) {
             fieldAccessor = AccessorRegistries.findByType(contentType);
@@ -110,6 +117,15 @@ public final class ManagedKey {
         return fieldAccessor;
     }
 
+    /**
+     * The accessor the field is saved and synced with on {@code holder}: the one its {@link ManagedCodec} names if
+     * it has one, the one registered for its type otherwise.
+     *
+     * @param holder the object the field belongs to, whose class decides which {@link ManagedCodec} overrides apply
+     * @throws IllegalArgumentException if the {@link ManagedCodec} can't be resolved, or no accessor is registered
+     *                                  for the type
+     * @see AccessorRegistries#findByManagedCodec(Field, Object)
+     */
     public IAccessor<?> getFieldAccessor(Object holder) {
         return rawField.isAnnotationPresent(ManagedCodec.class) ?
                 AccessorRegistries.findByManagedCodec(rawField, holder) :
