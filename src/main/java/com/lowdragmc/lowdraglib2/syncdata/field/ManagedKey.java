@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.syncdata.field;
 
 import com.lowdragmc.lowdraglib2.syncdata.accessor.IAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.AccessorRegistries;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.ManagedCodec;
 import com.lowdragmc.lowdraglib2.syncdata.ref.IRef;
 import lombok.Getter;
 import lombok.ToString;
@@ -109,7 +110,13 @@ public final class ManagedKey {
         return fieldAccessor;
     }
 
+    public IAccessor<?> getFieldAccessor(Object holder) {
+        return rawField.isAnnotationPresent(ManagedCodec.class) ?
+                AccessorRegistries.findByManagedCodec(rawField, holder) :
+                getFieldAccessor();
+    }
+
     public IRef<?> createRef(Object instance) {
-        return getFieldAccessor().createRef(this, instance);
+        return getFieldAccessor(instance).createRef(this, instance);
     }
 }

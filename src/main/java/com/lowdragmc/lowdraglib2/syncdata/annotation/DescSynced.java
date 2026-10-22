@@ -18,6 +18,8 @@ import java.lang.annotation.Target;
  *
  * @DescSynced
  * private List<ResourceLocation> c = new ArrayList<>();
+ * }</pre>
+ * @see ManagedCodec
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
