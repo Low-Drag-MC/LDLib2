@@ -3,6 +3,7 @@
 
   "block.ldlib2.test": "Test Block",
   "block.ldlib2.test_2": "Test Block 2",
+  "block.ldlib2.sync_test": "Sync Test Block",
 
   "item.ldlib2.test": "Test Block",
   "item.ldlib2.test_2": "Test Block 2",
