@@ -14,7 +14,14 @@ import com.lowdragmc.lowdraglib2.uitest.UIScenario;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
+import com.lowdragmc.lowdraglib2.LDLib2Registries;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.VirtualScrollerView;
+
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Runs every widget wrapper the other scenarios never reach.
@@ -41,7 +48,19 @@ public class ComposeGalleryScenario implements UIScenario {
             "g-selector", "g-colour", "g-tagfield", "g-structured", "g-headless",
             "g-itemslot", "g-fluidslot", "g-togglegroup", "g-inventory",
             "g-split-v", "g-split-top", "g-mounted", "g-template",
-            "gallery-column");
+            "gallery-column",
+            "g-text", "g-button", "g-textfield", "g-switch", "g-toggle", "g-progress",
+            "g-scrollview", "g-tabview", "g-split-h",
+            "g-tree", "g-search", "g-inspector", "g-scene", "g-graph", "g-graph-node");
+
+    /**
+     * Registered widgets with no composable of their own, and why. Everything else registered in
+     * LDLib2 must appear on the gallery, put there by its wrapper.
+     */
+    private static final Map<Class<?>, String> NOT_WRAPPED = Map.of(
+            VirtualScrollerView.class,
+            "LazyColumn / LazyRow / LazyVerticalGrid are the composition's virtualised lists; this one "
+                    + "rebuilds its rows on every scroll, which a composition owning those rows cannot allow");
 
     @Override
     public void configure(ScenarioOptions options) {
@@ -61,7 +80,8 @@ public class ComposeGalleryScenario implements UIScenario {
             s.checkExists("." + styleClass);
         }
 
-        s.screenshotElement("gallery", ".gallery-root")
+        s.check("every registered widget is wrapped and on the gallery", ComposeGalleryScenario::everyWidgetCovered)
+                .screenshotElement("gallery", ".gallery-root")
 
                 // Array-valued widgets: the guard has to compare contents, not identity.
                 .check("the text area shows the lines it was given", ctx ->
@@ -115,6 +135,34 @@ public class ComposeGalleryScenario implements UIScenario {
                 })
 
                 .closeScreen();
+    }
+
+    /**
+     * Walks the gallery for every widget type in LDLib2's registry. Only elements a wrapper put there
+     * count - a widget's own internal parts (the label inside a toggle, the scrollbar inside a scroll
+     * view) would otherwise make types look covered that no composable creates.
+     */
+    private static boolean everyWidgetCovered(TestContext ctx) {
+        var present = new HashSet<Class<?>>();
+        var stack = new ArrayDeque<UIElement>();
+        stack.push(ctx.requireUI().ui.rootElement);
+        while (!stack.isEmpty()) {
+            var element = stack.pop();
+            if (!element.isInternalUI()) present.add(element.getClass());
+            element.getChildren().forEach(stack::push);
+        }
+        var missing = new ArrayList<String>();
+        for (var holder : LDLib2Registries.UI_ELEMENTS.values()) {
+            var type = holder.clazz();
+            // LDLib2's own widgets; other mods register theirs in the same registry.
+            if (!type.getName().startsWith("com.lowdragmc.lowdraglib2.gui.ui.")) continue;
+            if (NOT_WRAPPED.containsKey(type)) continue;
+            if (present.stream().noneMatch(type::isAssignableFrom)) missing.add(type.getName());
+        }
+        if (!missing.isEmpty()) {
+            ctx.log("registered widgets with no wrapper on the gallery: " + missing);
+        }
+        return missing.isEmpty();
     }
 
     private static UIElement element(TestContext ctx, String selector) {

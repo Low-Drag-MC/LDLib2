@@ -388,7 +388,7 @@ private class EditReporter<V> {
 }
 
 /** [Updater.set], with the write marked as the composition's own. See [CompositionWrites]. */
-private inline fun <E, T> Updater<E>.write(value: T, crossinline block: E.(T) -> Unit) =
+internal inline fun <E, T> Updater<E>.write(value: T, crossinline block: E.(T) -> Unit) =
     set(value) { v -> CompositionWrites.writing { block(v) } }
 
 /**
@@ -409,7 +409,7 @@ private inline fun <E, T> Updater<E>.write(value: T, crossinline block: E.(T) ->
  * @param writeValue how a value is written. Text widgets use it to keep the cursor where it was.
  */
 @Composable
-private fun <E : BindableUIElement<EV>, EV, V> ControlledNode(
+internal fun <E : BindableUIElement<EV>, EV, V> ControlledNode(
     factory: () -> E,
     value: V,
     onValueChange: (V) -> Unit,
@@ -479,7 +479,7 @@ private fun <E : BindableUIElement<V>, V> BindableNode(
 )
 
 /** Holds the latest of a caller's lambdas for a widget that takes one once, in its factory. */
-private class Latest<T>(var value: T)
+internal class Latest<T>(var value: T)
 
 /**
  * Single-line text input.

@@ -8,6 +8,21 @@ import androidx.compose.runtime.setValue
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement
 import com.lowdragmc.lowdraglib2.gui.ui.compose.BindableValue
+import net.minecraft.client.Minecraft
+import com.lowdragmc.lowdraglib2.gui.util.TreeNode
+import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites
+import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D
+import com.lowdragmc.lowdraglib2.gui.ui.compose.TreeList
+import com.lowdragmc.lowdraglib2.gui.ui.compose.TextField
+import com.lowdragmc.lowdraglib2.gui.ui.compose.TabView
+import com.lowdragmc.lowdraglib2.gui.ui.compose.Switch
+import com.lowdragmc.lowdraglib2.gui.ui.compose.SplitViewHorizontal
+import com.lowdragmc.lowdraglib2.gui.ui.compose.SearchComponent
+import com.lowdragmc.lowdraglib2.gui.ui.compose.ScrollView
+import com.lowdragmc.lowdraglib2.gui.ui.compose.Scene
+import com.lowdragmc.lowdraglib2.gui.ui.compose.ProgressBar
+import com.lowdragmc.lowdraglib2.gui.ui.compose.Inspector
+import com.lowdragmc.lowdraglib2.gui.ui.compose.GraphView
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Box
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Button
 import com.lowdragmc.lowdraglib2.gui.ui.compose.CodeEditor
@@ -29,6 +44,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.compose.StructuredTagEditor
 import com.lowdragmc.lowdraglib2.gui.ui.compose.TagField
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Text
 import com.lowdragmc.lowdraglib2.gui.ui.compose.TextArea
+import com.lowdragmc.lowdraglib2.gui.ui.compose.Toggle
 import com.lowdragmc.lowdraglib2.gui.ui.compose.ToggleGroup
 import com.lowdragmc.lowdraglib2.gui.ui.compose.UITemplate
 import com.lowdragmc.lowdraglib2.gui.ui.compose.composeModularUI
@@ -63,16 +79,18 @@ class TestComposeGallery : IScreenTest {
 
 @Composable
 private fun Gallery() {
-    Box(layout = { width(300.px); padding { all(6.px) }; gap { all(3.px) } }, classes = "gallery-root") {
-        // Column is the one container the other demos never used.
-        Column(layout = { gap { all(3.px) } }, classes = "gallery-column") {
-            Label(Component.literal("label"), classes = "g-label")
-            TextValues()
-            NumericValues()
-            PickerValues()
-            SlotValues()
+    Row(layout = { padding { all(6.px) }; gap { all(8.px) } }, classes = "gallery-root") {
+        Box(layout = { width(300.px); gap { all(3.px) } }) {
+            Column(layout = { gap { all(3.px) } }, classes = "gallery-column") {
+                Label(Component.literal("label"), classes = "g-label")
+                TextValues()
+                NumericValues()
+                PickerValues()
+                SlotValues()
+            }
+            Structural()
         }
-        Structural()
+        Box(layout = { width(160.px) }) { Catalogue() }
     }
 }
 
@@ -203,4 +221,94 @@ private fun Structural() {
     )
     // A null path is the "nothing selected yet" state an editor field starts in.
     UITemplate(null, layout = { size(60.px, 10.px) }, classes = "g-template")
+}
+
+/**
+ * The second column: every registered widget the first one does not show. Together the two are the
+ * whole catalogue — `ComposeGalleryScenario` checks that against the widget registry, so a widget
+ * added to LDLib2 without a wrapper here fails it.
+ */
+@Composable
+private fun Catalogue() {
+    Column(layout = { gap { all(3.px) } }, classes = "gallery-catalogue") {
+        Basics()
+        Containers()
+        Larger()
+    }
+}
+
+@Composable
+private fun Basics() {
+    var text by remember { mutableStateOf("typed") }
+    var on by remember { mutableStateOf(true) }
+    var ticked by remember { mutableStateOf(false) }
+
+    Text("text", classes = "g-text")
+    Button(onClick = {}, text = "button", classes = "g-button")
+    TextField(text, { text = it }, layout = { width(100.px) }, classes = "g-textfield")
+    Row(layout = { gap { all(3.px) } }) {
+        Switch(on, { on = it }, classes = "g-switch")
+        Toggle(ticked, { ticked = it }, text = Component.literal("toggle"), classes = "g-toggle")
+    }
+    ProgressBar(0.4f, layout = { size(100.px, 8.px) }, classes = "g-progress")
+}
+
+@Composable
+private fun Containers() {
+    var tab by remember { mutableStateOf<Any>("a") }
+
+    ScrollView(layout = { size(120.px, 30.px) }, classes = "g-scrollview") {
+        repeat(5) { Text("row $it") }
+    }
+    TabView(selectedKey = tab, onSelect = { tab = it }, layout = { size(140.px, 40.px) }, classes = "g-tabview") {
+        tab("a", "A") { Text("tab a") }
+        tab("b", "B") { Text("tab b") }
+    }
+    SplitViewHorizontal(
+        left = { Text("left") },
+        right = { Text("right") },
+        layout = { size(140.px, 20.px) },
+        classes = "g-split-h",
+    )
+}
+
+@Composable
+private fun Larger() {
+    val tree = remember {
+        TreeNode<String, String>("root").also { root ->
+            root.getOrCreateChild("leaf a")
+            root.getOrCreateChild("leaf b")
+        }
+    }
+    var picked by remember { mutableStateOf(emptySet<TreeNode<String, String>>()) }
+    var found by remember { mutableStateOf<String?>(null) }
+    val inspected = remember { Transform2D() }
+    val player = Minecraft.getInstance().player
+    val below = remember { player?.blockPosition()?.below() }
+
+    TreeList(
+        root = tree,
+        selected = picked,
+        onSelectedChange = { picked = it },
+        flattenRoot = true,
+        layout = { size(140.px, 30.px) },
+        classes = "g-tree",
+    )
+    SearchComponent(
+        selected = found,
+        onSelectedChange = { found = it },
+        search = { query, found -> listOf("apple", "apricot", "banana").filter { it.startsWith(query) }.forEach(found) },
+        layout = { size(100.px, 14.px) },
+        classes = "g-search",
+    )
+    Inspector(target = inspected, layout = { size(140.px, 40.px) }, classes = "g-inspector")
+    Scene(
+        world = player?.level(),
+        blocks = listOfNotNull(below),
+        layout = { size(60.px, 40.px) },
+        classes = "g-scene",
+    )
+    GraphView(layout = { size(140.px, 40.px) }, classes = "g-graph") {
+        Box(layout = { size(20.px, 10.px) }, style = { backgroundTexture(Sprites.RECT_SOLID) }, classes = "g-graph-node")
+    }
 }

@@ -26,21 +26,21 @@ class PropsDiffTest {
     }
 
     @Test
-    fun `nothing to do when the chain is unchanged`() {
+    fun `nothing to do when the keys are unchanged`() {
         val (off, on) = diff(listOf("a", "b"), listOf("a", "b"))
         assertEquals(emptyList<String>(), off)
         assertEquals(emptyList<String>(), on)
     }
 
     @Test
-    fun `added ops are applied and existing ones are left alone`() {
+    fun `added keys are applied and existing ones are left alone`() {
         val (off, on) = diff(listOf("a"), listOf("a", "b"))
         assertEquals(emptyList<String>(), off)
         assertEquals(listOf("b"), on)
     }
 
     @Test
-    fun `dropped ops are unapplied`() {
+    fun `dropped keys are taken back off`() {
         val (off, on) = diff(listOf("a", "b"), listOf("a"))
         assertEquals(listOf("b"), off)
         assertEquals(emptyList<String>(), on)
@@ -54,22 +54,22 @@ class PropsDiffTest {
     }
 
     @Test
-    fun `an emptied chain removes everything`() {
+    fun `an emptied spec removes everything`() {
         val (off, on) = diff(listOf("a", "b", "c"), emptyList())
         assertEquals(listOf("a", "b", "c"), off)
         assertEquals(emptyList<String>(), on)
     }
 
     @Test
-    fun `a chain built from nothing applies everything`() {
+    fun `a spec built from nothing applies everything`() {
         val (off, on) = diff(emptyList(), listOf("a", "b"))
         assertEquals(emptyList<String>(), off)
         assertEquals(listOf("a", "b"), on)
     }
 
     @Test
-    fun `reordering the same ops is a no-op`() {
-        // Ops are independent property writes, so their order in the chain does not matter. Treating
+    fun `reordering the same keys is a no-op`() {
+        // Classes and event registrations are unordered sets, so their order does not matter. Treating
         // a reorder as a change would mean pointlessly removing and re-adding every event listener.
         val (off, on) = diff(listOf("a", "b", "c"), listOf("c", "a", "b"))
         assertEquals(emptyList<String>(), off)
@@ -77,7 +77,7 @@ class PropsDiffTest {
     }
 
     @Test
-    fun `ops are applied in chain order so a later one wins`() {
+    fun `keys are applied in the order given`() {
         val (_, on) = diff(emptyList(), listOf("first", "second", "third"))
         assertEquals(listOf("first", "second", "third"), on)
     }
@@ -90,8 +90,8 @@ class PropsDiffTest {
     }
 
     @Test
-    fun `equal-but-not-identical ops count as unchanged`() {
-        // The real ops are data classes, so two chains built from the same calls compare equal even
+    fun `equal-but-not-identical keys count as unchanged`() {
+        // Class names and event keys are compared by value, so two specs built from the same calls match even
         // though they are different instances - this is what makes the "unchanged" path reachable.
         val current = listOf(StringBuilder("a").toString())
         val next = listOf(StringBuilder("a").toString())

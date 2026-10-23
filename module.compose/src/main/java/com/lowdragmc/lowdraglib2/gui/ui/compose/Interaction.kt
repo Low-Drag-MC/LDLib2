@@ -31,8 +31,8 @@ import androidx.compose.runtime.setValue
  * <p>[pressed] has no class equivalent at all — only widgets that implement `base`/`hover`/`pressed`
  * textures themselves know about it — so that half is new either way.
  *
- * <p>Reading either flag in the composable body recomposes on change. Reading one inside a `style`
- * block would not — see "读状态要在函数体里" in compose.md.
+ * <p>Reading either flag in the composable body recomposes on change; reading one inside a `style`
+ * or `layout` block re-runs just that block, without recomposing anything.
  */
 @Stable
 class InteractionState {

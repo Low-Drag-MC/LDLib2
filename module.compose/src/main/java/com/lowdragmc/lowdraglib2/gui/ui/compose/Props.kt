@@ -173,8 +173,8 @@ internal class AppliedProps<T : UIElement> : RememberObserver, Reappliable {
      * <p>Everything else here is an already-evaluated value — the classes string, the flags — computed
      * in the composable body where Compose tracked the reads itself. With no block there is nothing
      * that *could* read state during apply, and observing anyway would cost a scope's worth of
-     * bookkeeping per node for no possible benefit. Measured at ~1.5µs a node, which is the whole
-     * difference between the benchmark's 0.8ms and 1.6ms for a 500-row update.
+     * bookkeeping per node for no possible benefit. Measured at about 1.5µs a node,
+     * which across a 500-row list is most of the cost of an update.
      */
     private fun write() {
         val observer = this.observer

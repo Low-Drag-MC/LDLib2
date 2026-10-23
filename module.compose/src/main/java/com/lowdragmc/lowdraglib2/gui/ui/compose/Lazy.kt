@@ -242,7 +242,7 @@ private fun <T> LazyList(
 }
 
 /** A `remember` key that compares by identity, where a list's own `equals` would walk every element. */
-private class Identity(private val value: Any?) {
+internal class Identity(private val value: Any?) {
     override fun equals(other: Any?) = other is Identity && other.value === value
     override fun hashCode() = System.identityHashCode(value)
 }
