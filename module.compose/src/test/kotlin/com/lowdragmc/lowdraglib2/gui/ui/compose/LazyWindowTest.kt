@@ -14,6 +14,14 @@ import org.junit.jupiter.api.Test
  */
 class LazyWindowTest {
 
+    private fun lazyWindow(
+        total: Int,
+        itemSize: Float,
+        viewportSize: Float,
+        scrollFraction: Float,
+        overscan: Int,
+    ): IntRange = fixedWindow(total, itemSize, viewportSize, scrollFraction, overscan).range
+
     /** 10 rows of 10px in a 50px viewport: five visible, so six rows plus overscan. */
     private fun window(
         total: Int = 10,
@@ -94,5 +102,45 @@ class LazyWindowTest {
         val above = lazyWindow(100, 10f, 50f, 2f, 1)
         assertEquals(0, below.first)
         assertTrue(above.last <= 99, "ran past the end: $above")
+    }
+
+    @Test
+    fun `the first visible item and how far into it the view starts`() {
+        // 100 rows of 10px in a 50px viewport, scrolled half way: 475px of 950 scrolled.
+        val w = fixedWindow(100, 10f, 50f, 0.5f, 2)
+        assertEquals(47, w.firstVisible)
+        assertEquals(5f, w.firstVisibleOffset, 0.001f)
+    }
+
+    @Test
+    fun `the spacers and the mounted rows add up to the whole list`() {
+        for (step in 0..20) {
+            val w = fixedWindow(137, 9f, 55f, step / 20f, 3)
+            val mounted = (w.range.last - w.range.first + 1) * 9f
+            assertEquals(137 * 9f, w.leading + mounted + w.trailing, 0.01f)
+        }
+    }
+}
+
+/** Keys for every item of a lazy container, which have to be distinct even when the caller's are not. */
+class ItemKeysTest {
+
+    @Test
+    fun `without a key lambda the index is the key`() {
+        assertEquals(listOf<Any>(0, 1, 2), itemKeys(listOf("a", "b", "c"), null))
+    }
+
+    @Test
+    fun `repeated keys are told apart by occurrence`() {
+        val keys = itemKeys(listOf("x", "y", "x", "x")) { _, item -> item }
+        assertEquals(listOf<Any>("x", "y", RepeatedKey("x", 1), RepeatedKey("x", 2)), keys)
+        assertEquals(4, keys.toSet().size)
+    }
+
+    @Test
+    fun `positions are looked up by key`() {
+        val keys = ItemKeys(listOf("a", "b", "c"))
+        assertEquals(1, keys.indexOf("b"))
+        assertEquals(-1, keys.indexOf("z"))
     }
 }

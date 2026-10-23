@@ -176,6 +176,34 @@ public class ComposeWidgetsScenario implements UIScenario {
                 .click(".tab-reverse")
                 .frames(3)
                 .check("and back to declared order", ctx -> tabHeaders(ctx).equals(List.of("One", "Two")))
+
+                // onSelect is for the player's choices. Everything above - tabs added, removed and
+                // reordered, a selection pushed in from state - happened without one.
+                .checkText(".tab-state", "selected=two reports=0")
+                .step("pick tab one by its header", ctx -> pressHeader(ctx, "One"))
+                .frames(3)
+                .checkText(".tab-state", "selected=one reports=1")
+
+                // Removing the selected tab hands the selection to its declared neighbour, and says so.
+                .step("add tab three", ctx -> press(ctx, ".tab-toggle"))
+                .frames(3)
+                .step("pick it", ctx -> pressHeader(ctx, "Three"))
+                .frames(3)
+                .checkText(".tab-state", "selected=three reports=2")
+                .step("remove it again", ctx -> press(ctx, ".tab-toggle"))
+                .frames(3)
+                .checkText(".tab-state", "selected=two reports=3")
+                .check("and the view shows tab two", ctx -> paneShown(ctx, ".tab-body-two"))
+
+                // The whole view leaving and coming back neither reports nor loses the selection.
+                .step("hide the tab view", ctx -> press(ctx, ".tab-hide"))
+                .frames(3)
+                .checkNotExists(".demo-tabs")
+                .checkText(".tab-state", "selected=two reports=3")
+                .step("show it again", ctx -> press(ctx, ".tab-hide"))
+                .frames(3)
+                .check("tab two is still the one showing", ctx -> paneShown(ctx, ".tab-body-two"))
+                .checkText(".tab-state", "selected=two reports=3")
                 .screenshotElement("widgets-tabs", ".__root__")
 
                 // A modal driven by state. Its content has to be composed before `show()` runs, or
@@ -253,6 +281,18 @@ public class ComposeWidgetsScenario implements UIScenario {
     private static void press(TestContext ctx, String selector) {
         var event = UIEvent.create(UIEvents.MOUSE_DOWN);
         event.target = element(ctx, selector);
+        event.button = 0;
+        UIEventDispatcher.dispatchEvent(event);
+    }
+
+    /** Presses the header captioned [caption], the way a player picks a tab. */
+    private static void pressHeader(TestContext ctx, String caption) {
+        var header = ctx.query().type(Tab.class).list().stream()
+                .map(ref -> ref.as(UIElement.class))
+                .filter(tab -> caption.equals(Texts.of(tab)))
+                .findFirst().orElseThrow();
+        var event = UIEvent.create(UIEvents.MOUSE_DOWN);
+        event.target = header;
         event.button = 0;
         UIEventDispatcher.dispatchEvent(event);
     }

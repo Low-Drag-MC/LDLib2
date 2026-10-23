@@ -6,7 +6,8 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -14,6 +15,8 @@ import androidx.compose.runtime.withFrameNanos
 import com.lowdragmc.lowdraglib2.math.interpolate.Eases
 import com.lowdragmc.lowdraglib2.math.interpolate.IEase
 import com.lowdragmc.lowdraglib2.utils.ColorUtils
+import kotlinx.coroutines.Job
+import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
 import kotlin.math.min
 import kotlin.math.sqrt
@@ -39,17 +42,21 @@ data class TweenSpec(
         require(delayMillis >= 0) { "delayMillis must not be negative" }
     }
 
-    /** Progress at [elapsedMillis], eased, clamped to 0..1. */
+    /** Progress at [elapsedMillis], eased, clamped to 0..1. Nothing moves until the delay is over. */
     internal fun fractionAt(elapsedMillis: Long): Float {
-        if (durationMillis == 0) return 1f
         val active = elapsedMillis - delayMillis
-        if (active <= 0L) return 0f
+        if (active < 0L) return 0f
+        if (durationMillis == 0) return 1f
         val linear = (active.toFloat() / durationMillis).coerceAtMost(1f)
         return if (linear >= 1f) 1f else easing.interpolate(linear)
     }
 
     internal fun isFinished(elapsedMillis: Long) = elapsedMillis - delayMillis >= durationMillis
 }
+
+/** A tween; the shorthand next to [spring]. */
+fun tween(durationMillis: Int = 250, delayMillis: Int = 0, easing: IEase = Eases.LINEAR): TweenSpec =
+    TweenSpec(durationMillis, delayMillis, easing)
 
 /**
  * A damped spring, with no fixed duration — it arrives when the physics say so.
@@ -76,11 +83,15 @@ data class SpringSpec(
     }
 }
 
-/** Result of running an animation to completion: where it ended up and how fast it was going. */
+/** A spring with the usual defaults; the shorthand most call sites want. */
+fun spring(dampingRatio: Float = 1f, stiffness: Float = 400f, threshold: Float = 0.01f): SpringSpec =
+    SpringSpec(dampingRatio, stiffness, threshold)
+
+/** The integrator's live state for one run of [animateScalar]: where the value is and how fast. */
 private class Motion(var value: Float, var velocity: Float)
 
 /**
- * Runs an animation off the frame clock, reporting every frame, and returns the exit velocity.
+ * Runs an animation off the frame clock, reporting value and velocity every frame, until it arrives.
  *
  * <p>Shared by everything below so there is one place where "what does this spec do per frame" is
  * decided.
@@ -137,31 +148,35 @@ private suspend inline fun animateScalar(
 /**
  * Integrates a damped harmonic oscillator for one frame. Returns true once it has settled.
  *
- * <p>Sub-stepped, and with a ceiling on how much time one frame may contribute. A stiff spring
- * integrated explicitly goes unstable when the step is large, and "large" is exactly what happens
- * after a lag spike or when a window regains focus — without this the value would fly off instead of
- * settling.
+ * <p>Semi-implicit Euler, sub-stepped finely enough for the spring at hand. Explicit integration of a
+ * stiff or heavily damped spring goes unstable once the step outgrows the spring's own time scale, so
+ * the step shrinks with both the natural frequency and the damping. A frame may also only contribute
+ * so much time: a lag spike, or a window regaining focus, would otherwise integrate a second in one
+ * go. And should the value still go non-finite, it settles on the target rather than drawing NaN.
  */
 private fun stepSpring(spec: SpringSpec, motion: Motion, target: Float, deltaMillis: Long): Boolean {
-    val damping = 2f * spec.dampingRatio * sqrt(spec.stiffness)
+    val omega = sqrt(spec.stiffness)
+    val damping = 2f * spec.dampingRatio * omega
+    val maxStep = min(MAX_SUB_STEP_SECONDS, 0.5f / (spec.dampingRatio * omega + omega))
     var remaining = min(deltaMillis, MAX_FRAME_MILLIS).toFloat() / 1000f
     while (remaining > 0f) {
-        val step = min(remaining, MAX_SUB_STEP_SECONDS)
+        val step = min(remaining, maxStep)
         val displacement = motion.value - target
         val acceleration = -spec.stiffness * displacement - damping * motion.velocity
         motion.velocity += acceleration * step
         motion.value += motion.velocity * step
         remaining -= step
     }
+    if (!motion.value.isFinite() || !motion.velocity.isFinite()) {
+        motion.value = target
+        motion.velocity = 0f
+        return true
+    }
     return abs(motion.value - target) < spec.threshold && abs(motion.velocity) < spec.threshold
 }
 
 private const val MAX_FRAME_MILLIS = 64L
 private const val MAX_SUB_STEP_SECONDS = 1f / 240f
-
-/** A spring with the usual defaults; the shorthand most call sites want. */
-fun spring(dampingRatio: Float = 1f, stiffness: Float = 400f): SpringSpec =
-    SpringSpec(dampingRatio, stiffness)
 
 /**
  * A value that can be driven imperatively from a coroutine.
@@ -170,25 +185,33 @@ fun spring(dampingRatio: Float = 1f, stiffness: Float = 400f): SpringSpec =
  * sequencing one animation after another, or anything that needs to be interrupted on purpose.
  * Reading [value] inside a composable subscribes to it, so the UI follows.
  *
+ * <p>One animation at a time: starting another, or calling [snapTo], cancels the one running — its
+ * coroutine ends with a `CancellationException` — and the new one carries on from where it left the
+ * value.
+ *
  * ```kotlin
  * val offset = rememberAnimatable(0f)
  * LaunchedEffect(Unit) {
  *     offset.animateTo(100f, spring(dampingRatio = 0.6f))
- *     offset.animateTo(0f, TweenSpec(400))
+ *     offset.animateTo(0f, tween(400))
  * }
  * ```
  */
 @Stable
 class Animatable(initialValue: Float) {
-    var value: Float by mutableStateOf(initialValue)
+    var value: Float by mutableFloatStateOf(initialValue)
         private set
 
     /** Current rate of change, in units per second. Carried across a change of target. */
     var velocity: Float = 0f
         private set
 
-    /** Jumps straight there, cancelling any motion. */
+    private var running: Job? = null
+
+    /** Jumps straight there, cancelling any animation in progress. */
     fun snapTo(targetValue: Float) {
+        running?.cancel()
+        running = null
         value = targetValue
         velocity = 0f
     }
@@ -200,16 +223,23 @@ class Animatable(initialValue: Float) {
      * intact — which is what makes a re-issued `animateTo` continue rather than restart.
      */
     suspend fun animateTo(targetValue: Float, animationSpec: AnimationSpec = spring()) {
-        if (value == targetValue) {
-            velocity = 0f
-            return
-        }
-        // Written every frame rather than once at the end, so that being cancelled part-way leaves
-        // both the position and the speed as they actually were — which is what a re-issued
-        // animateTo picks up from.
-        animateScalar(animationSpec, value, targetValue, velocity) { next, nextVelocity ->
-            value = next
-            velocity = nextVelocity
+        val job = coroutineContext[Job]
+        running?.takeIf { it !== job }?.cancel()
+        running = job
+        try {
+            if (value == targetValue) {
+                velocity = 0f
+                return
+            }
+            // Written every frame rather than once at the end, so that being cancelled part-way
+            // leaves both the position and the speed as they actually were — which is what a
+            // re-issued animateTo picks up from.
+            animateScalar(animationSpec, value, targetValue, velocity) { next, nextVelocity ->
+                value = next
+                velocity = nextVelocity
+            }
+        } finally {
+            if (running === job) running = null
         }
     }
 }
@@ -221,19 +251,22 @@ fun rememberAnimatable(initialValue: Float): Animatable = remember { Animatable(
  * Follows [targetValue], but gets there over time instead of jumping.
  *
  * ```kotlin
- * val alpha by animateFloatAsState(if (expanded) 1f else 0f, TweenSpec(200, easing = Eases.QUAD_OUT))
- * Box(UIModifier.opacity(alpha)) { ... }
+ * val alpha by animateFloatAsState(if (expanded) 1f else 0f, tween(200, easing = Eases.QUAD_OUT))
+ * Box(style = { opacity(alpha) }) { ... }
  * ```
  *
  * <p>Changing the target mid-flight continues from wherever the value currently is rather than from
  * the old start, so an interrupted animation does not jump. With a [SpringSpec] it keeps its
  * velocity too, so a redirection stays smooth rather than merely continuous.
  *
- * <p>This drives *composition* state: each frame writes a new value, which recomposes the readers
- * and re-applies their modifiers. That is a different mechanism from LDLib2's `StyleAnimation`,
- * which mutates the style bag directly and never involves the composition. Both work; this one
- * composes with `if`/`key` and the rest of the declarative layer, at the cost of a recomposition per
- * frame for whatever reads it.
+ * <p>Only a new target restarts the animation. A spec that changes along the way — or is simply a new
+ * instance each time, as a capturing easing lambda makes it — applies from the next target on.
+ *
+ * <p>Read inside a `style` / `layout` block, as above, the value updates that one block every frame
+ * without recomposing anything; read in a composable body, that body recomposes every frame.
+ *
+ * @param finishedListener called with the target each time an animation to it completes. Not called
+ *   for the initial value, nor for an animation interrupted by a new target.
  */
 @Composable
 fun animateFloatAsState(
@@ -242,9 +275,11 @@ fun animateFloatAsState(
     finishedListener: ((Float) -> Unit)? = null,
 ): State<Float> {
     val animatable = remember { Animatable(targetValue) }
+    val spec by rememberUpdatedState(animationSpec)
     val onFinished by rememberUpdatedState(finishedListener)
-    LaunchedEffect(targetValue, animationSpec) {
-        animatable.animateTo(targetValue, animationSpec)
+    LaunchedEffect(targetValue) {
+        if (animatable.value == targetValue) return@LaunchedEffect
+        animatable.animateTo(targetValue, spec)
         onFinished?.invoke(targetValue)
     }
     return remember(animatable) { derivedStateOf { animatable.value } }
@@ -257,10 +292,13 @@ fun animateIntAsState(
     animationSpec: AnimationSpec = TweenSpec(),
     finishedListener: ((Int) -> Unit)? = null,
 ): State<Int> {
+    val onFinished by rememberUpdatedState(finishedListener)
     val animated = animateFloatAsState(
         targetValue.toFloat(),
         animationSpec,
-        finishedListener?.let { listener -> { listener(Math.round(it)) } },
+        // A stable lambda reading the latest listener, so passing one does not hand
+        // animateFloatAsState a new instance on every recomposition.
+        remember { { value: Float -> onFinished?.invoke(Math.round(value)) } },
     )
     return remember(animated) { derivedStateOf { Math.round(animated.value) } }
 }
@@ -269,9 +307,12 @@ fun animateIntAsState(
  * [animateFloatAsState] for packed ARGB colours.
  *
  * <p>Animates a 0..1 blend rather than the packed value: interpolating the ints directly would let
- * one channel's carry bleed into the next. The blend itself is
- * [ColorUtils.blendOklabColor] — the same function `ColorProperty` uses for stylesheet transitions,
- * so a colour animated from here and one animated by a `transition` rule travel the same path.
+ * one channel's carry bleed into the next. The blend itself is [ColorUtils.blendOklabColor] — the same
+ * function `ColorProperty` uses for stylesheet transitions, so a colour animated from here and one
+ * animated by a `transition` rule travel the same path.
+ *
+ * <p>A new target blends from the colour on screen at that moment, so changing it mid-flight — or
+ * going back to where it started — continues smoothly instead of jumping.
  */
 @Composable
 fun animateColorAsState(
@@ -279,27 +320,34 @@ fun animateColorAsState(
     animationSpec: AnimationSpec = TweenSpec(),
     finishedListener: ((Int) -> Unit)? = null,
 ): State<Int> {
-    val current = remember { mutableStateOf(targetValue) }
-    val origin = remember { mutableStateOf(targetValue) }
+    val blend = remember { ColorBlend(targetValue) }
+    val spec by rememberUpdatedState(animationSpec)
     val onFinished by rememberUpdatedState(finishedListener)
-    val animatable = remember { Animatable(1f) }
-
-    LaunchedEffect(targetValue, animationSpec) {
-        if (current.value == targetValue) {
-            onFinished?.invoke(targetValue)
-            return@LaunchedEffect
-        }
-        origin.value = current.value
-        animatable.snapTo(0f)
-        animatable.animateTo(1f, animationSpec)
-        current.value = targetValue
+    LaunchedEffect(targetValue) {
+        if (blend.to == targetValue && blend.progress.value >= 1f) return@LaunchedEffect
+        blend.retarget(targetValue)
+        blend.progress.animateTo(1f, spec)
         onFinished?.invoke(targetValue)
     }
+    return remember(blend) { derivedStateOf { blend.current() } }
+}
 
-    return remember(animatable) {
-        derivedStateOf {
-            if (animatable.value >= 1f) current.value else lerpArgb(origin.value, targetValue, animatable.value)
-        }
+/** A colour on its way from [from] to [to], [progress] of the way there. */
+@Stable
+private class ColorBlend(initial: Int) {
+    var from by mutableIntStateOf(initial)
+        private set
+    var to by mutableIntStateOf(initial)
+        private set
+    val progress = Animatable(1f)
+
+    fun current(): Int = if (progress.value >= 1f) to else lerpArgb(from, to, progress.value)
+
+    /** Starts again from what is on screen now, towards [target]. */
+    fun retarget(target: Int) {
+        from = current()
+        to = target
+        progress.snapTo(0f)
     }
 }
 

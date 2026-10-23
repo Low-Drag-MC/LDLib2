@@ -13,7 +13,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents
 import com.lowdragmc.lowdraglib2.gui.ui.layout.auto
 import com.lowdragmc.lowdraglib2.gui.ui.layout.px
-import com.lowdragmc.lowdraglib2.gui.ui.style.BasicStyle
 import dev.vfyjxf.taffy.style.FlexDirection
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -343,52 +342,62 @@ fun AnimatedVisibility(
     val fades = enter.data.fade != null || exit.data.fade != null
     val transforms = enter.data.slide != null || exit.data.slide != null ||
         enter.data.scale != null || exit.data.scale != null
-    val animatedStyle: StyleBlock = {
-        style?.invoke(this)
-        if (vertical != null) overflowVisible(false)
-        transition.applyTo(this, fades, transforms)
-    }
+    val written = remember { WrittenChannels() }
 
-    if (vertical == null) {
-        Box(layout = layout, style = animatedStyle, classes = classes, content = content)
-        return
-    }
-
+    // Always the same two boxes, whatever the transitions are: switching between shapes would tear
+    // the content down and build it again whenever a transition gained or lost a size change.
     Box(
         layout = {
             layout?.invoke(this)
-            // The animated axis is the main axis, so the content inside keeps its own extent along it
-            // rather than being squeezed to the shrinking box.
-            flexDirection(if (vertical) FlexDirection.COLUMN else FlexDirection.ROW)
-            val fraction = transition.size.value
-            val extent = if (fraction >= 1f) auto else (fraction * transition.fullSize).px
-            if (vertical) height(extent) else width(extent)
+            if (vertical != null) {
+                // The animated axis is the main axis, so the content inside keeps its own extent
+                // along it rather than being squeezed to the shrinking box.
+                flexDirection(if (vertical) FlexDirection.COLUMN else FlexDirection.ROW)
+                val fraction = transition.size.value
+                val extent = if (fraction >= 1f) auto else (fraction * transition.fullSize).px
+                if (vertical) height(extent) else width(extent)
+            }
         },
-        style = animatedStyle,
+        style = {
+            // A channel the transitions no longer animate is put back first — style writes are never
+            // undone by themselves, so it would otherwise keep its last animated value. First, so the
+            // caller's own block below can still set the same property.
+            if (vertical == null && written.clip) overflowVisible(true).also { written.clip = false }
+            if (!fades && written.opacity) opacity(1f).also { written.opacity = false }
+            if (!transforms && written.transform) transform2D(Transform2D.identity()).also { written.transform = false }
+            style?.invoke(this)
+            if (vertical != null) overflowVisible(false).also { written.clip = true }
+            if (fades) opacity(transition.alpha.value.coerceIn(0f, 1f)).also { written.opacity = true }
+            if (transforms) {
+                transform2D(
+                    Transform2D.identity()
+                        .translatePercent(transition.offsetX.value * 100f, transition.offsetY.value * 100f)
+                        .scale(transition.scale.value.coerceAtLeast(0f))
+                        .pivot(transition.pivotX, transition.pivotY),
+                )
+                written.transform = true
+            }
+        },
         classes = classes,
     ) {
         Box(
-            // Never shrinks below what the content needs, which is what makes clipping it work; grows
-            // to fill the box once the animation has let go of it.
-            layout = { flexShrink(0); flexGrow(1) },
-            events = {
+            // Explicitly never shrinking, whatever a stylesheet says: clipping only works if the
+            // content keeps its own extent while the box around it does not. Growing fills the box
+            // once the animation has let go of it.
+            layout = if (vertical == null) null else ({ flexShrink(0); flexGrow(1) }),
+            events = if (vertical == null) null else ({
                 on(UIEvents.LAYOUT_CHANGED) { event ->
                     event.currentElement?.let { transition.measure(if (vertical) it.sizeHeight else it.sizeWidth) }
                 }
-            },
+            }),
             content = content,
         )
     }
 }
 
-private fun VisibilityTransition.applyTo(style: BasicStyle, fades: Boolean, transforms: Boolean) {
-    if (fades) style.opacity(alpha.value.coerceIn(0f, 1f))
-    if (transforms) {
-        style.transform2D(
-            Transform2D.identity()
-                .translatePercent(offsetX.value * 100f, offsetY.value * 100f)
-                .scale(scale.value.coerceAtLeast(0f))
-                .pivot(pivotX, pivotY),
-        )
-    }
+/** Which of the animated style channels [AnimatedVisibility] has written, so it can put them back. */
+private class WrittenChannels {
+    var clip = false
+    var opacity = false
+    var transform = false
 }

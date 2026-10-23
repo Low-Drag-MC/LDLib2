@@ -141,21 +141,20 @@ class ComposeAnimationTest {
             val v by animateFloatAsState(target, TweenSpec(100), finishedListener = { finished += it })
             Node("%.4f".format(v))
         }
-        // The initial composition is already at its target, so it reports as soon as effects run —
-        // which is on the first frame, not during composition.
+        // The initial value was never animated to, so there is nothing to report.
         h.frame(0)
-        assertEquals(listOf(0f), finished)
+        assertEquals(emptyList<Float>(), finished)
 
         target = 100f
         h.frame(0)
         h.advance(50)
-        assertEquals(listOf(0f), finished, "should not report before it arrives")
+        assertEquals(emptyList<Float>(), finished, "should not report before it arrives")
 
         h.advance(100)
-        assertEquals(listOf(0f, 100f), finished)
+        assertEquals(listOf(100f), finished)
 
         h.advance(200)
-        assertEquals(listOf(0f, 100f), finished, "should not report again once settled")
+        assertEquals(listOf(100f), finished, "should not report again once settled")
         h.dispose()
     }
 

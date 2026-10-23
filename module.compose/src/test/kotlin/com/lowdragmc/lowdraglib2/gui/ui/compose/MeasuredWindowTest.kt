@@ -25,7 +25,7 @@ class MeasuredWindowTest {
     private fun uniform(count: Int, height: Float) = FloatArray(count) { height }
 
     /** leading + mounted + trailing must equal the total, whatever the window came out as. */
-    private fun assertAccountsForEverything(heights: FloatArray, window: MeasuredWindow) {
+    private fun assertAccountsForEverything(heights: FloatArray, window: LazyWindow) {
         val total = heights.sum()
         val mounted = if (window.range.isEmpty()) 0f else {
             (window.range).fold(0f) { acc, i -> acc + heights[i] }
@@ -187,80 +187,75 @@ class MeasuredWindowTest {
 /**
  * The measurement cache underneath the window.
  *
- * <p>Its whole job is to be cheap and to not thrash: layout produces fractional heights, and a cache
- * that reported every wobble would invalidate the window every frame.
+ * <p>Its whole job is to be cheap, to not thrash — layout produces fractional heights, and a cache
+ * that reported every wobble would invalidate the window every frame — and to keep each measurement
+ * with its item when the list changes around it.
  */
 class ItemSizesTest {
 
     @Test
-    fun `rows start on the estimate`() {
-        val rows = ItemSizes(12f)
-        rows.resize(3)
-        assertEquals(listOf(12f, 12f, 12f), rows.sizes.toList())
+    fun `items start on the estimate`() {
+        val sizes = ItemSizes(12f)
+        sizes.lineUp(listOf("a", "b", "c"))
+        assertEquals(listOf(12f, 12f, 12f), sizes.sizes.toList())
+    }
+
+    @Test
+    fun `a measurement lands at the item's position and bumps the version`() {
+        val sizes = ItemSizes(12f)
+        sizes.lineUp(listOf("a", "b"))
+        val before = sizes.version
+        sizes.measure("b", 1, 40f)
+        assertEquals(listOf(12f, 40f), sizes.sizes.toList())
+        assertTrue(sizes.version > before)
+    }
+
+    @Test
+    fun `measurements move with their items when one before them is removed`() {
+        val sizes = ItemSizes(12f)
+        sizes.lineUp(listOf("a", "b", "c"))
+        sizes.measure("a", 0, 30f)
+        sizes.measure("c", 2, 50f)
+        sizes.lineUp(listOf("b", "c"))
+        assertEquals(listOf(12f, 50f), sizes.sizes.toList())
     }
 
     @Test
     fun `growing the list keeps what was already measured`() {
-        val rows = ItemSizes(12f)
-        rows.resize(2)
-        rows.measure(0, 40f)
-        rows.resize(4)
-        assertEquals(listOf(40f, 12f, 12f, 12f), rows.sizes.toList())
-    }
-
-    @Test
-    fun `shrinking the list drops the tail`() {
-        val rows = ItemSizes(12f)
-        rows.resize(4)
-        rows.measure(3, 40f)
-        rows.resize(2)
-        assertEquals(listOf(12f, 12f), rows.sizes.toList())
-    }
-
-    @Test
-    fun `a measurement bumps the version so readers recompose`() {
-        val rows = ItemSizes(12f)
-        rows.resize(2)
-        val before = rows.version
-        rows.measure(0, 40f)
-        assertTrue(rows.version > before)
+        val sizes = ItemSizes(12f)
+        sizes.lineUp(listOf("a", "b"))
+        sizes.measure("a", 0, 40f)
+        sizes.lineUp(listOf("a", "b", "c", "d"))
+        assertEquals(listOf(40f, 12f, 12f, 12f), sizes.sizes.toList())
     }
 
     @Test
     fun `sub-pixel wobble is ignored`() {
-        val rows = ItemSizes(12f)
-        rows.resize(2)
-        rows.measure(0, 40f)
-        val settled = rows.version
-        rows.measure(0, 40.4f)
-        rows.measure(0, 39.7f)
-        assertEquals(settled, rows.version)
-        assertEquals(40f, rows.sizes[0])
+        val sizes = ItemSizes(12f)
+        sizes.lineUp(listOf("a", "b"))
+        sizes.measure("a", 0, 40f)
+        val settled = sizes.version
+        sizes.measure("a", 0, 40.4f)
+        sizes.measure("a", 0, 39.7f)
+        assertEquals(settled, sizes.version)
+        assertEquals(40f, sizes.sizes[0])
     }
 
     @Test
-    fun `a zero height is refused`() {
-        val rows = ItemSizes(12f)
-        rows.resize(2)
-        rows.measure(0, 0f)
-        assertEquals(12f, rows.sizes[0])
+    fun `a zero size is refused`() {
+        val sizes = ItemSizes(12f)
+        sizes.lineUp(listOf("a", "b"))
+        sizes.measure("a", 0, 0f)
+        assertEquals(12f, sizes.sizes[0])
     }
 
     @Test
-    fun `an out of range index is ignored rather than throwing`() {
-        val rows = ItemSizes(12f)
-        rows.resize(2)
-        rows.measure(5, 40f)
-        rows.measure(-1, 40f)
-        assertEquals(listOf(12f, 12f), rows.sizes.toList())
-    }
-
-    @Test
-    fun `resizing to the same count changes nothing`() {
-        val rows = ItemSizes(12f)
-        rows.resize(3)
-        val before = rows.version
-        rows.resize(3)
-        assertEquals(before, rows.version)
+    fun `an out of range position is recorded for the key without throwing`() {
+        val sizes = ItemSizes(12f)
+        sizes.lineUp(listOf("a", "b"))
+        sizes.measure("z", 5, 40f)
+        assertEquals(listOf(12f, 12f), sizes.sizes.toList())
+        sizes.lineUp(listOf("a", "z"))
+        assertEquals(listOf(12f, 40f), sizes.sizes.toList())
     }
 }

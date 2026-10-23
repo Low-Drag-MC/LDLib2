@@ -246,7 +246,11 @@ private fun ConfirmDialog() {
 private fun Tabs() {
     var extra by remember { mutableStateOf(false) }
     var reversed by remember { mutableStateOf(false) }
+    var hidden by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<Any>("one") }
+    // How many times the TabView has reported a selection: only the player's picks, and a removed
+    // selected tab handing over to its neighbour, should count.
+    var reports by remember { mutableStateOf(0) }
 
     Row(layout = { gap { all(3.px) } }) {
         Button(
@@ -264,18 +268,29 @@ private fun Tabs() {
             text = Component.literal("反转页序"),
             classes = "tab-reverse",
         )
+        Button(
+            onClick = { hidden = !hidden },
+            text = Component.literal("隐藏"),
+            classes = "tab-hide",
+        )
     }
+    Text(Component.literal("selected=$selected reports=$reports"), classes = "tab-state")
 
-    TabView(
-        selectedKey = selected,
-        onSelect = { selected = it },
-        layout = { width(240.px); height(60.px) },
-        classes = "demo-tabs",
-    ) {
-        val pages = if (extra) listOf("one", "two", "three") else listOf("one", "two")
-        for (page in if (reversed) pages.reversed() else pages) {
-            tab(page, page.replaceFirstChar { it.uppercase() }) {
-                Text(Component.literal("page $page"), classes = "tab-body-$page")
+    if (!hidden) {
+        TabView(
+            selectedKey = selected,
+            onSelect = {
+                reports++
+                selected = it
+            },
+            layout = { width(240.px); height(60.px) },
+            classes = "demo-tabs",
+        ) {
+            val pages = if (extra) listOf("one", "two", "three") else listOf("one", "two")
+            for (page in if (reversed) pages.reversed() else pages) {
+                tab(page, page.replaceFirstChar { it.uppercase() }) {
+                    Text(Component.literal("page $page"), classes = "tab-body-$page")
+                }
             }
         }
     }
