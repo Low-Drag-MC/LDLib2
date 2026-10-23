@@ -283,7 +283,7 @@ public class XmlUtils {
 
     public static SizedIngredient getIngredient(Element element) {
         int count = getAsInt(element, "count", 1);
-        var ingredient = new SizedIngredient(Ingredient.of(Items.AIR), 0);
+        var ingredient = new SizedIngredient(Ingredient.of(Items.STONE), 0);
         if (element.hasAttribute("item")) {
             Item item = BuiltInRegistries.ITEM.getValue(Identifier.parse(element.getAttribute("item")));
             if (item != Items.AIR) {

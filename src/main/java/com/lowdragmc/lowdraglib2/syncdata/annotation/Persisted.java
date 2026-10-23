@@ -21,6 +21,7 @@ import java.lang.annotation.Target;
  *   "isWater": true
  * }
  * }</pre>
+ * @see ManagedCodec
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD, ElementType.TYPE})

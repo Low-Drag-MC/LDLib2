@@ -49,11 +49,11 @@ public final class ModularUIClientAccess {
      * <p>For a keymap that resolved the chord itself: the action still has to reach whatever holds the
      * selection, and that routing lives in one place.
      *
-     * @return true if anything handled it.
+     * @return true if a handler stopped or claimed it.
      */
     public static boolean dispatchCommand(ModularUI modularUI, String command) {
         return getWidget(modularUI).dispatchCommand(command,
-                modularUI.lastPressedKeyCode, modularUI.lastPressedScanCode, modularUI.lastPressedModifiers);
+                modularUI.lastPressedKeyCode, modularUI.lastPressedScanCode, modularUI.lastPressedModifiers, true);
     }
 
     @Nullable

@@ -81,8 +81,7 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
 
     /** The full double-click-to-edit flow. Subclasses normally override the hooks above, not this. */
     protected void openGraphForEdit(ResourceProviderContainer<CompoundTag> container, IResourcePath path) {
-        // if there is an existing view open, don't open a new one
-        if (OPENED_VIEWS.values().stream().map(Pair::left).anyMatch(path::equals)) return;
+        if (selectOpenedView(OPENED_VIEWS.values(), path)) return;
 
         var tag = resourceProvider.getResource(path);
         if (tag == null) return;
@@ -134,6 +133,7 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
             }
         });
         editor.placeView(newView, () -> editor.centerWindow.getLeftTop());
+        bringToFront(newView);
     }
 
     /**
@@ -210,9 +210,12 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
             if (!(entry.getKey() instanceof GraphResource<?>)) continue;
             if (!(entry.getValue().getResource(path) instanceof CompoundTag)) continue;
             var instance = (ResourceInstance<CompoundTag>) entry.getValue();
+            var owned = false;
             for (var providers : instance.getBuiltinProviders().values()) {
                 for (var candidate : providers) {
-                    if (candidate.hasResource(path) && candidate.canEdit(path)) {
+                    if (!candidate.hasResource(path)) continue;
+                    owned = true;
+                    if (candidate.canEdit(path)) {
                         candidate.addResource(path, tag);
                         return true;
                     }
@@ -220,13 +223,17 @@ public class GraphResourceProviderContainer<G extends Graph> extends ResourcePro
             }
             for (var providers : instance.getCustomProviders().values()) {
                 for (var candidate : providers) {
-                    if (candidate.hasResource(path) && candidate.canEdit(path)) {
+                    if (!candidate.hasResource(path)) continue;
+                    owned = true;
+                    if (candidate.canEdit(path)) {
                         candidate.addResource(path, tag);
                         return true;
                     }
                 }
             }
-            return false; // the owner was found but is read-only — don't fall through to other libraries
+            // an owner that is read-only stops here — don't fall through to other libraries. Without one it is a
+            // file the editor reached on its own, which needs no provider to be saved
+            return !owned && instance.writeUnowned(path, tag);
         }
         return false;
     }
