@@ -312,6 +312,8 @@ LazyColumn(items = rows, itemHeight = 14f, variableHeight = true) { _, row ->
 
 固定高度那条路更快也更准，能用就用它。
 
+横向和网格是同一套：`LazyRow(variableWidth = true)` 按宽度量，`LazyVerticalGrid(variableHeight = true)` 按行量 —— 每行和这一行最高的格子一样高，同行的其它格子拉伸对齐。网格的**列宽始终固定**，否则列对不齐。
+
 ### 带命名槽位的控件
 
 `SplitView` 有两个面板，`TabView` 每页一个内容区 —— 一个 Applier 只认识一个落点，所以这些用**子组合**：
@@ -520,7 +522,7 @@ cannot access class kotlinx.coroutines.debug.internal.DebugProbesImpl (in module
 | **手势** | 有 DOM 式事件冒泡和拖放（`DragHandler`），没有 `pointerInput` 那套 slop / 惯性 / 手势识别 |
 | **`rememberSaveable`** | 没有。关闭界面重开状态会丢（最小化编辑器换宿主的场景是能存活的） |
 | **无障碍** | 组合出来的元素不向 MC 旁白贡献信息 |
-| **Lazy 变高行** | `LazyColumn(variableHeight = true)` 支持；`LazyRow` / `LazyVerticalGrid` 仍只支持固定尺寸 |
+| **网格列宽** | `LazyVerticalGrid` 的行高可以变（`variableHeight`），列宽固定 |
 | **`AnimatedVisibility`** | 只有淡入淡出，没有 slide / expand |
 | **服务端 UI** | 组合只在客户端跑，但行数可以完全由服务端驱动 —— 见「服务端驱动的 UI」。限制是注册必须在组合外 |
 
