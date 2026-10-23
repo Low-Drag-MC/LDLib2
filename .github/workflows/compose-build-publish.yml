@@ -1,0 +1,173 @@
+name: ldlib2-compose Build & Publish
+
+# ldlib2-compose is released on its own schedule and version (module.compose/gradle.properties),
+# separately from LDLib2 itself. This workflow only ever builds and publishes the :module.compose
+# subproject; the core's own workflow only ever touches the root project.
+
+on:
+  workflow_dispatch:
+    inputs:
+      publishMaven:
+        description: 'Whether to publish to Maven'
+        required: true
+        type: boolean
+        default: true
+      dryRun:
+        description: 'Dry run (build only, no publishing)'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  JAVA_VERSION: '21'
+  JAVA_DISTRIBUTION: 'temurin'
+
+jobs:
+  validate:
+    name: Validate & Pre-checks
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      ldlib2-min: ${{ steps.version.outputs.ldlib2-min }}
+      should-publish: ${{ steps.check.outputs.should-publish }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read versions
+        id: version
+        run: |
+          read_prop() { grep -E "^$1\s*=" "$2" | cut -d'=' -f2 | tr -d ' \r'; }
+          VERSION=$(read_prop compose_version module.compose/gradle.properties)
+          LDLIB2_MIN=$(read_prop ldlib2_min_version module.compose/gradle.properties)
+          CORE=$(read_prop mod_version gradle.properties)
+          if [ -z "$VERSION" ] || [ -z "$LDLIB2_MIN" ] || [ -z "$CORE" ]; then
+            echo "❌ Could not read compose_version / ldlib2_min_version / mod_version"
+            exit 1
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "ldlib2-min=$LDLIB2_MIN" >> $GITHUB_OUTPUT
+          echo "ldlib2-compose $VERSION, needs LDLib2 $LDLIB2_MIN+, core in this checkout is $CORE"
+          # The published pom depends on the core at this checkout's mod_version; the Gradle publish
+          # task refuses an older one too, this just says so before anything is built.
+          if [ "$(printf '%s\n%s\n' "$LDLIB2_MIN" "$CORE" | sort -V | head -n1)" != "$LDLIB2_MIN" ]; then
+            echo "⚠️ The core in this checkout ($CORE) is older than ldlib2_min_version ($LDLIB2_MIN); publishing will be refused."
+          fi
+
+      - name: Check publish conditions
+        id: check
+        run: |
+          SHOULD_PUBLISH="false"
+          if [[ "${{ inputs.dryRun }}" == "false" && "${{ inputs.publishMaven }}" == "true" ]]; then
+            SHOULD_PUBLISH="true"
+          fi
+          echo "should-publish=$SHOULD_PUBLISH" >> $GITHUB_OUTPUT
+          echo "Should publish: $SHOULD_PUBLISH"
+
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+
+      - name: Grant execute permission
+        run: chmod +x gradlew
+
+      # Compiles against the core in this checkout, runs the module's unit tests, and produces the
+      # plain, -all (Jar-in-Jar) and -sources jars.
+      - name: Build and test
+        run: ./gradlew :module.compose:build --stacktrace
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ldlib2-compose-${{ needs.validate.outputs.version }}
+          path: |
+            module.compose/build/libs/
+            module.compose/build/reports/
+          retention-days: 7
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ldlib2-compose-test-results
+          path: module.compose/build/test-results/
+          retention-days: 7
+
+  publish-maven:
+    name: Publish to Maven
+    runs-on: ubuntu-latest
+    needs: [validate, build]
+    if: ${{ needs.validate.outputs.should-publish == 'true' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
+
+      - name: Grant execute permission
+        run: chmod +x gradlew
+
+      - name: Publish to Maven
+        run: ./gradlew :module.compose:publish --stacktrace
+        env:
+          MAVEN_PASS: ${{ secrets.MAVEN_PASS }}
+          MAVEN_USER: ${{ secrets.MAVEN_USER }}
+
+      - name: Maven publish summary
+        run: |
+          echo "## ldlib2-compose Maven Publish" >> $GITHUB_STEP_SUMMARY
+          echo "- Version: ${{ needs.validate.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Requires LDLib2: ${{ needs.validate.outputs.ldlib2-min }}+" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ✅ Published successfully" >> $GITHUB_STEP_SUMMARY
+
+  summary:
+    name: Build & Publish Summary
+    runs-on: ubuntu-latest
+    needs: [validate, build, publish-maven]
+    if: always()
+    steps:
+      - name: Generate summary and overall status
+        run: |
+          echo "# ldlib2-compose ${{ needs.validate.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Dry Run**: ${{ inputs.dryRun }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Maven Publish**: ${{ inputs.publishMaven }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build**: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Publish**: ${{ needs.publish-maven.result }}" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.validate.result }}" != "success" || "${{ needs.build.result }}" != "success" ]]; then
+            echo "Validation or build failed"
+            exit 1
+          fi
+          if [[ "${{ needs.validate.outputs.should-publish }}" == "true" && "${{ needs.publish-maven.result }}" != "success" ]]; then
+            echo "Maven publish failed"
+            exit 1
+          fi
+          echo "All requested operations completed successfully!"

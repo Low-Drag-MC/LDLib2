@@ -20,6 +20,6 @@ side = "BOTH"
 [[dependencies.ldlib2_compose]]
 modId = "ldlib2"
 type = "required"
-versionRange = "[${version},)"
+versionRange = "[${ldlib2_min_version},)"
 ordering = "AFTER"
 side = "BOTH"

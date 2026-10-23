@@ -1,5 +1,9 @@
 // ldlib2-compose - LDLib2's declarative UI layer, shipped as a separate optional mod.
 //
+// Released on its own: its version is compose_version in this directory's gradle.properties, and
+// .github/workflows/compose-build-publish.yml builds and publishes it. The core build and release never
+// touch it, and the core's dev runs only load it when asked to (see "Dev runs" below).
+//
 // A mod rather than a plain library, because it carries the Compose runtime and NeoForge's
 // Jar-in-Jar only unpacks one level: a downstream mod that Jar-in-Jar'd this artifact would get
 // this jar but not the Compose runtime nested inside it. As a top-level mod its own JiJ entries sit
@@ -14,8 +18,20 @@ plugins {
     id 'org.jetbrains.kotlin.plugin.compose' version '2.1.20'
 }
 
-version = mod_version
+version = compose_version
 group = maven_group
+
+repositories {
+    maven {
+        // androidx.collection / androidx.annotation, pulled in by the Compose runtime. Not on Maven
+        // Central, and nothing else here should ever resolve from Google.
+        name = "Google"
+        url = "https://maven.google.com"
+        content {
+            includeGroupByRegex "androidx\\..*"
+        }
+    }
+}
 
 jarJar.enable()
 
@@ -45,7 +61,15 @@ sourceSets.main.kotlin { srcDir("src/main/java") }
 // this jar's mods.toml - at runtime the core applies it.
 minecraft.accessTransformers.file rootProject.file('src/main/resources/META-INF/accesstransformer.cfg')
 
-/** See the identical helper in the root build for why the version is pinned rather than ranged. */
+/**
+ * Jar-in-Jar a library, pinning the embedded artifact to exactly {@code ver} while still advertising
+ * {@code [ver,)} as the compatible range, so NeoForge can still dedupe against other mods shipping
+ * the same library.
+ *
+ * <p>Declaring only the open range lets Gradle resolve it to whatever is newest in the repository at
+ * build time, which is not what this was compiled against: for {@code runtime-desktop} that once
+ * picked up a 5 KB alias stub with no classes in it at all.
+ */
 void embed(String group, String name, String ver) {
     dependencies.jarJar(group: group, name: name) {
         version {
@@ -100,10 +124,11 @@ test {
 
 tasks.withType(ProcessResources).configureEach {
     var replaceProperties = [
-            "version"       : version,
-            "loader_version": loader_version,
-            "mod_license"   : mod_license,
-            "mod_url"       : mod_url,
+            "version"           : version,
+            "loader_version"    : loader_version,
+            "mod_license"       : mod_license,
+            "mod_url"           : mod_url,
+            "ldlib2_min_version": ldlib2_min_version,
     ]
     inputs.properties replaceProperties
     filesMatching(['META-INF/neoforge.mods.toml']) {
@@ -111,7 +136,12 @@ tasks.withType(ProcessResources).configureEach {
     }
 }
 
-// Join the core project's dev runs rather than declaring runs of our own: one client, both mods.
+// Dev runs. This module joins the core project's runs rather than declaring its own - one client,
+// both mods - but only when asked to, so the core's runs and its CI stay free of it:
+//
+//     gradlew runClient -Pcompose            (or compose=true in ~/.gradle/gradle.properties, for an
+//                                             IDE whose generated run configurations should load it)
+//
 // Registered from here so that dropping this module from settings.gradle leaves the core untouched.
 //
 // Captured locals, not `project.…`: inside a run closure the delegate is the Run, and NeoGradle's
@@ -133,10 +163,40 @@ tasks.matching { it.name in ['runClient', 'runServer', 'runData', 'runGameTestSe
 // A task by the same name keeps the rule from being consulted.
 ['runParTest', 'runMpTest'].each { name -> tasks.register(name) { enabled = false } }
 
-rootProject.runs.configureEach {
-    modSource composeSources
-    dependencies {
-        runtime composeLibraries
+// A Gradle property, read through providers rather than hasProperty(): the latter also answers for
+// extensions, and a compose-related plugin registering one called `compose` would switch this on.
+def joinCoreRuns = providers.gradleProperty('compose').map { it != 'false' }.getOrElse(false)
+if (joinCoreRuns) {
+    rootProject.runs.configureEach {
+        modSource composeSources
+        dependencies {
+            runtime composeLibraries
+        }
+    }
+}
+
+/** Numeric comparison of dotted versions; a missing component counts as 0. */
+static int compareVersions(String a, String b) {
+    def left = a.tokenize('.').collect { it.replaceAll('[^0-9].*', '') as int }
+    def right = b.tokenize('.').collect { it.replaceAll('[^0-9].*', '') as int }
+    for (int i = 0; i < Math.max(left.size(), right.size()); i++) {
+        int diff = (i < left.size() ? left[i] : 0) <=> (i < right.size() ? right[i] : 0)
+        if (diff != 0) return diff
+    }
+    return 0
+}
+
+// The published pom depends on the core at its current mod_version. Publishing while that is older
+// than ldlib2_min_version would hand every consumer a core without the hooks this module calls, which
+// compiles against nothing and crashes at runtime - so it is refused rather than released.
+def coreVersion = rootProject.version.toString()
+tasks.withType(PublishToMavenRepository).configureEach {
+    doFirst {
+        if (compareVersions(coreVersion, ldlib2_min_version) < 0) {
+            throw new GradleException("ldlib2-compose ${compose_version} needs LDLib2 ${ldlib2_min_version} or later, " +
+                    "but this checkout's core is ${coreVersion}. Release the core first (or lower ldlib2_min_version " +
+                    "if the hooks really are in an older release).")
+        }
     }
 }
 
