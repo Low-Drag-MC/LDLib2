@@ -100,8 +100,9 @@ jobs:
         include:
           # Root-qualified: ldlib2-compose is a subproject with a release of its own
           # (compose-build-publish.yml), and an unqualified task would build and test it here too.
+          # -Pcompose=false: the core's dev runs load it by default, and this game test is the core's.
           - name: "Main Build"
-            gradle-tasks: ":build :test :runGameTestServer"
+            gradle-tasks: ":build :test :runGameTestServer -Pcompose=false"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

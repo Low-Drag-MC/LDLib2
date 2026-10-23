@@ -1,8 +1,9 @@
 // ldlib2-compose - LDLib2's declarative UI layer, shipped as a separate optional mod.
 //
 // Released on its own: its version is compose_version in this directory's gradle.properties, and
-// .github/workflows/compose-build-publish.yml builds and publishes it. The core build and release never
-// touch it, and the core's dev runs only load it when asked to (see "Dev runs" below).
+// .github/workflows/compose-build-publish.yml builds and publishes it. The core jar and its release never
+// include it; only the core's dev runs load it, so working on LDLib2 always has it at hand (see "Dev runs"
+// below).
 //
 // A mod rather than a plain library because it carries the Compose runtime, and that has to reach the
 // game as Jar-in-Jar: NeoForge then keeps one copy when other mods ship the same libraries (several
@@ -20,6 +21,12 @@ plugins {
 
 version = compose_version
 group = maven_group
+
+// NeoGradle otherwise gives this project a run of every type, as it does the core - and an IDE
+// configuration for each. Those load this mod without the core it requires, and an unqualified
+// `gradlew runClient` would launch one beside the core's. The module joins the core's runs instead (see
+// "Dev runs" below). Set before the NeoForge dependency is declared: that is when the runs are created.
+subsystems.conventions.runs.shouldDefaultRunsBeCreated = false
 
 repositories {
     maven {
@@ -142,11 +149,15 @@ tasks.withType(ProcessResources).configureEach {
     }
 }
 
-// Dev runs. This module joins the core project's runs rather than declaring its own - one client,
-// both mods - but only when asked to, so the core's runs and its CI stay free of it:
+// Dev runs. This module joins the core project's runs - one client, both mods - so `gradlew runClient`
+// (or the same task from an IDE's Gradle run configuration) always has it loaded. What ships is
+// unaffected: the core jar never contains this module. Leave it out of a run with
 //
-//     gradlew runClient -Pcompose            (or compose=true in ~/.gradle/gradle.properties, for an
-//                                             IDE whose generated run configurations should load it)
+//     gradlew runClient -Pcompose=false      (or compose=false in gradle.properties: the child builds
+//                                             runParTest / runMpTest start do not inherit -P)
+//
+// The IDE's own application configurations do not include it: NeoGradle writes them while the core
+// project is configured, before this module is.
 //
 // Registered from here so that dropping this module from settings.gradle leaves the core untouched.
 //
@@ -156,22 +167,9 @@ tasks.withType(ProcessResources).configureEach {
 def composeSources = sourceSets.main
 def composeLibraries = configurations.libraries
 
-// NeoGradle gives every project it is applied to its own client/server/data/gameTestServer runs.
-// An unqualified `gradlew runClient` runs the task in all projects that have it, so this module's
-// copy - which nothing configures - would launch alongside the core's and fail the build even when
-// the real run passed. The module joins the core's runs instead; its own are dead weight.
-tasks.matching { it.name in ['runClient', 'runServer', 'runData', 'runGameTestServer'] }
-        .configureEach { enabled = false }
-
-// The root's test orchestrators are plain tasks that happen to be named like runs. Asked for without a
-// project path, Gradle looks for them here as well, and NeoGradle's `run<RunName>` task rule answers
-// by inventing a run of type "parTest" / "mpTest" - which fails the whole build at configuration time.
-// A task by the same name keeps the rule from being consulted.
-['runParTest', 'runMpTest'].each { name -> tasks.register(name) { enabled = false } }
-
 // A Gradle property, read through providers rather than hasProperty(): the latter also answers for
-// extensions, and a compose-related plugin registering one called `compose` would switch this on.
-def joinCoreRuns = providers.gradleProperty('compose').map { it != 'false' }.getOrElse(false)
+// extensions, and a compose-related plugin registering one called `compose` would answer for it.
+def joinCoreRuns = providers.gradleProperty('compose').map { it != 'false' }.getOrElse(true)
 if (joinCoreRuns) {
     rootProject.runs.configureEach {
         modSource composeSources

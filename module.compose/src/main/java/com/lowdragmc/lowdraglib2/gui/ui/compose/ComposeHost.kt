@@ -85,7 +85,7 @@ private const val COROUTINE_AGENT_ADVICE =
         "coroutines debug agent: IntelliJ attaches it automatically, it rewrites kotlin-stdlib's " +
         "DebugProbesKt to call into kotlinx-coroutines, and NeoForge's module layer forbids that. " +
         "Turn the coroutine agent off for this run (IDE settings, search for \"coroutine agent\"), " +
-        "or launch with `gradlew runClient -Pcompose` instead. Nothing is wrong with the mod itself, " +
+        "or launch with `gradlew runClient` instead. Nothing is wrong with the mod itself, " +
         "and this cannot happen outside a development environment."
 
 /**
