@@ -49,7 +49,9 @@ val LocalUIElement = staticCompositionLocalOf<UIElement> {
  * <p>Sources that poll rather than push ([ITickable], such as
  * [com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource]) are ticked off the host
  * element's 20 Hz tick, the same way [com.lowdragmc.lowdraglib2.gui.ui.elements.BindableUIElement]
- * does it — so they update at tick rate, not frame rate.
+ * does it — so they update at tick rate, not frame rate. Each call ticks the source it was given, so
+ * several calls on the same polling source tick it several times a tick; collect it once and pass
+ * the state down.
  */
 @Composable
 fun <T> IDataProvider<T>.collectAsState(): State<T> {

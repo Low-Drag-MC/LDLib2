@@ -703,8 +703,8 @@ fun ScrollerVertical(
 @Composable
 fun <T> Selector(
     selected: T?,
-    candidates: List<T>,
     onSelectedChange: (T?) -> Unit,
+    candidates: List<T>,
     candidateText: ((T) -> Component)? = null,
     selectorStyle: (Selector<T?>.SelectorStyle.() -> Unit)? = null,
     layout: LayoutBlock? = null,

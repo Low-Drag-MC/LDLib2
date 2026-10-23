@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.compose.demo
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -12,6 +13,10 @@ import com.lowdragmc.lowdraglib2.gui.ui.compose.Box
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Button
 import com.lowdragmc.lowdraglib2.gui.ui.compose.ComposeElement
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Mount
+import com.lowdragmc.lowdraglib2.gui.ui.compose.Row
+import com.lowdragmc.lowdraglib2.gui.ui.compose.asMutableState
+import com.lowdragmc.lowdraglib2.gui.ui.compose.collectAsState
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.TrackData
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Text
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement
 import com.lowdragmc.lowdraglib2.gui.ui.layout.px
@@ -79,7 +84,40 @@ private fun Lifecycle() {
         // Re-declares its handler on every recomposition; it has to stay one listener.
         Box(layout = { size(40.px, 14.px) }, events = { onMouseDown { clicks++ } }, classes = "lc-clicker")
         Text("ticks=$ticks clicks=$clicks", classes = "lc-state")
+
+        Bridges()
+        Reshuffle()
     }
+}
+
+/**
+ * The state bridges, against a [TrackData] standing in for a synced value: written from the
+ * composition, and written from outside it the way a sync packet would.
+ */
+@Composable
+private fun Bridges() {
+    val data = remember { TrackData(0) }
+    var bridged by data.asMutableState()
+    val collected by data.collectAsState()
+
+    Row(layout = { gap { all(3.px) } }) {
+        Button(onClick = { bridged += 1 }, text = "bridge +1", classes = "lc-bridge-add")
+        Button(onClick = { data.value = 100 }, text = "set 100", classes = "lc-bridge-set")
+    }
+    Text("bridged=$bridged collected=$collected", classes = "lc-bridge-state")
+}
+
+/** A keyed list that moves, loses and gains rows in a single change. */
+@Composable
+private fun Reshuffle() {
+    var items by remember { mutableStateOf(listOf("a", "b", "c", "d")) }
+
+    Row(layout = { gap { all(2.px) } }, classes = "lc-items") {
+        for (item in items) {
+            key(item) { Text(item, classes = "lc-item lc-item-$item") }
+        }
+    }
+    Button(onClick = { items = listOf("d", "c", "a", "e") }, text = "reshuffle", classes = "lc-reshuffle")
 }
 
 @Composable

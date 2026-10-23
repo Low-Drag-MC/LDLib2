@@ -25,6 +25,8 @@ import com.lowdragmc.lowdraglib2.uitest.UIScenario;
 public class ComposeLifecycleScenario implements UIScenario {
 
     private UIElement mountedA;
+    private UIElement itemA;
+    private UIElement itemC;
 
     @Override
     public void configure(ScenarioOptions options) {
@@ -99,6 +101,32 @@ public class ComposeLifecycleScenario implements UIScenario {
                 .step("click the clicker once", ctx -> press(ctx, ".lc-clicker"))
                 .frames(3)
                 .checkTextContains(".lc-state", "clicks=1")
+
+                // The state bridges follow a TrackData both ways.
+                .step("write through the bridge", ctx -> press(ctx, ".lc-bridge-add"))
+                .frames(3)
+                .checkText(".lc-bridge-state", "bridged=1 collected=1")
+                .step("write the data from outside", ctx -> press(ctx, ".lc-bridge-set"))
+                .frames(3)
+                .checkText(".lc-bridge-state", "bridged=100 collected=100")
+
+                // Moves, a removal and an insertion in one change. The applier holds moves back and
+                // applies them as one permutation, and has to land them before it touches indices
+                // for the removal and the insertion.
+                .step("remember two rows that survive", ctx -> {
+                    itemA = element(ctx, ".lc-item-a");
+                    itemC = element(ctx, ".lc-item-c");
+                })
+                .step("reshuffle", ctx -> press(ctx, ".lc-reshuffle"))
+                .frames(3)
+                .check("the rows are in the new order", ctx -> {
+                    var row = element(ctx, ".lc-items");
+                    var texts = row.getChildren().stream().map(com.lowdragmc.lowdraglib2.uitest.target.Texts::of).toList();
+                    return texts.equals(java.util.List.of("d", "c", "a", "e"));
+                })
+                .check("the rows that stayed were moved, not rebuilt", ctx ->
+                        element(ctx, ".lc-item-a") == itemA && element(ctx, ".lc-item-c") == itemC)
+                .checkNotExists(".lc-item-b")
 
                 .closeScreen();
     }
