@@ -48,7 +48,11 @@ public final class ChildBuilds {
         } else {
             command.add(projectDir.resolve("gradlew").toString());
         }
-        command.add(task);
+        // Root-qualified. Unqualified, Gradle looks for the task in every project, and a subproject
+        // that applies NeoGradle has a `run<RunName>` rule that answers for a run it does not have -
+        // failing the whole child build at configuration. The root is where these runs live: it is
+        // where gradlew is, which the lines above already rely on.
+        command.add(":" + task);
         command.addAll(extraArgs);
         command.add("--console=plain");
         var builder = new ProcessBuilder(command)

@@ -84,6 +84,13 @@ tasks.register('runParTest', JavaExec) {
     // dying before it could write a report at all.
     ignoreExitValue = true
     finalizedBy 'verifyParTest'
+    // The shards are separate Gradle builds started at the same moment, so anything a shard's run
+    // needs built is built by every shard at once, all writing the same files. That races - "Cannot
+    // expand ZIP" on the mod jar, once a subproject puts the jar on the run's class path. Building
+    // it all here first leaves the shards finding it up to date.
+    if (ldParJobs > 0) {
+        dependsOn { tasks.getByName('runUiTestShard0').taskDependencies.getDependencies(null) }
+    }
 }
 
 tasks.register('verifyParTest') {
