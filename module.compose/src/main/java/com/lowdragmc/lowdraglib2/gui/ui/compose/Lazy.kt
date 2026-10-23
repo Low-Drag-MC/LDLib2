@@ -13,8 +13,10 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Scroller
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents
+import com.lowdragmc.lowdraglib2.gui.ui.layout.TaffyLayoutStyleDsl
 import com.lowdragmc.lowdraglib2.gui.ui.layout.pct
 import com.lowdragmc.lowdraglib2.gui.ui.layout.px
+import dev.vfyjxf.taffy.style.AlignItems
 import dev.vfyjxf.taffy.style.FlexDirection
 import kotlin.math.abs
 import kotlin.math.ceil
@@ -68,71 +70,122 @@ fun <T> LazyColumn(
     itemContent: @Composable (index: Int, item: T) -> Unit,
 ) {
     require(itemHeight > 0f) { "itemHeight must be positive, was $itemHeight" }
+    LazyList(
+        vertical = true, items = items, itemSize = itemHeight, variableSize = variableHeight,
+        layout = layout, style = style, classes = classes, id = id,
+        enabled = enabled, visible = visible, focusable = focusable, events = events,
+        overscan = overscan, key = key, itemContent = itemContent,
+    )
+}
 
+/**
+ * The machinery behind [LazyColumn] and [LazyRow], which differ only in the axis.
+ *
+ * <p>With [variableSize] off the window is plain arithmetic on [itemSize]. With it on, each item is
+ * wrapped so it can report its extent, and the window is worked out from what has been measured so
+ * far — see [MeasuredItem] for what that costs.
+ */
+@Composable
+private fun <T> LazyList(
+    vertical: Boolean,
+    items: List<T>,
+    itemSize: Float,
+    variableSize: Boolean,
+    layout: LayoutBlock?,
+    style: StyleBlock?,
+    classes: String?,
+    id: String?,
+    enabled: Boolean,
+    visible: Boolean,
+    focusable: Boolean?,
+    events: (EventScope.() -> Unit)?,
+    overscan: Int,
+    key: ((index: Int, item: T) -> Any)?,
+    itemContent: @Composable (index: Int, item: T) -> Unit,
+) {
     val view = remember { ScrollerView() }
-    val metrics = rememberScrollMetrics(view, view.verticalScroller) { view.viewPort.contentHeight }
+    val metrics = if (vertical) {
+        rememberScrollMetrics(view, view.verticalScroller) { view.viewPort.contentHeight }
+    } else {
+        rememberScrollMetrics(view, view.horizontalScroller) { view.viewPort.contentWidth }
+    }
     val total = items.size
 
-    if (!variableHeight) {
-        val window = lazyWindow(total, itemHeight, metrics.viewport, metrics.fraction, overscan)
-        UIElementNode(
-            factory = { view },
-            layout = layout, style = style, classes = classes, id = id,
-            enabled = enabled, visible = visible, focusable = focusable, events = events,
-        ) {
-            Spacer(window.first * itemHeight)
-            for (index in window) {
-                val item = items[index]
-                key(key?.invoke(index, item) ?: index) {
-                    itemContent(index, item)
-                }
-            }
-            Spacer((total - window.last - 1) * itemHeight)
-        }
-        return
+    val sizes: ItemSizes?
+    val range: IntRange
+    val leading: Float
+    val trailing: Float
+    if (variableSize) {
+        sizes = remember(itemSize) { ItemSizes(itemSize) }
+        sizes.resize(total)
+        // The subscription. `sizes` is a plain array behind it — see ItemSizes for why.
+        @Suppress("UNUSED_EXPRESSION") sizes.version
+        val window = measuredWindow(sizes.sizes, metrics.viewport, metrics.fraction, overscan)
+        range = window.range
+        leading = window.leading
+        trailing = window.trailing
+    } else {
+        sizes = null
+        range = lazyWindow(total, itemSize, metrics.viewport, metrics.fraction, overscan)
+        // An empty list has an empty range, whose `first` is 1 rather than 0.
+        leading = if (range.isEmpty()) 0f else range.first * itemSize
+        trailing = if (range.isEmpty()) 0f else (total - range.last - 1) * itemSize
     }
 
-    val rows = remember(itemHeight) { RowHeights(itemHeight) }
-    rows.resize(total)
-    // The subscription. `heights` is a plain array behind it — see RowHeights for why.
-    @Suppress("UNUSED_EXPRESSION") rows.version
-    val window = measuredWindow(rows.heights, metrics.viewport, metrics.fraction, overscan)
-
     UIElementNode(
-        factory = { view },
+        // The row direction goes on the *content* container, not on the ScrollerView. Putting it on
+        // the view itself lays out the view's own parts — the viewport and its scrollbars — side by
+        // side, and leaves the items still stacked vertically.
+        factory = {
+            if (!vertical) view.viewContainer.getLayout().flexDirection(FlexDirection.ROW)
+            view
+        },
         layout = layout, style = style, classes = classes, id = id,
         enabled = enabled, visible = visible, focusable = focusable, events = events,
     ) {
-        Spacer(window.leading)
-        for (index in window.range) {
+        AxisSpacer(vertical, leading)
+        for (index in range) {
             val item = items[index]
             key(key?.invoke(index, item) ?: index) {
-                MeasuredRow(rows, index) { itemContent(index, item) }
+                if (sizes != null) {
+                    MeasuredItem(sizes, index, vertical) { itemContent(index, item) }
+                } else {
+                    itemContent(index, item)
+                }
             }
         }
-        Spacer(window.trailing)
+        AxisSpacer(vertical, trailing)
     }
 }
 
 /**
- * Wraps one variable-height row so it can report how tall it turned out to be.
+ * Wraps one variable-size item so it can report how big it turned out to be.
  *
- * <p>A row can only be measured once it has been laid out, which is a frame after it was composed —
- * so the first frame a row appears it is still occupying its estimate, and the window corrects on the
- * next. That settling is visible as a small scrollbar adjustment when you scroll into fresh rows, and
- * it is the price of not knowing sizes up front.
+ * <p>An item can only be measured once it has been laid out, which is a frame after it was composed —
+ * so the first frame an item appears it is still occupying its estimate, and the window corrects on
+ * the next. That settling is visible as a small scrollbar adjustment when you scroll into fresh
+ * items, and it is the price of not knowing sizes up front.
  *
- * <p>Full width, height left to the content. A row whose content does not size itself measures zero,
- * which [RowHeights.measure] refuses — otherwise a list of zero-height rows would decide the whole
- * list fits on screen and mount all of it.
+ * <p>Fills the cross axis, extent along the scrolling axis left to the content. An item whose content
+ * does not size itself measures zero, which [ItemSizes.measure] refuses — otherwise a list of
+ * zero-size items would decide the whole list fits on screen and mount all of it. Across a row the
+ * wrapper also refuses to shrink: the strip is laid out as a flex row, which would otherwise squeeze
+ * unsized items to fit the viewport before they were ever measured.
  */
 @Composable
-private fun MeasuredRow(rows: RowHeights, index: Int, content: @Composable () -> Unit) {
+private fun MeasuredItem(sizes: ItemSizes, index: Int, vertical: Boolean, content: @Composable () -> Unit) {
     Box(
-        layout = { width(100.pct) },
+        layout = {
+            if (vertical) {
+                width(100.pct)
+            } else {
+                height(100.pct)
+                flexShrink(0)
+            }
+        },
         events = {
             on(UIEvents.LAYOUT_CHANGED) { event ->
-                event.currentElement?.let { rows.measure(index, it.sizeHeight) }
+                event.currentElement?.let { sizes.measure(index, if (vertical) it.sizeHeight else it.sizeWidth) }
             }
         },
         content = content,
@@ -205,7 +258,7 @@ internal fun lazyWindow(
     return first..last
 }
 
-/** Where a variable-height window sits, and how much blank space to leave on either side of it. */
+/** Where a variable-size window sits, and how much blank space to leave on either side of it. */
 internal data class MeasuredWindow(
     val range: IntRange,
     val leading: Float,
@@ -213,7 +266,8 @@ internal data class MeasuredWindow(
 )
 
 /**
- * The same question as [lazyWindow], for rows that are not all the same height.
+ * The same question as [lazyWindow], for items that are not all the same size. Named for the
+ * vertical case; [LazyRow] hands it widths.
  *
  * <p>Takes the heights rather than measuring anything, so it stays pure and testable — and because
  * the heights it is given are a mixture of measured and estimated by nature. A row that has never
@@ -269,22 +323,23 @@ internal fun measuredWindow(
 }
 
 /**
- * The heights of a list's rows, measured where they have been on screen and estimated where not.
+ * The extents of a list's items along its scrolling axis, measured where they have been on screen
+ * and estimated where not.
  *
- * <p>[version] rather than the array itself is the observable state. A row reports its height from a
+ * <p>[version] rather than the array itself is the observable state. An item reports its size from a
  * layout event, and copying a ten-thousand-entry array on each of those — several per frame while
  * scrolling — costs more than the virtualisation saves. So the array is mutated in place and the
  * counter is bumped, which is what readers actually subscribe to.
  */
 @Stable
-internal class RowHeights(private val estimate: Float) {
+internal class ItemSizes(private val estimate: Float) {
     private var array = FloatArray(0)
 
     var version by mutableStateOf(0)
         private set
 
     /** Read [version] first — that is the subscription; this is just the data. */
-    val heights: FloatArray get() = array
+    val sizes: FloatArray get() = array
 
     fun resize(count: Int) {
         val old = array
@@ -294,17 +349,17 @@ internal class RowHeights(private val estimate: Float) {
     }
 
     /**
-     * Records a measured height.
+     * Records a measured size.
      *
-     * <p>Ignores changes under half a pixel. Layout produces fractional values, and a row whose
-     * height wobbles in the noise would invalidate the window every frame, which re-lays-out the
-     * rows, which produces another wobble.
+     * <p>Ignores changes under half a pixel. Layout produces fractional values, and an item whose
+     * size wobbles in the noise would invalidate the window every frame, which re-lays-out the
+     * items, which produces another wobble.
      */
-    fun measure(index: Int, height: Float) {
+    fun measure(index: Int, size: Float) {
         val old = array
-        if (index !in old.indices || height <= 0f) return
-        if (abs(old[index] - height) < 0.5f) return
-        old[index] = height
+        if (index !in old.indices || size <= 0f) return
+        if (abs(old[index] - size) < 0.5f) return
+        old[index] = size
         version++
     }
 }
@@ -312,13 +367,15 @@ internal class RowHeights(private val estimate: Float) {
 /**
  * A horizontally scrolling equivalent of [LazyColumn].
  *
- * <p>Same machinery on the other axis, and the same fixed-size requirement — see [LazyColumn] for
- * why measuring instead is not an option.
+ * <p>Same machinery on the other axis: items are all [itemWidth] wide unless [variableWidth] is set,
+ * in which case they measure themselves and [itemWidth] is only the opening guess. The costs of
+ * measuring are the ones [LazyColumn] describes.
  */
 @Composable
 fun <T> LazyRow(
     items: List<T>,
     itemWidth: Float,
+    variableWidth: Boolean = false,
     layout: LayoutBlock? = null,
     style: StyleBlock? = null,
     classes: String? = null,
@@ -332,28 +389,12 @@ fun <T> LazyRow(
     itemContent: @Composable (index: Int, item: T) -> Unit,
 ) {
     require(itemWidth > 0f) { "itemWidth must be positive, was $itemWidth" }
-
-    val view = remember { ScrollerView() }
-    val metrics = rememberScrollMetrics(view, view.horizontalScroller) { view.viewPort.contentWidth }
-
-    val total = items.size
-    val window = lazyWindow(total, itemWidth, metrics.viewport, metrics.fraction, overscan)
-
-    UIElementNode(
-        // The row direction goes on the *content* container, not on the ScrollerView. Putting it on
-        // the view itself lays out the view's own parts — the viewport and its scrollbars — side by
-        // side, and leaves the items still stacked vertically.
-        factory = { view.also { it.viewContainer.getLayout().flexDirection(FlexDirection.ROW) } },
+    LazyList(
+        vertical = false, items = items, itemSize = itemWidth, variableSize = variableWidth,
         layout = layout, style = style, classes = classes, id = id,
         enabled = enabled, visible = visible, focusable = focusable, events = events,
-    ) {
-        HorizontalSpacer(window.first * itemWidth)
-        for (index in window) {
-            val item = items[index]
-            key(key?.invoke(index, item) ?: index) { itemContent(index, item) }
-        }
-        HorizontalSpacer((total - window.last - 1) * itemWidth)
-    }
+        overscan = overscan, key = key, itemContent = itemContent,
+    )
 }
 
 /**
@@ -371,6 +412,11 @@ fun <T> LazyRow(
  *
  * <p>A trailing partial row is padded with empty cells, so the last row lines up with the ones above
  * rather than centring or stretching.
+ *
+ * <p>Cells are [cellWidth] by [cellHeight] unless [variableHeight] is set. Then each row is as tall as
+ * its tallest cell, every cell in it stretches to match, and [cellHeight] is only the estimate for
+ * rows that have not been on screen — the same trade [LazyColumn] makes. Widths stay fixed either
+ * way: the columns have to line up.
  */
 @Composable
 fun <T> LazyVerticalGrid(
@@ -378,6 +424,7 @@ fun <T> LazyVerticalGrid(
     columns: Int,
     cellWidth: Float,
     cellHeight: Float,
+    variableHeight: Boolean = false,
     layout: LayoutBlock? = null,
     style: StyleBlock? = null,
     classes: String? = null,
@@ -399,28 +446,36 @@ fun <T> LazyVerticalGrid(
     LazyColumn(
         items = rows,
         itemHeight = cellHeight,
+        variableHeight = variableHeight,
         layout = layout, style = style, classes = classes, id = id,
         enabled = enabled, visible = visible, focusable = focusable, events = events,
         overscan = overscan,
         key = { _, row -> row },
     ) { _, row ->
-        Row(layout = { height(cellHeight.px) }) {
+        // Row aligns its children to the top by default; a variable row has to stretch them instead,
+        // or a short cell stops short of its taller neighbours.
+        Row(layout = { if (variableHeight) alignItems(AlignItems.STRETCH) else height(cellHeight.px) }) {
             for (column in 0 until columns) {
                 val index = row * columns + column
                 if (index < items.size) {
                     val item = items[index]
                     key(key?.invoke(index, item) ?: index) {
-                        Box(layout = { size(cellWidth.px, cellHeight.px) }) {
+                        Box(layout = { cell(cellWidth, cellHeight, variableHeight) }) {
                             itemContent(index, item)
                         }
                     }
                 } else {
                     // Padding out the last row, so its cells sit under the ones above.
-                    Box(layout = { size(cellWidth.px, cellHeight.px) })
+                    Box(layout = { cell(cellWidth, cellHeight, variableHeight) })
                 }
             }
         }
     }
+}
+
+private fun TaffyLayoutStyleDsl.cell(cellWidth: Float, cellHeight: Float, variableHeight: Boolean) {
+    width(cellWidth.px)
+    if (!variableHeight) height(cellHeight.px)
 }
 
 /**
@@ -441,9 +496,7 @@ fun Spacer(
 }
 
 @Composable
-private fun Spacer(extent: Float) =
-    Spacer(layout = { height(extent.coerceAtLeast(0f).px) })
-
-@Composable
-private fun HorizontalSpacer(extent: Float) =
-    Spacer(layout = { width(extent.coerceAtLeast(0f).px) })
+private fun AxisSpacer(vertical: Boolean, extent: Float) {
+    val px = extent.coerceAtLeast(0f).px
+    Spacer(layout = { if (vertical) height(px) else width(px) })
+}

@@ -47,53 +47,60 @@ private fun LazyDemo() {
 
     val items = remember(count) { List(count) { "item $it" } }
 
-    Box(layout = { width(240.px); padding { all(6.px) }; gap { all(4.px) } }) {
-        Row(layout = { gap { all(3.px) } }) {
-            Text(
-                Component.literal("$count rows, selected $selected"),
-                classes = "lazy-status",
+    Row(layout = { gap { all(6.px) } }) {
+        Box(layout = { width(240.px); padding { all(6.px) }; gap { all(4.px) } }) {
+            Row(layout = { gap { all(3.px) } }) {
+                Text(
+                    Component.literal("$count rows, selected $selected"),
+                    classes = "lazy-status",
+                )
+            }
+            Button(
+                onClick = { count = if (count == 10_000) 20 else 10_000 },
+                text = Component.literal("切换长度"),
+                classes = "lazy-resize",
             )
-        }
-        Button(
-            onClick = { count = if (count == 10_000) 20 else 10_000 },
-            text = Component.literal("切换长度"),
-            classes = "lazy-resize",
-        )
 
-        LazyColumn(
-            items = items,
-            itemHeight = ROW_HEIGHT,
-            layout = { width(220.px); height(140.px) },
-            classes = "lazy-list",
-            key = { _, item -> item },
-        ) { index, item ->
-            Text(
-                Component.literal(item),
-                layout = { height(ROW_HEIGHT.px) },
-                classes = "lazy-row",
-                // `selected` is read inside the block, which the node observer tracks. Both branches
-                // are given a value on purpose though: a style block is written through and never
-                // taken back off, so a texture set only when selected would stay on the row after
-                // the selection moved elsewhere.
-                style = {
-                    backgroundTexture(if (index == selected) Sprites.RECT_SOLID else IGuiTexture.EMPTY)
-                },
+            LazyColumn(
+                items = items,
+                itemHeight = ROW_HEIGHT,
+                layout = { width(220.px); height(140.px) },
+                classes = "lazy-list",
+                key = { _, item -> item },
+            ) { index, item ->
+                Text(
+                    Component.literal(item),
+                    layout = { height(ROW_HEIGHT.px) },
+                    classes = "lazy-row",
+                    // `selected` is read inside the block, which the node observer tracks. Both branches
+                    // are given a value on purpose though: a style block is written through and never
+                    // taken back off, so a texture set only when selected would stay on the row after
+                    // the selection moved elsewhere.
+                    style = {
+                        backgroundTexture(if (index == selected) Sprites.RECT_SOLID else IGuiTexture.EMPTY)
+                    },
+                )
+            }
+
+            Button(
+                onClick = { selected = 5000 },
+                text = Component.literal("选中 5000"),
+                classes = "lazy-select",
+                // Disabled once it has already been used — the flag every real UI needs. It is a plain
+                // parameter, so "not passed" is a value rather than an absence and there is nothing to
+                // undo when it flips back.
+                enabled = selected != 5000,
             )
+
+            Grid()
+            Strip()
         }
-
-        Button(
-            onClick = { selected = 5000 },
-            text = Component.literal("选中 5000"),
-            classes = "lazy-select",
-            // Disabled once it has already been used — the flag every real UI needs. It is a plain
-            // parameter, so "not passed" is a value rather than an absence and there is nothing to
-            // undo when it flips back.
-            enabled = selected != 5000,
-        )
-
-        Grid()
-        Strip()
-        Ragged()
+        // The variable-size lists, in a column of their own so the screen still fits at a normal GUI scale.
+        Box(layout = { width(240.px); padding { all(6.px) }; gap { all(4.px) } }) {
+            Ragged()
+            RaggedStrip()
+            RaggedGrid()
+        }
     }
 }
 
@@ -119,6 +126,56 @@ private fun Ragged() {
         Box(
             layout = { width(180.px); height((10 + (row % 5) * 8).px) },
             classes = "ragged-row ragged-row-$index",
+        )
+    }
+}
+
+/**
+ * [Ragged] across: cells of five different widths, which the strip only learns by measuring them.
+ * Its viewport is narrower than its content from the start, which is what makes the leading and
+ * trailing spacers matter.
+ */
+@Composable
+private fun RaggedStrip() {
+    val cells = remember { List(300) { it } }
+    LazyRow(
+        items = cells,
+        itemWidth = 20f,
+        variableWidth = true,
+        layout = { width(220.px); height(24.px) },
+        classes = "ragged-strip",
+        key = { _, cell -> cell },
+    ) { index, cell ->
+        Box(
+            layout = { width((12 + (cell % 5) * 9).px); height(16.px) },
+            style = { backgroundTexture(if (cell % 2 == 0) Sprites.RECT_SOLID else IGuiTexture.EMPTY) },
+            classes = "ragged-cell ragged-cell-$index",
+        )
+    }
+}
+
+/**
+ * A grid whose rows are not all the same height. Each row is as tall as its tallest cell, and the
+ * cells beside it stretch to match, so the columns still line up.
+ */
+@Composable
+private fun RaggedGrid() {
+    val cells = remember { List(600) { it } }
+    LazyVerticalGrid(
+        items = cells,
+        columns = 6,
+        cellWidth = 34f,
+        cellHeight = 12f,
+        variableHeight = true,
+        layout = { width(220.px); height(70.px) },
+        classes = "ragged-grid",
+        key = { _, cell -> cell },
+    ) { index, cell ->
+        // One tall cell every few rows, so row heights genuinely differ.
+        Box(
+            layout = { height((if (cell % 15 == 0) 26 else 10).px) },
+            style = { backgroundTexture(if (cell % 15 == 0) Sprites.RECT_SOLID else Sprites.BORDER) },
+            classes = "ragged-grid-cell ragged-grid-cell-$index",
         )
     }
 }

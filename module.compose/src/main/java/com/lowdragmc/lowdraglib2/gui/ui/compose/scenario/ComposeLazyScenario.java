@@ -116,16 +116,17 @@ public class ComposeLazyScenario implements UIScenario {
                     return mounted > 0 && mounted < SANE_MOUNTED_LIMIT;
                 })
                 .check("its rows really are different heights", ctx ->
-                        raggedHeights(ctx).stream().distinct().count() > 1)
+                        ctx.query().select(".ragged-row").list().stream()
+                                .map(ref -> ref.bounds().height()).distinct().count() > 1)
                 .check("rows sit one after another with no overlap and no gap", ctx ->
-                        raggedRowsAreContiguous(ctx))
+                        contiguous(ragged(ctx), true))
                 .check("the scrollbar spans the whole ragged list", ctx ->
-                        raggedContentHeight(ctx) > 400 * 10f)
+                        contentExtent(ragged(ctx), true) > 400 * 10f)
                 // At the top there is nothing above the first row, so the leading spacer must be
                 // flat zero. This is the assertion that actually tests the spacer arithmetic -
                 // rows tiling each other is what a flex column does regardless.
                 .check("nothing is reserved above the first row at the top", ctx ->
-                        leadingSpacer(ctx) < 0.5f)
+                        leadingSpacer(ragged(ctx), true) < 0.5f)
 
                 .step("scroll the ragged list to the middle", ctx ->
                         ragged(ctx).verticalScroller.setValue(0.5f))
@@ -133,9 +134,9 @@ public class ComposeLazyScenario implements UIScenario {
                 .check("the ragged window moved", ctx ->
                         ctx.query().select(".ragged-row-0").optional().isEmpty())
                 .check("and now reserves space for the rows above it", ctx ->
-                        leadingSpacer(ctx) > 0f && trailingSpacer(ctx) > 0f)
+                        leadingSpacer(ragged(ctx), true) > 0f && trailingSpacer(ragged(ctx), true) > 0f)
                 .check("and its rows are still contiguous after measuring new ones", ctx ->
-                        raggedRowsAreContiguous(ctx))
+                        contiguous(ragged(ctx), true))
 
                 .step("scroll the ragged list to the end", ctx ->
                         ragged(ctx).verticalScroller.setValue(1f))
@@ -144,9 +145,60 @@ public class ComposeLazyScenario implements UIScenario {
                         ctx.query().select(".ragged-row-399").optional().isPresent())
                 // The mirror of the check at the top, and the one that catches a trailing spacer
                 // that is too big: the list would then scroll past its own last row.
-                .check("and nothing is reserved below it", ctx -> trailingSpacer(ctx) < 0.5f)
+                .check("and nothing is reserved below it", ctx -> trailingSpacer(ragged(ctx), true) < 0.5f)
                 .check("and the rows are contiguous at the bottom too", ctx ->
-                        raggedRowsAreContiguous(ctx))
+                        contiguous(ragged(ctx), true))
+
+                // The same measuring across. Cells tiling each other is what a flex row does anyway;
+                // the spacers at the two ends are what show the arithmetic ran on the right axis.
+                .check("the ragged strip is virtualised", ctx -> {
+                    var mounted = ctx.query().select(".ragged-cell").count();
+                    return mounted > 0 && mounted < SANE_MOUNTED_LIMIT;
+                })
+                .check("its cells really are different widths", ctx ->
+                        ctx.query().select(".ragged-cell").list().stream()
+                                .map(ref -> ref.bounds().width()).distinct().count() > 1)
+                .check("cells sit side by side with no overlap and no gap", ctx ->
+                        contiguous(strip(ctx), false))
+                .check("nothing is reserved before the first cell", ctx ->
+                        leadingSpacer(strip(ctx), false) < 0.5f)
+                .check("the strip's content spans every cell", ctx ->
+                        contentExtent(strip(ctx), false) > 300 * 12f)
+
+                .step("scroll the strip to the middle", ctx -> strip(ctx).horizontalScroller.setValue(0.5f))
+                .frames(5)
+                .check("the strip's window moved", ctx ->
+                        ctx.query().select(".ragged-cell-0").optional().isEmpty())
+                .check("and reserves space on both sides of it", ctx ->
+                        leadingSpacer(strip(ctx), false) > 0f && trailingSpacer(strip(ctx), false) > 0f)
+                .check("and its cells are still contiguous", ctx -> contiguous(strip(ctx), false))
+
+                .step("scroll the strip to the end", ctx -> strip(ctx).horizontalScroller.setValue(1f))
+                .frames(5)
+                .check("the last ragged cell is reachable", ctx ->
+                        ctx.query().select(".ragged-cell-299").optional().isPresent())
+                .check("and nothing is reserved after it", ctx -> trailingSpacer(strip(ctx), false) < 0.5f)
+
+                // A grid with variable rows: each row as tall as its tallest cell. Cell 0 is one of
+                // the tall ones, so the first row is tall and its other cells have to stretch to it.
+                .check("the ragged grid is virtualised", ctx -> {
+                    var mounted = ctx.query().select(".ragged-grid-cell").count();
+                    return mounted > 0 && mounted < 6 * SANE_MOUNTED_LIMIT;
+                })
+                .check("its rows really are different heights", ctx ->
+                        raggedGrid(ctx).viewContainer.getChildren().stream()
+                                .map(UIElement::getSizeHeight).filter(h -> h > 0f).distinct().count() > 1)
+                .check("a short cell stretches to the tallest in its row", ctx ->
+                        cellSlot(ctx, ".ragged-grid-cell-1").getSizeHeight() > 20f)
+                .check("grid rows sit one after another", ctx -> contiguous(raggedGrid(ctx), true))
+                .step("scroll the grid to the end", ctx -> raggedGrid(ctx).verticalScroller.setValue(1f))
+                .frames(5)
+                .check("the last grid cell is reachable", ctx ->
+                        ctx.query().select(".ragged-grid-cell-599").optional().isPresent())
+                .check("and nothing is reserved below the last row", ctx ->
+                        trailingSpacer(raggedGrid(ctx), true) < 0.5f)
+                .check("and the grid rows are contiguous at the bottom", ctx -> contiguous(raggedGrid(ctx), true))
+                .screenshotElement("lazy-ragged-end", ".__root__")
 
                 .closeScreen();
     }
@@ -172,49 +224,64 @@ public class ComposeLazyScenario implements UIScenario {
         return ctx.query().select(".ragged-list").one().as(ScrollerView.class);
     }
 
-    private static float raggedContentHeight(TestContext ctx) {
-        float height = 0f;
-        for (var child : ragged(ctx).viewContainer.getChildren()) {
-            height += child.getSizeHeight();
+    private static ScrollerView strip(TestContext ctx) {
+        return ctx.query().select(".ragged-strip").one().as(ScrollerView.class);
+    }
+
+    private static ScrollerView raggedGrid(TestContext ctx) {
+        return ctx.query().select(".ragged-grid").one().as(ScrollerView.class);
+    }
+
+    /** The grid's own box around a cell's content - the element that stretches to the row. */
+    private static UIElement cellSlot(TestContext ctx, String selector) {
+        return ctx.query().select(selector).one().as(UIElement.class).getParent();
+    }
+
+    private static float extent(UIElement element, boolean vertical) {
+        return vertical ? element.getSizeHeight() : element.getSizeWidth();
+    }
+
+    /** Total extent of the scrolling content along its axis, spacers included. */
+    private static float contentExtent(ScrollerView view, boolean vertical) {
+        float total = 0f;
+        for (var child : view.viewContainer.getChildren()) {
+            total += extent(child, vertical);
         }
-        return height;
+        return total;
     }
 
-    /** The empty element standing in for everything above the mounted window. */
-    private static float leadingSpacer(TestContext ctx) {
-        var children = ragged(ctx).viewContainer.getChildren();
-        return children.isEmpty() ? -1f : children.get(0).getSizeHeight();
+    /** The empty element standing in for everything before the mounted window. */
+    private static float leadingSpacer(ScrollerView view, boolean vertical) {
+        var children = view.viewContainer.getChildren();
+        return children.isEmpty() ? -1f : extent(children.get(0), vertical);
     }
 
-    /** And the one standing in for everything below it. */
-    private static float trailingSpacer(TestContext ctx) {
-        var children = ragged(ctx).viewContainer.getChildren();
-        return children.isEmpty() ? -1f : children.get(children.size() - 1).getSizeHeight();
-    }
-
-    private static List<Float> raggedHeights(TestContext ctx) {
-        return ctx.query().select(".ragged-row").list().stream()
-                .map(ref -> ref.bounds().height()).toList();
+    /** And the one standing in for everything after it. */
+    private static float trailingSpacer(ScrollerView view, boolean vertical) {
+        var children = view.viewContainer.getChildren();
+        return children.isEmpty() ? -1f : extent(children.get(children.size() - 1), vertical);
     }
 
     /**
-     * Whether the mounted ragged rows tile their container without overlapping or leaving a gap.
+     * Whether the mounted items tile their container along its axis without overlapping or leaving
+     * a gap.
      *
      * <p>Walks the container's own children rather than the query result, because a query returns
-     * registration order and these have to be checked in document order. Each measured row sits
-     * inside a wrapper, so the wrappers are what tile - the rows are their only children.
+     * registration order and these have to be checked in document order. Each measured item sits
+     * inside a wrapper, so the wrappers are what tile - the items are their only children.
      */
-    private static boolean raggedRowsAreContiguous(TestContext ctx) {
-        Float previousBottom = null;
-        for (var child : ragged(ctx).viewContainer.getChildren()) {
-            if (child.getSizeHeight() <= 0f) continue;
-            float top = child.getPositionY();
-            if (previousBottom != null && Math.abs(top - previousBottom) > 0.5f) {
+    private static boolean contiguous(ScrollerView view, boolean vertical) {
+        Float previousEnd = null;
+        for (var child : view.viewContainer.getChildren()) {
+            var size = extent(child, vertical);
+            if (size <= 0f) continue;
+            float start = vertical ? child.getPositionY() : child.getPositionX();
+            if (previousEnd != null && Math.abs(start - previousEnd) > 0.5f) {
                 return false;
             }
-            previousBottom = top + child.getSizeHeight();
+            previousEnd = start + size;
         }
-        return previousBottom != null;
+        return previousEnd != null;
     }
 
     private static List<String> rowTexts(TestContext ctx) {

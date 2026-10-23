@@ -190,36 +190,36 @@ class MeasuredWindowTest {
  * <p>Its whole job is to be cheap and to not thrash: layout produces fractional heights, and a cache
  * that reported every wobble would invalidate the window every frame.
  */
-class RowHeightsTest {
+class ItemSizesTest {
 
     @Test
     fun `rows start on the estimate`() {
-        val rows = RowHeights(12f)
+        val rows = ItemSizes(12f)
         rows.resize(3)
-        assertEquals(listOf(12f, 12f, 12f), rows.heights.toList())
+        assertEquals(listOf(12f, 12f, 12f), rows.sizes.toList())
     }
 
     @Test
     fun `growing the list keeps what was already measured`() {
-        val rows = RowHeights(12f)
+        val rows = ItemSizes(12f)
         rows.resize(2)
         rows.measure(0, 40f)
         rows.resize(4)
-        assertEquals(listOf(40f, 12f, 12f, 12f), rows.heights.toList())
+        assertEquals(listOf(40f, 12f, 12f, 12f), rows.sizes.toList())
     }
 
     @Test
     fun `shrinking the list drops the tail`() {
-        val rows = RowHeights(12f)
+        val rows = ItemSizes(12f)
         rows.resize(4)
         rows.measure(3, 40f)
         rows.resize(2)
-        assertEquals(listOf(12f, 12f), rows.heights.toList())
+        assertEquals(listOf(12f, 12f), rows.sizes.toList())
     }
 
     @Test
     fun `a measurement bumps the version so readers recompose`() {
-        val rows = RowHeights(12f)
+        val rows = ItemSizes(12f)
         rows.resize(2)
         val before = rows.version
         rows.measure(0, 40f)
@@ -228,36 +228,36 @@ class RowHeightsTest {
 
     @Test
     fun `sub-pixel wobble is ignored`() {
-        val rows = RowHeights(12f)
+        val rows = ItemSizes(12f)
         rows.resize(2)
         rows.measure(0, 40f)
         val settled = rows.version
         rows.measure(0, 40.4f)
         rows.measure(0, 39.7f)
         assertEquals(settled, rows.version)
-        assertEquals(40f, rows.heights[0])
+        assertEquals(40f, rows.sizes[0])
     }
 
     @Test
     fun `a zero height is refused`() {
-        val rows = RowHeights(12f)
+        val rows = ItemSizes(12f)
         rows.resize(2)
         rows.measure(0, 0f)
-        assertEquals(12f, rows.heights[0])
+        assertEquals(12f, rows.sizes[0])
     }
 
     @Test
     fun `an out of range index is ignored rather than throwing`() {
-        val rows = RowHeights(12f)
+        val rows = ItemSizes(12f)
         rows.resize(2)
         rows.measure(5, 40f)
         rows.measure(-1, 40f)
-        assertEquals(listOf(12f, 12f), rows.heights.toList())
+        assertEquals(listOf(12f, 12f), rows.sizes.toList())
     }
 
     @Test
     fun `resizing to the same count changes nothing`() {
-        val rows = RowHeights(12f)
+        val rows = ItemSizes(12f)
         rows.resize(3)
         val before = rows.version
         rows.resize(3)
