@@ -23,6 +23,7 @@ import com.lowdragmc.lowdraglib2.syncdata.accessor.direct.PrimitiveAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.direct.RegistryAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.readonly.IManagedObjectAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.readonly.ValueIOSerializableReadOnlyAccessor;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.ManagedCodec;
 import com.lowdragmc.lowdraglib2.utils.*;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -60,7 +61,12 @@ import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient;
 import org.jetbrains.annotations.Nullable;
 import org.joml.*;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.GenericArrayType;
+import java.lang.reflect.InaccessibleObjectException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.*;
@@ -76,6 +82,8 @@ public class AccessorRegistries {
     private final static BiFunction<IAccessor, Class<?>, IAccessor<?>> COLLECTION_ACCESSOR_LOOKUP = Util.memoize(CollectionAccessor::new);
     private final static Map<MapAccessorKey, IAccessor<?>> MAP_ACCESSOR_LOOKUP = new ConcurrentHashMap<>();
     private record MapAccessorKey(IAccessor<?> keyAccessor, Class<?> keyType, IAccessor<?> valueAccessor, Class<?> valueType) {}
+    private final static Map<ManagedCodecKey, IAccessor<?>> MANAGED_CODEC_LOOKUP = new ConcurrentHashMap<>();
+    private record ManagedCodecKey(Field field, Class<?> holderType) {}
     /**
      * Register an accessor with a given priority.
      * Lower priority accessors will be checked first.
@@ -233,6 +241,91 @@ public class AccessorRegistries {
             return findByClassOrNull(rawType);
         }
         return null;
+    }
+
+    /**
+     * The accessor a {@link ManagedCodec} field names: the {@link IAccessor} its method returns, or one built from
+     * its codec and stream codec. Resolved by calling the named methods on {@code holder} the first time, then
+     * kept per field and holder class, so a subclass that overrides them gets its own. Safe to call from any thread.
+     *
+     * @param field  a field annotated with {@link ManagedCodec}
+     * @param holder the object the field belongs to, whose class decides which overrides apply
+     * @throws IllegalArgumentException if a named method can't be found or called, throws, returns {@code null},
+     *                                  or returns the wrong kind of value
+     * @see com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey#getFieldAccessor(Object)
+     */
+    public static IAccessor<?> findByManagedCodec(Field field, Object holder) {
+        var key = new ManagedCodecKey(field, holder.getClass());
+        var cached = MANAGED_CODEC_LOOKUP.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        // not computeIfAbsent: the named methods are user code and may create managed objects themselves
+        var accessor = createManagedCodecAccessor(field, holder);
+        var raced = MANAGED_CODEC_LOOKUP.putIfAbsent(key, accessor);
+        return raced == null ? accessor : raced;
+    }
+
+    private static IAccessor<?> createManagedCodecAccessor(Field field, Object holder) {
+        var managedCodec = field.getAnnotation(ManagedCodec.class);
+        var value = callManagedCodecMethod(field, managedCodec, managedCodec.value(), holder);
+        if (value instanceof IAccessor<?> accessor) {
+            if (!managedCodec.streamCodec().isEmpty()) {
+                throw managedCodecError(field, managedCodec.value() + "() returns an accessor, which can't take a stream codec", null);
+            }
+            return accessor;
+        }
+        if (!(value instanceof Codec<?> codec)) {
+            throw managedCodecError(field, managedCodec.value() + "() returns neither a Codec nor an IAccessor", null);
+        }
+        StreamCodec<? super RegistryFriendlyByteBuf, ?> streamCodec;
+        if (managedCodec.streamCodec().isEmpty()) {
+            streamCodec = ByteBufCodecs.fromCodecWithRegistries(codec);
+        } else if (callManagedCodecMethod(field, managedCodec, managedCodec.streamCodec(), holder) instanceof StreamCodec<?, ?> named) {
+            streamCodec = (StreamCodec<? super RegistryFriendlyByteBuf, ?>) named;
+        } else {
+            throw managedCodecError(field, managedCodec.streamCodec() + "() does not return a StreamCodec", null);
+        }
+        return CustomDirectAccessor.builder((Class<Object>) field.getType(), true)
+                .codec((Codec<Object>) codec)
+                .streamCodec((StreamCodec<? super RegistryFriendlyByteBuf, Object>) streamCodec)
+                .codecMark()
+                .build();
+    }
+
+    private static Object callManagedCodecMethod(Field field, ManagedCodec managedCodec, String name, Object holder) {
+        var owner = managedCodec.owner() == void.class ? holder.getClass() : managedCodec.owner();
+        var signature = owner.getName() + "." + name + "()";
+        Method method = null;
+        for (var type = owner; type != null && method == null; type = type.getSuperclass()) {
+            try {
+                method = type.getDeclaredMethod(name);
+            } catch (NoSuchMethodException ignored) {}
+        }
+        Object value;
+        try {
+            if (method == null) {
+                method = owner.getMethod(name);
+            }
+            var isStatic = Modifier.isStatic(method.getModifiers());
+            if (!isStatic && !method.getDeclaringClass().isInstance(holder)) {
+                throw managedCodecError(field, signature + " is not static", null);
+            }
+            method.setAccessible(true);
+            value = method.invoke(isStatic ? null : holder);
+        } catch (InvocationTargetException e) {
+            throw managedCodecError(field, signature + " threw", e.getCause());
+        } catch (ReflectiveOperationException | InaccessibleObjectException e) {
+            throw managedCodecError(field, "can't call " + signature, e);
+        }
+        if (value == null) {
+            throw managedCodecError(field, signature + " returns null", null);
+        }
+        return value;
+    }
+
+    private static IllegalArgumentException managedCodecError(Field field, String problem, @Nullable Throwable cause) {
+        return new IllegalArgumentException("@ManagedCodec of " + field + ": " + problem, cause);
     }
 
     /**

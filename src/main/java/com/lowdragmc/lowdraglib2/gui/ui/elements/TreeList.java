@@ -442,10 +442,12 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
      * @param node the {@code TreeNode} to be collapsed
      */
     public void collapseNode(NODE node) {
-        if (!isNodeExpanded(node) || node.isLeaf()) return;
+        // a flattened root has no row to fold: its children are the list
+        if (!isNodeExpanded(node) || node.isLeaf() || (flattenRoot && node == root)) return;
         var selected = getSelected();
-        for (var child : node.getChildren()) {
-            removeNodeUI((NODE) child);
+        // the rows on screen, not the model's children: a child that left the model since the last re-diff is still shown
+        for (var child : displayedChildren.getOrDefault(node, Collections.emptyList())) {
+            removeNodeUI(child);
         }
         if (!selected.equals(getSelected())) {
             onSelectedChanged.accept(getSelected());
@@ -467,6 +469,7 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
         if (flattenRoot) {
             var index = 0;
             for (var child : root.getChildren()) {
+                displayedChildren.computeIfAbsent(root, n -> new ArrayList<>()).add((NODE) child);
                 addNodeUI((NODE) child, index++);
             }
         } else {
@@ -495,6 +498,10 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
      */
     protected void checkExpandedChildrenValid() {
         if (staticTree) return;
+        // a flattened root has no row, so no expanded row re-diffs the top level
+        if (flattenRoot && root != null) {
+            rediffChildren(root, -1);
+        }
         // copied: a node that lost its children collapses, which mutates the set being iterated
         for (var node : List.copyOf(expandedNodes)) {
             checkNodeChildrenValid(node);
@@ -503,25 +510,48 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
 
     protected void checkNodeChildrenValid(NODE node) {
         if (isNodeExpanded(node) && nodeUIs.containsKey(node)) {
-            var currentChildren = (List<NODE>) node.getChildren();
-            var displayedChildren = this.displayedChildren.getOrDefault(node, Collections.emptyList());
-            if (currentChildren.equals(displayedChildren)) return;
-            var removed = new ArrayList<>(displayedChildren);
-            removed.removeAll(currentChildren);
-            var selected = getSelected();
-            for (var displayed : new ArrayList<>(displayedChildren)) {
-                removeNodeUI(displayed, removed.contains(displayed));
+            rediffChildren(node, getChildren().indexOf(nodeUIs.get(node)));
+        }
+    }
+
+    /**
+     * Rebuilds the rows under {@code node}, whose own row sits at {@code index}, when its children changed. A row shown
+     * again keeps its selection; one that went away loses it.
+     */
+    protected void rediffChildren(NODE node, int index) {
+        var currentChildren = (List<NODE>) node.getChildren();
+        var displayedChildren = this.displayedChildren.getOrDefault(node, Collections.emptyList());
+        if (currentChildren.equals(displayedChildren)) return;
+        var removed = new ArrayList<>(displayedChildren);
+        removed.removeAll(currentChildren);
+        var shownBefore = new ArrayList<NODE>();
+        for (var displayed : displayedChildren) {
+            collectShown(displayed, shownBefore);
+        }
+        var selectedBefore = new LinkedHashSet<>(selectedNodes);
+        for (var displayed : new ArrayList<>(displayedChildren)) {
+            removeNodeUI(displayed, removed.contains(displayed), false);
+        }
+        this.displayedChildren.remove(node);
+        for (int i = currentChildren.size() - 1; i >= 0; i--) {
+            var childNode = currentChildren.get(i);
+            this.displayedChildren.computeIfAbsent(node, n -> new ArrayList<>()).addFirst(childNode);
+            addNodeUI(childNode, index + 1);
+        }
+        for (var shown : shownBefore) {
+            if (!nodeUIs.containsKey(shown)) {
+                selectedNodes.remove(shown);
             }
-            this.displayedChildren.remove(node);
-            var index = getChildren().indexOf(nodeUIs.get(node));
-            for (int i = currentChildren.size() - 1; i >= 0; i--) {
-                var childNode = currentChildren.get(i);
-                this.displayedChildren.computeIfAbsent(node, n -> new ArrayList<>()).addFirst(childNode);
-                addNodeUI(childNode, index + 1);
-            }
-            if (!selected.equals(getSelected())) {
-                onSelectedChanged.accept(getSelected());
-            }
+        }
+        if (!selectedBefore.equals(selectedNodes)) {
+            onSelectedChanged.accept(getSelected());
+        }
+    }
+
+    private void collectShown(NODE node, List<NODE> into) {
+        into.add(node);
+        for (var child : displayedChildren.getOrDefault(node, Collections.emptyList())) {
+            collectShown(child, into);
         }
     }
 
@@ -530,15 +560,21 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
     }
 
     protected void removeNodeUI(NODE node, boolean removeExpanded) {
+        removeNodeUI(node, removeExpanded, true);
+    }
+
+    protected void removeNodeUI(NODE node, boolean removeExpanded, boolean deselect) {
         var ui = nodeUIs.remove(node);
-        removeSelected(node, true);
+        if (deselect) {
+            removeSelected(node, true);
+        }
         if (ui != null) {
             removeChild(ui);
         }
         if (displayedChildren.containsKey(node)) {
             var children = displayedChildren.get(node);
             for (var child : children) {
-                removeNodeUI(child, removeExpanded);
+                removeNodeUI(child, removeExpanded, deselect);
             }
         }
         if (removeExpanded) {
@@ -586,6 +622,9 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
                 }
             }
         });
+        // the arrow's clicks are its own: they neither select the row nor double-click it
+        arrow.addEventListener(UIEvents.CLICK, e -> stopArrowClick(e, node));
+        arrow.addEventListener(UIEvents.DOUBLE_CLICK, e -> stopArrowClick(e, node));
         var ui = nodeUISupplier.apply(node);
         container.addChildren(arrow, ui);
         container.addEventListener(UIEvents.CLICK, e -> onNodeClicked(e, node));
@@ -655,6 +694,12 @@ public class TreeList<NODE extends ITreeNode<?, ?>> extends UIElement {
                 selectedNodes.add(node);
             }
             onSelectedChanged.accept(getSelected());
+        }
+    }
+
+    private void stopArrowClick(UIEvent event, NODE node) {
+        if (event.button == 0 && node.isBranch() && !expandsOnClick(node)) {
+            event.stopPropagation();
         }
     }
 

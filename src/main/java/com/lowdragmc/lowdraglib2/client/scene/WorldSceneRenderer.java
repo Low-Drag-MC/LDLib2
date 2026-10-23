@@ -763,10 +763,13 @@ public abstract class WorldSceneRenderer {
 
                 if (afterTranslucentDispatch != null) afterTranslucentDispatch.apply(dispatchCtx);
 
+                // translucent particles are in the after-terrain phase
                 frame.executeTranslucentAfterTerrain(pass);
                 frame.executeSeeThrough(pass);
                 frame.executeAlwaysOnTop(pass);
 
+                // Every phase has drawn, particles included: particle managers draw through the dispatcher,
+                // not from afterRender(), so a hook here lands over them.
                 if (afterAllDispatch != null) afterAllDispatch.apply(dispatchCtx);
             }
         } finally {
@@ -775,8 +778,9 @@ public abstract class WorldSceneRenderer {
             }
             currentDepthTarget = null;
             if (savedGlobals != null) RenderSystem.setGlobalSettingsUniform(savedGlobals);
-            // try-with-resources has already closed the frame, so this still runs after the dispatcher
-            // drains and still with the camera context live.
+            // Last, after afterAllDispatch: a particle manager keeps per-view state until here (Photon's clock
+            // and target size), and what the hooks draw is still this view. Try-with-resources has already
+            // closed the frame, so this also runs after the dispatcher drains, with the camera context live.
             if (particleManager != null) particleManager.afterRender();
             SceneCameraContext.clear();
         }

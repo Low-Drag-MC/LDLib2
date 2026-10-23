@@ -96,7 +96,7 @@ public class SceneEditor extends UIElement implements IScene {
         });
         // Editor-owned scene objects (gizmo + ISceneRendering) render as no-depth overlays.
         // Routed through Scene's overlay hook which fires with the live SceneRenderContext
-        // from inside the renderer's afterTranslucentDispatch.
+        // from inside the renderer's afterAllDispatch.
         this.scene.setOverlay(SceneEditor.this::renderAfterWorld);
 
         this.gizmoBar = new UIElement();

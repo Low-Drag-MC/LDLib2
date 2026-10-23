@@ -31,6 +31,8 @@ public final class SyncDataGameTests {
         }
         initialized = true;
         MapSerializationGameTest.registerFunctions();
+        ManagedCodecGameTest.registerFunctions();
+        SyncTestBlockEntityGameTest.registerFunctions();
         TEST_FUNCTIONS.register(eventBus);
         eventBus.addListener(SyncDataGameTests::registerGameTests);
     }
@@ -53,6 +55,8 @@ public final class SyncDataGameTests {
                 new TestEnvironmentDefinition.AllOf()
         );
         MapSerializationGameTest.register(event, environment);
+        ManagedCodecGameTest.register(event, environment);
+        SyncTestBlockEntityGameTest.register(event, environment);
     }
 
     static void registerFunctionTest(

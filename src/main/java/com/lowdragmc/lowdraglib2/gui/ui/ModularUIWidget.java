@@ -379,23 +379,31 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
      * @return true if anything handled the command.
      */
     public boolean dispatchCommand(String command, int keyCode, int shortcutKey, int modifiers) {
+        return dispatchCommand(command, keyCode, shortcutKey, modifiers, false);
+    }
+
+    /**
+     * @param taken answer whether a handler stopped or claimed it, not whether any listener heard it — which is
+     *              what decides if the key press is kept from the game.
+     */
+    public boolean dispatchCommand(String command, int keyCode, int shortcutKey, int modifiers, boolean taken) {
         if (modularUI.focusedElement != null) {
             var event = createExecuteCommandEvent(command, keyCode, shortcutKey, modifiers);
             event.target = modularUI.focusedElement;
             UIEventDispatcher.dispatchEvent(event);
-            return event.hasHandler;
+            return taken ? event.propagationStopped : event.hasHandler;
         }
         var event = createValidCommandEvent(command, keyCode, shortcutKey, modifiers);
         event.target = modularUI.ui.rootElement;
-        var handled = UIEventDispatcher.dispatchAllChildren(event);
+        var claimed = UIEventDispatcher.dispatchAllChildren(event) && event.currentElement != null;
         var hasHandler = event.hasHandler;
-        if (handled && event.currentElement != null) {
+        if (claimed) {
             var executeCommandEvent = createExecuteCommandEvent(command, keyCode, shortcutKey, modifiers);
             executeCommandEvent.target = event.currentElement;
             UIEventDispatcher.dispatchEvent(executeCommandEvent);
             hasHandler |= executeCommandEvent.hasHandler;
         }
-        return hasHandler;
+        return taken ? claimed : hasHandler;
     }
 
     /**

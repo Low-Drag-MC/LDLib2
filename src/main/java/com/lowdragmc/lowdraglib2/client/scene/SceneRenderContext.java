@@ -22,9 +22,11 @@ import net.minecraft.client.renderer.state.level.CameraRenderState;
  *   <li>{@code beforeAllSubmit} — before any builtin submit; rarely needed</li>
  *   <li>{@code afterBuiltinSubmit} — after entity/BESR/particle submit, before dispatch;
  *       submit into {@code submitStorage}</li>
- *   <li>{@code afterTranslucentDispatch} — between the translucent and after-terrain feature phases;
- *       {@link #renderPass()} is open</li>
- *   <li>{@code afterAllDispatch} — after all feature phases dispatched; {@link #renderPass()} is open</li>
+ *   <li>{@code afterTranslucentDispatch} — between the translucent and after-terrain feature phases,
+ *       so before translucent particles; {@link #renderPass()} is open</li>
+ *   <li>{@code afterAllDispatch} — after every feature phase, particles included, and before the particle
+ *       manager's {@code afterRender}; the frame is dispatched, so draw into {@link #renderPass()} rather
+ *       than submit</li>
  * </ul>
  */
 public record SceneRenderContext(

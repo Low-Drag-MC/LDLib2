@@ -234,8 +234,11 @@ public class Menu<K, T> extends UIElement {
     }
 
     public void close(){
-        if (this.getParent() != null) {
-            this.getParent().removeChild(this);
+        var entry = this.getParent();
+        if (entry != null) {
+            entry.removeChild(this);
+            // the entry of the menu this one opened from, lifted while it was open
+            if (parentMenu != null) entry.style(style -> style.zIndex(0));
         }
         onClose.run();
     }
@@ -300,6 +303,10 @@ public class Menu<K, T> extends UIElement {
                                         close();
                                     }
                                 });
+                                // A submenu is a child of its entry, and siblings paint in order: the entries
+                                // below would paint over it where it overlaps this menu, e.g. flipped left at the
+                                // screen edge. Lifted, the entry paints after them; close() puts it back.
+                                e.currentElement.style(style -> style.zIndex(1));
                                 e.currentElement.addChild(opened);
                             } else {
                                 if (opened != null) {
