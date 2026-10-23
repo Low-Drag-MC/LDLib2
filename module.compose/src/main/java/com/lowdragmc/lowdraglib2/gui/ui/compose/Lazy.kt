@@ -9,9 +9,11 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Scroller
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener
@@ -34,29 +36,27 @@ import kotlin.math.floor
  * }
  * ```
  *
- * <p>A thousand-row list composed eagerly is a thousand elements, each with a layout node and a
- * stylesheet match — several megabytes and a visible hitch. This keeps roughly a screenful mounted
- * and represents everything above and below as two empty spacer elements, so the scrollbar still
- * behaves as though the whole list were there.
+ * <p>Keeps roughly a screenful mounted and stands in for everything above and below with two empty
+ * spacers, so the scrollbar behaves as though the whole list were there.
  *
  * <p>Rows enter and leave as you scroll, which means a row's `remember`ed state does not survive
  * being scrolled out of view. `rememberSaveable` state does: each row saves under its [key] on the way
  * out and gets it back on the way in, and that saved state is dropped once its key is no longer in
  * [items]. Shared state — a selection across rows — still belongs above this call.
  *
- * <p>When [items] changes, the list stays on the row it was showing: the first visible row keeps its
- * place on screen, wherever it moved to in the list, instead of the scroll position staying at the
- * same fraction of a list that is now a different length.
+ * <p>When [items] changes, or a variable-height row turns out a different height, the list stays on
+ * the row it was showing: the first visible row keeps its place on screen, wherever it moved to in the
+ * list. If that row was removed, the row that took its place does.
  *
  * <p>[items] is compared by identity to notice a change. Hand over a new list, or a snapshot state
- * list whose size changes; replacing one element of a snapshot state list in place is not seen until
- * the next change that is.
+ * list whose size changes. Replacing one element of a snapshot state list in place shows the new
+ * element at once, but under the old element's key, saved state and measured size.
  *
  * @param itemHeight with [variableHeight] off, the height every row *is* — nothing enforces it, so
  *   give each row that height (`layout = { height(itemHeight.px) }`) or the spacers and the rows will
  *   disagree. With [variableHeight] on, only the estimate for rows not yet on screen.
  * @param variableHeight lets rows be different heights, at the cost of a wrapper element per row and
- *   a settling frame; see [MeasuredItem].
+ *   a settling frame: a row is measured once laid out, so it occupies the estimate on its first frame.
  * @param overscan how many extra rows to keep mounted beyond each edge, so a fast scroll does not
  *   show a gap before the next frame catches up.
  * @param key identifies a row across scrolls and list edits. Defaults to the index, which is right
@@ -122,13 +122,7 @@ fun <T> LazyRow(
     )
 }
 
-/**
- * The machinery behind [LazyColumn] and [LazyRow], which differ only in the axis.
- *
- * <p>With [variableSize] off the window is plain arithmetic on [itemSize]. With it on, each item is
- * wrapped so it can report its extent, and the window is worked out from what has been measured so
- * far.
- */
+/** Shared by [LazyColumn], [LazyRow] and [LazyVerticalGrid] (whose items are its rows). */
 @Composable
 private fun <T> LazyList(
     vertical: Boolean,
@@ -145,6 +139,8 @@ private fun <T> LazyList(
     events: (EventScope.() -> Unit)?,
     overscan: Int,
     key: ((index: Int, item: T) -> Any)?,
+    /** Where to go when the row the list was showing has gone: its old key and index to a new index. */
+    remapAnchor: ((key: Any, index: Int) -> Int)? = null,
     itemContent: @Composable (index: Int, item: T) -> Unit,
 ) {
     require(overscan >= 0) { "overscan must not be negative, was $overscan" }
@@ -153,42 +149,53 @@ private fun <T> LazyList(
     val metrics = rememberScrollMetrics(view, scroller) {
         if (vertical) view.viewPort.contentHeight else view.viewPort.contentWidth
     }
-    // Where an item's rememberSaveable state waits while it is scrolled out.
     val itemStates = rememberSaveableStateHolder()
-    // Recomputed when the list changes, not every frame: that is the only O(n) work here.
+    // Saveable too, so state saved under a key deleted while the screen was closed is still pruned.
+    val everMounted = rememberSaveable { HashSet<Any>() }
     val keys = remember(Identity(items), items.size, key != null) { ItemKeys(itemKeys(items, key)) }
     val total = keys.size
 
     val sizes = if (variableSize) remember(itemSize) { ItemSizes(itemSize) } else null
-    if (sizes != null) {
-        remember(keys, sizes) { sizes.lineUp(keys.keys) }
-        // The subscription. `sizes` is a plain array behind it — see ItemSizes for why.
-        @Suppress("UNUSED_EXPRESSION") sizes.version
-    }
+    if (sizes != null) remember(keys, sizes) { sizes.lineUp(keys.keys) }
+    // Reading version is the subscription; the array behind `sizes` is not observable.
+    val sizesVersion = sizes?.version ?: 0
     val extentOf: (Int) -> Float = if (sizes != null) { i -> sizes.sizes[i] } else { _ -> itemSize }
     val viewport = metrics.viewport.takeIf { it.isFinite() && it > 0f } ?: 0f
     var fraction = metrics.fraction.takeIf { it.isFinite() }?.coerceIn(0f, 1f) ?: 0f
 
-    // Stay on the row that was showing when the list changed.
     val anchor = remember { ScrollAnchor() }
-    if (anchor.keys !== keys && anchor.keys != null && viewport > 0f) {
-        val moved = anchor.key?.let(keys::indexOf) ?: -1
-        if (moved >= 0) {
+    val listChanged = anchor.keys !== keys
+    // A measurement only re-anchors when nothing else moved the list - a scroll in the same frame wins -
+    // and not at the end, where the list stays at the end.
+    val sizesChanged = anchor.sizesVersion != sizesVersion && fraction == anchor.fraction && fraction < 0.9999f
+    if ((listChanged || sizesChanged) && anchor.keys != null && viewport > 0f && total > 0) {
+        val previous = anchor.key
+        val found = previous?.let(keys::indexOf) ?: -1
+        val at = when {
+            found >= 0 -> found
+            previous != null && remapAnchor != null -> remapAnchor(previous, anchor.index)
+            else -> anchor.index
+        }.coerceAtMost(total - 1)
+        if (at >= 0) {
             var start = 0f
             var content = 0f
             for (i in 0 until total) {
-                if (i == moved) start = content
+                if (i == at) start = content
                 content += extentOf(i)
             }
             val maxScroll = content - viewport
-            val target = if (maxScroll > 0f) ((start + anchor.offset) / maxScroll).coerceIn(0f, 1f) else 0f
-            if (abs(target - fraction) > 1e-4f) {
-                fraction = target
-                SideEffect { CompositionWrites.writing { scroller.setValue(target) } }
+            if (maxScroll > 0f) {
+                val target = ((start + anchor.offset.coerceAtMost(extentOf(at))) / maxScroll).coerceIn(0f, 1f)
+                if (abs(target - fraction) * maxScroll > 0.5f) {
+                    fraction = target
+                    SideEffect { CompositionWrites.writing { scroller.setValue(target) } }
+                }
             }
         }
     }
     anchor.keys = keys
+    anchor.sizesVersion = sizesVersion
+    anchor.fraction = fraction
 
     val window = if (sizes != null) {
         measuredWindow(sizes.sizes, viewport, fraction, overscan)
@@ -197,26 +204,25 @@ private fun <T> LazyList(
     }
     if (window.firstVisible >= 0) {
         anchor.key = keys.keys[window.firstVisible]
+        anchor.index = window.firstVisible
         anchor.offset = window.firstVisibleOffset
     }
 
-    // Saved state belongs to keys still in the list. Pruned when the list changes, after the
-    // composition that dropped them, so nothing still mounted is touched.
+    // After the composition that dropped them, so nothing still mounted is touched.
     DisposableEffect(keys) {
-        val gone = anchor.everMounted.filter { keys.indexOf(it) < 0 }
-        for (stale in gone) {
-            itemStates.removeState(stale)
-            anchor.everMounted.remove(stale)
-        }
+        everMounted.removeAll { stale -> (keys.indexOf(stale) < 0).also { gone -> if (gone) itemStates.removeState(stale) } }
         onDispose { }
     }
 
     UIElementNode(
-        // The row direction goes on the *content* container, not on the ScrollerView. Putting it on
-        // the view itself lays out the view's own parts — the viewport and its scrollbars — side by
-        // side, and leaves the items still stacked vertically.
+        // The row direction goes on the content container: on the view itself it would lay out the
+        // viewport and scrollbars side by side instead.
         factory = {
-            if (!vertical) view.viewContainer.getLayout().flexDirection(FlexDirection.ROW)
+            if (!vertical) {
+                view.viewContainer.getLayout().flexDirection(FlexDirection.ROW)
+                // Otherwise the ordinary wheel goes to the vertical scroller, which has nothing to do.
+                view.scrollerViewStyle.asDefault { mode(ScrollerMode.HORIZONTAL) }
+            }
             view
         },
         layout = layout, style = style, classes = classes, id = id,
@@ -226,7 +232,7 @@ private fun <T> LazyList(
         for (index in window.range) {
             val item = items[index]
             val itemKey = keys.keys[index]
-            anchor.everMounted.add(itemKey)
+            everMounted.add(itemKey)
             key(itemKey) {
                 itemStates.SaveableStateProvider(itemKey) {
                     if (sizes != null) {
@@ -247,25 +253,22 @@ internal class Identity(private val value: Any?) {
     override fun hashCode() = System.identityHashCode(value)
 }
 
-/** Which row the list was showing, carried across a change to the list. */
+/** Which row the list was showing, and what it was computed from, carried to the next composition. */
 private class ScrollAnchor {
     var keys: ItemKeys? = null
+    var sizesVersion = 0
+    var fraction = 0f
     var key: Any? = null
+    var index = -1
     var offset = 0f
-
-    /** Every key that has been composed, so their saved state can be dropped once they are gone. */
-    val everMounted = HashSet<Any>()
 }
 
 /** A key that appeared more than once in a list, told apart by which occurrence it is. */
 internal data class RepeatedKey(val key: Any, val occurrence: Int)
 
 /**
- * The key of every item. Index when no [key] lambda is given.
- *
- * <p>A repeated key is made distinct by the order it appears in. Compose itself would cope with the
- * repetition, but the saved-state holder each item is registered with does not: it refuses the second
- * registration, and that stops the whole composition.
+ * The key of every item, the index when no [key] lambda is given. Repeats become [RepeatedKey]s: the
+ * saved-state holder refuses a second registration under one key, which stops the whole composition.
  */
 internal fun <T> itemKeys(items: List<T>, key: ((index: Int, item: T) -> Any)?): List<Any> {
     if (key == null) return List(items.size) { it }
@@ -289,16 +292,9 @@ internal class ItemKeys(val keys: List<Any>) {
 }
 
 /**
- * Wraps one variable-size item so it can report how big it turned out to be.
- *
- * <p>An item can only be measured once it has been laid out, which is a frame after it was composed —
- * so the first frame an item appears it is still occupying its estimate, and the window corrects on
- * the next. That settling is visible as a small scrollbar adjustment when you scroll into fresh
- * items, and it is the price of not knowing sizes up front.
- *
- * <p>Fills the cross axis, extent along the scrolling axis left to the content. An item whose content
- * does not size itself measures zero, which [ItemSizes.measure] refuses — otherwise a list of
- * zero-size items would decide the whole list fits on screen and mount all of it.
+ * Wraps one variable-size item so it reports its extent along the scrolling axis; it fills the cross
+ * axis. Content that does not size itself measures zero, which [ItemSizes.measure] ignores: a list of
+ * zero-size items would otherwise seem to fit on screen and mount all of it.
  */
 @Composable
 private fun MeasuredItem(sizes: ItemSizes, key: Any, index: Int, vertical: Boolean, content: @Composable () -> Unit) {
@@ -320,13 +316,7 @@ private class ScrollMetrics {
     var viewport by mutableStateOf(0f)
 }
 
-/**
- * Pulls a scroller's position and viewport extent into composition state.
- *
- * <p>Both arrive from the element tree rather than from the composition, so they have to be
- * subscribed to. [viewportExtent] is a lambda because the axis differs — content height for a
- * column, width for a row — and everything else about the two cases is identical.
- */
+/** Pulls a scroller's position and viewport extent into composition state. */
 @Composable
 private fun rememberScrollMetrics(
     view: ScrollerView,
@@ -350,11 +340,8 @@ private fun rememberScrollMetrics(
 }
 
 /**
- * Which slice of a list is worth having mounted, how much blank space to leave either side of it, and
- * which item is at the top of the viewport.
- *
- * <p>`leading + (sizes over range) + trailing` always equals the total, which is what keeps the
- * scrollbar honest: the spacers plus the mounted items add up to the whole list.
+ * Which slice of a list to mount, the blank space either side of it, and which item is at the top of
+ * the viewport. `leading + (sizes over range) + trailing` always equals the total.
  *
  * @property firstVisible the item at the start of the viewport, or -1 for an empty list.
  * @property firstVisibleOffset how far into that item the viewport starts.
@@ -372,11 +359,8 @@ private val EMPTY_WINDOW = LazyWindow(IntRange.EMPTY, 0f, 0f, -1, 0f)
 /**
  * [measuredWindow] for items that are all [itemSize], without an array of sizes.
  *
- * <p>Pure, like [measuredWindow], so it can be tested without a UI — `src/test` has no Minecraft on its
- * classpath, and this arithmetic is the part that is easy to get subtly wrong at the ends of the range.
- *
- * @param viewportSize the visible extent along the scrolling axis. Zero before the first layout,
- *   which is why that case has to produce a usable window rather than an empty one.
+ * @param viewportSize the visible extent along the scrolling axis. Zero before the first layout, which
+ *   still mounts one item plus the overscan; the next frame corrects it.
  */
 internal fun fixedWindow(
     total: Int,
@@ -386,8 +370,6 @@ internal fun fixedWindow(
     overscan: Int,
 ): LazyWindow {
     if (total <= 0) return EMPTY_WINDOW
-    // Before the first layout the viewport is still zero; mounting one item plus the overscan is
-    // enough to get something on screen, and the next frame corrects it.
     val fits = if (viewportSize > 0f) ceil(viewportSize / itemSize).toInt() + 1 else 1
     val maxScroll = (total * itemSize - viewportSize).coerceAtLeast(0f)
     val scrolled = scrollFraction.coerceIn(0f, 1f) * maxScroll
@@ -407,11 +389,6 @@ internal fun fixedWindow(
 /**
  * The same question as [fixedWindow], for items that are not all the same size.
  *
- * <p>Takes the sizes rather than measuring anything, so it stays pure and testable — and because the
- * sizes it is given are a mixture of measured and estimated by nature. An item that has never been on
- * screen has never been laid out, so its size is a guess until it has been; the window this returns is
- * correct for the numbers it was handed, and self-corrects as guesses are replaced.
- *
  * @param sizes one entry per item along the scrolling axis, measured where known and estimated
  *   where not.
  */
@@ -430,7 +407,6 @@ internal fun measuredWindow(
     val maxScroll = (content - viewportSize).coerceAtLeast(0f)
     val scrolled = scrollFraction.coerceIn(0f, 1f) * maxScroll
 
-    // First item whose far edge is past the scroll position, tracking its offset as we go.
     var first = 0
     var firstOffset = 0f
     while (first < total - 1 && firstOffset + sizes[first] <= scrolled) {
@@ -438,8 +414,7 @@ internal fun measuredWindow(
         first++
     }
 
-    // Then forward until the viewport is covered. Zero viewport means the first layout has not
-    // happened yet; one item is enough to get something on screen and the next frame corrects it.
+    // A zero viewport (before the first layout) covers just the first item; the next frame corrects it.
     var last = first
     var filled = firstOffset + sizes[first]
     while (last < total - 1 && filled < scrolled + viewportSize) {
@@ -465,16 +440,11 @@ internal fun measuredWindow(
 }
 
 /**
- * The extents of a list's items along its scrolling axis, measured where they have been on screen
- * and estimated where not.
+ * The extents of a list's items along its scrolling axis, measured where they have been on screen and
+ * estimated where not. Kept by item key, so measurements move with their items.
  *
- * <p>Measurements are kept by item key, not by position, so they move with their items: removing the
- * first row of a list does not hand every other row its predecessor's height.
- *
- * <p>[version] rather than the array itself is the observable state. An item reports its size from a
- * layout event, and copying a ten-thousand-entry array on each of those — several per frame while
- * scrolling — costs more than the virtualisation saves. So the array is mutated in place and the
- * counter is bumped, which is what readers actually subscribe to.
+ * <p>[version], not the array, is the observable state: copying a large array on every layout event
+ * costs more than virtualisation saves, so it is mutated in place and the counter bumped.
  */
 @Stable
 internal class ItemSizes(private val estimate: Float) {
@@ -498,11 +468,8 @@ internal class ItemSizes(private val estimate: Float) {
     }
 
     /**
-     * Records a measured size for the item [key], currently at [index].
-     *
-     * <p>Ignores changes under half a pixel. Layout produces fractional values, and an item whose
-     * size wobbles in the noise would invalidate the window every frame, which re-lays-out the items,
-     * which produces another wobble.
+     * Records a measured size for the item [key], currently at [index]. Ignores non-positive sizes and
+     * changes under half a pixel, whose re-layout would otherwise produce another wobble every frame.
      */
     fun measure(key: Any, index: Int, size: Float) {
         if (size <= 0f) return
@@ -523,9 +490,7 @@ internal class ItemSizes(private val estimate: Float) {
  * }
  * ```
  *
- * <p>The unit of virtualisation is the *row*, not the cell: whole rows of [columns] cells go in and
- * out together, which is what keeps the arithmetic the same as [LazyColumn]'s. Inventories and
- * recipe tables are the obvious users.
+ * <p>Virtualises by row, not by cell: whole rows of [columns] cells mount and unmount together.
  *
  * <p>A trailing partial row is padded with empty cells, so the last row lines up with the ones above
  * rather than centring or stretching.
@@ -535,8 +500,11 @@ internal class ItemSizes(private val estimate: Float) {
  * rows that have not been on screen — the same trade [LazyColumn] makes. Widths stay fixed either
  * way: the columns have to line up.
  *
- * <p>A cell's `rememberSaveable` state follows its [key] even when an insertion moves it to another
- * row; plain `remember` state does not, since the cell is rebuilt in its new row.
+ * <p>A cell's `rememberSaveable` state follows its [key] while it scrolls out and back. A cell an edit
+ * moves into another row is rebuilt there, and keeps neither `remember` nor `rememberSaveable` state:
+ * Compose keys saved state by its position in the composition, and each row is a separate position.
+ * Keep such state above the grid, keyed by item. When [columns] changes the grid stays on the cells it
+ * was showing.
  */
 @Composable
 fun <T> LazyVerticalGrid(
@@ -561,38 +529,39 @@ fun <T> LazyVerticalGrid(
     require(cellWidth > 0f && cellHeight > 0f) { "cell size must be positive" }
 
     val rowCount = (items.size + columns - 1) / columns
-    // Keyed on the count, not the list: a list mutated in place is the same instance, and comparing
-    // a list by equality walks every element on every recomposition.
     val rows = remember(rowCount) { List(rowCount) { it } }
-    val cellKeys = remember(Identity(items), items.size, key != null) { itemKeys(items, key) }
+    val cellKeys = remember(Identity(items), items.size, key != null) { ItemKeys(itemKeys(items, key)) }
     val cellStates = rememberSaveableStateHolder()
+    val everMounted = rememberSaveable { HashSet<Any>() }
 
-    LazyColumn(
-        items = rows,
-        itemHeight = cellHeight,
-        variableHeight = variableHeight,
+    DisposableEffect(cellKeys) {
+        everMounted.removeAll { stale -> (cellKeys.indexOf(stale) < 0).also { gone -> if (gone) cellStates.removeState(stale) } }
+        onDispose { }
+    }
+
+    LazyList(
+        vertical = true, items = rows, itemSize = cellHeight, variableSize = variableHeight,
         layout = layout, style = style, classes = classes, id = id,
         enabled = enabled, visible = visible, focusable = focusable, events = events,
         overscan = overscan,
-        key = { _, row -> row },
+        // Keyed by the column count too, so a new count is a new list and the anchor can be remapped.
+        key = { _, row -> GridRow(columns, row) },
+        remapAnchor = { old, index -> if (old is GridRow) old.row * old.columns / columns else index },
     ) { _, row ->
-        // Row aligns its children to the top by default; a variable row has to stretch them instead,
-        // or a short cell stops short of its taller neighbours.
+        // Row aligns to the top by default; a variable row stretches, or a short cell stops short of its neighbours.
         Row(layout = { if (variableHeight) alignItems(AlignItems.STRETCH) else height(cellHeight.px) }) {
             for (column in 0 until columns) {
                 val index = row * columns + column
                 if (index < items.size) {
                     val item = items[index]
-                    val cellKey = cellKeys[index]
+                    val cellKey = cellKeys.keys[index]
+                    everMounted.add(cellKey)
                     key(cellKey) {
                         cellStates.SaveableStateProvider(cellKey) {
-                            Box(layout = { cell(cellWidth, cellHeight, variableHeight) }) {
-                                itemContent(index, item)
-                            }
+                            Box(layout = { cell(cellWidth, cellHeight, variableHeight) }) { itemContent(index, item) }
                         }
                     }
                 } else {
-                    // Padding out the last row, so its cells sit under the ones above.
                     Box(layout = { cell(cellWidth, cellHeight, variableHeight) })
                 }
             }
@@ -600,19 +569,14 @@ fun <T> LazyVerticalGrid(
     }
 }
 
+private data class GridRow(val columns: Int, val row: Int)
+
 private fun TaffyLayoutStyleDsl.cell(cellWidth: Float, cellHeight: Float, variableHeight: Boolean) {
     width(cellWidth.px)
     if (!variableHeight) height(cellHeight.px)
 }
 
-/**
- * An empty element, sized by [layout].
- *
- * <p>Inside the lazy containers it stands in for the items that are not mounted, which is what keeps
- * the scrollbar honest — the content still adds up to the whole list, so the thumb is the right size
- * and lands in the right place. It is public because it is just as useful for putting a gap between
- * two things.
- */
+/** An empty element sized by [layout], for gaps. The lazy containers use it for unmounted items. */
 @Composable
 fun Spacer(
     layout: LayoutBlock? = null,

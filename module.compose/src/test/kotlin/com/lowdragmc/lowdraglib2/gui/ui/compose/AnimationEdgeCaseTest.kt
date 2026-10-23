@@ -8,10 +8,12 @@ import com.lowdragmc.lowdraglib2.math.interpolate.IEase
 import kotlinx.coroutines.launch
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Timeout
 import kotlin.math.abs
 
 /** The interruptions, extremes and odd specs the happy-path animation tests do not reach. */
@@ -67,7 +69,6 @@ class AnimationEdgeCaseTest {
         assertTrue(distance(partway, shown) < 64, "returning jumped from $partway to $shown")
         h.advance(200)
         assertEquals(red, shown)
-        // The interrupted run towards blue never reported.
         assertEquals(listOf(red), finished)
         h.dispose()
     }
@@ -122,7 +123,7 @@ class AnimationEdgeCaseTest {
             LaunchedEffect(Unit) { animatable.animateTo(100f, SpringSpec(damping, stiffness)) }
             seen += animatable.value
         }
-        // Long enough for the heavily overdamped one, which is slow by nature rather than unstable.
+        // The heavily overdamped one is slow, not unstable.
         h.advance(20_000)
         assertTrue(seen.all { it.isFinite() }, "a frame drew a non-finite value")
         assertEquals(100f, animatable.value)
@@ -150,8 +151,7 @@ class AnimationEdgeCaseTest {
         var target by mutableStateOf(0f)
         var shown = 0f
         h.setContent {
-            // A capturing lambda: a fresh IEase, and so an unequal TweenSpec, on every recomposition.
-            // Reading the value here recomposes on every frame, so a restart would never get anywhere.
+            // Capturing lambda: an unequal TweenSpec on every recomposition, which here is every frame.
             val factor = 1f
             shown = animateFloatAsState(target, tween(100, easing = IEase { it * factor })).value
         }
@@ -201,6 +201,67 @@ class AnimationEdgeCaseTest {
         h.advance(200)
         assertEquals(0f, transition.offsetX.value)
         assertNotEquals(-1f, transition.offsetX.value)
+        h.dispose()
+    }
+
+    /** Frames of [periodNanos] until an animation 0 -> 100 under [spec] finishes; returns elapsed millis. */
+    private fun millisToFinish(spec: AnimationSpec, periodNanos: Long, limitFrames: Int = 20_000): Double {
+        val h = TestHarness()
+        var target by mutableStateOf(0f)
+        var finished = false
+        h.setContent { animateFloatAsState(target, spec, finishedListener = { finished = true }) }
+        target = 100f
+        var frames = 0
+        while (!finished && frames < limitFrames) {
+            h.frameOf(periodNanos)
+            frames++
+        }
+        h.dispose()
+        assertTrue(finished, "never finished at a frame period of $periodNanos ns")
+        return frames * periodNanos / 1e6
+    }
+
+    @Test
+    fun `a spring takes the same time whatever the frame period`() {
+        val atSixty = millisToFinish(spring(), 16_000_000)
+        val at144 = millisToFinish(spring(), 6_944_444)
+        assertTrue(abs(at144 - atSixty) / atSixty < 0.1, "60 Hz took $atSixty ms, 144 Hz took $at144 ms")
+    }
+
+    @Test
+    fun `a spring still moves above a thousand frames per second`() {
+        val at2000 = millisToFinish(spring(), 500_000)
+        val atSixty = millisToFinish(spring(), 16_000_000)
+        assertTrue(abs(at2000 - atSixty) / atSixty < 0.1, "60 Hz took $atSixty ms, 2000 Hz took $at2000 ms")
+    }
+
+    @Test
+    fun `springs with non-finite parameters are refused`() {
+        assertThrows(IllegalArgumentException::class.java) { spring(stiffness = Float.POSITIVE_INFINITY) }
+        assertThrows(IllegalArgumentException::class.java) { spring(dampingRatio = Float.NaN) }
+        assertThrows(IllegalArgumentException::class.java) { spring(threshold = Float.POSITIVE_INFINITY) }
+    }
+
+    @Test
+    @Timeout(10)
+    fun `an extremely stiff or damped spring still finishes`() {
+        millisToFinish(spring(dampingRatio = 1e9f), 16_000_000)
+        millisToFinish(spring(stiffness = 1e12f), 16_000_000)
+    }
+
+    @Test
+    fun `a target at infinity snaps there, and the next animation starts afresh`() {
+        val h = TestHarness()
+        var target by mutableStateOf(0f)
+        val seen = mutableListOf<Float>()
+        h.setContent { seen += animateFloatAsState(target, tween(100)).value }
+        target = Float.POSITIVE_INFINITY
+        h.advance(50)
+        assertEquals(Float.POSITIVE_INFINITY, seen.last())
+        target = 5f
+        h.advance(200)
+        assertEquals(5f, seen.last())
+        assertTrue(seen.none { it.isNaN() }, "an animated value went NaN: $seen")
         h.dispose()
     }
 }

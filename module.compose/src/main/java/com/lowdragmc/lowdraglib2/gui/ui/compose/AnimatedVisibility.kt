@@ -11,8 +11,10 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents
+import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties
 import com.lowdragmc.lowdraglib2.gui.ui.layout.auto
 import com.lowdragmc.lowdraglib2.gui.ui.layout.px
+import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry
 import dev.vfyjxf.taffy.style.FlexDirection
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -86,8 +88,7 @@ fun fadeOut(animationSpec: AnimationSpec = TweenSpec(), targetAlpha: Float = 0f)
 
 /**
  * Slides in from an offset, given as a fraction of the content's own size: `-1f` on x starts one full
- * width to the left. A fraction rather than pixels because the size is not known until the content
- * has been laid out, and it is resolved when the content is drawn, so the first frame is right.
+ * width to the left. The fraction is resolved when the content is drawn, so the first frame is right.
  *
  * <p>Drawing only. The content keeps its place in the layout throughout, so neighbours do not move;
  * pair it with [expandVertically] for content that should also push them aside.
@@ -144,8 +145,8 @@ fun scaleOut(
  * Grows the space the content takes from nothing to its full height, revealing it from the top, so
  * whatever sits below is pushed down smoothly rather than jumping.
  *
- * <p>Unlike [slideIn] and [scaleIn] this changes layout, so it costs a little more: the content is
- * wrapped once more so it can be measured, and it is clipped to the animated height while it runs.
+ * <p>Unlike [slideIn] and [scaleIn] this changes layout: the content gets an extra measuring wrapper
+ * and is clipped to the animated height while it runs.
  */
 fun expandVertically(animationSpec: AnimationSpec = TweenSpec()): EnterTransition =
     EnterTransition(TransitionData(size = ChangeSize(vertical = true, animationSpec)))
@@ -166,16 +167,9 @@ fun shrinkHorizontally(animationSpec: AnimationSpec = TweenSpec()): ExitTransiti
  * Where an [AnimatedVisibility] is: whether its content belongs in the tree, and the current value of
  * everything it animates.
  *
- * <p>Separate from the composable so the timing can be tested without an element tree.
- *
- * <p>Each property is its own [Animatable] holding the real value, not a 0..1 progress mapped through
- * the transition. That is what keeps an interruption smooth: reversing mid-flight continues from
- * where the value is, even when the entrance and the exit go in different directions.
- *
- * <p>While hidden, every property rests where the *next entrance* begins. Setting that up when an
- * exit finishes, rather than when the next entrance starts, is deliberate: a value written from an
- * effect only reaches the element a frame later, so correcting it on entry would draw one frame at
- * the old exit position first.
+ * <p>Each property animates its real value, not a shared 0..1 progress, so reversing mid-flight
+ * continues from where it is. While hidden, every property rests where the next entrance begins; this
+ * is set when the exit finishes because a value written on entry reaches the element a frame late.
  */
 @Stable
 internal class VisibilityTransition(visible: Boolean, enter: TransitionData) {
@@ -207,15 +201,13 @@ internal class VisibilityTransition(visible: Boolean, enter: TransitionData) {
     fun isMounted(visible: Boolean) = visible || !exited
 
     fun measure(extent: Float) {
-        // Same half-pixel tolerance as the lazy lists, for the same reason: a value wobbling in the
-        // layout noise would otherwise re-apply the blocks every frame.
+        // Half-pixel tolerance, or layout noise would re-apply the blocks every frame.
         if (extent > 0f && abs(extent - fullSize) >= 0.5f) fullSize = extent
     }
 
     suspend fun enter(enter: TransitionData, exit: TransitionData) {
         if (exited) {
-            // Normally a no-op, the exit having left everything here already. Not when `enter`
-            // changed while the content was hidden.
+            // Only matters when `enter` changed while hidden; the exit already rested everything here.
             restAtStartOf(enter)
             exited = false
         }
@@ -232,8 +224,8 @@ internal class VisibilityTransition(visible: Boolean, enter: TransitionData) {
     suspend fun exit(enter: TransitionData, exit: TransitionData) {
         if (exited) return
         (exit.scale ?: enter.scale)?.let { usePivot(it) }
-        // A property the exit does not mention goes back to its visible value, on whichever spec the
-        // entrance used for it — it only differs from that value if an entrance was interrupted.
+        // A property the exit does not animate returns to its visible value on the entrance's spec;
+        // it only differs from that value if an entrance was interrupted.
         coroutineScope {
             launch { alpha.settleTo(exit.fade?.alpha ?: 1f, exit.fade?.spec ?: enter.fade?.spec) }
             launch { offsetX.settleTo(exit.slide?.offsetX ?: 0f, exit.slide?.spec ?: enter.slide?.spec) }
@@ -307,20 +299,18 @@ internal fun sizeAxis(enter: TransitionData, exit: TransitionData): Boolean? {
  * ) { Details() }
  * ```
  *
- * <p>The reason this exists rather than a bare `if (visible)` is the *exit*: removing the content
- * from the composition immediately means there is nothing left to animate out. So it stays composed
- * until every part of [exit] has finished, and only then leaves — which is also when its
- * `DisposableEffect`s run. Content that is visible on the first composition appears without an
- * entrance.
+ * <p>Unlike a bare `if (visible)`, the content stays composed after [visible] turns false until every
+ * part of [exit] has finished, and only then leaves — which is also when its `DisposableEffect`s run.
+ * Content that is visible on the first composition appears without an entrance.
  *
- * <p>Fades by default. Unlike Compose's own `AnimatedVisibility`, which also expands by default, the
- * size is left alone unless asked for, because animating it costs a measuring wrapper.
+ * <p>Fades by default; the size is only animated when a transition asks for it.
  *
  * <p>[layout], [style] and [classes] go on the box that is being animated. The properties the
  * transitions animate are written after [style], so they win over anything it sets for the same
  * property. With [expandVertically] or [shrinkVertically] the box's height belongs to the animation —
  * give the content its height instead — and the box clips; the horizontal variants do the same for
- * width.
+ * width. Expanding across a parent that stretches its children animates to the content's own extent,
+ * then snaps to the stretched one; give the box an `alignSelf` to avoid that.
  */
 @Composable
 fun AnimatedVisibility(
@@ -334,9 +324,7 @@ fun AnimatedVisibility(
 ) {
     val vertical = sizeAxis(enter.data, exit.data)
     val transition = rememberVisibilityTransition(visible, enter, exit)
-    // Read here rather than inside a block, because it decides whether the content is composed at
-    // all. The node observer keeps the blocks below following the animated values on its own, but it
-    // can only re-run a block — it cannot mount or unmount anything.
+    // Read in composition, not in a block: the node observer can re-run blocks but cannot mount or unmount.
     if (!transition.isMounted(visible)) return
 
     val fades = enter.data.fade != null || exit.data.fade != null
@@ -344,27 +332,31 @@ fun AnimatedVisibility(
         enter.data.scale != null || exit.data.scale != null
     val written = remember { WrittenChannels() }
 
-    // Always the same two boxes, whatever the transitions are: switching between shapes would tear
-    // the content down and build it again whenever a transition gained or lost a size change.
+    // Always two boxes: changing shape would rebuild the content whenever a transition gained or lost a size change.
     Box(
         layout = {
+            // Clear a channel the transitions stopped animating before the caller's block, which may
+            // set it itself; inline writes are never undone on their own.
+            val writtenAxis = written.sizeAxis
+            if (writtenAxis != null && writtenAxis != vertical) {
+                this.layout.holder.removeInline(if (writtenAxis) LayoutProperties.HEIGHT else LayoutProperties.WIDTH)
+                written.sizeAxis = null
+            }
             layout?.invoke(this)
             if (vertical != null) {
-                // The animated axis is the main axis, so the content inside keeps its own extent
-                // along it rather than being squeezed to the shrinking box.
+                // Animated axis as main axis, so the content keeps its own extent instead of being squeezed.
                 flexDirection(if (vertical) FlexDirection.COLUMN else FlexDirection.ROW)
                 val fraction = transition.size.value
                 val extent = if (fraction >= 1f) auto else (fraction * transition.fullSize).px
                 if (vertical) height(extent) else width(extent)
+                written.sizeAxis = vertical
             }
         },
         style = {
-            // A channel the transitions no longer animate is put back first — style writes are never
-            // undone by themselves, so it would otherwise keep its last animated value. First, so the
-            // caller's own block below can still set the same property.
-            if (vertical == null && written.clip) overflowVisible(true).also { written.clip = false }
-            if (!fades && written.opacity) opacity(1f).also { written.opacity = false }
-            if (!transforms && written.transform) transform2D(Transform2D.identity()).also { written.transform = false }
+            // Removed rather than reset to a default, which would override a stylesheet.
+            if (vertical == null && written.clip) holder.removeInline(LayoutProperties.OVERFLOW).also { written.clip = false }
+            if (!fades && written.opacity) holder.removeInline(PropertyRegistry.OPACITY).also { written.opacity = false }
+            if (!transforms && written.transform) holder.removeInline(PropertyRegistry.TRANSFORM_2D).also { written.transform = false }
             style?.invoke(this)
             if (vertical != null) overflowVisible(false).also { written.clip = true }
             if (fades) opacity(transition.alpha.value.coerceIn(0f, 1f)).also { written.opacity = true }
@@ -381,9 +373,8 @@ fun AnimatedVisibility(
         classes = classes,
     ) {
         Box(
-            // Explicitly never shrinking, whatever a stylesheet says: clipping only works if the
-            // content keeps its own extent while the box around it does not. Growing fills the box
-            // once the animation has let go of it.
+            // Never shrinks, whatever a stylesheet says, so the outer box clips it; grows to fill once
+            // the animation lets go.
             layout = if (vertical == null) null else ({ flexShrink(0); flexGrow(1) }),
             events = if (vertical == null) null else ({
                 on(UIEvents.LAYOUT_CHANGED) { event ->
@@ -397,6 +388,7 @@ fun AnimatedVisibility(
 
 /** Which of the animated style channels [AnimatedVisibility] has written, so it can put them back. */
 private class WrittenChannels {
+    var sizeAxis: Boolean? = null
     var clip = false
     var opacity = false
     var transform = false

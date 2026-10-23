@@ -9,13 +9,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
-/**
- * Animations, stepped frame by frame.
- *
- * <p>Being able to test these at all is a consequence of owning the frame clock: the harness decides
- * what time it is, so "150ms into a 200ms tween" is an exact statement rather than a sleep and a
- * tolerance. Nothing here waits on wall-clock time.
- */
+/** Animations, stepped frame by frame. */
 class ComposeAnimationTest {
 
     /** The animated value, read back out of the node it was rendered into. */
@@ -32,7 +26,7 @@ class ComposeAnimationTest {
         assertEquals(0f, h.value())
 
         target = 100f
-        h.frame(0) // let the effect launch without advancing time
+        h.frame(0)
         assertEquals(0f, h.value(), 0.01f)
 
         h.advance(50)
@@ -40,8 +34,6 @@ class ComposeAnimationTest {
         assertTrue(midway > 20f && midway < 80f, "halfway through the tween the value was $midway")
 
         h.advance(100)
-        // Lands on the target exactly, not merely close to it - a UI that settles at 99.7% opacity
-        // looks wrong forever.
         assertEquals(100f, h.value())
         h.dispose()
     }
@@ -70,7 +62,6 @@ class ComposeAnimationTest {
         linear.advance(50)
         eased.advance(50)
 
-        // QUAD_IN is t², so halfway through it has covered a quarter of the distance, not half.
         assertTrue(
             eased.value() < linear.value() - 10f,
             "linear=${linear.value()} quadIn=${eased.value()}",
@@ -121,8 +112,6 @@ class ComposeAnimationTest {
         val interrupted = h.value()
         assertTrue(interrupted > 20f && interrupted < 80f, "expected mid-flight, was $interrupted")
 
-        // Retarget while still moving. The new tween has to pick up from the current value; starting
-        // over from the old origin is what makes an interrupted animation visibly jump.
         target = 200f
         h.frame(0)
         assertTrue(h.value() >= interrupted - 1f, "snapped backwards: $interrupted -> ${h.value()}")
@@ -141,7 +130,6 @@ class ComposeAnimationTest {
             val v by animateFloatAsState(target, TweenSpec(100), finishedListener = { finished += it })
             Node("%.4f".format(v))
         }
-        // The initial value was never animated to, so there is nothing to report.
         h.frame(0)
         assertEquals(emptyList<Float>(), finished)
 
@@ -182,10 +170,8 @@ class ComposeAnimationTest {
     fun `colour animation lands exactly on its endpoints`() {
         val black = 0xFF000000.toInt()
         val white = 0xFFFFFFFF.toInt()
-        // Whatever colour space the blend uses, arriving is not negotiable.
         assertEquals(black, lerpArgb(black, white, 0f))
         assertEquals(white, lerpArgb(black, white, 1f))
-        // And an out-of-range fraction is clamped rather than extrapolated past the target.
         assertEquals(black, lerpArgb(black, white, -0.5f))
         assertEquals(white, lerpArgb(black, white, 2f))
     }
@@ -194,9 +180,7 @@ class ComposeAnimationTest {
     fun `colour animation moves monotonically between the two colours`() {
         val black = 0xFF000000.toInt()
         val white = 0xFFFFFFFF.toInt()
-        // Deliberately not asserting a midpoint value: the blend goes through Oklab, so the halfway
-        // colour is perceptually mid-grey rather than 0x808080. What has to hold is that it only
-        // ever moves towards the target.
+        // No midpoint assertion: the blend goes through Oklab, so halfway is not 0x808080.
         var previous = -1
         for (step in 0..10) {
             val luminance = lerpArgb(black, white, step / 10f) and 0xFF
@@ -224,9 +208,7 @@ class ComposeAnimationTest {
         }
 
         target = 42f
-        // Three hops even for an instant tween, and none of them need time to pass: one frame to
-        // launch the effect, one for its first `withFrameNanos` to resume and write the value, one
-        // for the reader to recompose.
+        // Three frames: launch the effect, resume its first withFrameNanos, recompose the reader.
         h.frame(0)
         h.frame(0)
         h.frame(0)
@@ -270,7 +252,8 @@ class ComposeAnimationTest {
 
         target = 100f
         h.frame(0)
-        h.advance(2000)
+        // About 2.3 s for this spring's swing to decay under the threshold.
+        h.advance(3000)
 
         assertTrue(samples.any { it > 100f }, "a bouncy spring should overshoot; max was ${samples.max()}")
         assertEquals(100f, h.value(), "it still has to settle exactly on the target")
@@ -313,8 +296,6 @@ class ComposeAnimationTest {
 
         target = 100f
         h.frame(0)
-        // A lag spike, or a window that just regained focus. Integrating a stiff spring explicitly
-        // over a step that size is exactly how these go unstable and fly off to infinity.
         h.frame(2000)
         h.frame(2000)
         assertTrue(h.value().isFinite() && h.value() in -10f..200f, "went unstable: ${h.value()}")
@@ -342,7 +323,6 @@ class ComposeAnimationTest {
         assertTrue(movingValue > 1f && movingValue < 99f, "expected mid-flight, was $movingValue")
         assertTrue(movingVelocity > 0f, "should be moving, velocity was $movingVelocity")
 
-        // Retarget further out. The spring must still be travelling, not restarting from rest.
         target = 200f
         h.frame(0)
         h.frame()

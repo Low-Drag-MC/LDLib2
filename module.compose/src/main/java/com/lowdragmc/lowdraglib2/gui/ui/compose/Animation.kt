@@ -18,6 +18,7 @@ import com.lowdragmc.lowdraglib2.utils.ColorUtils
 import kotlinx.coroutines.Job
 import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
+import kotlin.math.ceil
 import kotlin.math.min
 import kotlin.math.sqrt
 
@@ -26,10 +27,8 @@ import kotlin.math.sqrt
 sealed interface AnimationSpec
 
 /**
- * A fixed-duration curve.
- *
- * <p>Easing is LDLib2's own [IEase], not a new curve vocabulary — the same [Eases] constants the
- * stylesheet transitions and the imperative `StyleAnimation` use.
+ * A fixed-duration curve, eased with LDLib2's own [IEase] — the same [Eases] constants the stylesheet
+ * transitions use.
  */
 @Stable
 data class TweenSpec(
@@ -61,9 +60,8 @@ fun tween(durationMillis: Int = 250, delayMillis: Int = 0, easing: IEase = Eases
 /**
  * A damped spring, with no fixed duration — it arrives when the physics say so.
  *
- * <p>The reason to prefer this over a tween for anything the user interrupts: a spring carries its
- * velocity across a change of target, so redirecting mid-flight keeps moving instead of restarting.
- * A tween has to begin a new curve, which reads as a hitch.
+ * <p>Carries its velocity across a change of target, so redirecting mid-flight keeps moving instead of
+ * restarting; prefer it over a tween for anything the user interrupts.
  *
  * @param dampingRatio 1 settles without overshooting; below 1 bounces; above 1 is sluggish.
  * @param stiffness how hard it is pulled towards the target — higher is faster.
@@ -77,9 +75,9 @@ data class SpringSpec(
     val threshold: Float = 0.01f,
 ) : AnimationSpec {
     init {
-        require(dampingRatio > 0f) { "dampingRatio must be positive" }
-        require(stiffness > 0f) { "stiffness must be positive" }
-        require(threshold > 0f) { "threshold must be positive" }
+        require(dampingRatio > 0f && dampingRatio.isFinite()) { "dampingRatio must be positive and finite" }
+        require(stiffness > 0f && stiffness.isFinite()) { "stiffness must be positive and finite" }
+        require(threshold > 0f && threshold.isFinite()) { "threshold must be positive and finite" }
     }
 }
 
@@ -90,12 +88,7 @@ fun spring(dampingRatio: Float = 1f, stiffness: Float = 400f, threshold: Float =
 /** The integrator's live state for one run of [animateScalar]: where the value is and how fast. */
 private class Motion(var value: Float, var velocity: Float)
 
-/**
- * Runs an animation off the frame clock, reporting value and velocity every frame, until it arrives.
- *
- * <p>Shared by everything below so there is one place where "what does this spec do per frame" is
- * decided.
- */
+/** Runs an animation off the frame clock, reporting value and velocity every frame, until it arrives. */
 private suspend inline fun animateScalar(
     spec: AnimationSpec,
     from: Float,
@@ -117,7 +110,9 @@ private suspend inline fun animateScalar(
             nowNanos = now
         }
         val elapsedMillis = (nowNanos - startNanos) / 1_000_000L
-        val deltaMillis = (nowNanos - lastNanos) / 1_000_000L
+        // Not whole milliseconds: truncating 6.9 ms frames to 6 runs a spring 14% slow, and above 1000 fps
+        // every frame would be zero.
+        val deltaSeconds = (nowNanos - lastNanos).coerceAtLeast(0L) / 1e9f
         lastNanos = nowNanos
 
         when (spec) {
@@ -127,15 +122,14 @@ private suspend inline fun animateScalar(
                     return
                 }
                 val next = from + (to - from) * spec.fractionAt(elapsedMillis)
-                // A tween has no velocity of its own; measuring it from the last frame is enough to
-                // hand something sensible over if this gets interrupted by a spring.
-                val measured = if (deltaMillis > 0L) (next - previousValue) / (deltaMillis / 1000f) else 0f
+                // Measured so a spring interrupting this tween inherits a sensible velocity.
+                val measured = if (deltaSeconds > 0f) (next - previousValue) / deltaSeconds else 0f
                 previousValue = next
                 onFrame(next, measured)
             }
 
             is SpringSpec -> {
-                if (stepSpring(spec, motion, to, deltaMillis)) {
+                if (stepSpring(spec, motion, to, deltaSeconds)) {
                     onFrame(to, 0f)
                     return
                 }
@@ -148,24 +142,23 @@ private suspend inline fun animateScalar(
 /**
  * Integrates a damped harmonic oscillator for one frame. Returns true once it has settled.
  *
- * <p>Semi-implicit Euler, sub-stepped finely enough for the spring at hand. Explicit integration of a
- * stiff or heavily damped spring goes unstable once the step outgrows the spring's own time scale, so
- * the step shrinks with both the natural frequency and the damping. A frame may also only contribute
- * so much time: a lag spike, or a window regaining focus, would otherwise integrate a second in one
- * go. And should the value still go non-finite, it settles on the target rather than drawing NaN.
+ * <p>Semi-implicit Euler, sub-stepped below the spring's own time scale (frequency and damping), since
+ * a stiff spring goes unstable otherwise. Each frame's time is capped so a lag spike does not integrate
+ * a second in one go, and a non-finite result settles on the target rather than drawing NaN.
  */
-private fun stepSpring(spec: SpringSpec, motion: Motion, target: Float, deltaMillis: Long): Boolean {
+private fun stepSpring(spec: SpringSpec, motion: Motion, target: Float, deltaSeconds: Float): Boolean {
     val omega = sqrt(spec.stiffness)
     val damping = 2f * spec.dampingRatio * omega
     val maxStep = min(MAX_SUB_STEP_SECONDS, 0.5f / (spec.dampingRatio * omega + omega))
-    var remaining = min(deltaMillis, MAX_FRAME_MILLIS).toFloat() / 1000f
-    while (remaining > 0f) {
-        val step = min(remaining, maxStep)
+    val frame = min(deltaSeconds, MAX_FRAME_SECONDS)
+    // A counted loop: subtracting a tiny step from the remaining time can stop changing it in floats.
+    val steps = ceil(frame / maxStep).toInt().coerceIn(0, MAX_SUB_STEPS)
+    val step = if (steps > 0) frame / steps else 0f
+    repeat(steps) {
         val displacement = motion.value - target
         val acceleration = -spec.stiffness * displacement - damping * motion.velocity
         motion.velocity += acceleration * step
         motion.value += motion.velocity * step
-        remaining -= step
     }
     if (!motion.value.isFinite() || !motion.velocity.isFinite()) {
         motion.value = target
@@ -175,15 +168,14 @@ private fun stepSpring(spec: SpringSpec, motion: Motion, target: Float, deltaMil
     return abs(motion.value - target) < spec.threshold && abs(motion.velocity) < spec.threshold
 }
 
-private const val MAX_FRAME_MILLIS = 64L
-private const val MAX_SUB_STEP_SECONDS = 1f / 240f
+private const val MAX_FRAME_SECONDS = 0.064f
+private const val MAX_SUB_STEP_SECONDS = 1f / 1000f
+private const val MAX_SUB_STEPS = 4096
 
 /**
- * A value that can be driven imperatively from a coroutine.
- *
- * <p>The escape hatch for animation that is not a straight "follow this state" — dragging,
- * sequencing one animation after another, or anything that needs to be interrupted on purpose.
- * Reading [value] inside a composable subscribes to it, so the UI follows.
+ * A value that can be driven imperatively from a coroutine, for animation that is not a straight
+ * "follow this state" — dragging, sequencing, or deliberate interruption. Reading [value] inside a
+ * composable subscribes to it, so the UI follows.
  *
  * <p>One animation at a time: starting another, or calling [snapTo], cancels the one running — its
  * coroutine ends with a `CancellationException` — and the new one carries on from where it left the
@@ -231,9 +223,12 @@ class Animatable(initialValue: Float) {
                 velocity = 0f
                 return
             }
-            // Written every frame rather than once at the end, so that being cancelled part-way
-            // leaves both the position and the speed as they actually were — which is what a
-            // re-issued animateTo picks up from.
+            // Interpolating towards or from infinity is NaN from the first frame on.
+            if (!targetValue.isFinite() || !value.isFinite()) {
+                value = targetValue
+                velocity = 0f
+                return
+            }
             animateScalar(animationSpec, value, targetValue, velocity) { next, nextVelocity ->
                 value = next
                 velocity = nextVelocity
@@ -296,8 +291,6 @@ fun animateIntAsState(
     val animated = animateFloatAsState(
         targetValue.toFloat(),
         animationSpec,
-        // A stable lambda reading the latest listener, so passing one does not hand
-        // animateFloatAsState a new instance on every recomposition.
         remember { { value: Float -> onFinished?.invoke(Math.round(value)) } },
     )
     return remember(animated) { derivedStateOf { Math.round(animated.value) } }
@@ -306,10 +299,7 @@ fun animateIntAsState(
 /**
  * [animateFloatAsState] for packed ARGB colours.
  *
- * <p>Animates a 0..1 blend rather than the packed value: interpolating the ints directly would let
- * one channel's carry bleed into the next. The blend itself is [ColorUtils.blendOklabColor] — the same
- * function `ColorProperty` uses for stylesheet transitions, so a colour animated from here and one
- * animated by a `transition` rule travel the same path.
+ * <p>Blends with [ColorUtils.blendOklabColor], so it travels the same path as a stylesheet `transition`.
  *
  * <p>A new target blends from the colour on screen at that moment, so changing it mid-flight — or
  * going back to where it started — continues smoothly instead of jumping.
