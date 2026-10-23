@@ -82,7 +82,7 @@ private fun Highlightable() {
 private fun DynamicButtonList() {
     var items by remember { mutableStateOf(listOf("A", "B", "C")) }
 
-    ScrollView(layout = { height(120.px); gap { all(3.px) } }) {
+    ScrollView(layout = { height(120.px) }, contentLayout = { gap { all(3.px) } }) {
         items.forEach { item ->
             // `key` is optional - without it the list still works, it just matches by position, so a
             // reorder would rebuild rows instead of moving them.

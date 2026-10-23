@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.gui.ui.compose
 
 import androidx.compose.runtime.RememberObserver
+import com.lowdragmc.lowdraglib2.LDLib2
 import com.lowdragmc.lowdraglib2.gui.ui.Style
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent
@@ -184,14 +185,24 @@ internal class AppliedProps<T : UIElement> : RememberObserver, Reappliable {
 
     private fun writeNow() {
         val element = this.element ?: return
-        layout?.let { TaffyLayoutStyleDsl(element.layout).it() }
-        style?.let { element.style.it() }
+        // The caller's blocks are guarded one by one: a block that throws would otherwise escape into
+        // the recomposer and stop the whole composition, for the sake of one node's appearance.
+        guarded("layout") { layout?.let { TaffyLayoutStyleDsl(element.layout).it() } }
+        guarded("style") { style?.let { element.style.it() } }
         // After the generic blocks, so a widget facade can look at what they wrote — that is how
         // `Text` decides whether the caller gave it a height.
-        widget?.let { element.it() }
+        guarded("widget style") { widget?.let { element.it() } }
         applyClasses(element, classSpec)
         applyFlags(element, idSpec, enabledSpec, visibleSpec, focusableSpec)
-        applyEvents(element, events)
+        guarded("events") { applyEvents(element, events) }
+    }
+
+    private inline fun guarded(what: String, block: () -> Unit) {
+        try {
+            block()
+        } catch (e: Throwable) {
+            LDLib2.LOGGER.error("A Compose {} block threw on {}", what, element, e)
+        }
     }
 
     override fun onRemembered() = Unit

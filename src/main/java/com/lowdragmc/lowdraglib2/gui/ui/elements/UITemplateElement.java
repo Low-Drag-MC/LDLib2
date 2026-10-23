@@ -86,9 +86,6 @@ public class UITemplateElement extends UIElement {
             this.getChildren().forEach(elements::push);
             while (!elements.isEmpty()) {
                 var peek = elements.pop();
-                if (peek.getId().equals("1")) {
-                    System.out.println();
-                }
                 peek.getChildren().forEach(elements::push);
                 for (var stylesheet : template.getAllStylesheets()) {
                     peek.addStyleRules(stylesheet.calculateValues(peek));

@@ -57,6 +57,10 @@ class TestComposeServer : IMenuTest {
 
     val serverRows: List<String> get() = rows
 
+    /** The composition's host on this side; on the server it must never have been composed. */
+    lateinit var host: ComposeElement
+        private set
+
     override fun createUI(player: Player): ModularUI {
         val root = UIElement().setId("root")
         root.layout { layout ->
@@ -69,7 +73,7 @@ class TestComposeServer : IMenuTest {
 
         // The composition's host. Built on both sides — only its *content* is client-only — which is
         // what lets the message handlers below sit on the same element the composition sends from.
-        val host = ComposeElement { ServerDrivenRows(model) }
+        host = ComposeElement { ServerDrivenRows(model) }
 
         // ---- everything that registers lives here, outside the composition ----------------------
         //
@@ -88,11 +92,13 @@ class TestComposeServer : IMenuTest {
         )
 
         // Messages are addressed by name and share a single RPC event, so the composition can send
-        // any of these without registering anything of its own. Registered on both sides here, which
-        // is what puts that shared event at the same index on each.
-        host.onMessage("add") { rows = rows + "row ${nextRow++}" }
-        host.onMessage("remove") { tag -> rows = rows - tag.getString("row") }
-        host.onMessage("clear") { rows = emptyList() }
+        // any of these without registering anything of its own. The handlers only need to exist where
+        // they run: ComposeElement creates the shared event itself, on both sides, when it is built.
+        if (!player.level().isClientSide) {
+            host.onMessage("add") { rows = rows + "row ${nextRow++}" }
+            host.onMessage("remove") { tag -> rows = rows - tag.getString("row") }
+            host.onMessage("clear") { rows = emptyList() }
+        }
 
         root.addChild(host)
 
@@ -156,7 +162,7 @@ private fun ServerDrivenRows(model: MutableState<List<String>>) {
             )
         }
 
-        ScrollView(layout = { width(200.px); height(90.px); gap { all(2.px) } }, classes = "cs-list") {
+        ScrollView(layout = { width(200.px); height(90.px) }, contentLayout = { gap { all(2.px) } }, classes = "cs-list") {
             rows.forEach { row ->
                 key(row) {
                     Row(layout = { gap { all(2.px) } }, classes = "cs-row cs-row-${slug(row)}") {

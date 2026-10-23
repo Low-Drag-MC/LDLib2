@@ -106,7 +106,7 @@ private fun TodoApp() {
 
         Text(Component.literal("剩余 $remaining / ${todos.size}"), classes = "todo-count")
 
-        ScrollView(layout = { height(120.px); gap { all(2.px) } }) {
+        ScrollView(layout = { height(120.px) }, contentLayout = { gap { all(2.px) } }) {
             if (visible.isEmpty()) {
                 Text(Component.literal("空"), classes = "todo-empty")
             } else {

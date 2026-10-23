@@ -1,6 +1,8 @@
 package com.lowdragmc.lowdraglib2.gui.ui.compose.scenario;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.Screen;
 import com.lowdragmc.lowdraglib2.gui.factory.PlayerUIMenuType;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -36,6 +38,9 @@ import java.util.List;
         environment = RegistrationEnvironment.DEV_ONLY)
 public class ComposeServerScenario implements UIScenario {
 
+    /** The menu screen while something else covers it. */
+    private Screen covered;
+
     @Override
     public void configure(ScenarioOptions options) {
         options.defaultSettleMs(60).tags("compose", "sync").requiresWorld(true).guiScale(2);
@@ -62,6 +67,14 @@ public class ComposeServerScenario implements UIScenario {
                 .checkExists(".cs-row-bravo")
                 .checkExists(".cs-row-charlie")
                 .screenshotElement("server-rows", "#root")
+
+                // In singleplayer the server's half of the menu runs createUI on the integrated
+                // server's thread, in the same JVM. A composition there would be built, never shown,
+                // and never disposed - so its host must stay empty.
+                .waitUntilServer("the server's host composed nothing", sc -> {
+                    var holder = TestComposeServer.getSERVER();
+                    return holder != null && holder.getHost().getChildren().isEmpty();
+                })
 
                 // Client -> server. The button sends a *named message*, which the server turns into a
                 // mutation of the authoritative list; the list then syncs back and the composition
@@ -106,6 +119,21 @@ public class ComposeServerScenario implements UIScenario {
                 // And back up from empty, which exercises the mount path rather than the unmount one.
                 .click(".cs-add")
                 .waitUntil("a row comes back", ctx -> rows(ctx) == 1)
+
+                // What a recipe viewer does: put its own screen up, then hand the menu screen back.
+                // The menu stays open throughout, but the screen's removed() tears the composition
+                // down and its init() only re-initialises the existing tree - so this is the path
+                // that would leave the screen blank if nothing rebuilt it.
+                .step("cover the menu screen", ctx -> {
+                    covered = ctx.mc().screen;
+                    ctx.mc().setScreen(new ChatScreen(""));
+                })
+                .frames(3)
+                .step("and hand it back", ctx -> ctx.mc().setScreen(covered))
+                .awaitScreen(ModularUIContainerScreen.class)
+                .waitUntil("the rows are back", ctx -> rows(ctx) == 1)
+                .click(".cs-add")
+                .waitUntil("and the composition still follows the server", ctx -> rows(ctx) == 2)
 
                 .closeScreen();
     }
