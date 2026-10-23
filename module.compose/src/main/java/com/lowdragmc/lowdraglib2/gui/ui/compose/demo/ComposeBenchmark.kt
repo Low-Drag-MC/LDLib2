@@ -13,17 +13,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement
 import net.minecraft.network.chat.Component
 
 /**
- * What the declarative layer costs against a real element tree.
- *
- * <p>The pure-JVM benchmarks measure the Compose runtime with fake nodes. This measures the part
- * they cannot: every insert here registers the element with a live {@link ModularUI}, allocates a
- * taffy layout node and runs stylesheet matching against it. That is where the real time goes, and
- * it is also what makes the comparison at the end meaningful — the imperative baseline pays exactly
- * the same per-element costs, so the difference is purely how many elements each approach touches.
- *
- * <p>Driven directly rather than through a rendered screen: [ComposeHost.onFrame] is the same call
- * the frame callback makes, so pumping it in a loop measures the same work without the noise of
- * everything else in a frame.
+ * What the declarative layer costs against a real element tree, compared with a clear+rebuild baseline.
+ * Pumps [ComposeHost.onFrame] directly, the same call the frame callback makes, to leave out the rest of a frame.
  */
 object ComposeBenchmark {
 
@@ -103,9 +94,6 @@ object ComposeBenchmark {
         liveHost.dispose()
 
         // --- the same update, with nothing allocated per row --------------------------------
-        // Identical structure, except each row carries a ready-made Component instead of building
-        // one per recomposition. The skip still has to be *reached*, so the enclosing loop still
-        // walks every row - but it now walks them without allocating on the way.
         class StableRow(val id: Int, val text: Component)
 
         val (_, stableRoot) = newUI()
@@ -124,9 +112,7 @@ object ComposeBenchmark {
         report += "update 1 of $size (hoisted): ${ms(stableUpdateCost)}"
         stableHost.dispose()
 
-        // --- the thing this replaces --------------------------------------------------------
-        // clearAllChildren + rebuild, the shape used at 31 call sites across the codebase. Same
-        // per-element costs, but it touches every row to change one.
+        // --- the imperative baseline: clearAllChildren + rebuild, touching every row to change one
         val (_, imperativeRoot) = newUI()
         repeat(size) { imperativeRoot.addChild(TextElement().setText(Component.literal("row $it")).addClass("bench-row")) }
         val rebuildCost = measure(warmup = 2, runs = 5) { rev ->

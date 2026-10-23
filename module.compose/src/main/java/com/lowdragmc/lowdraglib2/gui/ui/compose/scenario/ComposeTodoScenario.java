@@ -16,18 +16,7 @@ import com.lowdragmc.lowdraglib2.uitest.target.Texts;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Drives the todo demo the way a player would, and checks the tree agrees at every step.
- *
- * <p>The cases worth having here are the ones the pure-JVM tests cannot reach, because they involve
- * real widgets rather than fake nodes: a controlled {@code TextField} round-tripping through
- * composition state, a {@code Toggle} reporting a change that rewrites the list it came from, and a
- * filter that unmounts rows and brings them back.
- *
- * <p>The filter cases are the sharpest. Filtering to "active" removes the completed rows from the
- * composition entirely; switching back has to restore them <em>in order</em>, and the surviving rows
- * must keep the element instances they already had rather than being rebuilt around the gap.
- */
+/** Drives the todo demo the way a player would, and checks the tree agrees at every step. */
 @LDLRegisterClient(name = "compose_todo", group = "ldlib2", registry = UIScenario.REGISTRY,
         environment = RegistrationEnvironment.DEV_ONLY)
 public class ComposeTodoScenario implements UIScenario {
@@ -49,8 +38,7 @@ public class ComposeTodoScenario implements UIScenario {
                 .checkExists(".todo-empty")
                 .checkText(".todo-count", "剩余 0 / 0")
 
-                // A controlled input: what the field shows is composition state, not the widget's
-                // own buffer, so this only works if the round trip closes.
+                // A controlled input: the field shows composition state, so this only works if the round trip closes.
                 .group("add three items", g -> {
                     addTodo(g, "alpha");
                     addTodo(g, "bravo");
@@ -114,18 +102,13 @@ public class ComposeTodoScenario implements UIScenario {
                 .closeScreen();
     }
 
-    /** Types into the field and presses add. Split out because it happens three times. */
     private static void addTodo(ScenarioBuilder s, String text) {
         s.typeInto(".todo-input", text).frames(2).click(".todo-add").frames(3);
     }
 
     /**
-     * Presses and releases on a control that is about to remove itself.
-     *
-     * <p>{@link ScenarioBuilder#click} resolves the selector again for the release, and LDLib2
-     * buttons fire on mouse-<em>down</em> — so by the time the release step runs, a delete button has
-     * already taken its own row out of the tree and the selector matches nothing. Resolving the
-     * position once and reusing it sidesteps that.
+     * Presses and releases on a control that removes itself on mouse-down, where
+     * {@link ScenarioBuilder#click} would re-resolve the selector for the release and find nothing.
      */
     private static void clickOnce(TestContext ctx, String selector) {
         var bounds = ctx.query().select(selector).one().bounds();
@@ -138,13 +121,7 @@ public class ComposeTodoScenario implements UIScenario {
         return List.copyOf(scroller.getContentHost().getChildren());
     }
 
-    /**
-     * Row captions in document order.
-     *
-     * <p>Walks the tree instead of using a selector query: {@code ModularUI#select} filters
-     * {@code getAllElements()}, which is in registration order, and that stops matching document
-     * order as soon as anything reorders.
-     */
+    /** Row captions in document order, read from the tree because a selector query is in registration order. */
     private static List<String> rowTexts(TestContext ctx) {
         var texts = new ArrayList<String>();
         for (var row : rows(ctx)) {

@@ -16,7 +16,6 @@ class HostPlumbingTest {
 
     @Test
     fun `continuations dispatched from other threads all run on the next drain`() {
-        // What a delay() or a withContext(IO) inside an effect does: resume from a foreign thread.
         val dispatcher = RenderThreadDispatcher()
         val ran = AtomicInteger()
         val pool = Executors.newFixedThreadPool(8)
@@ -50,7 +49,6 @@ class HostPlumbingTest {
     @Test
     fun `a binding handed back by two compositions ends up on the original source`() {
         val original = IDataSource.of<Int>({ }, { 0 })
-        // A installs itself, then B on top of it; A leaves first, then B.
         val a = StateDataSource(mutableStateOf(1), original)
         val b = StateDataSource(mutableStateOf(2), a)
         a.active = false

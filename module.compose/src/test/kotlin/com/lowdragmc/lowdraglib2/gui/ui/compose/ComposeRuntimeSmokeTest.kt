@@ -16,16 +16,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Test
 
-/**
- * The baseline: does the Compose runtime work at all, driven by our own frame clock and applier?
- *
- * <p>That this file compiles is itself the first assertion — `@Composable` bodies calling
- * `ComposeNode` do not build without the Compose compiler plugin, so a green run means the plugin is
- * applied and the runtime resolved.
- *
- * <p>Structural reconciliation is covered in depth by `ComposeReconciliationTest`; this file sticks
- * to the runtime guarantees the whole design leans on.
- */
+/** The baseline: does the Compose runtime work at all, driven by our own frame clock and applier? */
 class ComposeRuntimeSmokeTest {
 
     @Test
@@ -60,7 +51,6 @@ class ComposeRuntimeSmokeTest {
         h.frame()
 
         assertEquals("root(list(A,B,C,D))", h.tree())
-        // The point of the whole exercise: adding an item did not rebuild the ones already there.
         before.forEachIndexed { i, node -> assertSame(node, list.children[i]) }
         h.dispose()
     }
@@ -99,7 +89,7 @@ class ComposeRuntimeSmokeTest {
         h.setContent {
             Node("root-content") {
                 @Suppress("UNUSED_EXPRESSION")
-                bump // read it so the enclosing scope actually recomposes
+                bump // read so the enclosing scope recomposes
                 if (visible) {
                     val id = remember { "instance-${created.size}".also { created += it } }
                     DisposableEffect(Unit) { onDispose { disposed += id } }
@@ -112,7 +102,6 @@ class ComposeRuntimeSmokeTest {
 
         bump++
         h.frame()
-        // Recomposing must not re-run the remember calculation.
         assertEquals(listOf("instance-0"), created)
         assertEquals("root(root-content(instance-0))", h.tree())
 
@@ -123,7 +112,6 @@ class ComposeRuntimeSmokeTest {
 
         visible = true
         h.frame()
-        // Remounting is a fresh instance - the old slot table entry went away with the subtree.
         assertEquals(listOf("instance-0", "instance-1"), created)
         h.dispose()
     }
@@ -169,8 +157,6 @@ class ComposeRuntimeSmokeTest {
             }
         }
 
-        // Effects are dispatched, not run inline, so they land on the first frame rather than
-        // during setContent. That is the whole point of routing them through the render thread.
         assertEquals(emptyList<String>(), log)
         h.frame()
         assertEquals(listOf("started"), log)
@@ -182,13 +168,9 @@ class ComposeRuntimeSmokeTest {
         h.dispose()
     }
 
-    /** Bumped by [Sibling] so a test can see how often it actually ran. */
     private var siblingBodyRuns = 0
 
-    /**
-     * Skipping happens at function boundaries, so the thing being measured has to *be* a function.
-     * Statements sitting in the same lambda as a changing state read all re-run together.
-     */
+    /** A function of its own because skipping happens at composable boundaries. */
     @Composable
     private fun Sibling(label: String) {
         siblingBodyRuns++
@@ -204,8 +186,6 @@ class ComposeRuntimeSmokeTest {
         h.setContent {
             Node("root-content") {
                 Node("left-$left")
-                // Its argument never changes, so the compiler-inserted skip should leave it alone
-                // even though the enclosing lambda re-runs every time `left` changes.
                 Sibling("right")
             }
         }
@@ -217,7 +197,6 @@ class ComposeRuntimeSmokeTest {
         h.frame()
 
         assertEquals("root(root-content(left-2,right))", h.tree())
-        // Would be 3 without smart recomposition - this is what keeps a large tree cheap.
         assertEquals(1, siblingBodyRuns)
         h.dispose()
     }
@@ -237,12 +216,12 @@ class ComposeRuntimeSmokeTest {
         }
         assertEquals(1, readerRuns)
 
-        source = 5 // still "small" - the derived value did not change
+        source = 5
         h.frame()
         assertEquals(1, readerRuns)
         assertEquals("root(root-content(small))", h.tree())
 
-        source = 50 // now it flips
+        source = 50
         h.frame()
         assertEquals(2, readerRuns)
         assertEquals("root(root-content(large))", h.tree())

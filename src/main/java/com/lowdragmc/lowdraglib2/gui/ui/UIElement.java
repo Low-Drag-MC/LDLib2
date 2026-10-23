@@ -775,13 +775,12 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     }
 
     /**
-     * The element that externally-supplied children actually belong under.
+     * The element that externally-supplied children actually belong under, for callers that read and
+     * remove children as well as insert them.
      *
-     * <p>Usually the element itself, but a widget assembled out of internal parts may keep its
-     * content somewhere further down: {@link com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView}
-     * puts it in the view container, so that it scrolls rather than sitting next to the scrollbars.
-     * {@link #addEditorChild} has always made that redirection for insertion; this exposes the same
-     * answer to callers that also need to read or remove, which a reconciler does.
+     * <p>This element by default. A widget built from internal parts overrides it to return the part
+     * that holds its content, the same one {@link #addEditorChild} inserts into:
+     * {@link com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView} returns its view container.
      */
     public UIElement getContentHost() {
         return this;
@@ -860,24 +859,17 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     /**
      * Rearranges this element's children into {@code newOrder}, without detaching any of them.
      *
-     * <p>The obvious spelling — {@link #removeChild} followed by {@link #addChildAt} — is not
-     * equivalent. Detaching runs {@code onRemoved()}, drops the element out of the {@link ModularUI}
-     * (which unregisters its sync values and hands its animations back), releases its visual layer,
-     * and tears down its style-engine registration; re-attaching then builds all of that again from
-     * scratch. A reorder changes nothing about where the element lives, so none of that should
-     * happen — and if it did, a keyed list that merely shuffled would lose focus and restart any
-     * running animation.
+     * <p>Unlike {@link #removeChild} followed by {@link #addChildAt}, this runs no {@code onRemoved()}
+     * and leaves each child's {@link ModularUI} registration (sync values, animations), visual layer
+     * and style-engine registration in place, so focus and running animations survive. The whole
+     * permutation is applied in one pass.
      *
-     * <p>Takes the whole permutation rather than one move at a time on purpose. Realising a shuffle
-     * as a sequence of single moves means re-deriving indices after each one, which is quadratic;
-     * this is one pass over the list plus one call into the layout tree, whatever the permutation.
+     * <p>Because nothing re-registers, {@link ModularUI#getAllElements()}, and so
+     * {@link ModularUI#select}, stays in the order elements were first attached and diverges from
+     * document order. Read {@link #getChildren()} when order matters.
      *
-     * <p>One consequence of not re-registering: {@link ModularUI#getAllElements()} — and so
-     * {@link ModularUI#select}, which filters it — stays in the order elements were first attached.
-     * Reordering siblings makes that diverge from document order. Anything that cares about order
-     * should read {@link #getChildren()}, not a selector query.
-     *
-     * @param newOrder a permutation of this element's current children
+     * @param newOrder a permutation of this element's current children; equal to the current order is a no-op
+     * @throws IllegalArgumentException if {@code newOrder} is not a permutation of the current children
      */
     public void reorderChildren(List<UIElement> newOrder) {
         if (newOrder.size() != children.size()) {
@@ -897,8 +889,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         children.clear();
         children.addAll(newOrder);
 
-        // The taffy child list mirrors `children` one-for-one, so it has to be told the new order
-        // too. setChildren replaces the whole list in one go rather than n removes and n inserts.
+        // The taffy child list mirrors `children` one-for-one, so it gets the new order too.
         if (modularUI != null && nodeId != null) {
             var taffyTree = modularUI.getTaffyTree();
             if (taffyTree.containsNode(nodeId)) {
@@ -907,8 +898,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
                 for (int i = 0; i < children.size(); i++) {
                     var childNode = children.get(i).nodeId;
                     if (childNode == null) {
-                        // Not expected in an attached tree. Leave the layout tree's order as it
-                        // was rather than hand it a partial one.
+                        // Unexpected in an attached tree; keep the old layout order rather than a partial one.
                         complete = false;
                         break;
                     }
@@ -952,8 +942,7 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
     public UIElement setId(String id) {
         var previous = this.id;
         this.id = id;
-        // Already registered under the old id, so the lookup has to move with it - otherwise
-        // getElementById misses the new id and the old entry keeps the element alive.
+        // Re-key the id lookup, or getElementById misses the new id and the old entry keeps the element alive.
         if (modularUI != null && !Objects.equals(previous, id)) {
             modularUI.onElementIdChanged(this, previous);
         }
@@ -1732,10 +1721,9 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      * The messageRPC is initialized as an RPC event with a String name and a CompoundTag data payload.
      * It handles registered message handlers by invoking them with the provided data.
      *
-     * <p>Created lazily, and RPC events are matched between server and client by registration order.
-     * So it is protected rather than private: a subclass whose messages are sent from code that only
-     * ever runs on one side calls it from its constructor, which runs on both, instead of letting the
-     * first send register it client-side only.
+     * <p>Created lazily, and RPC events are matched between server and client by registration order:
+     * a subclass that sends messages from code running on only one side should call this from its
+     * constructor, so both sides register it.
      *
      * @return The existing or newly created RPCEvent instance for message handling.
      */

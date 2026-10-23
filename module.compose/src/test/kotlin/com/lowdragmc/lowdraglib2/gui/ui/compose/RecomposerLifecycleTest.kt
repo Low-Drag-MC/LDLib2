@@ -18,9 +18,8 @@ import org.junit.jupiter.api.Test
 import kotlin.coroutines.CoroutineContext
 
 /**
- * The runtime behaviour [ComposeHost]'s two-stage start relies on, pinned down against the real
- * recomposer: the initial composition builds the tree with the recomposer loop not yet running, and
- * starting the loop later (plus one `invalidateAll`) catches up with whatever changed in between.
+ * [ComposeHost]'s two-stage start against the real recomposer: compose before the recomposer loop
+ * runs, then catch up on what changed in between with one `invalidateAll`.
  */
 class RecomposerLifecycleTest {
 

@@ -21,13 +21,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 
-/**
- * `rememberSaveable` against the registry [ComposeHost] provides, and the store behind it.
- *
- * <p>The host itself needs a live element tree, so these build the same arrangement on the test
- * harness: a registry that accepts everything, restored from what the previous composition saved.
- * Closing a screen is "save, then dispose"; reopening is a new composition handed the saved map.
- */
+/** `rememberSaveable` against the registry [ComposeHost] provides, and the store behind it. */
 class ComposeSaveableTest {
 
     @AfterEach
@@ -42,7 +36,7 @@ class ComposeSaveableTest {
             h.setContent { CompositionLocalProvider(LocalSaveableStateRegistry provides registry) { content() } }
         }
 
-        /** What ComposeElement does on the way out: save while everything is still registered. */
+        /** Saves before disposing, as ComposeElement does, while everything is still registered. */
         fun close(): Map<String, List<Any?>> = registry.performSave().also { h.dispose() }
     }
 
@@ -83,7 +77,6 @@ class ComposeSaveableTest {
 
     @Test
     fun `an item that leaves and comes back gets its state back`() {
-        // The arrangement the lazy lists use: one holder, a provider per item key.
         var shown by mutableStateOf(listOf("a", "b"))
         val counters = HashMap<String, MutableState<Int>>()
         val screen = Screen(null) {
@@ -141,9 +134,6 @@ class ComposeSaveableTest {
 
     @Test
     fun `identical content in two subcompositions saves separately`() {
-        // What a split view's two panes, or any two Subcompose calls, look like to the registry.
-        // If the subcompositions' keys started from scratch, both counters would save under one key
-        // and could come back swapped.
         val counters = arrayOfNulls<MutableState<Int>>(2)
         val content = @Composable {
             for (pane in 0..1) {
@@ -174,7 +164,7 @@ class ComposeSaveableTest {
         ComposeSavedState.save("screen", mapOf("k" to listOf(1)))
         assertEquals(mapOf("k" to listOf(1)), ComposeSavedState.restore("screen"))
 
-        // Nothing saveable on the screen any more: no point keeping an empty entry around.
+        // An empty save drops the entry rather than storing it.
         ComposeSavedState.save("screen", emptyMap())
         assertNull(ComposeSavedState.restore("screen"))
 

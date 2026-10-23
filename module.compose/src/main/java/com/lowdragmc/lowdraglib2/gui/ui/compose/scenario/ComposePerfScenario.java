@@ -8,13 +8,7 @@ import com.lowdragmc.lowdraglib2.uitest.ScenarioBuilder;
 import com.lowdragmc.lowdraglib2.uitest.ScenarioOptions;
 import com.lowdragmc.lowdraglib2.uitest.UIScenario;
 
-/**
- * Runs {@link ComposeBenchmark} inside a real client and logs the result.
- *
- * <p>Not an assertion of any particular speed — those would be assertions about the machine. It
- * exists so the numbers can be reproduced on demand, and so a change that makes reconciliation
- * quadratic shows up as a number somebody can see rather than as a UI that feels sluggish.
- */
+/** Runs {@link ComposeBenchmark} inside a real client and logs the result, asserting no particular speed. */
 @LDLRegisterClient(name = "compose_perf", group = "ldlib2", registry = UIScenario.REGISTRY,
         environment = RegistrationEnvironment.DEV_ONLY)
 public class ComposePerfScenario implements UIScenario {

@@ -4,14 +4,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
-/**
- * Which items a lazy container mounts.
- *
- * <p>The arithmetic behind both [LazyColumn] and [LazyRow], tested in isolation because the ends of
- * the range are where it goes wrong: an index past the list crashes, an index short of it leaves a
- * gap at the bottom of the scroll, and both only show up on a list long enough that nobody notices
- * until a user has ten thousand rows.
- */
+/** Which items a lazy container mounts when every item has the same size. */
 class LazyWindowTest {
 
     private fun lazyWindow(
@@ -52,7 +45,6 @@ class LazyWindowTest {
 
     @Test
     fun `the window never runs past the end of the list`() {
-        // Every scroll position, on a list far longer than the viewport.
         for (step in 0..100) {
             val w = lazyWindow(1000, 14f, 140f, step / 100f, 2)
             assertTrue(w.first >= 0, "negative start at $step: $w")
@@ -70,8 +62,6 @@ class LazyWindowTest {
 
     @Test
     fun `before the first layout it still mounts something`() {
-        // The viewport is zero until the element has been laid out once. Mounting nothing at that
-        // point would mean the container measures as empty and never gets a viewport at all.
         val w = lazyWindow(total = 100, itemSize = 10f, viewportSize = 0f, scrollFraction = 0f, overscan = 2)
         assertTrue(!w.isEmpty(), "mounted nothing with no viewport yet")
         assertEquals(0, w.first)
@@ -97,7 +87,6 @@ class LazyWindowTest {
 
     @Test
     fun `an out of range scroll fraction is clamped rather than trusted`() {
-        // The fraction comes from a widget, so treat it as input rather than as a guarantee.
         val below = lazyWindow(100, 10f, 50f, -1f, 1)
         val above = lazyWindow(100, 10f, 50f, 2f, 1)
         assertEquals(0, below.first)

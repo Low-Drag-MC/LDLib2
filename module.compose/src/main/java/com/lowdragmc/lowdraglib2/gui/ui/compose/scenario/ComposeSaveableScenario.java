@@ -16,15 +16,8 @@ import com.lowdragmc.lowdraglib2.uitest.TestContext;
 import com.lowdragmc.lowdraglib2.uitest.UIScenario;
 
 /**
- * {@code rememberSaveable} against a real screen being closed and opened again.
- *
- * <p>The pure-JVM tests cover the registry; what only a real screen can show is that closing it
- * actually reaches the save — the composition is torn down from {@code onRemoved}, and the state has
- * to be collected before that, while everything is still registered — and that the element built for
- * the reopened screen picks it up.
- *
- * <p>The plain {@code remember} counter is the control: it must come back at zero, or the screen was
- * never really rebuilt and the saveable check proves nothing.
+ * {@code rememberSaveable} against a real screen being closed and opened again. The plain
+ * {@code remember} counter is the control: it must come back at zero, or the screen was never rebuilt.
  */
 @LDLRegisterClient(name = "compose_saveable", group = "ldlib2", registry = UIScenario.REGISTRY,
         environment = RegistrationEnvironment.DEV_ONLY)

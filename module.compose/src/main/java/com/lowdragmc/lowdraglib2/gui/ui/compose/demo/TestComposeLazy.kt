@@ -23,13 +23,7 @@ import com.lowdragmc.lowdraglib2.test.ui.IScreenTest
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.player.Player
 
-/**
- * A ten-thousand row list: `/ldlib2_screen_test compose_lazy`.
- *
- * <p>Composed eagerly this would be ten thousand elements, each with a layout node and a stylesheet
- * match. The point of the demo is that scrolling it feels the same as scrolling ten rows, and that
- * selection — which is held above the list — survives rows being recycled underneath it.
- */
+/** A ten-thousand row list plus lazy rows and grids: `/ldlib2_screen_test compose_lazy`. */
 @LDLRegisterClient(name = "compose_lazy", registry = "ldlib2:screen_test")
 class TestComposeLazy : IScreenTest {
     override fun createUI(entityPlayer: Player?): ModularUI =
@@ -41,8 +35,7 @@ private const val ROW_HEIGHT = 14f
 @Composable
 private fun LazyDemo() {
     var count by remember { mutableStateOf(10_000) }
-    // Held above the list on purpose: a row that scrolls out of view leaves the composition, and
-    // anything it remembered goes with it.
+    // Held above the list: a row scrolled out of view leaves the composition and forgets what it remembered.
     var selected by remember { mutableStateOf(-1) }
 
     val items = remember(count) { List(count) { "item $it" } }
@@ -72,10 +65,7 @@ private fun LazyDemo() {
                     Component.literal(item),
                     layout = { height(ROW_HEIGHT.px) },
                     classes = "lazy-row",
-                    // `selected` is read inside the block, which the node observer tracks. Both branches
-                    // are given a value on purpose though: a style block is written through and never
-                    // taken back off, so a texture set only when selected would stay on the row after
-                    // the selection moved elsewhere.
+                    // Both branches set a texture: a style block is never undone.
                     style = {
                         backgroundTexture(if (index == selected) Sprites.RECT_SOLID else IGuiTexture.EMPTY)
                     },
@@ -86,16 +76,13 @@ private fun LazyDemo() {
                 onClick = { selected = 5000 },
                 text = Component.literal("选中 5000"),
                 classes = "lazy-select",
-                // Disabled once it has already been used — the flag every real UI needs. It is a plain
-                // parameter, so "not passed" is a value rather than an absence and there is nothing to
-                // undo when it flips back.
                 enabled = selected != 5000,
             )
 
             Grid()
             Strip()
         }
-        // The variable-size lists, in a column of their own so the screen still fits at a normal GUI scale.
+        // The variable-size lists, in their own column so the screen fits at a normal GUI scale.
         Box(layout = { width(240.px); padding { all(6.px) }; gap { all(4.px) } }) {
             Ragged()
             RaggedStrip()
@@ -104,14 +91,7 @@ private fun LazyDemo() {
     }
 }
 
-/**
- * Rows that are not all the same height — the case a fixed `itemHeight` cannot express.
- *
- * <p>Nothing here tells the list how tall a row is. Each row declares its own height, the list finds
- * out by measuring the ones it has mounted, and everything it has not mounted yet is still carrying
- * the 14px estimate. The spacers above and below are computed from that mixture, which is why the
- * scrollbar stays the right size while the guesses are still being replaced.
- */
+/** Rows of differing heights, which the list learns by measuring; unmounted rows keep the 14px estimate. */
 @Composable
 private fun Ragged() {
     val rows = remember { List(400) { it } }
@@ -130,11 +110,7 @@ private fun Ragged() {
     }
 }
 
-/**
- * [Ragged] across: cells of five different widths, which the strip only learns by measuring them.
- * Its viewport is narrower than its content from the start, which is what makes the leading and
- * trailing spacers matter.
- */
+/** [Ragged] across: cells of five different widths, which the strip only learns by measuring them. */
 @Composable
 private fun RaggedStrip() {
     val cells = remember { List(300) { it } }
@@ -154,10 +130,7 @@ private fun RaggedStrip() {
     }
 }
 
-/**
- * A grid whose rows are not all the same height. Each row is as tall as its tallest cell, and the
- * cells beside it stretch to match, so the columns still line up.
- */
+/** A grid whose rows differ in height: each row is as tall as its tallest cell. */
 @Composable
 private fun RaggedGrid() {
     val cells = remember { List(600) { it } }
@@ -171,7 +144,6 @@ private fun RaggedGrid() {
         classes = "ragged-grid",
         key = { _, cell -> cell },
     ) { index, cell ->
-        // One tall cell every few rows, so row heights genuinely differ.
         Box(
             layout = { height((if (cell % 15 == 0) 26 else 10).px) },
             style = { backgroundTexture(if (cell % 15 == 0) Sprites.RECT_SOLID else Sprites.BORDER) },
@@ -195,11 +167,7 @@ private fun Strip() {
     }
 }
 
-/**
- * The shape an inventory or a recipe table wants: a scrolling grid of fixed cells.
- *
- * <p>Virtualised by row rather than by cell, so a 2000-cell grid mounts a handful of rows.
- */
+/** A scrolling grid of fixed cells, virtualised by row rather than by cell. */
 @Composable
 private fun Grid() {
     val cells = remember { List(2000) { "c$it" } }

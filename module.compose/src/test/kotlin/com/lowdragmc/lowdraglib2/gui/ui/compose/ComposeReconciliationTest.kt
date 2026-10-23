@@ -13,14 +13,7 @@ import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
-/**
- * How the tree changes when the data changes.
- *
- * <p>These are the cases the real applier has to get right against a live `UIElement` tree, where
- * getting them wrong is expensive: a node rebuilt instead of moved loses focus, restarts its
- * animations and re-runs stylesheet matching. So most assertions here check *identity*, not just the
- * resulting shape — the shape can be right while the work behind it was completely wrong.
- */
+/** How the tree changes when the data changes, checked by node identity as well as shape. */
 class ComposeReconciliationTest {
 
     /** Renders [items] as a keyed list under one container. */
@@ -129,7 +122,6 @@ class ComposeReconciliationTest {
         items = listOf("a", "b")
         h.frame()
         assertEquals("root(list(a,b))", h.tree())
-        // The old subtree was disposed, so "a" cannot be the same instance it was before.
         assertNotSame(originalA, h.container().children[0])
         h.dispose()
     }
@@ -141,7 +133,7 @@ class ComposeReconciliationTest {
         h.keyedList { items }
         val c = h.container().children[2]
 
-        items = listOf("a", "c", "d") // b removed, d added, c kept
+        items = listOf("a", "c", "d")
         h.frame()
 
         assertEquals("root(list(a,c,d))", h.tree())
@@ -218,7 +210,6 @@ class ComposeReconciliationTest {
         val a = list.children[0]
         val d = list.children[3]
 
-        // b dropped, order shuffled, e added - all in one pass.
         items = listOf("d", "e", "a", "c")
         h.frame()
 
@@ -234,7 +225,7 @@ class ComposeReconciliationTest {
 
     @Composable
     private fun StatefulRow(label: String, onCreate: (String) -> Unit) {
-        // Captured once per slot. If the slot is reused for a different item, this value proves it.
+        // Fixed per slot, so a slot reused for another item still shows its first label.
         val birthMark = remember { "$label@${nextMark++}" }
         remember(birthMark) { onCreate(birthMark); birthMark }
         Node(birthMark)
@@ -257,7 +248,6 @@ class ComposeReconciliationTest {
         items = listOf("c", "a", "b")
         h.frame()
 
-        // Each item kept the state it was born with; nothing was re-created.
         assertEquals("root(list(c@2,a@0,b@1))", h.tree())
         h.dispose()
     }
@@ -269,7 +259,6 @@ class ComposeReconciliationTest {
         var items by mutableStateOf(listOf("a", "b", "c"))
         h.setContent {
             Node("list") {
-                // No key(): every iteration shares one call site, so slots match up by position.
                 items.forEach { item -> StatefulRow(item) {} }
             }
         }
@@ -278,8 +267,7 @@ class ComposeReconciliationTest {
         items = listOf("c", "a", "b")
         h.frame()
 
-        // The tree is still structurally fine, but slot 0's state did not follow "a" - this is
-        // exactly the bug `key` exists to prevent, and why the demo screen uses it.
+        // State stayed by position: "c" is now rendered from slot 0's state, "a@0".
         assertEquals("root(list(a@0,b@1,c@2))", h.tree())
         h.dispose()
     }
@@ -373,7 +361,6 @@ class ComposeReconciliationTest {
         val g1 = outer.children[0]
         val a = g1.children[0]
 
-        // Reorder the outer list and one inner list at once.
         groups = listOf("g2" to listOf("y", "x"), "g1" to listOf("a", "b"))
         h.frame()
 
@@ -449,9 +436,6 @@ class ComposeReconciliationTest {
         h.frame()
 
         assertEquals("root(root-content(left(a),right(b)))", h.tree())
-        // Keys scope to their parent group; crossing parents is a remove plus an insert. Worth
-        // knowing, because it means drag-and-drop between containers loses per-item state unless
-        // that state is hoisted above both.
         assertNotSame(b, h.container().children[1].children[0])
         h.dispose()
     }
@@ -477,9 +461,6 @@ class ComposeReconciliationTest {
         inLeft = false
         h.frame()
 
-        // The deliberate exception to the previous test: normally crossing parents is a teardown
-        // plus a rebuild, and `remember` state does not survive it. This is the opt-in that moves
-        // the slot table entry instead - the composable ran once, not twice.
         assertEquals("root(root-content(left,right(made-0)))", h.tree())
         assertEquals(listOf("made-0"), created)
         h.dispose()
@@ -506,7 +487,7 @@ class ComposeReconciliationTest {
         h.frame()
 
         assertEquals("root(root-content(t2,list(a,b,c)))", h.tree())
-        // And it converged in that one frame - no further work is pending.
+        // Nothing left pending after that one frame.
         assertEquals(1, h.settle())
         h.dispose()
     }

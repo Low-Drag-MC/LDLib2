@@ -14,19 +14,12 @@ import com.lowdragmc.lowdraglib2.uitest.target.Texts;
 
 import java.util.List;
 
-/**
- * Proves the lazy list is actually lazy, and still behaves like a list.
- *
- * <p>"It renders" is not the claim worth testing — an eager list renders too, just slowly. The claim
- * is that ten thousand items produce a couple of dozen elements, that scrolling moves which items
- * those elements show, and that the scrollbar still spans the whole list rather than the mounted
- * window.
- */
+/** Proves the lazy list is actually lazy, and still behaves like a list. */
 @LDLRegisterClient(name = "compose_lazy", group = "ldlib2", registry = UIScenario.REGISTRY,
         environment = RegistrationEnvironment.DEV_ONLY)
 public class ComposeLazyScenario implements UIScenario {
 
-    /** Rows the list keeps mounted beyond a screenful; generous, because the point is the order of magnitude. */
+    /** Upper bound on mounted rows; generous, because the point is the order of magnitude. */
     private static final int SANE_MOUNTED_LIMIT = 40;
 
     @Override
@@ -75,9 +68,8 @@ public class ComposeLazyScenario implements UIScenario {
                         ctx.query().select(".grid-cell").list().stream()
                                 .anyMatch(ref -> ref.text().equals("c0")))
 
-                // The horizontal variant. Checking the cells sit side by side matters: the row
-                // direction has to go on the content container, not on the ScrollerView, or the
-                // items stay stacked while the scrollbars go sideways instead.
+                // The horizontal variant: the row direction has to go on the content container, not
+                // the ScrollerView, or the items stay stacked while the scrollbars go sideways.
                 .check("the strip is virtualised", ctx -> {
                     var cells = ctx.query().select(".strip-cell").count();
                     return cells > 0 && cells < 20;
@@ -107,10 +99,7 @@ public class ComposeLazyScenario implements UIScenario {
                 .check("a short list mounts every row and no more", ctx ->
                         ctx.query().select(".lazy-row").count() <= 20)
 
-                // Variable-height rows. Nothing tells the list how tall a row is; it measures the
-                // ones it mounts and carries an estimate for the rest, so the interesting question
-                // is whether the spacers it computes from that mixture leave the rows laid out
-                // correctly - a wrong spacer shows up as rows overlapping or a gap between them.
+                // Variable-height rows: a wrong spacer shows up as rows overlapping or a gap between them.
                 .check("the ragged list is virtualised too", ctx -> {
                     var mounted = ctx.query().select(".ragged-row").count();
                     return mounted > 0 && mounted < SANE_MOUNTED_LIMIT;
@@ -122,9 +111,7 @@ public class ComposeLazyScenario implements UIScenario {
                         contiguous(ragged(ctx), true))
                 .check("the scrollbar spans the whole ragged list", ctx ->
                         contentExtent(ragged(ctx), true) > 400 * 10f)
-                // At the top there is nothing above the first row, so the leading spacer must be
-                // flat zero. This is the assertion that actually tests the spacer arithmetic -
-                // rows tiling each other is what a flex column does regardless.
+                // This is what tests the spacer arithmetic; rows tiling is what a flex column does regardless.
                 .check("nothing is reserved above the first row at the top", ctx ->
                         leadingSpacer(ragged(ctx), true) < 0.5f)
 
@@ -143,14 +130,12 @@ public class ComposeLazyScenario implements UIScenario {
                 .frames(5)
                 .check("the last ragged row is reachable", ctx ->
                         ctx.query().select(".ragged-row-399").optional().isPresent())
-                // The mirror of the check at the top, and the one that catches a trailing spacer
-                // that is too big: the list would then scroll past its own last row.
+                // Catches a trailing spacer that is too big, which would scroll past the last row.
                 .check("and nothing is reserved below it", ctx -> trailingSpacer(ragged(ctx), true) < 0.5f)
                 .check("and the rows are contiguous at the bottom too", ctx ->
                         contiguous(ragged(ctx), true))
 
-                // The same measuring across. Cells tiling each other is what a flex row does anyway;
-                // the spacers at the two ends are what show the arithmetic ran on the right axis.
+                // The same measuring across; the end spacers show the arithmetic ran on the right axis.
                 .check("the ragged strip is virtualised", ctx -> {
                     var mounted = ctx.query().select(".ragged-cell").count();
                     return mounted > 0 && mounted < SANE_MOUNTED_LIMIT;
@@ -179,8 +164,7 @@ public class ComposeLazyScenario implements UIScenario {
                         ctx.query().select(".ragged-cell-299").optional().isPresent())
                 .check("and nothing is reserved after it", ctx -> trailingSpacer(strip(ctx), false) < 0.5f)
 
-                // A grid with variable rows: each row as tall as its tallest cell. Cell 0 is one of
-                // the tall ones, so the first row is tall and its other cells have to stretch to it.
+                // A grid with variable rows. Cell 0 is tall, so the other cells of the first row stretch to it.
                 .check("the ragged grid is virtualised", ctx -> {
                     var mounted = ctx.query().select(".ragged-grid-cell").count();
                     return mounted > 0 && mounted < 6 * SANE_MOUNTED_LIMIT;
@@ -250,25 +234,19 @@ public class ComposeLazyScenario implements UIScenario {
         return total;
     }
 
-    /** The empty element standing in for everything before the mounted window. */
     private static float leadingSpacer(ScrollerView view, boolean vertical) {
         var children = view.viewContainer.getChildren();
         return children.isEmpty() ? -1f : extent(children.get(0), vertical);
     }
 
-    /** And the one standing in for everything after it. */
     private static float trailingSpacer(ScrollerView view, boolean vertical) {
         var children = view.viewContainer.getChildren();
         return children.isEmpty() ? -1f : extent(children.get(children.size() - 1), vertical);
     }
 
     /**
-     * Whether the mounted items tile their container along its axis without overlapping or leaving
-     * a gap.
-     *
-     * <p>Walks the container's own children rather than the query result, because a query returns
-     * registration order and these have to be checked in document order. Each measured item sits
-     * inside a wrapper, so the wrappers are what tile - the items are their only children.
+     * Whether the item wrappers tile the container along its axis without overlap or gap. Walks the
+     * children rather than a query, which returns registration order instead of document order.
      */
     private static boolean contiguous(ScrollerView view, boolean vertical) {
         Float previousEnd = null;

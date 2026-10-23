@@ -17,27 +17,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * End-to-end check that Compose state changes reach the real element tree.
- *
- * <p>Nothing in {@link TestCompose} tells the UI to rebuild — a click only changes a list held in
- * `remember`. So a passing run means the whole chain worked: the snapshot write was published, the
- * recomposer picked it up off the frame callback, and the applier edited a live {@code ModularUI}.
- *
- * <p>All three applier operations are covered, because they fail in different ways: insert is the
- * common path, remove has to pick the right children out of a list that also holds the widgets'
- * internal parts, and move has to reorder without detaching. The move case checks element
- * <em>identity</em> rather than just order — reordering by remove-and-re-add would produce the right
- * order too, while silently dropping focus and restarting animations.
- *
- * <p>It doubles as the load-time check for the jar-in-jar'd Compose runtime and coroutines: if those
- * did not resolve under NeoForge's module layer, opening the screen would throw rather than fail an
- * assertion.
+ * End-to-end check that Compose state changes reach the real element tree through insert, remove and
+ * move, the move keeping element identity. Doubles as the load-time check for the jar-in-jar'd runtime.
  */
 @LDLRegisterClient(name = "compose_list", group = "ldlib2", registry = UIScenario.REGISTRY,
         environment = RegistrationEnvironment.DEV_ONLY)
 public class ComposeListScenario implements UIScenario {
 
-    /** Captured before the reverse, compared after it. */
     private final List<UIElement> beforeReverse = new ArrayList<>();
 
     /** The styled text's computed values before anything highlights it. */
@@ -62,8 +48,7 @@ public class ComposeListScenario implements UIScenario {
 
                 // insert
                 .click(".add-button")
-                // Frames, not ticks: recomposition runs off the frame callback, so a rendered frame
-                // is all it takes for the new row to exist.
+                // Frames, not ticks: recomposition runs off the frame callback.
                 .frames(3)
                 .click(".add-button")
                 .frames(3)
@@ -85,7 +70,6 @@ public class ComposeListScenario implements UIScenario {
                     var after = elements(ctx);
                     if (after.size() != beforeReverse.size()) return false;
                     for (int i = 0; i < after.size(); i++) {
-                        // Reversed, so position i now holds what was at size-1-i - the same instance.
                         if (after.get(i) != beforeReverse.get(beforeReverse.size() - 1 - i)) return false;
                     }
                     return true;
@@ -98,13 +82,9 @@ public class ComposeListScenario implements UIScenario {
                 .check("back to A, B, C", ctx -> captions(ctx).equals(List.of("A", "B", "C")))
                 .screenshotElement("compose-list-reset", ".__root__")
 
-                // Modifier diff, both directions. Everything else in this demo has a fixed chain per
-                // call site, so ops only ever get applied; here dropping one has to undo it — and
-                // undoing a style means the element goes back to what the stylesheet said, not to
-                // some value the modifier wrote over the top.
+                // Highlight on and off: the class is diffed away, while the style block is never undone,
+                // so it is the demo's un-highlighted branch that writes the sampled values back.
                 .check("starts unhighlighted", ctx -> !hasHotClass(ctx))
-                // Sampled rather than hardcoded: the baseline is whatever the stylesheet computed,
-                // which is the value un-applying has to get back to - not the property's default.
                 .step("sample the unstyled values", ctx -> {
                     baseFontSize = fontSize(ctx);
                     baseTextColor = textColor(ctx);
@@ -113,7 +93,6 @@ public class ComposeListScenario implements UIScenario {
                 .click(".highlight-toggle")
                 .frames(3)
                 .check("highlight adds the class", ComposeListScenario::hasHotClass)
-                // Typed sugar and the generic style() escape hatch, respectively.
                 .check("highlight sets the font size", ctx -> fontSize(ctx) == 18f)
                 .check("highlight sets the text colour", ctx -> textColor(ctx) == 0xFFFF5555)
                 .check("the highlight actually changed something", ctx ->
@@ -129,13 +108,8 @@ public class ComposeListScenario implements UIScenario {
     }
 
     /**
-     * Walks the tree rather than going through {@code ctx.query()}.
-     *
-     * <p>{@link com.lowdragmc.lowdraglib2.gui.ui.ModularUI#select} filters
-     * {@code getAllElements()}, which is in element <em>registration</em> order. Reordering siblings
-     * does not re-register anything, so after a move the query still lists the old order even though
-     * the tree and the rendered UI are both correct. Order-sensitive assertions have to read the
-     * child lists directly.
+     * Walks the tree rather than {@code ctx.query()}, which lists elements in registration order and
+     * so still shows the old order after a move.
      */
     private static List<UIElement> elements(TestContext ctx) {
         var scroller = ctx.query().type(ScrollerView.class).one().as(ScrollerView.class);

@@ -23,16 +23,7 @@ import com.lowdragmc.lowdraglib2.test.ui.IScreenTest
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.player.Player
 
-/**
- * A deliberately non-trivial demo: `/ldlib2_screen_test compose_todo`.
- *
- * <p>Where `TestCompose` shows one list changing, this puts the pieces together the way a real screen
- * would — a controlled text input, a keyed list whose contents are *derived* rather than stored, a
- * filter that changes which subset is mounted, per-row state that has to survive filtering, and
- * counters computed from the same source of truth. The interesting part is that nothing here
- * coordinates any of that: there is no refresh method, no dirty flag, and no place where the code
- * decides which elements to destroy.
- */
+/** A todo list with a controlled input and a derived, filtered keyed list: `/ldlib2_screen_test compose_todo`. */
 @LDLRegisterClient(name = "compose_todo", registry = "ldlib2:screen_test")
 class TestComposeTodo : IScreenTest {
     override fun createUI(entityPlayer: Player?): ModularUI =
@@ -50,8 +41,6 @@ private fun TodoApp() {
     var draft by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf(Filter.ALL) }
 
-    // Derived, not stored. There is no second copy of the list to keep in step, so "the filter
-    // changed" and "an item was ticked" are the same kind of event as far as the UI is concerned.
     val visible by remember {
         derivedStateOf {
             todos.filter {
@@ -95,8 +84,6 @@ private fun TodoApp() {
                         onClick = { filter = candidate },
                         text = Component.literal(candidate.label),
                         layout = { width(60.px) },
-                        // The selected filter carries an extra class. Classes are diffed, so it is
-                        // genuinely removed again when the selection moves on.
                         classes = "todo-filter todo-filter-${candidate.name.lowercase()}" +
                             if (candidate == filter) " selected" else "",
                     )
@@ -111,9 +98,6 @@ private fun TodoApp() {
                 Text(Component.literal("空"), classes = "todo-empty")
             } else {
                 visible.forEach { todo ->
-                    // Keyed by id, so filtering out an item and bringing it back does not shuffle
-                    // any other row's element - and a row keeps its own element across filter
-                    // changes rather than being rebuilt.
                     key(todo.id) {
                         TodoRow(
                             todo = todo,
@@ -131,11 +115,8 @@ private fun TodoApp() {
 
 @Composable
 private fun TodoRow(todo: Todo, onToggle: (Boolean) -> Unit, onDelete: () -> Unit) {
-    // The per-id class is what makes an individual row addressable from a selector, for the test
-    // and for anyone styling one specific row from a stylesheet.
     Row(layout = { gap { all(3.px) } }, classes = "todo-row todo-row-${todo.id}") {
-        // Width only: the widget lays itself out as a row of [box | label] with its own height, so
-        // forcing a square would squash the box and push the label over the text beside it.
+        // Width only: the widget is a [box | label] row with its own height, and a square would squash it.
         Toggle(
             checked = todo.done,
             onCheckedChange = onToggle,

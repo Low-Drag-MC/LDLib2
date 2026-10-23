@@ -23,14 +23,7 @@ import com.lowdragmc.lowdraglib2.test.ui.IScreenTest
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.player.Player
 
-/**
- * Demo screen for the declarative layer: `/ldlib2_screen_test compose`.
- *
- * <p>The point of the list below is what is *not* in it. Adding an item changes a list and nothing
- * else — no `clearAllChildren()`, no rebuild method, no dirty flag polled on tick, and no bookkeeping
- * to put the text back in the field afterwards. Compare with the 31 `clearAllChildren()` call sites
- * elsewhere in the codebase, most of which are doing exactly that by hand.
- */
+/** Demo screen for the declarative layer: `/ldlib2_screen_test compose`. */
 @LDLRegisterClient(name = "compose", registry = "ldlib2:screen_test")
 class TestCompose : IScreenTest {
     override fun createUI(entityPlayer: Player?): ModularUI =
@@ -50,12 +43,8 @@ private fun Demo() {
 }
 
 /**
- * The two ways to make appearance follow state, side by side.
- *
- * <p>`classes` is diffed, so dropping a name genuinely removes it and the stylesheet takes back
- * over. A `style` / `textStyle` block is written through and never undone — the same rule the
- * builder DSL has always had — so a property set under an `if` has to be given a value in *both*
- * branches, as the font size below is. Setting it in one branch only would leave it stuck.
+ * The two ways to make appearance follow state: `classes` is diffed, but a `style` / `textStyle`
+ * block is never undone, so a property set under an `if` needs a value in both branches.
  */
 @Composable
 private fun Highlightable() {
@@ -69,8 +58,6 @@ private fun Highlightable() {
     Text(
         Component.literal("styled text"),
         classes = if (hot) "styled-text hot" else "styled-text",
-        // `hot` read inside the block, which is tracked. Both branches still get a value, because a
-        // style block is never undone.
         textStyle = {
             fontSize(if (hot) 18f else 9f)
             textColor(if (hot) 0xFFFF5555.toInt() else 0xFFFFFFFF.toInt())
@@ -84,8 +71,6 @@ private fun DynamicButtonList() {
 
     ScrollView(layout = { height(120.px) }, contentLayout = { gap { all(3.px) } }) {
         items.forEach { item ->
-            // `key` is optional - without it the list still works, it just matches by position, so a
-            // reorder would rebuild rows instead of moving them.
             key(item) {
                 Row(layout = { gap { all(3.px) } }) {
                     Button(
@@ -111,8 +96,7 @@ private fun DynamicButtonList() {
             text = Component.literal("添加按钮"),
             classes = "add-button",
         )
-        // With `key(item)` above, reversing produces moves rather than rebuilds: the very same
-        // Button instances end up in the new order, keeping their focus and any running animation.
+        // Keyed rows are moved, not rebuilt, so they keep their focus and running animations.
         Button(
             onClick = { items = items.reversed() },
             text = Component.literal("反转"),

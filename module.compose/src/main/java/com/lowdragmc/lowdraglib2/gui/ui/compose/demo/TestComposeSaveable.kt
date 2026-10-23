@@ -23,11 +23,6 @@ import net.minecraft.world.entity.player.Player
 /**
  * State that outlives the screen: `/ldlib2_screen_test compose_saveable`, then close it and open it
  * again.
- *
- * <p>Everything here is held in the place it is used, with nothing hoisted. The two counters at the
- * top are the comparison: the `rememberSaveable` one comes back after a reopen, the `remember` one
- * starts over. The rows' stars survive scrolling out of view, and a tab's counter survives the tab
- * being removed and added back — both inside one screen, which needs no state key at all.
  */
 @LDLRegisterClient(name = "compose_saveable", registry = "ldlib2:screen_test")
 class TestComposeSaveable : IScreenTest {
@@ -69,7 +64,7 @@ private fun SaveableDemo() {
             classes = "starred-list",
             key = { _, row -> row },
         ) { _, row ->
-            // Lives in the row. A plain remember would be dropped when the row scrolls out.
+            // A plain remember would be dropped when the row scrolls out.
             var starred by rememberSaveable { mutableStateOf(false) }
             Button(
                 onClick = { starred = !starred },

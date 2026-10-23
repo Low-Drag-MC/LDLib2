@@ -8,17 +8,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
-/**
- * What recomposition costs, isolated from Minecraft.
- *
- * <p>This measures the Compose runtime and the applier contract only — fake nodes, no layout, no
- * styling, no drawing. So the numbers are a floor, not a frame budget: they say what the declarative
- * layer adds, and the in-client scenario says what the whole thing costs.
- *
- * <p>Assertions are deliberately about *shape* rather than absolute times. "Updating one row does not
- * cost what rebuilding the list costs" is a property worth defending on any machine; "it takes under
- * 200µs" is a property of this laptop.
- */
+/** What recomposition costs, isolated from Minecraft. */
 class ComposePerformanceTest {
 
     private data class Row(val id: Int, val text: String)
@@ -38,7 +28,7 @@ class ComposePerformanceTest {
 
     private fun micros(nanos: Long) = "%.1fµs".format(nanos / 1000.0)
 
-    /** A list of [n] keyed rows whose one changing row can be swapped without touching the others. */
+    /** A list of [n] keyed rows. */
     private class ListFixture(n: Int) {
         val harness = TestHarness()
         var rows by mutableStateOf((1..n).map { Row(it, "v0") })
@@ -51,7 +41,6 @@ class ComposePerformanceTest {
             }
         }
 
-        /** Replaces exactly one Row instance; every other element of the list is untouched. */
         fun touchOne(index: Int, revision: Int) {
             rows = rows.toMutableList().also { it[index] = it[index].copy(text = "v$revision") }
         }
@@ -63,8 +52,6 @@ class ComposePerformanceTest {
         val idle = measure { fixture.harness.frame() }
         println("[perf] idle frame, 500 nodes mounted: ${micros(idle)}")
 
-        // Nothing invalidated, so the pump should do little more than notice that. If this ever
-        // starts costing real time it means something is invalidating every frame.
         assertTrue(idle < 1_000_000, "an idle frame took ${micros(idle)}")
         fixture.harness.dispose()
     }
@@ -83,9 +70,7 @@ class ComposePerformanceTest {
 
         assertEquals("root(list(${large.rows.joinToString(",") { it.text }}))", large.harness.tree())
 
-        // The enclosing lambda still walks the list, so this is not O(1) — but each untouched row
-        // hits the compiler-inserted skip instead of recomposing, so 10x the rows must cost far less
-        // than 10x the time. A rebuild-everything implementation would land at or above 10x.
+        // Not O(1): the list lambda still walks every row, but untouched rows skip, so well under 10x.
         assertTrue(
             largeCost < smallCost * 6,
             "10x rows cost ${largeCost.toDouble() / smallCost}x: ${micros(smallCost)} -> ${micros(largeCost)}",
@@ -102,9 +87,6 @@ class ComposePerformanceTest {
         fixture.touchOne(500, 1)
         fixture.harness.frame()
 
-        // The measurement that actually explains the timing above: touching one row moves no nodes
-        // and creates none. Compare with clearing and repopulating, which is 1000 removes + 1000
-        // inserts and throws away every element's state on the way.
         assertEquals(0, fixture.harness.applier.inserts)
         assertEquals(0, fixture.harness.applier.removes)
         assertEquals(0, fixture.harness.applier.moves)
@@ -149,7 +131,6 @@ class ComposePerformanceTest {
         }
         println("[perf] reverse a 500 row list: ${micros(cost)}")
 
-        // Reversal is the worst case for a keyed list, and it still creates nothing.
         assertEquals(0, fixture.harness.applier.inserts)
         assertEquals(0, fixture.harness.applier.removes)
         assertTrue(fixture.harness.applier.moves > 0, "a reversal should have moved something")

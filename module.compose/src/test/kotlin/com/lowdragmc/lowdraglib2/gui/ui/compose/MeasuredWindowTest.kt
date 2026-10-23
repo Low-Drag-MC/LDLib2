@@ -5,19 +5,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
-/**
- * The arithmetic behind variable-height [LazyColumn].
- *
- * <p>Two properties matter more than any individual case, and most of these tests are really checks
- * on one of them:
- *
- * <ul>
- * <li><b>The spacers plus the mounted rows always add up to the whole list.</b> That is what keeps
- *     the scrollbar honest — get it wrong and the thumb is the wrong size, or scrolling to the bottom
- *     does not reach the last row.</li>
- * <li><b>Every row the viewport touches is mounted.</b> Miss one and there is a hole on screen.</li>
- * </ul>
- */
+/** The arithmetic behind variable-height [LazyColumn]. */
 class MeasuredWindowTest {
 
     private fun heights(vararg values: Float) = values
@@ -72,10 +60,9 @@ class MeasuredWindowTest {
 
     @Test
     fun `uneven heights put the leading spacer at the true offset`() {
-        // Rows: 20, 5, 30, 5, 20 — total 80. Viewport 20 at the very bottom starts at 60.
+        // Total 80; a 20px viewport at the bottom starts at 60, exactly where row 4 begins.
         val h = heights(20f, 5f, 30f, 5f, 20f)
         val window = measuredWindow(h, viewportSize = 20f, scrollFraction = 1f, overscan = 0)
-        // 60px in is exactly the start of row 4, and it fills the viewport by itself.
         assertEquals(4..4, window.range)
         assertEquals(60f, window.leading)
         assertEquals(0f, window.trailing)
@@ -159,10 +146,7 @@ class MeasuredWindowTest {
         }
     }
 
-    /**
-     * The mixed state this exists to handle: some rows measured, the rest still on the estimate.
-     * The window has to be right for the numbers it has, and it has to keep adding up.
-     */
+    /** Some rows measured, the rest still on the estimate. */
     @Test
     fun `a half-measured list still accounts for its whole height`() {
         val h = FloatArray(100) { if (it < 20) 5f + it % 7 else 14f }
@@ -184,13 +168,7 @@ class MeasuredWindowTest {
     }
 }
 
-/**
- * The measurement cache underneath the window.
- *
- * <p>Its whole job is to be cheap, to not thrash — layout produces fractional heights, and a cache
- * that reported every wobble would invalidate the window every frame — and to keep each measurement
- * with its item when the list changes around it.
- */
+/** The measurement cache underneath the window. */
 class ItemSizesTest {
 
     @Test

@@ -19,13 +19,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
-/**
- * Effect and state semantics under our own frame driver.
- *
- * <p>These are the parts most likely to break in a custom host. On Android the frame clock and the
- * dispatcher come from the platform; here both are hand-written, and an effect that never runs — or
- * one that never gets cancelled — would be a silent leak rather than a visible failure.
- */
+/** Effect and state semantics under our own frame driver. */
 class ComposeEffectsTest {
 
     @Test
@@ -40,8 +34,7 @@ class ComposeEffectsTest {
                 @Suppress("UNUSED_EXPRESSION")
                 unrelated
                 LaunchedEffect(key) {
-                    // Captured, not re-read: `finally` runs after the state has already moved on,
-                    // so reading `key` there would report the new value as the one being stopped.
+                    // Captured: by the time `finally` runs, `key` already holds the new value.
                     val started = key
                     log += "start:$started"
                     try {
@@ -56,7 +49,6 @@ class ComposeEffectsTest {
         h.frame()
         assertEquals(listOf("start:k1"), log)
 
-        // Recomposing for an unrelated reason must not disturb a running effect.
         unrelated = 1
         h.frame()
         assertEquals(listOf("start:k1"), log)
@@ -76,7 +68,7 @@ class ComposeEffectsTest {
         h.setContent {
             Node("box") {
                 DisposableEffect(key) {
-                    val acquired = key // see the LaunchedEffect test - onDispose runs after the change
+                    val acquired = key // captured: onDispose runs after the change
                     log += "acquire:$acquired"
                     onDispose { log += "release:$acquired" }
                 }
@@ -90,7 +82,6 @@ class ComposeEffectsTest {
         assertEquals(listOf("acquire:a", "release:a", "acquire:b"), log)
 
         h.dispose()
-        // Disposing the whole composition has to release too, or subscriptions outlive the UI.
         assertEquals(listOf("acquire:a", "release:a", "acquire:b", "release:b"), log)
     }
 
@@ -147,9 +138,6 @@ class ComposeEffectsTest {
 
         h.setContent {
             Node("box") {
-                // The classic pattern: the effect must not restart when the callback changes, but it
-                // must not call the stale one either. This is the same trick EventHandlerHolder
-                // plays for event listeners, expressed in pure Compose.
                 val current by rememberUpdatedState(handler)
                 LaunchedEffect(Unit) {
                     try {
@@ -242,9 +230,6 @@ class ComposeEffectsTest {
         provided = "v2"
         h.frame()
 
-        // The reader is several composables below the provider and reads nothing else; the new value
-        // still has to reach it. (How much of the surrounding tree is skipped is a separate
-        // property, covered by ComposeRuntimeSmokeTest.)
         assertEquals("root(box(read-v2,static))", h.tree())
         h.dispose()
     }
@@ -294,9 +279,6 @@ class ComposeEffectsTest {
         h.frame()
         h.frame()
 
-        // This is the hook every animation is built on: `animate*AsState`, `Animatable` and the rest
-        // are just loops over withFrameNanos. Nothing animation-shaped exists in this layer yet, but
-        // the clock it would need is real and ticking.
         assertEquals(3, stamps.size)
         assertTrue(stamps[1] > stamps[0] && stamps[2] > stamps[1], "stamps=$stamps")
         h.dispose()
@@ -329,7 +311,6 @@ class ComposeEffectsTest {
     }
 
     private companion object {
-        /** Shared by [Reader]; a local declared inside the test body would not be in scope there. */
         val localForReader = compositionLocalOf { "none" }
     }
 }

@@ -7,16 +7,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
-/**
- * The mechanism that makes a state read inside a `style` / `layout` block work.
- *
- * <p>Worth testing here rather than only in the game, because the failure mode is invisible: without
- * the observer the block still runs, it just stops following the state — and it keeps *appearing* to
- * work for as long as something else happens to recompose the caller. A test that drives the snapshot
- * system directly is the only way to see the difference.
- *
- * <p>No Minecraft involved: [NodeObserver] deliberately names nothing but the Compose runtime.
- */
+/** The mechanism that makes a state read inside a `style` / `layout` block work. */
 class NodeObserverTest {
 
     private val observer = NodeObserver().also { it.start() }
@@ -104,15 +95,6 @@ class NodeObserverTest {
         assertEquals(3, node.applied)
     }
 
-    /**
-     * A read the block has stopped making is dropped, but only on the pass *after* the change that
-     * revealed it — [SnapshotStateObserver] keys staleness on the snapshot id, and two applies within
-     * one snapshot carry the same id, so the older read survives that pass.
-     *
-     * <p>It costs one redundant re-apply and cannot cost a missed update, which is the direction that
-     * matters: a re-apply writes the same values and `StyleBag` drops those without dirtying. It is
-     * also self-healing — the wasted pass is itself what advances the id and purges the read.
-     */
     @Test
     fun `state the block stopped reading stops invalidating it after one more pass`() {
         val first = mutableStateOf(1)

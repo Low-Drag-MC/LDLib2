@@ -11,13 +11,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
-/**
- * The state machine behind [AnimatedVisibility], stepped frame by frame.
- *
- * <p>`AnimatedVisibility` itself emits real elements, so it cannot run on this harness; its drawing
- * and layout are checked by the `compose_widgets` scenario. What can be pinned down here is the
- * timing — when the content is in the tree, and what every animated property is doing on the way.
- */
+/** The state machine behind [AnimatedVisibility], stepped frame by frame. */
 class ComposeVisibilityTest {
 
     private val spec = TweenSpec(durationMillis = 100)
@@ -98,9 +92,7 @@ class ComposeVisibilityTest {
 
         s.h.advance(100)
         assertFalse(s.mounted)
-        // Leaving the composition is what finally runs the content's cleanup.
         assertEquals(listOf("gone"), s.disposals)
-        // Ready for the next entrance, which starts on the other side from where this one left.
         assertEquals(-1f, s.transition.offsetX.value)
         s.h.dispose()
     }
@@ -115,7 +107,6 @@ class ComposeVisibilityTest {
 
         s.visible = true
         s.h.frame(0)
-        // Not snapped back to the entrance's starting point, which is on the opposite side.
         assertEquals(reached, s.transition.offsetX.value, 0.05f)
         assertTrue(s.mounted)
 
@@ -137,8 +128,7 @@ class ComposeVisibilityTest {
 
     @Test
     fun `a property only the entrance animates goes back on the entrance's spec`() {
-        // Interrupt a fade-in, then hide with an exit that has no fade of its own: the alpha is left
-        // part-way and has to be brought back to its visible value rather than left there.
+        // An interrupted fade-in, then an exit with no fade of its own: alpha must still end at rest.
         val s = Subject(false, fadeIn(spec) + expandVertically(spec), shrinkVertically(spec))
         s.visible = true
         s.h.frame(0)
@@ -147,7 +137,6 @@ class ComposeVisibilityTest {
         s.h.frame(0)
         s.h.advance(200)
         assertFalse(s.mounted)
-        // And at rest again for the next fade-in.
         assertEquals(0f, s.transition.alpha.value)
         s.h.dispose()
     }
@@ -189,7 +178,6 @@ class ComposeVisibilityTest {
     fun `where two parts animate the same thing the left one wins`() {
         val enter = fadeIn(spec, initialAlpha = 0.3f) + fadeIn(spec, initialAlpha = 0.7f)
         assertEquals(0.3f, enter.data.fade?.alpha)
-        // And parts that do not overlap are all kept.
         val combined = fadeIn(spec) + slideInVertically(spec) + scaleIn(spec) + expandVertically(spec)
         assertTrue(combined.data.fade != null && combined.data.slide != null)
         assertTrue(combined.data.scale != null && combined.data.size != null)

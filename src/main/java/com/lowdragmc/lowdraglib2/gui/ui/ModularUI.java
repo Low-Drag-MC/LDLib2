@@ -650,15 +650,13 @@ public class ModularUI {
     }
 
     /**
-     * Registers a callback to run once per rendered frame, just before style and layout settle.
+     * Registers a callback to run once per rendered frame, just before style and layout settle, so
+     * tree changes it makes are laid out in that same frame.
      *
-     * <p>Frames are not ticks: this fires at the render rate, and it fires for a UI that has no
-     * {@link Screen} behind it too. It exists for work that has to produce its tree changes early
-     * enough in the frame to be laid out in that same frame — driving a Compose recomposition is
-     * the reason it is here.
-     *
-     * <p>The callback receives {@link System#nanoTime()} as sampled at the top of the frame, so that
-     * several callbacks in one frame agree on what time it is.
+     * <p>Frames are not ticks: this fires at the render rate, and also for a UI that has no
+     * {@link Screen} behind it. The callback receives {@link System#nanoTime()} sampled once at the
+     * top of the frame, shared by every callback in it. A callback may add or remove callbacks,
+     * including itself, while it runs.
      *
      * @see #removeFrameCallback
      */
@@ -673,8 +671,7 @@ public class ModularUI {
     private void runFrameCallbacks() {
         if (frameCallbacks.isEmpty()) return;
         var nanos = System.nanoTime();
-        // Copied: a callback is allowed to unregister itself, or to build a subtree whose own
-        // callbacks register during the walk.
+        // Copied: callbacks may register or unregister callbacks during the walk.
         for (var callback : List.copyOf(frameCallbacks)) {
             callback.accept(nanos);
         }
@@ -1631,9 +1628,7 @@ public class ModularUI {
             }
             animationEngine.updateFrame();
 
-            // Before layout on purpose: a frame callback that restructures the tree dirties the
-            // taffy nodes on its way through, so the settle below picks the change up in this same
-            // frame rather than showing a stale layout until the next one.
+            // Before layout so tree changes made by a callback are laid out in this same frame.
             runFrameCallbacks();
 
             calculateStyleAndLayout();

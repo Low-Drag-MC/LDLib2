@@ -3,15 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.compose
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
-/**
- * The rule the diffed props rest on: an element is reused across recompositions, so a node that
- * stops asking for a class or an event handler has to actively take it back off.
- *
- * <p>Both halves have teeth. Forgetting to remove leaves classes nobody asked for stuck on the
- * element. Re-adding something that was already there would unregister and re-register event
- * listeners every frame — and since LDLib2 prepends listeners, that quietly reverses dispatch order
- * as well as churning.
- */
+/** How a reused element's classes and event handlers are diffed between recompositions. */
 class PropsDiffTest {
 
     private fun diff(current: List<String>, next: List<String>) = diffKeys(current, next)
@@ -69,8 +61,6 @@ class PropsDiffTest {
 
     @Test
     fun `reordering the same keys is a no-op`() {
-        // Classes and event registrations are unordered sets, so their order does not matter. Treating
-        // a reorder as a change would mean pointlessly removing and re-adding every event listener.
         val (off, on) = diff(listOf("a", "b", "c"), listOf("c", "a", "b"))
         assertEquals(emptyList<String>(), off)
         assertEquals(emptyList<String>(), on)
@@ -91,8 +81,6 @@ class PropsDiffTest {
 
     @Test
     fun `equal-but-not-identical keys count as unchanged`() {
-        // Class names and event keys are compared by value, so two specs built from the same calls match even
-        // though they are different instances - this is what makes the "unchanged" path reachable.
         val current = listOf(StringBuilder("a").toString())
         val next = listOf(StringBuilder("a").toString())
         val (off, on) = diff(current, next)
