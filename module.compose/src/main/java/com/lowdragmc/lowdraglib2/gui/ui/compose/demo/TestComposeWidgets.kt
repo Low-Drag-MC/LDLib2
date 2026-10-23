@@ -228,15 +228,16 @@ private fun ConfirmDialog() {
 }
 
 /**
- * Tabs that come and go.
+ * Tabs that come, go and change places.
  *
- * <p>Each tab's body is a separate composition, and each keeps its own state — the counter in a tab
- * survives switching away and back, because the tab stays composed. Closing one has to take its
+ * <p>Each tab's body is a separate composition, and each keeps its own state — a tab survives
+ * switching away and back, and being moved, because it stays composed. Closing one has to take its
  * elements with it, which is the case that leaks if the teardown is missing.
  */
 @Composable
 private fun Tabs() {
     var extra by remember { mutableStateOf(false) }
+    var reversed by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<Any>("one") }
 
     Row(layout = { gap { all(3.px) } }) {
@@ -250,6 +251,11 @@ private fun Tabs() {
             text = Component.literal("选第二页"),
             classes = "tab-select-two",
         )
+        Button(
+            onClick = { reversed = !reversed },
+            text = Component.literal("反转页序"),
+            classes = "tab-reverse",
+        )
     }
 
     TabView(
@@ -258,10 +264,11 @@ private fun Tabs() {
         layout = { width(240.px); height(60.px) },
         classes = "demo-tabs",
     ) {
-        tab("one", "One") { Text(Component.literal("page one"), classes = "tab-body-one") }
-        tab("two", "Two") { Text(Component.literal("page two"), classes = "tab-body-two") }
-        if (extra) {
-            tab("three", "Three") { Text(Component.literal("page three"), classes = "tab-body-three") }
+        val pages = if (extra) listOf("one", "two", "three") else listOf("one", "two")
+        for (page in if (reversed) pages.reversed() else pages) {
+            tab(page, page.replaceFirstChar { it.uppercase() }) {
+                Text(Component.literal("page $page"), classes = "tab-body-$page")
+            }
         }
     }
 }

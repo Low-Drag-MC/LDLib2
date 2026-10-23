@@ -53,6 +53,25 @@ private inline fun realIndexOfComposed(count: Int, composedIndex: Int, isInterna
 }
 
 /**
+ * Lays [order] over the entries of [children] that [moves] picks out, leaving every other entry in
+ * the slot it already had.
+ *
+ * <p>How a reorder avoids disturbing children it does not own — a widget's internal parts for the
+ * applier, a header someone pinned outside the scroller for [TabView]. Pure, so the arithmetic can be
+ * tested without a live tree.
+ *
+ * @return the full new child list, or null when [order] does not have one entry per picked-out child.
+ *   Applying a permutation that disagrees with the tree would be worse than skipping it.
+ */
+internal inline fun <T> spliceOrder(children: List<T>, order: List<T>, moves: (T) -> Boolean): List<T>? {
+    if (children.count(moves) != order.size) return null
+    val spliced = ArrayList<T>(children.size)
+    var next = 0
+    for (child in children) spliced.add(if (moves(child)) order[next++] else child)
+    return spliced
+}
+
+/**
  * Applies Compose's tree edits to a live [UIElement] tree.
  *
  * <p>Everything downstream of an edit is already automatic: attaching a child dirties the taffy
@@ -116,15 +135,10 @@ internal class UIApplier(root: UIElement) : AbstractApplier<UIElement>(root) {
      */
     private fun flushOrder(host: UIElement) {
         val composed = pendingOrder.remove(host) ?: return
-        val children = host.children
-        // Defensive: flushing before every structural change should keep these in step. If they are
-        // not, applying a stale permutation would be worse than skipping it.
-        if (composed.size != children.count { !it.isInternalUI }) return
-
         // Splice the permuted composed children back around the internal ones, which never move.
-        val reordered = ArrayList<UIElement>(children.size)
-        var next = 0
-        for (child in children) reordered.add(if (child.isInternalUI) child else composed[next++])
+        // Null only if the two have drifted apart, which flushing before every structural change
+        // should prevent.
+        val reordered = spliceOrder(host.children, composed) { !it.isInternalUI } ?: return
         // Reordering rather than re-adding is what keeps a shuffled keyed list from losing focus
         // and restarting its animations.
         host.reorderChildren(reordered)
