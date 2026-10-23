@@ -1,12 +1,9 @@
-## v2.2.43
-* Added `@ManagedCodec`, which saves and syncs a managed field with a codec of your own instead of the accessor registered for its type, from methods a subclass can override
-* Fixed a graph or UI editor opened from the resource panel landing behind the Scene tab, and opening a resource that is already open giving it a second editor instead of bringing its tab forward
-* Fixed UI editor undo not bringing back a removed tab's content, and not reverting a property change when another kind of edit was made in between
-* Fixed the asset browser's search running on after it was closed, and a file in a folder no provider covers being read twice, with graphs there failing to save
-* Fixed a shortcut key being kept from the game whenever a view merely listened for its command, rather than only when one acted on it
-* Fixed the file dialog failing to jump to a path it shows itself, and navigating outside its root folder
-* Fixed a submenu flipped over its parent menu drawing under that menu's entries
-* Fixed tree lists leaving a removed child's row behind when folded, unselecting rows that stay through a re-diff, and not following a flattened root's top rows
-* Fixed a tree list row's arrow selecting its row when clicked and turning it a third time when double-clicked
-* Fixed unbinding a data source or an observer leaving its tick listener behind (thanks @Darkona)
-* Fixed an empty fluid slot showing no tooltip (thanks @Darkona)
+## v2.2.44
+* Added `UIElement#reorderChildren`, which puts an element's children in a new order without detaching them, so focus and running animations survive it
+* Added `UIElement#getContentHost`, the element that children added from outside belong in, which for a `ScrollerView` is its inner container
+* Added `ModularUI#addFrameCallback` and `removeFrameCallback`, for work that has to run every frame before styles and layout are computed
+* Improved `UIElement#getOrCreateMessageRPC` so subclasses can call it, and register the named-message RPC from their constructor on both sides
+* Fixed an element whose id changed after it was added to a UI no longer being found by that id
+* Fixed labels and progress bars keeping their tick listener after their data source was unbound
+* Fixed `runParTest` and `runMpTest` building the same files from several child builds at once, failing in projects with NeoGradle subprojects, and reporting an earlier run's result when a run died before writing its own
+* Fixed UI templates printing a blank line to the console
