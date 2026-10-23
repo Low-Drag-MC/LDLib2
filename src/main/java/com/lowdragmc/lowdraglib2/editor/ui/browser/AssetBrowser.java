@@ -1418,6 +1418,16 @@ public class AssetBrowser extends UIElement {
         searchRendered = 0;
     }
 
+    @Override
+    protected void onRemoved() {
+        super.onRemoved();
+        if (search != null && !search.isFinished()) {
+            search.cancel();
+            // run again if put back, as moving its view to another pane does
+            scheduleSearch(0);
+        }
+    }
+
     /** Clears the query without going to the picked result. */
     private void exitGlobalSearch() {
         stopSearch();

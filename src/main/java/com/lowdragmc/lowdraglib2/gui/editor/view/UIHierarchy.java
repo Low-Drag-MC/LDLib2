@@ -13,6 +13,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Menu;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Tab;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.TabView;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TreeList;
 import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
@@ -41,15 +43,28 @@ public class UIHierarchy extends UIElement {
     public record DraggingUINode(UITreeNode draggedNode) {}
     public record NodeCopy(List<CompoundTag> copiedNodes) {}
 
-    /** An element's position under its actual parent. */
-    private record Placement(UIElement element, UIElement parent, int index) {
+    /** An element's position under its actual parent. A tab also takes back its content, which removing it detaches. */
+    private record Placement(UIElement element, UIElement parent, int index,
+                             @Nullable TabView tabView, @Nullable UIElement tabContent, boolean tabSelected) {
         static Placement of(UIElement element) {
-            return new Placement(element, Objects.requireNonNull(element.getParent()), element.getSiblingIndex());
+            var parent = Objects.requireNonNull(element.getParent());
+            if (element instanceof Tab tab && tab.getTabView() != null) {
+                var tabView = tab.getTabView();
+                return new Placement(element, parent, element.getSiblingIndex(), tabView, tab.getContent(), tabView.getSelectedTab() == tab);
+            }
+            return new Placement(element, parent, element.getSiblingIndex(), null, null, false);
         }
 
         void attach() {
             element.removeSelf();
-            parent.addChildAt(element, Math.min(index, parent.getChildren().size()));
+            if (tabView != null && tabContent != null && element instanceof Tab tab) {
+                tabView.addTab(tab, tabContent, index);
+                if (tabSelected) {
+                    tabView.selectTab(tab);
+                }
+            } else {
+                parent.addChildAt(element, Math.min(index, parent.getChildren().size()));
+            }
         }
     }
 
