@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.client.scene;
 
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.MeshDataAccessor;
+import com.lowdragmc.lowdraglib2.gui.ui.data.SceneLighting;
 import com.lowdragmc.lowdraglib2.math.Position;
 import com.lowdragmc.lowdraglib2.math.PositionedRect;
 import com.lowdragmc.lowdraglib2.math.Size;
@@ -8,6 +9,8 @@ import com.lowdragmc.lowdraglib2.utils.virtuallevel.DummyWorld;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.WrappedBlockAndTintGetter;
 import com.mojang.blaze3d.ProjectionType;
+import com.mojang.blaze3d.buffers.Std140Builder;
+import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import lombok.Getter;
@@ -18,12 +21,14 @@ import net.minecraft.client.gui.screens.LoadingOverlay;
 import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.block.*;
 import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
+import net.minecraft.client.renderer.chunk.ChunkSectionLayerGroup;
 import net.minecraft.client.renderer.chunk.VisibilitySet;
 import net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.CardinalLighting;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -34,8 +39,10 @@ import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.textures.GpuTexture;
 import org.joml.Matrix4fStack;
 import org.joml.Vector3f;
+import org.joml.Vector3fc;
 import org.joml.Vector4f;
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.system.MemoryStack;
 
 import javax.annotation.Nonnull;
 import java.nio.ByteBuffer;
@@ -160,6 +167,22 @@ public abstract class WorldSceneRenderer {
     @Setter
     @Nullable
     protected ProjectionMatrixBuffer projectionMatrixBuffer;
+    /**
+     * The diffuse lighting entities and block entities in the scene are shaded with, active for the whole of
+     * {@link #drawWorld}. {@link SceneLighting#LEVEL} by default, so they look as they do in the world; another
+     * gives them the look the game uses elsewhere, e.g. {@link SceneLighting#ITEMS_3D} for items in a GUI.
+     */
+    @Getter
+    @Setter
+    private SceneLighting lighting = SceneLighting.LEVEL;
+    /**
+     * The scene's own lights for {@link SceneLighting#LEVEL}, worked out from its world's dimension. The game's level
+     * entry will not do: it follows the player's dimension, and nothing fills it before a world is joined.
+     */
+    @Nullable
+    private GpuBuffer sceneLevelLights;
+    @Nullable
+    private CardinalLighting.Type sceneLevelLightsType;
     /** Lazily-created 4-byte readback buffer for async depth pixel sampling. */
     @Nullable
     private GpuBuffer depthReadbackBuffer;
@@ -227,6 +250,11 @@ public abstract class WorldSceneRenderer {
             projectionMatrixBuffer.close();
             projectionMatrixBuffer = null;
         }
+        if (sceneLevelLights != null) {
+            sceneLevelLights.close();
+            sceneLevelLights = null;
+            sceneLevelLightsType = null;
+        }
         if (depthReadbackBuffer != null) {
             depthReadbackBuffer.close();
             depthReadbackBuffer = null;
@@ -273,12 +301,19 @@ public abstract class WorldSceneRenderer {
         return featureRenderDispatcher;
     }
 
-    /** Build a {@link CameraRenderState} positioned at {@link #eyePos}, used by every
-     *  scene submission path (BESR / entity / particle). */
+    /** Build a {@link CameraRenderState} at {@link #eyePos}, facing the way {@link #camera} does, used by every
+     *  scene submission path (BESR / entity / particle). Filled as {@code Camera.extractRenderState} fills the
+     *  game's: whatever turns to the camera (name tags, flames, thrown items, conduits) reads its orientation. */
     private CameraRenderState buildCameraRenderState() {
         var s = new CameraRenderState();
         s.pos = new Vec3(eyePos.x(), eyePos.y(), eyePos.z());
         s.blockPos = BlockPos.containing(eyePos.x(), eyePos.y(), eyePos.z());
+        s.initialized = true;
+        s.xRot = camera.xRot();
+        s.yRot = camera.yRot();
+        s.orientation.set(camera.rotation());
+        camera.getViewRotationMatrix(s.viewRotationMatrix);
+        s.projectionMatrix.set(projectionMatrix);
         return s;
     }
 
@@ -663,9 +698,10 @@ public abstract class WorldSceneRenderer {
     }
 
     /**
-     * Vanilla-aligned scene render. Mirrors {@code LevelRenderer.java:695-755}: one submit
-     * phase into {@link SubmitNodeStorage}, then three dispatch passes (solid / translucent /
-     * translucent particles), each followed by {@code BufferSource.endBatch()}.
+     * Vanilla-aligned scene render. Mirrors {@code LevelRenderer.java:695-755}: the opaque terrain, one
+     * submit phase into {@link SubmitNodeStorage}, then three dispatch passes (solid / translucent /
+     * translucent particles), each followed by {@code BufferSource.endBatch()}, with the translucent
+     * terrain between the last two.
      *
      * @param buffers RenderBuffers used for both the mesh path and the dispatcher's buffer source.
      *                Identity-cached: same instance across frames keeps the dispatcher warm.
@@ -680,21 +716,12 @@ public abstract class WorldSceneRenderer {
         var crumb = buffers.crumblingBufferSource();
         var dispatcher = ensureFeatureRenderDispatcher(buffers);
         var storage = submitNodeStorage;
-        var cameraRenderState = buildCameraRenderState();
         var poseStack = new PoseStack();
         var partialTicks = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
         camera.setSceneRotation(cameraEntity.getYRot(), cameraEntity.getXRot());
+        var cameraRenderState = buildCameraRenderState();
 
         var ctx = new SceneRenderContext(this, poseStack, storage, bs, cameraRenderState, partialTicks);
-
-        // (1) Mesh pass — chunk-section style mesh draws bypass SubmitNodeStorage and write
-        //     directly to the shared BufferSource. Their queued RenderType buckets are flushed
-        //     later by the dispatch-phase endBatches.
-        if (useCache) {
-            renderCacheBuffer(mc);
-        } else {
-            renderUncachedWorld(bs, partialTicks);
-        }
 
         // Publish this scene's camera (rotation from the SceneCamera set above, projection from our own
         // matrix) so custom-uniform consumers (e.g. a mod's UBO derived from the view/projection) reflect
@@ -707,7 +734,21 @@ public abstract class WorldSceneRenderer {
         // particle pipeline does exactly this — ran after the old clear. Both then silently fell back to
         // the main world camera, so anything reconstructing position from depth was wrong in the scene.
         SceneCameraContext.set(camera.getViewRotationMatrix(new Matrix4f()), projectionMatrix);
+        // The scene's own lights for the whole draw: left as they were, entities would be shaded by whatever
+        // drew last - items in a GUI, an inventory entity, or nothing at all in a window of its own.
+        var savedLights = RenderSystem.getShaderLights();
+        applySceneLighting(mc);
+        var heldTranslucent = new ArrayList<MeshData>();
         try {
+            // (1) Mesh pass — chunk-section style mesh draws bypass SubmitNodeStorage. The opaque layers draw
+            //     now; the translucent one after the translucent features in (3), as LevelRenderer does.
+            if (useCache) {
+                prepareCachedTerrain(mc);
+                drawCachedTerrain(ChunkSectionLayerGroup.OPAQUE);
+            } else {
+                renderUncachedWorld(heldTranslucent);
+            }
+
             if (beforeAllSubmit != null) beforeAllSubmit.apply(ctx);
 
             // (2) Submit phase — builtin scene geometry into the single SubmitNodeStorage.
@@ -725,6 +766,17 @@ public abstract class WorldSceneRenderer {
                 dispatcher.renderTranslucentFeatures();
                 bs.endBatch();
                 crumb.endBatch();
+                // Translucent terrain writes depth, so it comes after everything solid: drawn first, it would
+                // hide the block entities and entities behind it.
+                if (useCache) {
+                    drawCachedTerrain(ChunkSectionLayerGroup.TRANSLUCENT);
+                } else {
+                    var translucent = getRenderTypeForLayer(ChunkSectionLayer.TRANSLUCENT);
+                    for (var mesh : heldTranslucent) {
+                        translucent.draw(mesh); // closes it
+                    }
+                    heldTranslucent.clear();
+                }
 
                 if (afterTranslucentDispatch != null) afterTranslucentDispatch.apply(ctx);
 
@@ -737,18 +789,25 @@ public abstract class WorldSceneRenderer {
             // after afterRender(), where a particle manager may still draw (Photon does)
             if (afterAllDispatch != null) afterAllDispatch.apply(ctx);
         } finally {
+            // only what an exception kept from being drawn
+            heldTranslucent.forEach(MeshData::close);
+            if (savedLights != null) RenderSystem.setShaderLights(savedLights);
             SceneCameraContext.clear();
         }
     }
 
     /**
      * Uncached mesh pass: per-frame compile each {@code renderedBlocks} group into per-layer
-     * meshes and draw each via the corresponding {@link RenderType}. BESRs are <em>not</em>
+     * meshes and draw the opaque ones via the corresponding {@link RenderType}. The translucent ones go
+     * to {@code heldTranslucent}, to be drawn after the translucent features. BESRs are <em>not</em>
      * drawn here — they're submitted to {@link SubmitNodeStorage} in
-     * {@link #submitBlockEntities} and drained by the dispatch phase. Final {@code endBatch}
-     * is folded into the dispatch phase's endBatches (same shared BufferSource).
+     * {@link #submitBlockEntities} and drained by the dispatch phase.
+     * <p>
+     * The held meshes live in the game's fixed buffer pack, which the dispatcher's buffer source writes
+     * translucent block items into meanwhile. That is safe: a builder only appends while a result of it is
+     * still open, and none of its users clears it.
      */
-    private void renderUncachedWorld(MultiBufferSource.BufferSource buffers, float particleTicks) {
+    private void renderUncachedWorld(List<MeshData> heldTranslucent) {
         var mc = Minecraft.getInstance();
         var fixedPack = mc.renderBuffers().fixedBufferPack();
         renderedBlocksMap.forEach((key, entry) -> {
@@ -758,10 +817,13 @@ public abstract class WorldSceneRenderer {
             var results = renderBlocks(region, renderedBlocks, hook, fixedPack);
             try {
                 for (ChunkSectionLayer layer : ChunkSectionLayer.values()) {
+                    // remove() so release() in the finally block won't close what is drawn or held
                     MeshData mesh = results.renderedLayers.remove(layer);
-                    if (mesh != null) {
-                        // RenderType.draw(MeshData) closes the mesh internally; remove() above
-                        // ensures release() in the finally block won't double-close it.
+                    if (mesh == null) continue;
+                    if (layer.translucent()) {
+                        heldTranslucent.add(mesh);
+                    } else {
+                        // RenderType.draw(MeshData) closes the mesh internally
                         getRenderTypeForLayer(layer).draw(mesh);
                     }
                 }
@@ -781,6 +843,44 @@ public abstract class WorldSceneRenderer {
         return builder;
     }
 
+    // Lighting's own directions for the level entry, which it keeps private
+    private static final Vector3fc DIFFUSE_LIGHT_0 = new Vector3f(0.2F, 1.0F, -0.7F).normalize();
+    private static final Vector3fc DIFFUSE_LIGHT_1 = new Vector3f(-0.2F, 1.0F, 0.7F).normalize();
+    private static final Vector3fc NETHER_DIFFUSE_LIGHT_0 = new Vector3f(0.2F, 1.0F, -0.7F).normalize();
+    private static final Vector3fc NETHER_DIFFUSE_LIGHT_1 = new Vector3f(-0.2F, -1.0F, 0.7F).normalize();
+
+    /** Make {@link #lighting} the active one: the scene's own level lights, or the game's entry for any other. */
+    private void applySceneLighting(Minecraft mc) {
+        var gameLighting = mc.gameRenderer.getLighting();
+        switch (lighting) {
+            case LEVEL -> applySceneLevelLights();
+            case ITEMS_FLAT -> gameLighting.setupFor(Lighting.Entry.ITEMS_FLAT);
+            case ITEMS_3D -> gameLighting.setupFor(Lighting.Entry.ITEMS_3D);
+            case ENTITY_IN_UI -> gameLighting.setupFor(Lighting.Entry.ENTITY_IN_UI);
+            case PLAYER_SKIN -> gameLighting.setupFor(Lighting.Entry.PLAYER_SKIN);
+        }
+    }
+
+    private void applySceneLevelLights() {
+        var type = world.dimensionType().cardinalLightType();
+        if (sceneLevelLights == null) {
+            sceneLevelLights = RenderSystem.getDevice().createBuffer(() -> "LDLib2 scene lighting UBO",
+                    GpuBuffer.USAGE_UNIFORM | GpuBuffer.USAGE_COPY_DST, Lighting.UBO_SIZE);
+        }
+        if (type != sceneLevelLightsType) {
+            boolean nether = type == CardinalLighting.Type.NETHER;
+            try (var stack = MemoryStack.stackPush()) {
+                var data = Std140Builder.onStack(stack, Lighting.UBO_SIZE)
+                        .putVec3(nether ? NETHER_DIFFUSE_LIGHT_0 : DIFFUSE_LIGHT_0)
+                        .putVec3(nether ? NETHER_DIFFUSE_LIGHT_1 : DIFFUSE_LIGHT_1)
+                        .get();
+                RenderSystem.getDevice().createCommandEncoder().writeToBuffer(sceneLevelLights.slice(), data);
+            }
+            sceneLevelLightsType = type;
+        }
+        RenderSystem.setShaderLights(sceneLevelLights.slice());
+    }
+
     public boolean isCompiling() {
         return cacheState.get() == CacheState.COMPILING;
     }
@@ -795,15 +895,14 @@ public abstract class WorldSceneRenderer {
     /**
      * Cached path. On first call (or after invalidation) spawns a background thread that compiles
      * every {@code renderedBlocks} group into one {@link MeshData} per touched layer, storing them
-     * into {@link #cachedMeshes}. Subsequent calls in the COMPILED state walk the cache map and
-     * draw each mesh via {@link #drawCachedMesh} (which copies before drawing so the cached data
-     * stays valid).
+     * into {@link #cachedMeshes}. {@link #drawCachedTerrain} draws them from there, each mesh via
+     * {@link #drawCachedMesh} (which copies before drawing so the cached data stays valid).
      * <p>
      * The compile thread reuses a long-lived {@link SectionBufferBuilderPack} ({@link #cacheBuilders});
      * {@link MeshData} instances reference into its underlying {@link ByteBufferBuilder}s, so the
      * pack must outlive the meshes (managed by {@link #deleteCacheBuffer()}).
      */
-    private void renderCacheBuffer(Minecraft mc) {
+    private void prepareCachedTerrain(Minecraft mc) {
         if (cacheState.get() == CacheState.NEED || cacheState.get() == CacheState.UNCREATED) {
             makeSureCacheBufferCreated();
             progress = 0;
@@ -824,17 +923,22 @@ public abstract class WorldSceneRenderer {
         if (syncCompile && cacheState.get() == CacheState.COMPILING && syncCompileState != null) {
             tickSyncCompile();
         }
-        if (cachedMeshes != null) {
-            for (ChunkSectionLayer layer : ChunkSectionLayer.values()) {
-                List<MeshData> meshes = cachedMeshes.get(layer);
-                if (meshes == null || meshes.isEmpty()) continue;
-                RenderType rt = getRenderTypeForLayer(layer);
-                for (MeshData mesh : meshes) {
-                    drawCachedMesh(rt, mesh);
-                }
+    }
+
+    /**
+     * Draws one group's layers of the compiled cache, like {@code ChunkSectionsToRender.renderGroup}: the opaque
+     * one before the features, the translucent one after them. BESRs are submitted by submitBlockEntities()
+     * during drawWorld's submit phase (using {@link #blockEntities} as the seed set); no inline submit here.
+     */
+    private void drawCachedTerrain(ChunkSectionLayerGroup group) {
+        if (cachedMeshes == null) return;
+        for (ChunkSectionLayer layer : group.layers()) {
+            List<MeshData> meshes = cachedMeshes.get(layer);
+            if (meshes == null || meshes.isEmpty()) continue;
+            RenderType rt = getRenderTypeForLayer(layer);
+            for (MeshData mesh : meshes) {
+                drawCachedMesh(rt, mesh);
             }
-            // BESRs are submitted by submitBlockEntities() during drawWorld's submit phase
-            // (using {@link #blockEntities} as the seed set); no inline submit/dispatch here.
         }
     }
 

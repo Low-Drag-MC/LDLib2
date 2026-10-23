@@ -15,8 +15,8 @@ import net.minecraft.client.renderer.state.level.CameraRenderState;
  *   <li>{@code beforeAllSubmit} — before any builtin submit; rarely needed</li>
  *   <li>{@code afterBuiltinSubmit} — after entity/BESR/particle submit, before dispatch;
  *       use {@code submitStorage} (vanilla pipeline)</li>
- *   <li>{@code afterTranslucentDispatch} — after translucent features endBatch, before
- *       particle dispatch; raw {@code bufferSource.getBuffer(noDepthRT)} draws auto-flushed</li>
+ *   <li>{@code afterTranslucentDispatch} — after translucent features endBatch and the translucent
+ *       terrain, before particle dispatch; raw {@code bufferSource.getBuffer(noDepthRT)} draws auto-flushed</li>
  *   <li>{@code afterAllDispatch} — after all dispatch, the particle manager's {@code afterRender}
  *       included; raw draws need manual {@code bufferSource.endBatch()}</li>
  * </ul>
