@@ -5,6 +5,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Composition
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Recomposer
+import androidx.compose.runtime.saveable.LocalSaveableStateRegistry
+import androidx.compose.runtime.saveable.SaveableStateRegistry
 import androidx.compose.runtime.snapshots.Snapshot
 import com.lowdragmc.lowdraglib2.LDLib2
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement
@@ -76,8 +78,11 @@ private const val COROUTINE_AGENT_ADVICE =
  *
  * <p>Call [onFrame] once per rendered frame; [com.lowdragmc.lowdraglib2.gui.ui.ModularUI.addFrameCallback]
  * is wired to do that.
+ *
+ * @param restoredState what an earlier composition's [saveState] returned, so `rememberSaveable`
+ *   calls here start from those values. Null starts everything fresh.
  */
-class ComposeHost(root: UIElement) {
+class ComposeHost(root: UIElement, restoredState: Map<String, List<Any?>>? = null) {
     private val clock = BroadcastFrameClock()
     private val dispatcher = RenderThreadDispatcher()
 
@@ -86,6 +91,12 @@ class ComposeHost(root: UIElement) {
      * it changes. See [NodeObserver] for why the composition cannot do this by itself.
      */
     private val nodeObserver = NodeObserver()
+
+    /**
+     * Accepts every value: saved state never leaves memory, so there is nothing to serialise and no
+     * reason to make callers write a `Saver`. See [ComposeSavedState] for what that costs.
+     */
+    private val saveableRegistry = SaveableStateRegistry(restoredState) { true }
     private val errorHandler = CoroutineExceptionHandler { _, e ->
         LDLib2.LOGGER.error("Compose recomposition failed; this composition is now stopped", e)
     }
@@ -115,9 +126,18 @@ class ComposeHost(root: UIElement) {
     fun setContent(content: @Composable () -> Unit) {
         check(!isDisposed) { "This ComposeHost has been disposed" }
         composition.setContent {
-            CompositionLocalProvider(LocalNodeObserver provides nodeObserver) { content() }
+            CompositionLocalProvider(
+                LocalNodeObserver provides nodeObserver,
+                LocalSaveableStateRegistry provides saveableRegistry,
+            ) { content() }
         }
     }
+
+    /**
+     * What every `rememberSaveable` in this composition holds right now, in the form [ComposeHost]
+     * takes back as `restoredState`. Only meaningful before [dispose], while they are still registered.
+     */
+    fun saveState(): Map<String, List<Any?>> = saveableRegistry.performSave()
 
     /**
      * One frame: publish pending snapshot writes, let the recomposer notice them, then release it to

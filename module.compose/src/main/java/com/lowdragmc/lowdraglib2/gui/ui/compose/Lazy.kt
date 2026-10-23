@@ -7,6 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Scroller
@@ -37,8 +38,9 @@ import kotlin.math.floor
  * behaves as though the whole list were there.
  *
  * <p>Rows enter and leave as you scroll, which means a row's `remember`ed state does not survive
- * being scrolled out of view. Anything that must outlive that — a selection, an expanded flag, an
- * edit in progress — belongs in state held above this call, keyed by item.
+ * being scrolled out of view. `rememberSaveable` state does: each row saves under its [key] on the way
+ * out and gets it back on the way in. Shared state — a selection across rows — still belongs above
+ * this call.
  *
  * <p>Rows are all [itemHeight] tall unless [variableHeight] is set, in which case they measure
  * themselves and [itemHeight] is only the opening guess.
@@ -104,6 +106,8 @@ private fun <T> LazyList(
     itemContent: @Composable (index: Int, item: T) -> Unit,
 ) {
     val view = remember { ScrollerView() }
+    // Where an item's rememberSaveable state waits while it is scrolled out.
+    val itemStates = rememberSaveableStateHolder()
     val metrics = if (vertical) {
         rememberScrollMetrics(view, view.verticalScroller) { view.viewPort.contentHeight }
     } else {
@@ -146,11 +150,14 @@ private fun <T> LazyList(
         AxisSpacer(vertical, leading)
         for (index in range) {
             val item = items[index]
-            key(key?.invoke(index, item) ?: index) {
-                if (sizes != null) {
-                    MeasuredItem(sizes, index, vertical) { itemContent(index, item) }
-                } else {
-                    itemContent(index, item)
+            val itemKey = key?.invoke(index, item) ?: index
+            key(itemKey) {
+                itemStates.SaveableStateProvider(itemKey) {
+                    if (sizes != null) {
+                        MeasuredItem(sizes, index, vertical) { itemContent(index, item) }
+                    } else {
+                        itemContent(index, item)
+                    }
                 }
             }
         }

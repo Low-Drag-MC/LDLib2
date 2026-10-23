@@ -21,7 +21,7 @@ fun DynamicButtonList() {
 }
 ```
 
-游戏里跑一下：`/ldlib2_screen_test compose`（还有 `compose_todo`、`compose_widgets`、`compose_lazy`、`compose_gallery`）。服务端驱动的那个走真实菜单路径，用 `gradlew runClient -PldTest=compose_server`。
+游戏里跑一下：`/ldlib2_screen_test compose`（还有 `compose_todo`、`compose_widgets`、`compose_lazy`、`compose_gallery`、`compose_saveable`）。服务端驱动的那个走真实菜单路径，用 `gradlew runClient -PldTest=compose_server`。
 
 ---
 
@@ -68,7 +68,7 @@ dependencies {
 }
 ```
 
-`compose.runtime`、coroutines、androidx.collection 都是 `ldlib2-compose` 的 api 依赖，编译期跟着上面这一行进来，运行期由它 Jar-in-Jar 提供，不用再声明。
+`compose.runtime`（含 `runtime-saveable`）、coroutines、androidx.collection 都是 `ldlib2-compose` 的 api 依赖，编译期跟着上面这一行进来，运行期由它 Jar-in-Jar 提供，不用再声明。
 
 最后在 `neoforge.mods.toml` 里声明模组依赖，否则玩家少装一个 jar 就是启动崩溃：
 
@@ -119,6 +119,33 @@ LazyColumn(items, itemHeight = 14f) { index, item ->
     Text(item, style = { backgroundTexture(if (index == selected) hi else none) })
 }
 ```
+
+### rememberSaveable
+
+和 Compose 原版同一个 API（`androidx.compose.runtime.saveable`），用法不变：
+
+```kotlin
+var query by rememberSaveable { mutableStateOf("") }
+```
+
+它比 `remember` 多活过三种情况：
+
+| 情况 | 要什么 |
+|---|---|
+| `LazyColumn` / `LazyRow` / 网格的行滚出视野再滚回来 | 什么都不用，每行按自己的 `key` 存 |
+| `TabView` 的页签被删掉、之后用同一个 key 再声明回来 | 什么都不用，每页按自己的 key 存 |
+| **关掉界面再打开** | 给界面一个 `stateKey` |
+
+```kotlin
+composeModularUI(player, StylesheetManager.MODERN, stateKey = "mymod:furnace@$pos") { FurnaceScreen() }
+// 或者 ComposeElement(stateKey = "...") { ... }
+```
+
+`stateKey` 要能区分**界面和它显示的东西** —— 写成 `"mymod:furnace"`，所有熔炉就共用一份状态了。
+
+和原版不同的地方：**值原样存在内存里，不序列化**，所以任何类型都能存，不用写 `Saver`。代价是存进去的东西在清掉之前一直被引用着 —— 存值，别存 UI 元素或者拿着世界的东西。存储在玩家**退出世界时清空**（一个服务器的界面状态不会带到另一个服务器），也可以手动 `ComposeSavedState.clear(key)` / `clearAll()`。不落盘，重启游戏就没了。
+
+两个同 `stateKey` 的界面同时开着时，恢复的是同一份，后关的那个说了算。
 
 ### key
 
@@ -290,7 +317,7 @@ LazyVerticalGrid(items = stacks, columns = 9, cellWidth = 18f, cellHeight = 18f)
 两个前提：
 
 - **默认行高必须固定。** 变高行见下。
-- **滚出视野的行会离开组合**，它 `remember` 的状态跟着没。选中态、展开态、编辑中的内容提到列表外面按 item 存。
+- **滚出视野的行会离开组合**，它 `remember` 的状态跟着没。行自己的状态用 `rememberSaveable`，滚回来就还在（每行按 `key` 存，所以 key 要稳定）；跨行共享的（选中哪一行）照样提到列表外面。
 
 #### 变高行
 
@@ -539,7 +566,7 @@ cannot access class kotlinx.coroutines.debug.internal.DebugProbesImpl (in module
 | **样式块无序、写穿不撤销** | 架构性的。底下是 CSS 级联 + Taffy，不是 Compose 的有序包装链。条件性外观走 `classes` |
 | **块只能改属性** | 块里读状态会跟着变，但决定"挂不挂载"的值必须在函数体里读 |
 | **手势** | 有 DOM 式事件冒泡和拖放（`DragHandler`），没有 `pointerInput` 那套 slop / 惯性 / 手势识别 |
-| **`rememberSaveable`** | 没有。关闭界面重开状态会丢（最小化编辑器换宿主的场景是能存活的） |
+| **`rememberSaveable`** | 只存在内存里：跨关屏（给了 `stateKey`）、跨行滚动、跨页签增删都在；退出世界清空，不跨重启 |
 | **无障碍** | 组合出来的元素不向 MC 旁白贡献信息 |
 | **网格列宽** | `LazyVerticalGrid` 的行高可以变（`variableHeight`），列宽固定 |
 | **`AnimatedVisibility` 改尺寸** | 只能单轴（原版的 `expandIn` 两轴同时没做）；进场和退场必须是同一条轴 |

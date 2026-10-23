@@ -70,11 +70,15 @@ dependencies {
     // Compose runtime - the recomposition engine only. `compose.ui` is deliberately absent: the
     // rendering side is LDLib2's own UIElement tree, reached through a custom Applier.
     libraries("org.jetbrains.compose.runtime:runtime-desktop:${compose_runtime_version}")
+    // rememberSaveable and SaveableStateHolder. Same version line as the runtime, and its only other
+    // dependencies are ones already embedded below.
+    libraries("org.jetbrains.compose.runtime:runtime-saveable-desktop:${compose_runtime_version}")
     // The runtime's transitives, each of which needs its own jarJar entry. `annotation-internal` /
     // `collection-internal` are alias modules with no classes of their own, so only the artifacts
     // they redirect to are listed. Re-check with `gradlew :module.compose:dependencies
     // --configuration libraries` after a compose bump.
     embed('org.jetbrains.compose.runtime', 'runtime-desktop', compose_runtime_version)
+    embed('org.jetbrains.compose.runtime', 'runtime-saveable-desktop', compose_runtime_version)
     embed('androidx.annotation', 'annotation-jvm', androidx_annotation_version)
     embed('androidx.collection', 'collection-jvm', androidx_collection_version)
     embed('org.jetbrains.kotlinx', 'atomicfu-jvm', atomicfu_version)
