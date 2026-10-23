@@ -127,6 +127,12 @@ def composeLibraries = configurations.libraries
 tasks.matching { it.name in ['runClient', 'runServer', 'runData', 'runGameTestServer'] }
         .configureEach { enabled = false }
 
+// The root's test orchestrators are plain tasks that happen to be named like runs. Asked for without a
+// project path, Gradle looks for them here as well, and NeoGradle's `run<RunName>` task rule answers
+// by inventing a run of type "parTest" / "mpTest" - which fails the whole build at configuration time.
+// A task by the same name keeps the rule from being consulted.
+['runParTest', 'runMpTest'].each { name -> tasks.register(name) { enabled = false } }
+
 rootProject.runs.configureEach {
     modSource composeSources
     dependencies {

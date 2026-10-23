@@ -80,6 +80,12 @@ tasks.register('runMpTest', JavaExec) {
     ignoreExitValue = true
     doFirst { new File(ldMpOutDir).deleteDir() }
     finalizedBy 'verifyMpTest'
+    // The server and clients are separate Gradle builds started together, so anything their runs
+    // need built would be built by all of them at once, racing on the same files. Built here first,
+    // they find it up to date. One client stands in for all: every client run needs the same.
+    dependsOn {
+        ['runMpServer', 'runMpClientA'].collect { tasks.getByName(it).taskDependencies.getDependencies(null) }.flatten()
+    }
 }
 
 tasks.register('verifyMpTest') {
