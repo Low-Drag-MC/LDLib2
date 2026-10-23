@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.test.uitest;
 
+import com.lowdragmc.lowdraglib2.client.scene.WorldSceneRenderer;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
@@ -14,6 +15,7 @@ import com.lowdragmc.lowdraglib2.uitest.TestContext;
 import com.lowdragmc.lowdraglib2.uitest.UIScenario;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 
 import java.util.ArrayList;
@@ -43,7 +45,7 @@ public class SceneTranslucentOrderScenario implements UIScenario {
 
     @Override
     public void define(ScenarioBuilder s) {
-        s.openModularUI("a scene of a stained glass shell", SceneTranslucentOrderScenario::buildUI)
+        s.openModularUI("a scene of a stained glass shell", this::buildUI)
                 .awaitScreen(ModularUIScreen.class)
                 .awaitModularUI()
                 .waitUntil("the scene has laid out", ctx -> scene(ctx).getSizeWidth() > 0)
@@ -55,6 +57,8 @@ public class SceneTranslucentOrderScenario implements UIScenario {
                     scene(ctx).needCompileCache();
                 })
                 .frames(10)
+                .waitUntil("the scene has compiled", ctx -> !renderer(ctx).isCompiling())
+                .frames(5)
                 .screenshot("01_chest_in_glass")
                 .step("the chest shows through the glass", ctx -> {
                     int[] withChest = ScenePixels.centre(scene(ctx));
@@ -69,6 +73,8 @@ public class SceneTranslucentOrderScenario implements UIScenario {
                     scene(ctx).needCompileCache();
                 })
                 .frames(10)
+                .waitUntil("the scene has compiled", ctx -> !renderer(ctx).isCompiling())
+                .frames(5)
                 .step("the glass was in front of the chest", ctx -> checkDiffers(ctx,
                         "the bare chest looks different from the chest behind glass", ctx.get(CHEST_IN_GLASS), ScenePixels.centre(scene(ctx))))
                 .closeScreen();
@@ -80,7 +86,12 @@ public class SceneTranslucentOrderScenario implements UIScenario {
         ctx.check(description, changed > 0.25f, "> 0.25 of the pixels changed", changed);
     }
 
-    private static ModularUI buildUI(TestContext ctx) {
+    /** Makes the scene's renderer: the immediate one with no cache here, others in the variants. */
+    protected Scene createScene(Scene scene, Level world) {
+        return scene.createScene(world);
+    }
+
+    private ModularUI buildUI(TestContext ctx) {
         var world = new TrackedDummyWorld();
         var shell = new ArrayList<BlockPos>();
         for (int x = -1; x <= 1; x++) {
@@ -96,7 +107,7 @@ public class SceneTranslucentOrderScenario implements UIScenario {
         }
         var scene = new Scene();
         scene.layout(layout -> layout.width(160).height(160));
-        scene.createScene(world).setRenderedCore(shell);
+        createScene(scene, world).setRenderedCore(shell);
         ctx.put(SCENE, scene);
         ctx.put(WORLD, world);
         // opaque, so nothing the game draws behind the screen can change what the glass is seen against
@@ -107,5 +118,9 @@ public class SceneTranslucentOrderScenario implements UIScenario {
 
     private static Scene scene(TestContext ctx) {
         return ctx.get(SCENE);
+    }
+
+    private static WorldSceneRenderer renderer(TestContext ctx) {
+        return scene(ctx).getRenderer();
     }
 }

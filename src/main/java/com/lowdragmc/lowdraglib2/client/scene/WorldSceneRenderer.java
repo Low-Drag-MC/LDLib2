@@ -472,14 +472,8 @@ public abstract class WorldSceneRenderer {
             }
             cachedMeshes = null;
         }
-        if (cachedGpuMeshes != null) {
-            for (List<SectionGpuMesh> list : cachedGpuMeshes.values()) {
-                for (SectionGpuMesh m : list) {
-                    m.close();
-                }
-            }
-            cachedGpuMeshes = null;
-        }
+        closeGpuMeshes(cachedGpuMeshes);
+        cachedGpuMeshes = null;
         if (cacheBuilders != null) {
             cacheBuilders.close();
             cacheBuilders = null;
@@ -492,9 +486,12 @@ public abstract class WorldSceneRenderer {
     protected void makeSureCacheBufferCreated() {
         if (cachedMeshes == null && cachedGpuMeshes == null) {
             cachedMeshes = new EnumMap<>(ChunkSectionLayer.class);
-            cacheBuilders = new SectionBufferBuilderPack();
             cancelCompile();
             cacheState.set(CacheState.NEED);
+        }
+        // the pack is released once a compile is uploaded, so a recompile needs one of its own
+        if (cacheBuilders == null) {
+            cacheBuilders = new SectionBufferBuilderPack();
         }
     }
 
@@ -1110,11 +1107,11 @@ public abstract class WorldSceneRenderer {
             if (compileBuilders == null) {
                 return null;
             }
+            // the cache already uploaded, if any, keeps being drawn until the new one replaces it
             if (syncCompile) {
                 startSyncCompile(compileBuilders);
             } else {
                 startAsyncCompile(mc, compileBuilders);
-                return null;
             }
         }
         if (syncCompile && cacheState.get() == CacheState.COMPILING && syncCompileState != null) {
@@ -1123,7 +1120,9 @@ public abstract class WorldSceneRenderer {
         // Once compiled, upload the CPU section meshes to GPU buffers once (render thread only),
         // then release the CPU data and the backing pack. Subsequent frames draw straight from GPU.
         if (cacheState.get() == CacheState.COMPILED && cachedMeshes != null) {
+            var replaced = cachedGpuMeshes;
             cachedGpuMeshes = uploadSectionMeshes(cachedMeshes);
+            closeGpuMeshes(replaced);
             closeCpuMeshes(cachedMeshes);
             cachedMeshes = null;
             if (cacheBuilders != null) {
@@ -1230,6 +1229,12 @@ public abstract class WorldSceneRenderer {
         cacheState.set(CacheState.COMPILED);
         closeCpuMeshes(oldMeshes);
         maxProgress = -1;
+    }
+
+    private static void closeGpuMeshes(@Nullable Map<ChunkSectionLayer, List<SectionGpuMesh>> meshes) {
+        if (meshes != null) {
+            meshes.values().forEach(list -> list.forEach(SectionGpuMesh::close));
+        }
     }
 
     private static void closeCpuMeshes(@Nullable Map<ChunkSectionLayer, List<SectionCpuMesh>> meshes) {
