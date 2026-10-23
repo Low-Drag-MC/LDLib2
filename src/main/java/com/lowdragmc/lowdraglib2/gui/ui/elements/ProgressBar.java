@@ -269,7 +269,7 @@ public class ProgressBar extends UIElement implements IBindable<Float>, IDataCon
         }
         var subscription = dataProvider.registerListener(this::setProgress, true);
         if (tickableListener != null) {
-            subscription.andThen(() -> removeEventListener(UIEvents.TICK, tickableListener));
+            subscription = subscription.andThen(() -> removeEventListener(UIEvents.TICK, tickableListener));
         }
         this.dataSources.put(dataProvider, subscription);
         return this;
