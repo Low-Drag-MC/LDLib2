@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.client.scene;
 
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.MeshDataAccessor;
+import com.lowdragmc.lowdraglib2.gui.ui.data.SceneLighting;
 import com.lowdragmc.lowdraglib2.math.Position;
 import com.lowdragmc.lowdraglib2.math.PositionedRect;
 import com.lowdragmc.lowdraglib2.math.Size;
@@ -8,6 +9,8 @@ import com.lowdragmc.lowdraglib2.utils.virtuallevel.DummyWorld;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.WrappedBlockAndTintGetter;
 import com.mojang.blaze3d.ProjectionType;
+import com.mojang.blaze3d.buffers.Std140Builder;
+import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.renderpearl.api.pipeline.IndexType;
 import com.mojang.renderpearl.api.pipeline.PrimitiveTopology;
 import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
@@ -33,12 +36,14 @@ import net.minecraft.client.gui.screens.LoadingOverlay;
 import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.block.*;
 import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
+import net.minecraft.client.renderer.chunk.ChunkSectionLayerGroup;
 import net.minecraft.client.renderer.chunk.VisibilitySet;
 import net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.CardinalLighting;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -49,8 +54,10 @@ import com.mojang.renderpearl.api.buffers.GpuBuffer;
 import com.mojang.renderpearl.api.textures.GpuTexture;
 import org.joml.Matrix4fStack;
 import org.joml.Vector3f;
+import org.joml.Vector3fc;
 import org.joml.Vector4f;
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.system.MemoryStack;
 
 import javax.annotation.Nonnull;
 import java.nio.ByteBuffer;
@@ -190,6 +197,22 @@ public abstract class WorldSceneRenderer {
     @Nullable
     private GlobalSettingsUniform sceneGlobals;
     /**
+     * The diffuse lighting entities and block entities in the scene are shaded with, active for the whole of
+     * {@link #drawWorld}. {@link SceneLighting#LEVEL} by default, so they look as they do in the world; another
+     * gives them the look the game uses elsewhere, e.g. {@link SceneLighting#ITEMS_3D} for items in a GUI.
+     */
+    @Getter
+    @Setter
+    private SceneLighting lighting = SceneLighting.LEVEL;
+    /**
+     * The scene's own lights for {@link SceneLighting#LEVEL}, worked out from its world's dimension. The game's level
+     * entry will not do: it follows the player's dimension, and nothing fills it before a world is joined.
+     */
+    @Nullable
+    private GpuBuffer sceneLevelLights;
+    @Nullable
+    private CardinalLighting.Type sceneLevelLightsType;
+    /**
      * The depth attachment of the frame being drawn, for {@link #readDepthPixelAsync}. Only set while
      * {@link #drawWorld} runs: that is the one place the target is known, since 26.3 passes targets to
      * each render pass explicitly rather than through global state.
@@ -266,6 +289,11 @@ public abstract class WorldSceneRenderer {
             sceneGlobals.close();
             sceneGlobals = null;
         }
+        if (sceneLevelLights != null) {
+            sceneLevelLights.close();
+            sceneLevelLights = null;
+            sceneLevelLightsType = null;
+        }
         if (depthReadbackBuffer != null) {
             depthReadbackBuffer.close();
             depthReadbackBuffer = null;
@@ -311,12 +339,20 @@ public abstract class WorldSceneRenderer {
         return featureRenderDispatcher;
     }
 
-    /** Build a {@link CameraRenderState} positioned at {@link #eyePos}, used by every
-     *  scene submission path (BESR / entity / particle). */
-    private CameraRenderState buildCameraRenderState() {
+    /** Build a {@link CameraRenderState} at {@link #eyePos}, facing the way {@link #camera} does, used by every
+     *  scene submission path (BESR / entity / particle). Filled as {@code Camera.extractRenderState} fills the
+     *  game's: whatever turns to the camera (name tags, flames, thrown items, conduits) reads its orientation. */
+    private CameraRenderState buildCameraRenderState(float partialTicks) {
         var s = new CameraRenderState();
         s.pos = new Vec3(eyePos.x(), eyePos.y(), eyePos.z());
         s.blockPos = BlockPos.containing(eyePos.x(), eyePos.y(), eyePos.z());
+        s.initialized = true;
+        s.xRot = camera.xRot();
+        s.yRot = camera.yRot();
+        s.orientation.set(camera.rotation());
+        camera.getViewRotationMatrix(s.viewRotationMatrix);
+        s.projectionMatrix.set(projectionMatrix);
+        s.cameraEntityPartialTicks = partialTicks;
         return s;
     }
 
@@ -711,16 +747,17 @@ public abstract class WorldSceneRenderer {
         var mc = Minecraft.getInstance();
         var dispatcher = ensureFeatureRenderDispatcher(buffers);
         var storage = submitNodeStorage;
-        var cameraRenderState = buildCameraRenderState();
         var poseStack = new PoseStack();
         var partialTicks = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
         camera.setSceneRotation(cameraEntity.getYRot(), cameraEntity.getXRot());
+        var cameraRenderState = buildCameraRenderState(partialTicks);
 
         var ctx = new SceneRenderContext(this, poseStack, storage, cameraRenderState, partialTicks, null);
 
         // (1) Terrain meshes - compiled, uploaded and laid out as draws before the pass opens, then drawn
-        //     inside it through the vanilla core/terrain pipeline with per-section ChunkSection UBOs
-        //     (mirrors LevelRenderer.prepareChunkRenders + ChunkSectionsToRender.renderGroup).
+        //     inside it through the vanilla core/terrain pipeline with per-section ChunkSection UBOs, the
+        //     opaque and translucent groups each at its place in (3) (mirrors LevelRenderer.prepareChunkRenders
+        //     + ChunkSectionsToRender.renderGroup).
         var terrain = useCache ? prepareCachedTerrain(mc) : prepareUncachedTerrain();
 
         // Publish this scene's camera (rotation from the SceneCamera set above, projection from our own matrix)
@@ -736,6 +773,10 @@ public abstract class WorldSceneRenderer {
         // its frame.
         var savedGlobals = RenderSystem.getGlobalSettingsUniform();
         updateSceneGlobals(mc);
+        // Likewise the lights: left as they were, entities would be shaded by whatever drew last - items in a GUI,
+        // an inventory entity, or nothing at all in a window of its own.
+        var savedLights = RenderSystem.getShaderLights();
+        applySceneLighting(mc);
         currentDepthTarget = depth;
         try {
             if (beforeAllSubmit != null) beforeAllSubmit.apply(ctx);
@@ -747,19 +788,25 @@ public abstract class WorldSceneRenderer {
 
             if (afterBuiltinSubmit != null) afterBuiltinSubmit.apply(ctx);
 
-            // (3) Dispatch phase -- prepareFrame uploads the shared staged vertex buffer, then every phase
-            //     executes into the one pass. Hooks that draw rather than submit get that pass through
+            // (3) Dispatch phase -- prepareFrame uploads the shared staged vertex buffer, then terrain and every
+            //     phase draw into the one pass in the game's own order (LevelRenderer.executeSolid +
+            //     executeClassicTransparency). Hooks that draw rather than submit get that pass through
             //     SceneRenderContext#renderPass.
             try (var frame = dispatcher.prepareFrame(storage);
                  var pass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
                          () -> "LDLib2 scene", color, Optional.empty(), depth, OptionalDouble.empty())) {
                 RenderSystem.bindDefaultUniforms(pass);
                 if (terrain != null) {
-                    terrain.draw(pass);
+                    terrain.draw(pass, ChunkSectionLayerGroup.OPAQUE);
                 }
                 var dispatchCtx = ctx.withRenderPass(pass);
                 frame.executeSolid(pass);
                 frame.executeTranslucent(pass);
+                // Translucent terrain writes depth, so it comes after everything solid: drawn first, it would
+                // hide the block entities and entities behind it.
+                if (terrain != null) {
+                    terrain.draw(pass, ChunkSectionLayerGroup.TRANSLUCENT);
+                }
 
                 if (afterTranslucentDispatch != null) afterTranslucentDispatch.apply(dispatchCtx);
 
@@ -778,6 +825,7 @@ public abstract class WorldSceneRenderer {
             }
             currentDepthTarget = null;
             if (savedGlobals != null) RenderSystem.setGlobalSettingsUniform(savedGlobals);
+            if (savedLights != null) RenderSystem.setShaderLights(savedLights);
             // Last, after afterAllDispatch: a particle manager keeps per-view state until here (Photon's clock
             // and target size), and what the hooks draw is still this view. Try-with-resources has already
             // closed the frame, so this also runs after the dispatcher drains, with the camera context live.
@@ -876,9 +924,11 @@ public abstract class WorldSceneRenderer {
                                 int largestIndexCount, GpuTextureView atlas,
                                 @Nullable Map<ChunkSectionLayer, List<SectionGpuMesh>> ownedMeshes) implements AutoCloseable {
 
-        void draw(RenderPass pass) {
+        /** Draws one group's layers, like {@code ChunkSectionsToRender.renderGroup}: the opaque one before the features, the translucent one after them. */
+        void draw(RenderPass pass, ChunkSectionLayerGroup group) {
             var seq = RenderSystem.getSequentialBuffer(PrimitiveTopology.QUADS);
-            GpuBuffer defaultIndexBuffer = largestIndexCount == 0 ? null : seq.getBuffer(largestIndexCount);
+            // already large enough: buildTerrainDraws grew it before the pass opened
+            GpuBuffer defaultIndexBuffer = largestIndexCount == 0 ? null : seq.getBuffer();
             IndexType defaultIndexType = largestIndexCount == 0 ? null : seq.type();
             GpuSampler atlasSampler = RenderSystem.getSamplerCache().getSampler(
                     AddressMode.CLAMP_TO_EDGE, AddressMode.CLAMP_TO_EDGE, FilterMode.LINEAR, FilterMode.LINEAR, true);
@@ -886,7 +936,7 @@ public abstract class WorldSceneRenderer {
             pass.setUniform("Sampler0", atlas, atlasSampler);
             pass.setUniform("Sampler2", Minecraft.getInstance().gameRenderer.lightmap(),
                     RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
-            for (ChunkSectionLayer layer : ChunkSectionLayer.values()) {
+            for (ChunkSectionLayer layer : group.layers()) {
                 var draws = drawsByLayer.get(layer);
                 if (draws == null || draws.isEmpty()) continue;
                 pass.pushDebugGroup(() -> "Scene terrain layer: " + layer.label());
@@ -962,6 +1012,10 @@ public abstract class WorldSceneRenderer {
         }
         if (infos.isEmpty()) return null;
 
+        if (largestIndexCount != 0) {
+            // grown here rather than inside the pass, as the game does for its own sections
+            RenderSystem.getSequentialBuffer(PrimitiveTopology.QUADS).getBuffer(largestIndexCount);
+        }
         var dynamicData = RenderSystem.getDynamicUniforms();
         GpuBufferSlice[] infoSlices = dynamicData.writeChunkSections(infos.toArray(new DynamicGpuData.ChunkSectionInfo[0]));
         GpuBufferSlice terrainTransform = dynamicData.writeTerrainTransform(viewRotation, blockAtlas.getWidth(0), blockAtlas.getHeight(0));
@@ -983,6 +1037,44 @@ public abstract class WorldSceneRenderer {
                 gameTime, mc.getDeltaTracker().getGameTimeDeltaPartialTick(false), 0,
                 new Vec3(eyePos.x(), eyePos.y(), eyePos.z()),
                 options.textureFiltering == TextureFilteringMethod.RGSS);
+    }
+
+    // Lighting's own directions for the level entry, which it keeps private
+    private static final Vector3fc DIFFUSE_LIGHT_0 = new Vector3f(0.2F, 1.0F, -0.7F).normalize();
+    private static final Vector3fc DIFFUSE_LIGHT_1 = new Vector3f(-0.2F, 1.0F, 0.7F).normalize();
+    private static final Vector3fc NETHER_DIFFUSE_LIGHT_0 = new Vector3f(0.2F, 1.0F, -0.7F).normalize();
+    private static final Vector3fc NETHER_DIFFUSE_LIGHT_1 = new Vector3f(-0.2F, -1.0F, 0.7F).normalize();
+
+    /** Make {@link #lighting} the active one: the scene's own level lights, or the game's entry for any other. */
+    private void applySceneLighting(Minecraft mc) {
+        var gameLighting = mc.gameRenderer.lighting();
+        switch (lighting) {
+            case LEVEL -> applySceneLevelLights();
+            case ITEMS_FLAT -> gameLighting.setupFor(Lighting.Entry.ITEMS_FLAT);
+            case ITEMS_3D -> gameLighting.setupFor(Lighting.Entry.ITEMS_3D);
+            case ENTITY_IN_UI -> gameLighting.setupFor(Lighting.Entry.ENTITY_IN_UI);
+            case PLAYER_SKIN -> gameLighting.setupFor(Lighting.Entry.PLAYER_SKIN);
+        }
+    }
+
+    private void applySceneLevelLights() {
+        var type = world.dimensionType().cardinalLightType();
+        if (sceneLevelLights == null) {
+            sceneLevelLights = RenderSystem.getDevice().createBuffer(() -> "LDLib2 scene lighting UBO",
+                    GpuBuffer.USAGE_UNIFORM | GpuBuffer.USAGE_COPY_DST, Lighting.UBO_SIZE);
+        }
+        if (type != sceneLevelLightsType) {
+            boolean nether = type == CardinalLighting.Type.NETHER;
+            try (var stack = MemoryStack.stackPush()) {
+                var data = Std140Builder.onStack(stack, Lighting.UBO_SIZE)
+                        .putVec3(nether ? NETHER_DIFFUSE_LIGHT_0 : DIFFUSE_LIGHT_0)
+                        .putVec3(nether ? NETHER_DIFFUSE_LIGHT_1 : DIFFUSE_LIGHT_1)
+                        .get();
+                RenderSystem.getDevice().createCommandEncoder().writeToBuffer(sceneLevelLights.slice(), data);
+            }
+            sceneLevelLightsType = type;
+        }
+        RenderSystem.setShaderLights(sceneLevelLights.slice());
     }
 
     public boolean isCompiling() {

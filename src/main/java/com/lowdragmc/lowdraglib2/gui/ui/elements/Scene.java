@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.client.scene.*;
 import com.lowdragmc.lowdraglib2.client.utils.RenderUtils;
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.utils.TransformGizmo;
 import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.data.SceneLighting;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
@@ -98,6 +99,9 @@ public class Scene extends UIElement {
     protected boolean syncCompile;
     @Getter
     protected boolean useOrtho = false;
+    /** How entities and block entities in the scene are lit, see {@link WorldSceneRenderer#getLighting()}. */
+    @Getter
+    protected SceneLighting lighting = SceneLighting.LEVEL;
     @Getter
     protected ClipContext.Block clipBlock = ClipContext.Block.OUTLINE;
     @Getter
@@ -171,6 +175,14 @@ public class Scene extends UIElement {
 
     public Scene useOrtho() {
         return useOrtho(true);
+    }
+
+    public Scene setLighting(SceneLighting lighting) {
+        this.lighting = lighting;
+        if (renderer != null) {
+            this.<WorldSceneRenderer>getRenderer().setLighting(lighting);
+        }
+        return this;
     }
 
     public Scene useOrtho(boolean useOrtho) {
@@ -260,6 +272,7 @@ public class Scene extends UIElement {
         center = new Vector3f(0, 0, 0);
         var renderer = this.<WorldSceneRenderer>getRenderer();
         renderer.useOrtho(useOrtho);
+        renderer.setLighting(lighting);
         SceneRenderer.configureRenderer(this, renderer);
         renderer.setCameraLookAt(center, camZoom(), Math.toRadians(rotationYaw), Math.toRadians(rotationPitch));
         renderer.useCacheBuffer(useCache);
