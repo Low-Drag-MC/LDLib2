@@ -885,9 +885,13 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
                     "Expected a permutation of %d children, got %d".formatted(children.size(), newOrder.size()));
         }
         if (newOrder.equals(children)) return;
+        var seen = Collections.newSetFromMap(new IdentityHashMap<UIElement, Boolean>());
         for (var child : newOrder) {
             if (child == null || child.parent != this) {
                 throw new IllegalArgumentException("Not a child of this element: " + child);
+            }
+            if (!seen.add(child)) {
+                throw new IllegalArgumentException("Child listed twice: " + child);
             }
         }
         children.clear();
@@ -903,8 +907,8 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
                 for (int i = 0; i < children.size(); i++) {
                     var childNode = children.get(i).nodeId;
                     if (childNode == null) {
-                        // A child that never got registered; leave the layout tree alone and let
-                        // attaching it rebuild the order.
+                        // Not expected in an attached tree. Leave the layout tree's order as it
+                        // was rather than hand it a partial one.
                         complete = false;
                         break;
                     }
@@ -946,7 +950,13 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
 
     @ConfigSetter(field = "id")
     public UIElement setId(String id) {
+        var previous = this.id;
         this.id = id;
+        // Already registered under the old id, so the lookup has to move with it - otherwise
+        // getElementById misses the new id and the old entry keeps the element alive.
+        if (modularUI != null && !Objects.equals(previous, id)) {
+            modularUI.onElementIdChanged(this, previous);
+        }
         onClassIdChanged();
         return this;
     }
@@ -1722,9 +1732,14 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      * The messageRPC is initialized as an RPC event with a String name and a CompoundTag data payload.
      * It handles registered message handlers by invoking them with the provided data.
      *
+     * <p>Created lazily, and RPC events are matched between server and client by registration order.
+     * So it is protected rather than private: a subclass whose messages are sent from code that only
+     * ever runs on one side calls it from its constructor, which runs on both, instead of letting the
+     * first send register it client-side only.
+     *
      * @return The existing or newly created RPCEvent instance for message handling.
      */
-    private RPCEvent getOrCreateMessageRPC() {
+    protected RPCEvent getOrCreateMessageRPC() {
         if (messageRPC == null) {
             messageRPC = RPCEventBuilder.simple(String.class, CompoundTag.class, (name, data) -> {
                 var handlers = messageHandlers.get(name);

@@ -4,10 +4,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ComposeNode
 import androidx.compose.runtime.Composition
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Updater
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCompositionContext
+import androidx.compose.runtime.rememberUpdatedState
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement
 
 /**
@@ -78,13 +80,18 @@ fun <T : UIElement> UIElementNode(
  * it. The element is adopted as-is: the composition will attach, move and detach it, but never
  * touches its properties, so whoever built it stays in charge of what it looks like.
  *
- * <p>[element] must be stable across recompositions — pass one from `remember`. Handing over a
- * freshly constructed element on every recomposition would replace the node each time and throw away
- * whatever state it held.
+ * <p>Passing a different element swaps it in: the old one is detached and the new one attached in
+ * its place. So the element should be stable across recompositions — pass one from `remember` —
+ * because a freshly constructed one on every recomposition would be swapped in every time, throwing
+ * away whatever state it held.
  */
 @Composable
 fun Mount(element: UIElement, content: @Composable () -> Unit = {}) {
-    ComposeNode<UIElement, UIApplier>(factory = { element }, update = {}, content = content)
+    // Keyed on the element: a node's factory only runs when the node is created, so without this a
+    // different element would never replace the first one.
+    key(element) {
+        ComposeNode<UIElement, UIApplier>(factory = { element }, update = {}, content = content)
+    }
 }
 
 /**
@@ -108,9 +115,16 @@ fun Mount(element: UIElement, content: @Composable () -> Unit = {}) {
 @Composable
 fun Subcompose(container: UIElement, content: @Composable () -> Unit) {
     val parent = rememberCompositionContext()
+    // `content` is a fresh lambda every recomposition, capturing whatever state the caller read. Held
+    // in state and read inside the child composition, a new one invalidates the child by itself.
+    val current by rememberUpdatedState(content)
     val composition = remember(container, parent) { Composition(UIApplier(container), parent) }
-    DisposableEffect(composition) { onDispose { composition.dispose() } }
-    // Re-set every recomposition: `content` is a fresh lambda each time, capturing whatever state
-    // the caller read, and the child composition has no other way to learn about it.
-    SideEffect { composition.setContent(content) }
+    // The content is set from an effect rather than during composition, and from a DisposableEffect
+    // rather than a SideEffect: the runtime runs every DisposableEffect before any SideEffect, so this
+    // way the container is filled before effects declared after the Subcompose call run - which is
+    // what lets a Dialog inspect its content when it is shown on the very first frame.
+    DisposableEffect(composition) {
+        composition.setContent { current() }
+        onDispose { composition.dispose() }
+    }
 }

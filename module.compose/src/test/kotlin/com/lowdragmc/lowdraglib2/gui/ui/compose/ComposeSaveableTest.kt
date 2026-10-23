@@ -5,12 +5,12 @@ import androidx.compose.runtime.Composition
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCompositionContext
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.LocalSaveableStateRegistry
 import androidx.compose.runtime.saveable.SaveableStateRegistry
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -190,9 +190,12 @@ class ComposeSaveableTest {
 
 /** [Subcompose], minus the UIElement: a linked composition pointed at a test node. */
 @Composable
-private fun SubcomposeForTest(container: TestNode, content: @Composable () -> Unit) {
+internal fun SubcomposeForTest(container: TestNode, content: @Composable () -> Unit) {
     val parent = rememberCompositionContext()
+    val current by rememberUpdatedState(content)
     val composition = remember(container, parent) { Composition(TestApplier(container), parent) }
-    DisposableEffect(composition) { onDispose { composition.dispose() } }
-    SideEffect { composition.setContent(content) }
+    DisposableEffect(composition) {
+        composition.setContent { current() }
+        onDispose { composition.dispose() }
+    }
 }

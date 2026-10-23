@@ -261,6 +261,26 @@ public class ModularUI {
     }
 
     /**
+     * Moves an already registered element's id lookup from {@code previousId} to its current id.
+     * Called by {@link UIElement#setId} when the id changes while the element is attached.
+     */
+    public void onElementIdChanged(UIElement element, @Nullable String previousId) {
+        if (previousId != null && !previousId.isEmpty()) {
+            var previous = elementsById.get(previousId);
+            if (previous != null) {
+                previous.remove(element);
+                if (previous.isEmpty()) {
+                    elementsById.remove(previousId);
+                }
+            }
+        }
+        var id = element.getId();
+        if (!id.isEmpty()) {
+            elementsById.computeIfAbsent(id, k -> new ArrayList<>()).add(element);
+        }
+    }
+
+    /**
      * Remove an element from the registry.
      * This method is automatically called when elements are removed from the UI tree.
      * @param element the element to remove from the registry

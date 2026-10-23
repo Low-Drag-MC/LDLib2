@@ -101,11 +101,45 @@ fun <T> IDataProvider<T>.collectAsState(): State<T> {
 fun <T> IBinding<T>.asMutableState(): MutableState<T> {
     val state = remember(this) { mutableStateOf(syncValue.value) }
     DisposableEffect(this) {
-        val previous = remoteDataSource
-        setRemoteDataSource(IDataSource.of({ value -> state.value = value }, { state.value }))
-        onDispose { setRemoteDataSource(previous) }
+        val source = StateDataSource(state, remoteDataSource)
+        setRemoteDataSource(source)
+        onDispose {
+            source.active = false
+            // Only if it is still ours: two compositions can follow the same binding, and the one
+            // that installed itself first may well be the first to go.
+            if (remoteDataSource === source) setRemoteDataSource(source.restorable() ?: IDataSource.empty())
+        }
     }
     return state
+}
+
+/**
+ * A binding's remote data source backed by Compose state, remembering the one it replaced.
+ *
+ * <p>The chain matters when two compositions follow one binding and leave in the opposite order to
+ * the one they came in: the one leaving last would otherwise hand the binding back to a state whose
+ * composition is already gone, and every later server value would land nowhere.
+ */
+internal class StateDataSource<T>(
+    private val state: MutableState<T>,
+    private val previous: IDataSource<T>?,
+) : IDataSource<T> {
+    var active = true
+
+    override fun getValue(): T = state.value
+
+    override fun setValue(value: T?): IDataSource<T> {
+        @Suppress("UNCHECKED_CAST")
+        state.value = value as T
+        return this
+    }
+
+    /** The newest source down the chain whose composition is still around. */
+    fun restorable(): IDataSource<T>? {
+        var candidate = previous
+        while (candidate is StateDataSource<T> && !candidate.active) candidate = candidate.previous
+        return candidate
+    }
 }
 
 /**

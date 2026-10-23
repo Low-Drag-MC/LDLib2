@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.compose
 
 import androidx.compose.runtime.BroadcastFrameClock
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Composition
+import androidx.compose.runtime.ControlledComposition
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Recomposer
 import androidx.compose.runtime.saveable.LocalSaveableStateRegistry
@@ -15,6 +15,7 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.coroutines.CoroutineContext
 
 /**
@@ -24,25 +25,44 @@ import kotlin.coroutines.CoroutineContext
  * frame callbacks all funnel through here and only run inside [ComposeHost.onFrame], so nothing
  * Compose does can touch the UI tree from another thread — which matters, because none of LDLib2's
  * UI is thread-safe.
+ *
+ * <p>Submission, though, can come from anywhere: a `delay()` in an effect resumes from kotlinx's own
+ * timer thread, and `withContext(Dispatchers.IO)` comes back from a pool thread. Hence a concurrent
+ * queue — the continuation still only *runs* here, on the render thread, at the next drain.
  */
-private class RenderThreadDispatcher : CoroutineDispatcher() {
-    private val queue = ArrayDeque<Runnable>()
+internal class RenderThreadDispatcher : CoroutineDispatcher() {
+    private val queue = ConcurrentLinkedQueue<Runnable>()
 
     override fun dispatch(context: CoroutineContext, block: Runnable) {
-        queue.addLast(block)
+        queue.add(block)
     }
 
+    /**
+     * Runs what is queued, including what gets queued while running — the recomposer resumes itself
+     * that way, and making those wait for the next frame would stall the composition by one.
+     *
+     * <p>Bounded, though. An effect that yields in a loop re-queues itself forever, and an unbounded
+     * drain would never hand the render thread back.
+     */
     fun drain() {
-        // Not a for-loop over a snapshot: running a continuation commonly queues the next one, and
-        // those have to come out in this same drain or the composition stalls for a frame.
-        while (queue.isNotEmpty()) {
-            val block = queue.removeFirst()
+        var budget = MAX_CONTINUATIONS_PER_DRAIN
+        while (budget-- > 0) {
+            val block = queue.poll() ?: return
             try {
                 block.run()
             } catch (e: Throwable) {
                 LDLib2.LOGGER.error("Uncaught error while running a Compose continuation", e)
             }
         }
+        LDLib2.LOGGER.warn(
+            "A Compose composition queued more than {} continuations in one frame; the rest run next frame. " +
+                "An effect is probably yielding in a loop.",
+            MAX_CONTINUATIONS_PER_DRAIN,
+        )
+    }
+
+    companion object {
+        private const val MAX_CONTINUATIONS_PER_DRAIN = 10_000
     }
 }
 
@@ -65,8 +85,8 @@ private const val COROUTINE_AGENT_ADVICE =
         "coroutines debug agent: IntelliJ attaches it automatically, it rewrites kotlin-stdlib's " +
         "DebugProbesKt to call into kotlinx-coroutines, and NeoForge's module layer forbids that. " +
         "Turn the coroutine agent off for this run (IDE settings, search for \"coroutine agent\"), " +
-        "or launch with `gradlew runClient` instead. Nothing is wrong with the mod itself, and this " +
-        "cannot happen outside a development environment."
+        "or launch with `gradlew runClient -Pcompose` instead. Nothing is wrong with the mod itself, " +
+        "and this cannot happen outside a development environment."
 
 /**
  * Owns one composition and drives it from LDLib2's render loop.
@@ -76,13 +96,19 @@ private const val COROUTINE_AGENT_ADVICE =
  * supplies both, so the recomposition engine, `remember`, the snapshot system and effects all work
  * exactly as they do on Android, against LDLib2's own element tree.
  *
- * <p>Call [onFrame] once per rendered frame; [com.lowdragmc.lowdraglib2.gui.ui.ModularUI.addFrameCallback]
- * is wired to do that.
+ * <p>Two-stage on purpose. Constructing one and calling [setContent] builds the element tree
+ * synchronously, which is all a UI needs to be laid out. Following state changes needs the recomposer
+ * loop and the node observer, and both of those register themselves with the *global* snapshot system
+ * — so they only start in [start], once the element is actually on a screen, and stop in [dispose].
+ * An element that is built and never shown is then just garbage, instead of something the snapshot
+ * system holds on to for the rest of the session.
+ *
+ * <p>Internal: [ComposeElement] is the public way in, and it is what supplies [LocalUIElement].
  *
  * @param restoredState what an earlier composition's [saveState] returned, so `rememberSaveable`
  *   calls here start from those values. Null starts everything fresh.
  */
-class ComposeHost(root: UIElement, restoredState: Map<String, List<Any?>>? = null) {
+internal class ComposeHost(root: UIElement, restoredState: Map<String, List<Any?>>? = null) {
     private val clock = BroadcastFrameClock()
     private val dispatcher = RenderThreadDispatcher()
 
@@ -102,22 +128,12 @@ class ComposeHost(root: UIElement, restoredState: Map<String, List<Any?>>? = nul
     }
     private val scope = CoroutineScope(dispatcher + clock + errorHandler)
     private val recomposer = Recomposer(scope.coroutineContext)
-    private val composition = Composition(UIApplier(root), recomposer)
+    // Controlled rather than plain only for invalidateAll(), which start() needs; same implementation.
+    private val composition = ControlledComposition(UIApplier(root), recomposer)
+    private var started = false
 
     var isDisposed: Boolean = false
         private set
-
-    init {
-        nodeObserver.start()
-        try {
-            scope.launch { recomposer.runRecomposeAndApplyChanges() }
-        } catch (e: IllegalAccessError) {
-            throw IllegalStateException(COROUTINE_AGENT_ADVICE, e)
-        }
-        // Let the recomposer reach its first suspension point, so it is already waiting on the clock
-        // by the time the first frame arrives.
-        dispatcher.drain()
-    }
 
     /**
      * Sets — or replaces — what this composition renders. The initial composition runs synchronously,
@@ -131,6 +147,28 @@ class ComposeHost(root: UIElement, restoredState: Map<String, List<Any?>>? = nul
                 LocalSaveableStateRegistry provides saveableRegistry,
             ) { content() }
         }
+    }
+
+    /**
+     * Starts following state changes. Idempotent; called whenever the element is (re)bound to a UI.
+     *
+     * <p>Anything that changed between the initial composition and now — an effect writing the first
+     * value of a subscription, say — happened while nothing was listening, so the whole composition is
+     * invalidated once here. That costs one recomposition per screen opened.
+     */
+    fun start() {
+        if (started || isDisposed) return
+        started = true
+        nodeObserver.start()
+        try {
+            scope.launch { recomposer.runRecomposeAndApplyChanges() }
+        } catch (e: IllegalAccessError) {
+            throw IllegalStateException(COROUTINE_AGENT_ADVICE, e)
+        }
+        // Let the recomposer reach its first suspension point, so it is already waiting on the clock
+        // by the time the first frame arrives.
+        dispatcher.drain()
+        composition.invalidateAll()
     }
 
     /**
@@ -149,7 +187,7 @@ class ComposeHost(root: UIElement, restoredState: Map<String, List<Any?>>? = nul
      * apply the changes within this frame instead of the next one.
      */
     fun onFrame(nanos: Long) {
-        if (isDisposed) return
+        if (isDisposed || !started) return
         Snapshot.sendApplyNotifications()
         dispatcher.drain()
         clock.sendFrame(nanos)
@@ -161,11 +199,23 @@ class ComposeHost(root: UIElement, restoredState: Map<String, List<Any?>>? = nul
         nodeObserver.flush()
     }
 
+    /**
+     * Tears everything down, running every `DisposableEffect`'s cleanup.
+     *
+     * <p>Exception-safe: user code runs in here (every `onDispose`), and if any of it throws, the
+     * global hooks must still come off, or the composition stays reachable from the snapshot system
+     * forever. The first failure is rethrown once the teardown is complete.
+     */
     fun dispose() {
         if (isDisposed) return
         isDisposed = true
+        var failure: Throwable? = null
+        try {
+            composition.dispose()
+        } catch (e: Throwable) {
+            failure = e
+        }
         nodeObserver.dispose()
-        composition.dispose()
         recomposer.cancel()
         scope.cancel()
         // Cancelling a suspended coroutine resumes it *through the dispatcher*, and this dispatcher
@@ -173,5 +223,6 @@ class ComposeHost(root: UIElement, restoredState: Map<String, List<Any?>>? = nul
         // suspension point would be cancelled but never resumed, so its `finally` — which is where
         // that effect's cleanup lives — would silently never run.
         dispatcher.drain()
+        failure?.let { throw it }
     }
 }

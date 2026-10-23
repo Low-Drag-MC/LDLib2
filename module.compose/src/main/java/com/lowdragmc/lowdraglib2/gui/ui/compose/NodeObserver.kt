@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.compose
 
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
+import com.lowdragmc.lowdraglib2.LDLib2
 import java.util.concurrent.ConcurrentLinkedQueue
 
 /** Something whose props can be written to its element again, without recomposing anything. */
@@ -75,7 +76,15 @@ internal class NodeObserver {
         if (invalidated.isEmpty()) return
         val batch = invalidated.toList()
         invalidated.clear()
-        for (node in batch) node.reapply()
+        for (node in batch) {
+            // Per node: these are user blocks, run from the render loop. One that throws must not
+            // take the rest of the batch with it, let alone the frame.
+            try {
+                node.reapply()
+            } catch (e: Throwable) {
+                LDLib2.LOGGER.error("A Compose layout/style block threw while re-applying", e)
+            }
+        }
     }
 
     /** Drops a node's recorded reads. Called when its slot leaves the composition. */

@@ -28,8 +28,8 @@ typealias StyleBlock = BasicStyle.() -> Unit
  * Box(events = { onMouseEnter { hovered = true }; onMouseLeave { hovered = false } })
  * ```
  *
- * <p>Handlers are keyed on `(type, capture)`, so re-declaring the same event replaces it rather than
- * stacking a second listener.
+ * <p>Each `(type, capture)` pair is registered on the element once, however many handlers are
+ * declared for it and however often the block re-runs; declaring the same event twice runs both.
  */
 class EventScope internal constructor() {
     internal val handlers = LinkedHashMap<EventKey, MutableList<(UIEvent) -> Unit>>()
@@ -113,8 +113,11 @@ internal class AppliedProps<T : UIElement> : RememberObserver, Reappliable {
     private var classes: List<String> = emptyList()
     private var lastClassSpec: String? = null
     private var id: String? = null
-    private var enabled: Boolean = true
-    private var visible: Boolean = true
+
+    // Null until first written, so the first apply always writes: a factory may hand over an element
+    // that starts disabled or hidden, and assuming the defaults would never correct it.
+    private var enabled: Boolean? = null
+    private var visible: Boolean? = null
     private var focusable: Boolean? = null
     private val listeners = HashMap<EventKey, EventHandlerHolder>()
     private val scope = EventScope()
@@ -197,10 +200,24 @@ internal class AppliedProps<T : UIElement> : RememberObserver, Reappliable {
 
     override fun onAbandoned() = release()
 
-    /** Stops the observer holding this node's reads — and this node holding its element. */
+    /**
+     * Stops the observer holding this node's reads, and this node holding its element.
+     *
+     * <p>Also takes this node's listeners and classes back off the element. Usually the element is
+     * being discarded anyway, but not always: a widget kept in `remember` and handed to a node under
+     * an `if` is re-emitted by a *new* node when the condition comes back, and anything left behind
+     * here would still be attached to it, firing with state captured long ago.
+     */
     private fun release() {
         observer?.forget(this)
         observer = null
+        element?.let { element ->
+            for ((key, holder) in listeners) element.removeEventListener(key.type, holder, key.capture)
+            for (name in classes) element.removeClass(name)
+        }
+        listeners.clear()
+        classes = emptyList()
+        lastClassSpec = null
         element = null
         layout = null
         style = null
@@ -296,6 +313,35 @@ internal fun parseClasses(spec: String?): List<String> =
  */
 internal fun <T> diffKeys(current: List<T>, next: List<T>): Pair<List<T>, List<T>> =
     current.filter { it !in next } to next.filter { it !in current }
+
+/**
+ * Whether the element tree is being written by a composition right now, rather than acted on by the
+ * user.
+ *
+ * <p>LDLib2's widgets report a change the same way whoever made it: `Slider#setRange` re-clamps and
+ * notifies, a `ToggleGroup` unchecks the previous toggle with notification on, a removed toggle hands
+ * its checked state to a sibling. Those are consequences of what the composition just did, not edits
+ * to report back to it — and reporting them would write state during the apply phase. So everything a
+ * composition does to the tree runs inside [writing], and the wrappers' change listeners ignore what
+ * arrives while it is active.
+ *
+ * <p>Render thread only, like everything else here, so a plain counter is enough.
+ */
+internal object CompositionWrites {
+    @PublishedApi
+    internal var depth = 0
+
+    val active: Boolean get() = depth > 0
+
+    inline fun <R> writing(block: () -> R): R {
+        depth++
+        try {
+            return block()
+        } finally {
+            depth--
+        }
+    }
+}
 
 /**
  * Runs [block] with this facade's writes redirected to `DEFAULT` origin.

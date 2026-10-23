@@ -7,12 +7,17 @@ import org.junit.jupiter.api.Test
  * Regression tests for the one piece of arithmetic in the applier that is easy to get wrong.
  *
  * <p>Composed child indices count only the children a composition owns; the real child list also
- * holds whatever internal parts the widget built for itself. Getting the mapping wrong is not a
- * crash — it silently inserts content in the wrong place, e.g. before a button's own label.
+ * holds whatever internal parts the widget built for itself, and anything added to it by hand. Getting
+ * the mapping wrong is not a crash — it silently inserts content in the wrong place, e.g. before a
+ * button's own label.
  */
 class ComposedChildIndexTest {
 
-    private fun flags(vararg internal: Boolean) = internal.toList()
+    /** One flag per real child: true for a child the composition does not own. */
+    private fun flags(vararg notOwned: Boolean) = notOwned.toList()
+
+    private fun realIndexOfComposed(notOwned: List<Boolean>, composedIndex: Int) =
+        realIndexOfComposed(notOwned.size, composedIndex) { !notOwned[it] }
 
     @Test
     fun `maps straight through when there are no internal children`() {
