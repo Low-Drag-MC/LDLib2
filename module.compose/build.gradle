@@ -4,10 +4,10 @@
 // .github/workflows/compose-build-publish.yml builds and publishes it. The core build and release never
 // touch it, and the core's dev runs only load it when asked to (see "Dev runs" below).
 //
-// A mod rather than a plain library, because it carries the Compose runtime and NeoForge's
-// Jar-in-Jar only unpacks one level: a downstream mod that Jar-in-Jar'd this artifact would get
-// this jar but not the Compose runtime nested inside it. As a top-level mod its own JiJ entries sit
-// at depth one and do load. Downstream setup is in compose.md.
+// A mod rather than a plain library because it carries the Compose runtime, and that has to reach the
+// game as Jar-in-Jar: NeoForge then keeps one copy when other mods ship the same libraries (several
+// bundle kotlinx-coroutines). Downstream mods Jar-in-Jar this mod's -all jar in turn; NeoForge unpacks
+// nested Jar-in-Jar recursively, so the runtime comes with it. Downstream setup is in compose.md.
 
 plugins {
     id 'java-library'

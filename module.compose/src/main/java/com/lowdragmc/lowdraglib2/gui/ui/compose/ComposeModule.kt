@@ -14,7 +14,8 @@ import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent
  * Proves at startup that the Compose runtime this mod ships actually loaded.
  *
  * <p>Worth doing because of how the runtime gets here. It is not on anyone's classpath — it is
- * Jar-in-Jar'd inside this mod, six nested jars of it, and NeoForge unpacks those at load time. In
+ * Jar-in-Jar'd inside this mod, six nested jars of it (and this mod is itself usually Jar-in-Jar'd
+ * inside the mod that uses it), and NeoForge unpacks those at load time. In
  * development none of that happens: the dev run puts everything on a flat classpath, so a Jar-in-Jar
  * declaration that is wrong — a missing transitive, a version range that resolved to an alias stub
  * with no classes in it — is invisible right up until it reaches a player.
@@ -40,8 +41,9 @@ object ComposeModule {
             // Rethrown, not swallowed: a runtime that is not there cannot be worked around, and
             // failing at setup names the cause while the mod list is still on screen.
             throw IllegalStateException(
-                "ldlib2-compose could not load its bundled Compose runtime. The Jar-in-Jar payload " +
-                    "is missing or incomplete - check META-INF/jarjar in the ldlib2-compose jar.",
+                "ldlib2-compose could not load the Compose runtime it ships with. Whatever jar " +
+                    "brought ldlib2-compose in has to carry its -all jar (which embeds the runtime under " +
+                    "META-INF/jarjar), not the plain one - check the mod that bundles it.",
                 e,
             )
         }
