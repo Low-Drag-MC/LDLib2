@@ -123,12 +123,18 @@ test {
 }
 
 tasks.withType(ProcessResources).configureEach {
+    // The LDLib2 version mods.toml asks for. ldlib2_min_version names the first *release* with the hooks
+    // this module needs; until that release exists, the core in this checkout - which already has them -
+    // is older than that, and asking for the release would stop every dev run from loading. Publishing
+    // refuses a core older than ldlib2_min_version (below), so a published jar always asks for the release.
+    def coreVersion = rootProject.version.toString()
+    def requiredCore = compareVersions(coreVersion, ldlib2_min_version) < 0 ? coreVersion : ldlib2_min_version
     var replaceProperties = [
             "version"           : version,
             "loader_version"    : loader_version,
             "mod_license"       : mod_license,
             "mod_url"           : mod_url,
-            "ldlib2_min_version": ldlib2_min_version,
+            "ldlib2_min_version": requiredCore,
     ]
     inputs.properties replaceProperties
     filesMatching(['META-INF/neoforge.mods.toml']) {
