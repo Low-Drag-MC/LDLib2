@@ -1,6 +1,5 @@
 package com.lowdragmc.lowdraglib2.gui.ui.compose
 
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -395,43 +394,6 @@ class ComposeAnimationTest {
         h.advance(200)
         assertEquals(listOf(50f, 10f), reached)
         assertEquals(10f, h.value())
-        h.dispose()
-    }
-
-    /**
-     * The gate [AnimatedVisibility] applies, exercised on its own.
-     *
-     * <p>`AnimatedVisibility` itself emits a real `Box`, so it cannot run on this harness — its
-     * end-to-end behaviour is checked by the `compose_widgets` scenario against a live element tree.
-     * What is worth pinning down here is the rule that makes it work at all: the content has to stay
-     * composed for as long as the fade-out lasts, because a plain `if` would remove it instantly and
-     * leave nothing to animate.
-     */
-    @Test
-    fun `the visibility gate outlives the fade out`() {
-        val h = TestHarness()
-        var visible by mutableStateOf(true)
-        val disposals = mutableListOf<String>()
-
-        h.setContent {
-            val alpha by animateFloatAsState(if (visible) 1f else 0f, TweenSpec(100))
-            if (visible || alpha > 0f) {
-                DisposableEffect(Unit) { onDispose { disposals += "gone" } }
-                Node("content")
-            }
-        }
-        assertEquals("root(content)", h.tree())
-
-        visible = false
-        h.frame(0)
-        h.advance(50)
-        assertEquals("root(content)", h.tree(), "removed before the fade finished")
-        assertEquals(emptyList<String>(), disposals)
-
-        h.advance(100)
-        assertEquals("root", h.tree())
-        // And leaving the composition is what finally runs the content's cleanup.
-        assertEquals(listOf("gone"), disposals)
         h.dispose()
     }
 }

@@ -305,36 +305,3 @@ fun animateColorAsState(
 
 internal fun lerpArgb(from: Int, to: Int, fraction: Float): Int =
     ColorUtils.blendOklabColor(from, to, fraction.coerceIn(0f, 1f))
-
-/**
- * Shows [content] while [visible], fading it in and out.
- *
- * <p>The reason this exists rather than a bare `if (visible)` is the *exit*: removing the content
- * from the composition immediately means there is nothing left to animate out. So it stays composed
- * until the fade finishes, and only then leaves — which is also when its `DisposableEffect`s run.
- */
-@Composable
-fun AnimatedVisibility(
-    visible: Boolean,
-    animationSpec: AnimationSpec = TweenSpec(),
-    layout: LayoutBlock? = null,
-    style: StyleBlock? = null,
-    classes: String? = null,
-    content: @Composable () -> Unit,
-) {
-    val alpha by animateFloatAsState(if (visible) 1f else 0f, animationSpec)
-    // Read here rather than inside the style block, because this value decides whether the content is
-    // composed at all. The node observer would keep a style block following `alpha` on its own, but it
-    // can only re-run the block — it cannot mount or unmount anything, and the whole point of this
-    // composable is to keep the content in the tree until the fade has finished.
-    val opacity = alpha.coerceIn(0f, 1f)
-    if (visible || opacity > 0f) {
-        Box(
-            layout = layout,
-            // After the caller's own block, so the animated value is the one that lands.
-            style = { style?.invoke(this); opacity(opacity) },
-            classes = classes,
-            content = content,
-        )
-    }
-}
