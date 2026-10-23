@@ -14,6 +14,9 @@ import com.lowdragmc.lowdraglib2.uitest.ScenarioBuilder;
 import com.lowdragmc.lowdraglib2.uitest.ScenarioOptions;
 import com.lowdragmc.lowdraglib2.uitest.TestContext;
 import com.lowdragmc.lowdraglib2.uitest.UIScenario;
+import com.lowdragmc.lowdraglib2.uitest.target.Texts;
+
+import java.util.List;
 
 /**
  * Covers the two claims the other compose scenarios leave untested.
@@ -33,6 +36,7 @@ import com.lowdragmc.lowdraglib2.uitest.UIScenario;
 public class ComposeWidgetsScenario implements UIScenario {
 
     private UIElement fieldABefore;
+    private UIElement tabTwoBefore;
 
     @Override
     public void configure(ScenarioOptions options) {
@@ -123,6 +127,27 @@ public class ComposeWidgetsScenario implements UIScenario {
                 .checkNotExists(".tab-body-three")
                 .check("removing a tab took its header with it", ctx ->
                         ctx.query().type(Tab.class).count() == 2)
+
+                // Reordering an existing set. The headers have to follow the declared order, and
+                // moving them must not rebuild anything: the selected tab stays selected, and its body
+                // is still the element it was.
+                .check("headers start in declared order", ctx -> tabHeaders(ctx).equals(List.of("One", "Two")))
+                .step("remember tab two's body", ctx -> tabTwoBefore = element(ctx, ".tab-body-two"))
+                .click(".tab-reverse")
+                .frames(3)
+                .check("the headers swapped places", ctx -> tabHeaders(ctx).equals(List.of("Two", "One")))
+                .check("tab two is still the one showing", ctx ->
+                        paneShown(ctx, ".tab-body-two") && !paneShown(ctx, ".tab-body-one"))
+                .check("tab two's body was moved, not rebuilt", ctx -> element(ctx, ".tab-body-two") == tabTwoBefore)
+                // addTab appends, so a tab entering a reversed set is the case that would land last.
+                .click(".tab-toggle")
+                .frames(3)
+                .check("a tab added to a reversed set lands first", ctx ->
+                        tabHeaders(ctx).equals(List.of("Three", "Two", "One")))
+                .click(".tab-toggle")
+                .click(".tab-reverse")
+                .frames(3)
+                .check("and back to declared order", ctx -> tabHeaders(ctx).equals(List.of("One", "Two")))
                 .screenshotElement("widgets-tabs", ".__root__")
 
                 // A modal driven by state. Its content has to be composed before `show()` runs, or
@@ -225,6 +250,16 @@ public class ComposeWidgetsScenario implements UIScenario {
     /** The fade panel's current opacity, read back through the style facade. */
     private static float opacity(TestContext ctx) {
         return element(ctx, ".fade-panel").getStyle().opacity();
+    }
+
+    /**
+     * The tab captions in on-screen order. Walked from the tree rather than queried: a selector query
+     * returns elements in the order they were first attached, which a reorder does not change.
+     */
+    private static List<String> tabHeaders(TestContext ctx) {
+        var header = ctx.query().type(Tab.class).list().getFirst().as(UIElement.class);
+        var row = header.getParent();
+        return row == null ? List.of() : row.getChildren().stream().filter(Tab.class::isInstance).map(Texts::of).toList();
     }
 
     /**

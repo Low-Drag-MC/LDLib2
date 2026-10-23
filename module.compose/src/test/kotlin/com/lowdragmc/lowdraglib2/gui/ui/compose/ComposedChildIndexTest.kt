@@ -52,4 +52,19 @@ class ComposedChildIndexTest {
         assertEquals(3, realIndexOfComposed(list, 0))
         assertEquals(3, realIndexOfComposed(list, 1))
     }
+
+    @Test
+    fun `a splice moves only the picked-out children`() {
+        // Upper case stands in for internal parts, which have to keep their slots.
+        val children = listOf("A", "b", "c", "D", "e")
+        val spliced = spliceOrder(children, listOf("e", "c", "b")) { it.first().isLowerCase() }
+        assertEquals(listOf("A", "e", "c", "D", "b"), spliced)
+    }
+
+    @Test
+    fun `a splice refuses an order that does not match the tree`() {
+        val children = listOf("a", "b", "c")
+        assertEquals(null, spliceOrder(children, listOf("a", "b")) { true })
+        assertEquals(null, spliceOrder(children, listOf("a", "b", "c", "d")) { true })
+    }
 }

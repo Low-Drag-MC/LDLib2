@@ -52,10 +52,9 @@ internal class TabSpec(
  * the same arrangement the split view uses, for the same reason: a tab view has one child list per
  * tab, and an applier only knows one.
  *
- * <p>Tabs appearing and disappearing is handled; **reordering an existing set is not**. The headers
- * keep the order they were added in, because a tab's element is attached once, when it enters the
- * composition, and nothing re-attaches it afterwards. Adding and removing is the case worth having,
- * and the case that would otherwise leak elements.
+ * <p>The headers follow the order the tabs are declared in, including when an existing set is
+ * reordered. A reorder moves the headers in place rather than removing and re-adding them, so the
+ * selection, and everything each tab's content remembered, stays put.
  *
  * @param selectedKey which tab to show. Leave null to let the widget manage its own selection.
  * @param onSelect notified when the user picks a tab, with that tab's key.
@@ -116,6 +115,19 @@ fun TabView(
             }
             Subcompose(host, spec.content)
         }
+    }
+
+    // After the tabs exist, for the same reason as the selection below. `addTab` appends, and a tab
+    // that only moved never passes through it again, so the declared order is imposed from here.
+    val order = specs.map { it.key }
+    DisposableEffect(order) {
+        val headers = order.mapNotNull { tabsByKey[it] }
+        val owned = headers.toHashSet()
+        val container = view.tabScroller.viewContainer
+        // Headers this composable did not put there keep their slots. Null means one of ours has
+        // been moved out of the scroller, which leaves nothing sensible to reorder.
+        spliceOrder(container.children, headers) { it in owned }?.let { container.reorderChildren(it) }
+        onDispose { }
     }
 
     // After the tabs exist, not before: selecting a key that has not been added yet does nothing.

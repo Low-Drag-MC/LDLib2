@@ -521,7 +521,6 @@ cannot access class kotlinx.coroutines.debug.internal.DebugProbesImpl (in module
 | **`rememberSaveable`** | 没有。关闭界面重开状态会丢（最小化编辑器换宿主的场景是能存活的） |
 | **无障碍** | 组合出来的元素不向 MC 旁白贡献信息 |
 | **Lazy 变高行** | `LazyColumn(variableHeight = true)` 支持；`LazyRow` / `LazyVerticalGrid` 仍只支持固定尺寸 |
-| **TabView 重排** | 加删支持，已有页签换顺序不生效 |
 | **`AnimatedVisibility`** | 只有淡入淡出，没有 slide / expand |
 | **服务端 UI** | 组合只在客户端跑，但行数可以完全由服务端驱动 —— 见「服务端驱动的 UI」。限制是注册必须在组合外 |
 
