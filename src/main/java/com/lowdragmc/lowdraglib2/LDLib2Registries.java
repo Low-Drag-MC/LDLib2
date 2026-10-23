@@ -29,8 +29,7 @@ public class LDLib2Registries {
 
     public static AutoRegistry.LDLibRegister<IMenuTest, Supplier<IMenuTest>> MENU_TESTS;
 
-    @OnlyIn(Dist.CLIENT)
-    public static AutoRegistry.LDLibRegisterClient<IConfiguratorAccessor, IConfiguratorAccessor<?>> CONFIGURATOR_ACCESSORS;
+    public static AutoRegistry.LDLibRegister<IConfiguratorAccessor, IConfiguratorAccessor<?>> CONFIGURATOR_ACCESSORS;
 
     @OnlyIn(Dist.CLIENT)
     public static AutoRegistry.LDLibRegisterClient<IGuiTexture, Supplier<IGuiTexture>> GUI_TEXTURES;
@@ -59,9 +58,9 @@ public class LDLib2Registries {
     public static AutoRegistry.LDLibRegister<MPScenario, Supplier<MPScenario>> MP_SCENARIOS;
 
     static {
+        CONFIGURATOR_ACCESSORS = AutoRegistry.LDLibRegister
+                .create(LDLib2.id("configurator_accessor"), IConfiguratorAccessor.class, AutoRegistry::noArgsInstance);
         if (LDLib2.isClient()) {
-            CONFIGURATOR_ACCESSORS = AutoRegistry.LDLibRegisterClient
-                    .create(LDLib2.id("configurator_accessor"), IConfiguratorAccessor.class, AutoRegistry::noArgsInstance);
             GUI_TEXTURES = AutoRegistry.LDLibRegisterClient
                     .create(LDLib2.id("gui_texture"), IGuiTexture.class, AutoRegistry::noArgsCreator);
             GUI_TEXTURES.setMissingKey("missing");

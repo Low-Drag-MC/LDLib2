@@ -1,7 +1,7 @@
 package com.lowdragmc.lowdraglib2.configurator.accessors;
 
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
-import com.lowdragmc.lowdraglib2.registry.ILDLRegisterClient;
+import com.lowdragmc.lowdraglib2.registry.ILDLRegister;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
@@ -13,7 +13,7 @@ import java.util.function.Supplier;
  * @date 2022/12/1
  * @implNote IConfiguratorAccessor
  */
-public interface IConfiguratorAccessor<T> extends ILDLRegisterClient<IConfiguratorAccessor<?>, IConfiguratorAccessor<?>> {
+public interface IConfiguratorAccessor<T> extends ILDLRegister<IConfiguratorAccessor<?>, IConfiguratorAccessor<?>> {
     IConfiguratorAccessor<?> DEFAULT = type -> true;
 
     /**
