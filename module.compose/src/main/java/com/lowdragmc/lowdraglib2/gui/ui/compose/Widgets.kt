@@ -913,8 +913,8 @@ fun TagField(
 
 /**
  * A headless value holder: renders nothing and only mirrors [value]. It can't carry a synced binding,
- * since nothing that registers a sync value may be created in a composition (see "服务端驱动的 UI" in
- * compose.md); a binding placeholder belongs in `createUI`, built by hand.
+ * since nothing that registers a sync value may be created in a composition (see [ServerMessenger]);
+ * a binding placeholder belongs in `createUI`, built by hand.
  */
 @Composable
 fun <T> BindableValue(

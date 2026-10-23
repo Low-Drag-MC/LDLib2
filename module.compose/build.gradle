@@ -1,7 +1,7 @@
 // ldlib2-compose: LDLib2's declarative UI layer, a separate optional mod with its own version
 // (gradle.properties here) and release (.github/workflows/compose-build-publish.yml). The core jar never
 // contains it. It is a mod rather than a library so the Compose runtime ships as Jar-in-Jar and NeoForge
-// can dedupe it against other mods; downstream setup is in compose.md.
+// can dedupe it against other mods.
 
 plugins {
     id 'java-library'
