@@ -50,21 +50,21 @@ internal class TabSpec(
  * }
  * ```
  *
- * <p>Each tab's body is its own [Subcompose], pointed at the content element the widget hands out —
- * the same arrangement the split view uses, for the same reason: a tab view has one child list per
- * tab, and an applier only knows one.
+ * <p>Each tab's body is a [Subcompose] into that tab's content pane.
  *
- * <p>The headers follow the order the tabs are declared in, including when an existing set is
- * reordered. A reorder moves the headers in place rather than removing and re-adding them, so the
- * selection, and everything each tab's content remembered, stays put. Tab keys must be unique.
+ * <p>The headers follow the declared order, also when an existing set is reordered; a reorder keeps
+ * the selection and everything each tab's content remembered. Tab keys must be unique: a repeated key
+ * throws [IllegalArgumentException].
  *
  * @param selectedKey which tab to show. Leave null to let the widget manage its own selection. A
  *   header click still switches tabs on screen whatever this says, so hoisted selection should update
  *   from [onSelect].
- * @param onSelect notified with the tab's key when the player picks a tab, and when the selected tab is
- *   removed and the selection moves to its neighbour in declared order. Not for selections this
- *   composable makes itself — following [selectedKey], picking the first tab to begin with — and not
- *   when the whole TabView leaves the composition.
+ * @param onSelect notified with the tab's key when the player picks a tab, and once when the selected
+ *   tab is removed and [selectedKey] does not name a tab that is still there: the selection then moves
+ *   to the removed tab's next surviving neighbour in the old declared order, or the previous one, or
+ *   failing both the first tab now declared. Not for selections this composable makes itself —
+ *   following [selectedKey], picking the first tab to begin with — and not when the whole TabView
+ *   leaves the composition.
  */
 @Composable
 fun TabView(
@@ -84,18 +84,14 @@ fun TabView(
         "TabView tab keys must be unique; repeated: ${order.groupBy { it }.filterValues { it.size > 1 }.keys}"
     }
     val view = remember { LdlTabView() }
-    // Tab element -> key, so a selection coming back out of the widget can be reported as the key
-    // the caller declared rather than as an element they have never seen.
     val keysByTab = remember { HashMap<LdlTab, Any>() }
     val tabsByKey = remember { HashMap<Any, LdlTab>() }
     val currentOnSelect by rememberUpdatedState(onSelect)
-    // Where a removed tab's rememberSaveable state waits, in case the tab comes back. Also what keeps
-    // the tabs' saved state apart: each one saves under its own key.
+    // Keeps each tab's saved state apart, and a removed tab's until it comes back.
     val tabStates = rememberSaveableStateHolder()
-    // The declared order last applied, for picking a removed tab's neighbour; and whether the whole
-    // view is on its way out, in which case nobody is told about a selection.
     val lastOrder = remember { arrayOf<List<Any>>(emptyList()) }
     val leaving = remember { BooleanArray(1) }
+    val removedSelection = remember { RemovedSelection() }
 
     UIElementNode(
         factory = { view },
@@ -104,8 +100,7 @@ fun TabView(
     )
 
     DisposableEffect(view) {
-        // The widget reports every selection, including the ones it makes itself when a tab is added
-        // or removed. Only the player's count.
+        // The widget also reports the selections it makes itself on add and remove; only the player's count.
         view.setOnTabSelected { tab ->
             if (!CompositionWrites.active) keysByTab[tab]?.let { currentOnSelect?.invoke(it) }
         }
@@ -115,8 +110,7 @@ fun TabView(
     specs.forEach { spec ->
         key(spec.key) {
             val tab = remember { LdlTab() }
-            // Classed so stylesheets can reach the pane. It is also the element the widget shows and
-            // hides on selection — the content inside it keeps its own display flag either way.
+            // The widget shows and hides this pane on selection; the content inside keeps its own display flag.
             val host = remember { UIElement().addClass("__compose_tab_content__") }
 
             DisposableEffect(view) {
@@ -125,21 +119,19 @@ fun TabView(
                 CompositionWrites.writing { view.addTab(tab, host) }
                 onDispose {
                     val wasSelected = view.selectedTab === tab
-                    // removeTab falls back to whichever tab its hash map yields first; the neighbour in
-                    // declared order is picked below instead.
+                    // removeTab's own fallback is arbitrary (hash order); the selection effect below
+                    // makes the real choice once every removal and the new selectedKey are in.
                     CompositionWrites.writing { view.removeTab(tab) }
                     keysByTab.remove(tab)
                     tabsByKey.remove(spec.key)
-                    if (wasSelected && !leaving[0]) {
-                        neighbourOf(spec.key, lastOrder[0], tabsByKey)?.let { next ->
-                            CompositionWrites.writing { view.selectTab(tabsByKey.getValue(next)) }
-                            currentOnSelect?.invoke(next)
-                        }
+                    // Only the first: that fallback may have selected a tab that is leaving as well.
+                    if (wasSelected && !leaving[0] && removedSelection.key == null) {
+                        removedSelection.key = spec.key
+                        removedSelection.order = lastOrder[0]
                     }
                 }
             }
-            // Keyed on the title so an unchanged caption is not re-set every recomposition; setting
-            // text re-measures the header.
+            // Keyed on the title: setText re-measures the header.
             DisposableEffect(spec.title) {
                 tab.setText(spec.title)
                 onDispose { }
@@ -148,45 +140,59 @@ fun TabView(
         }
     }
 
-    // Declared after the tabs, so it is forgotten before them when the whole view leaves: effects are
-    // disposed in reverse order. By the time the tabs remove themselves, this has said not to report.
+    // After the tabs: effects dispose in reverse order, so `leaving` is set before the tabs remove themselves.
     DisposableEffect(Unit) {
         onDispose { leaving[0] = true }
     }
 
-    // After the tabs exist, for the same reason as the selection below. `addTab` appends, and a tab
-    // that only moved never passes through it again, so the declared order is imposed from here.
+    // After the tabs exist. `addTab` appends and a moved tab never passes through it again, so the
+    // declared order is imposed here.
     DisposableEffect(order) {
         lastOrder[0] = order
         val headers = order.mapNotNull { tabsByKey[it] }
         val owned = headers.toHashSet()
         val container = view.tabScroller.viewContainer
-        // Headers this composable did not put there keep their slots. Null means one of ours has
-        // been moved out of the scroller, which leaves nothing sensible to reorder.
+        // Headers we did not add keep their slots; null means one of ours left the scroller, so skip.
         spliceOrder(container.children, headers) { it in owned }?.let { container.reorderChildren(it) }
         onDispose { }
     }
 
-    // After the tabs exist, not before: selecting a key that has not been added yet does nothing.
-    // Keyed on the order too, so a selected key whose tab only just arrived is applied.
+    // After the tabs exist: selecting a key not yet added does nothing. Keyed on the order too, so a
+    // just-arrived selected tab is applied and every removed selection is resolved here, once.
     DisposableEffect(selectedKey, order) {
-        if (selectedKey != null) {
-            tabsByKey[selectedKey]?.let { tab ->
-                if (view.selectedTab !== tab) CompositionWrites.writing { view.selectTab(tab) }
+        val removed = removedSelection.key
+        val removedFrom = removedSelection.order
+        removedSelection.key = null
+        removedSelection.order = emptyList()
+        val wanted = selectedKey?.let { tabsByKey[it] }
+        if (wanted != null) {
+            if (view.selectedTab !== wanted) CompositionWrites.writing { view.selectTab(wanted) }
+        } else if (removed != null) {
+            neighbourOf(removed, removedFrom, order)?.let { next ->
+                tabsByKey[next]?.let { tab -> CompositionWrites.writing { view.selectTab(tab) } }
+                currentOnSelect?.invoke(next)
             }
         }
         onDispose { }
     }
 }
 
+private class RemovedSelection {
+    var key: Any? = null
+    var order: List<Any> = emptyList()
+}
+
 /**
- * The tab to select when [removed] goes: the next one in declared order that still exists, or failing
- * that the previous one. Null when none is left.
+ * The tab to select when [removed], the selected one, goes: the next one after it in [oldOrder] that
+ * is still in [newOrder], or failing that the previous one, or failing both the first of [newOrder].
+ * Null when no tab is left.
  */
-internal fun neighbourOf(removed: Any, order: List<Any>, remaining: Map<Any, *>): Any? {
-    val at = order.indexOf(removed)
-    if (at < 0) return remaining.keys.firstOrNull()
-    for (i in at + 1 until order.size) if (order[i] in remaining) return order[i]
-    for (i in at - 1 downTo 0) if (order[i] in remaining) return order[i]
-    return null
+internal fun neighbourOf(removed: Any, oldOrder: List<Any>, newOrder: List<Any>): Any? {
+    val remaining = newOrder.toHashSet()
+    val at = oldOrder.indexOf(removed)
+    if (at >= 0) {
+        for (i in at + 1 until oldOrder.size) if (oldOrder[i] in remaining) return oldOrder[i]
+        for (i in at - 1 downTo 0) if (oldOrder[i] in remaining) return oldOrder[i]
+    }
+    return newOrder.firstOrNull()
 }

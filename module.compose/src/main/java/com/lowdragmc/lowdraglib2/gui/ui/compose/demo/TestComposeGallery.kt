@@ -62,15 +62,7 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 import net.neoforged.neoforge.fluids.FluidStack
 
-/**
- * Every wrapper that the other demos do not reach: `/ldlib2_screen_test compose_gallery`.
- *
- * <p>Existing demos were written around whatever each was demonstrating, which left two thirds of
- * the widget wrappers compiled but never once instantiated. That is not the same as working —
- * `LazyRow` looked fine and had a wrong line in it until something actually rendered it. So this
- * screen exists to make every remaining wrapper run at least once, and the scenario beside it checks
- * the part that would realistically be wrong: the controlled-value round trip.
- */
+/** Every wrapper that the other demos do not reach: `/ldlib2_screen_test compose_gallery`. */
 @LDLRegisterClient(name = "compose_gallery", registry = "ldlib2:screen_test")
 class TestComposeGallery : IScreenTest {
     override fun createUI(entityPlayer: Player?): ModularUI =
@@ -104,8 +96,7 @@ private fun TextValues() {
         text = Component.literal("加一行"),
         classes = "g-add-line",
     )
-    // The array-valued widgets: their controlled-value guard has to compare contents, because
-    // String[] compares by identity and would look changed on every recomposition.
+    // Array-valued: the controlled-value guard must compare contents, as String[] compares by identity.
     TextArea(
         lines = lines,
         onLinesChange = { lines = it },
@@ -133,8 +124,7 @@ private fun NumericValues() {
         text = Component.literal("滑块 0.75"),
         classes = "g-set-slider",
     )
-    // Rows need their own height: a Row with no height collapses to zero and its children draw over
-    // whatever comes next. Same trap as a bare Text, and the reason `Text` self-sizes by default.
+    // A Row with no height collapses to zero and its children draw over whatever comes next.
     Row(layout = { gap { all(3.px) }; height(32.px) }) {
         Slider(slider, { slider = it }, layout = { size(80.px, 10.px) }, classes = "g-slider")
         SliderVertical(vSlider, { vSlider = it }, layout = { size(10.px, 30.px) }, classes = "g-slider-v")
@@ -168,21 +158,18 @@ private fun PickerValues() {
         layout = { size(80.px, 12.px) },
         classes = "g-selector",
     )
-    // Width only, no height — it is a whole picker panel (saturation square, hue strip, channel
-    // rows) and sizes itself, which is how core uses it too. Pinning a height here is what made the
-    // first version of this screen look broken: the panel does not clip, so the rows that did not
-    // fit were drawn straight over the widgets below rather than being cropped.
+    // Width only: the picker panel sizes itself and does not clip, so a pinned height spills its
+    // rows over the widgets below.
     ColorSelector(colour, { colour = it }, layout = { width(90.px) }, classes = "g-colour")
     TagField(tag, { tag = it }, layout = { size(120.px, 14.px) }, classes = "g-tagfield")
-    // Tall enough for its header row plus a line of tree: at 24px the rows spilled out of the
-    // element and drew over the widgets underneath, because nothing here clips overflow.
+    // Tall enough for its header row plus a line of tree; nothing here clips overflow.
     StructuredTagEditor(
         structured,
         { structured = it },
         layout = { size(140.px, 56.px) },
         classes = "g-structured",
     )
-    // Renders nothing; it exists to hold a value, so the only thing to check is that it composes.
+    // Renders nothing; only checked to compose.
     BindableValue(headless, { headless = it }, classes = "g-headless")
 }
 
@@ -203,14 +190,13 @@ private fun SlotValues() {
             Text(Component.literal("grouped"))
         }
     }
-    // Binds itself to the player inventory once attached to a menu; on a plain screen it just draws.
+    // Display-only on a plain screen; in a menu it refuses to bind.
     InventorySlots(classes = "g-inventory")
 }
 
 @Composable
 private fun Structural() {
-    // Mount adopts an element built outside the composition. Remembered, because handing over a
-    // fresh instance every recomposition would replace the node each time.
+    // Remembered: a fresh instance every recomposition would replace the node each time.
     val adopted = remember { UIElement().addClass("g-mounted") }
 
     SplitViewVertical(
@@ -224,9 +210,8 @@ private fun Structural() {
 }
 
 /**
- * The second column: every registered widget the first one does not show. Together the two are the
- * whole catalogue — `ComposeGalleryScenario` checks that against the widget registry, so a widget
- * added to LDLib2 without a wrapper here fails it.
+ * The second column: every registered widget the first one does not show. `ComposeGalleryScenario`
+ * checks both columns against the widget registry.
  */
 @Composable
 private fun Catalogue() {

@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.compose.demo.TestComposeControlled;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.BindableUIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ProgressBar;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Selector;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextArea;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Toggle;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
@@ -22,14 +23,7 @@ import com.lowdragmc.lowdraglib2.uitest.target.Texts;
 
 import java.util.List;
 
-/**
- * Controlled widgets where the composition and the widget could disagree.
- *
- * <p>Following state is covered elsewhere. These are the cases where the naive implementation leaves
- * the widget showing something the state does not hold: an edit the caller refuses, a value written
- * into a range that is about to change, the side effects a toggle group has on the toggles around the
- * one that changed, a dialog that has to have its content before it is shown.
- */
+/** Controlled widgets where the composition and the widget could disagree. */
 @LDLRegisterClient(name = "compose_controlled", group = "ldlib2", registry = UIScenario.REGISTRY,
         environment = RegistrationEnvironment.DEV_ONLY)
 public class ComposeControlledScenario implements UIScenario {
@@ -47,9 +41,8 @@ public class ComposeControlledScenario implements UIScenario {
                 .awaitElement(".c-root")
                 .frames(3)
 
-                // A dialog visible from the first frame. show() hides whichever of its rows are empty
-                // at the time, so this is the case that shows a blank dialog if the slots are filled
-                // too late.
+                // A dialog visible from the first frame: show() hides rows that are empty at that
+                // moment, so slots filled too late would leave it blank.
                 .check("a dialog open from the start shows its content", ctx -> paneShown(ctx, ".c-dialog-body"))
                 .check("and its title", ctx -> paneShown(ctx, ".c-dialog-title"))
                 .check("and its buttons", ctx -> paneShown(ctx, ".c-dialog-close"))
@@ -57,13 +50,22 @@ public class ComposeControlledScenario implements UIScenario {
                         Math.abs(ctx.query().select(".c-dialog").one().bounds().width() - 160f) < 0.5f)
                 .screenshotElement("controlled-dialog", ".__root__")
 
-                // Closed by the caller's own state: not a dismissal. A real click, with the pointer
-                // over the button: a press dispatched without moving the pointer looks to the dialog
-                // like a click outside it.
+                // Escape dismisses it rather than the screen: it is shown only once a UI can hold focus.
+                .key(Keys.ESCAPE)
+                .frames(3)
+                .checkScreen(ModularUIScreen.class)
+                .checkNotExists(".c-dialog-body")
+                .checkText(".c-dismissed", "dismissed=1")
+                .step("open it after Escape", ctx -> press(ctx, ".c-dialog-open"))
+                .frames(3)
+                .checkExists(".c-dialog-body")
+
+                // Closed by the caller's own state: not a dismissal. A real click, as a press without
+                // moving the pointer looks to the dialog like a click outside it.
                 .step("close it from its own button", ctx -> clickOnce(ctx, ".c-dialog-close"))
                 .frames(3)
                 .checkNotExists(".c-dialog-body")
-                .checkText(".c-dismissed", "dismissed=0")
+                .checkText(".c-dismissed", "dismissed=1")
 
                 // Closed by the player clicking outside it: a dismissal.
                 .step("open it again", ctx -> press(ctx, ".c-dialog-open"))
@@ -76,7 +78,25 @@ public class ComposeControlledScenario implements UIScenario {
                 })
                 .frames(3)
                 .checkNotExists(".c-dialog-body")
-                .checkText(".c-dismissed", "dismissed=1")
+                .checkText(".c-dismissed", "dismissed=2")
+
+                // A slot that empties while the dialog shows takes its row with it, and one that fills
+                // brings it back - including when the dialog was opened with it empty.
+                .step("open it for the title checks", ctx -> press(ctx, ".c-dialog-open"))
+                .frames(3)
+                .step("drop the title", ctx -> clickOnce(ctx, ".c-dialog-retitle"))
+                .frames(3)
+                .check("the empty title row is hidden", ctx -> !titleRow(ctx).isDisplayed())
+                .step("close it", ctx -> clickOnce(ctx, ".c-dialog-close"))
+                .frames(3)
+                .step("open it untitled", ctx -> press(ctx, ".c-dialog-open"))
+                .frames(3)
+                .step("give it its title back", ctx -> clickOnce(ctx, ".c-dialog-retitle"))
+                .frames(3)
+                .check("the title row shows again", ctx -> paneShown(ctx, ".c-dialog-title"))
+                .step("close it again", ctx -> clickOnce(ctx, ".c-dialog-close"))
+                .frames(3)
+                .checkText(".c-dismissed", "dismissed=2")
 
                 // An edit the caller refuses by not storing it is undone, keystroke by keystroke.
                 .typeInto(".c-short", "abcdefgh")
@@ -109,6 +129,22 @@ public class ComposeControlledScenario implements UIScenario {
                 .step("widen the range and move the value with it", ctx -> press(ctx, ".c-widen"))
                 .frames(3)
                 .check("the slider follows to 500 of 0..1000", ctx -> Float.valueOf(500f).equals(value(ctx, ".c-slider")))
+                // The range alone: clamped on the way down, back where the state says on the way up,
+                // for the bar too, which keeps the clamped value unless told it again.
+                .step("shrink the range under the value", ctx -> press(ctx, ".c-shrink"))
+                .frames(3)
+                .check("the slider is clamped to 100", ctx -> Float.valueOf(100f).equals(value(ctx, ".c-slider")))
+                .step("restore the range", ctx -> press(ctx, ".c-restore"))
+                .frames(3)
+                .check("the slider is back at 500", ctx -> Float.valueOf(500f).equals(value(ctx, ".c-slider")))
+                .check("and so is the progress bar", ctx ->
+                        Math.abs(element(ctx, ".c-progress", ProgressBar.class).getNormalizedValue() - 0.5f) < 0.001f)
+
+                // Candidates changed in place, through a mutableStateListOf, reach the drop-down.
+                .check("the selector starts with one candidate", ctx -> candidates(ctx) == 1)
+                .step("add a candidate in place", ctx -> press(ctx, ".c-add-option"))
+                .frames(3)
+                .check("and then has two", ctx -> candidates(ctx) == 2)
 
                 // A label that goes away and comes back.
                 .step("make the button busy", ctx -> press(ctx, ".c-busy"))
@@ -133,10 +169,29 @@ public class ComposeControlledScenario implements UIScenario {
                 .checkText(".c-pick-state", "pick=c reports=0")
                 .check("the group shows c checked and a not", ctx ->
                         isOn(ctx, ".c-toggle-c") && !isOn(ctx, ".c-toggle-a"))
+                // A click reports to the toggle clicked, not to the one the group unchecks for it.
                 .click(".c-toggle-b")
                 .frames(3)
-                .checkTextContains(".c-pick-state", "pick=b")
+                .checkText(".c-pick-state", "pick=b reports=1")
                 .check("and b is the one on", ctx -> isOn(ctx, ".c-toggle-b") && !isOn(ctx, ".c-toggle-c"))
+                // A refused check puts the previous toggle back.
+                .click(".c-toggle-d")
+                .frames(3)
+                .checkText(".c-pick-state", "pick=b reports=2")
+                .check("the refused toggle is off and b is on again", ctx ->
+                        isOn(ctx, ".c-toggle-b") && !isOn(ctx, ".c-toggle-d"))
+                // Removing the checked toggle makes the group check another by itself. That is put
+                // back to what the state says - none, as the state still names the removed one.
+                .step("drop the checked toggle", ctx -> press(ctx, ".c-drop-picked"))
+                .frames(3)
+                .checkNotExists(".c-toggle-b")
+                .check("no toggle shows checked", ctx ->
+                        !isOn(ctx, ".c-toggle-a") && !isOn(ctx, ".c-toggle-c") && !isOn(ctx, ".c-toggle-d"))
+                .checkText(".c-pick-state", "pick=b reports=2")
+                .click(".c-toggle-a")
+                .frames(3)
+                .checkText(".c-pick-state", "pick=a reports=3")
+                .check("and the toggle the group had checked can be picked", ctx -> isOn(ctx, ".c-toggle-a"))
 
                 // Spacing given to the scrolled content lands between the rows.
                 .check("the rows are spaced by contentLayout", ctx -> {
@@ -162,6 +217,15 @@ public class ComposeControlledScenario implements UIScenario {
 
     private static boolean isOn(TestContext ctx, String selector) {
         return Boolean.TRUE.equals(value(ctx, selector));
+    }
+
+    /** The dialog window's title row; the window is the element the dialog's classes go on. */
+    private static UIElement titleRow(TestContext ctx) {
+        return element(ctx, ".c-dialog").getChildren().get(0);
+    }
+
+    private static int candidates(TestContext ctx) {
+        return element(ctx, ".c-selector", Selector.class).getCandidates().size();
     }
 
     /** Whether the container an element sits in is displayed - the dialog hides empty rows. */

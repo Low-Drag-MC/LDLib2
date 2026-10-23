@@ -22,9 +22,6 @@ import net.minecraft.core.Direction
 import net.minecraft.network.chat.Component
 import net.minecraft.world.level.Level
 
-// The larger widgets: each builds a good deal of its own UI, so each wrapper is about which parts of
-// that the composition should own and which it must leave alone.
-
 /**
  * A tree of [ITreeNode]s with a controlled selection.
  *
@@ -33,8 +30,10 @@ import net.minecraft.world.level.Level
  * (unless [staticTree]), so nodes added under a node already on screen appear by themselves; a
  * different [root] object is what makes it start over.
  *
- * <p>[onSelectedChange] reports the player's selections, as a copy. Rebuilding the tree clears the
- * widget's selection without that being reported, and [selected] is then put back.
+ * <p>[onSelectedChange] reports, as a copy, every change to the selection that the composition did not
+ * make: the player's clicks, and nodes dropped from it because a collapse hid them or they left the
+ * model. Rebuilding the tree clears the widget's selection without that being reported, and
+ * [selected] is then put back.
  *
  * @param root the tree to show, compared by identity.
  * @param flattenRoot hide the root row and show its children as the top level.
@@ -99,8 +98,8 @@ fun <N : ITreeNode<*, *>> TreeList(
         enabled = enabled, visible = visible, focusable = focusable, events = events,
         update = {
             set(edits) {}
-            // Each of these rebuilds the rows, and that clears the selection with notification on;
-            // all before the root, so a tree is only built once on the first frame.
+            // flattenRoot, draggable and root rebuild the rows, which clears the selection with
+            // notification on; root goes last so the first frame builds the tree once.
             write(staticTree) { setStaticTree(it) }
             write(multiSelect) { setSupportMultipleSelection(it) }
             write(flattenRoot) { setFlattenRoot(it) }
@@ -140,7 +139,8 @@ private class TreeCallbacks<N> {
  * the search before it.
  *
  * <p>Searching on the server — the widget's `setSearchOnServer` — registers an RPC, which a
- * composition must never do. Build such a component in `createUI` and [Mount] it.
+ * composition must never do. Build such a component in `createUI` and add it to the tree there,
+ * outside the [ComposeElement], so both sides have it; [Mount] only runs on the client.
  *
  * @param resultText what a result is shown as, in the box once picked. Defaults to `toString()`.
  * @param candidateContent a result's row in the drop-down. Defaults to [resultText] as text.
@@ -165,31 +165,32 @@ fun <T> SearchComponent(
     current.search = search
     current.resultText = resultText
     current.candidateContent = candidateContent
-    ControlledNode<SearchComponent<T?>, T?, T?>(
-        factory = {
-            // The search UI is installed once: replacing it disposes and recreates the widget's
-            // search engine. It reads the latest lambdas instead.
-            SearchComponent<T?>(object : SearchComponent.ISearchUI<T?> {
-                override fun search(word: String, find: IResultHandler<T?>) {
-                    current.search?.invoke(word) { find.acceptResult(it) }
-                }
-
-                override fun resultText(value: T?): String =
-                    if (value == null) "" else current.resultText?.invoke(value) ?: value.toString()
-
-                override fun onResultSelected(value: T?) = Unit
-            }).apply {
-                setCandidateUIProvider(UIElementProvider { candidate ->
-                    val content = current.candidateContent
-                    if (candidate != null && content != null) {
-                        content(candidate)
-                    } else {
-                        UIElementProvider.text<T?> { Component.literal(if (it == null) "" else current.resultText?.invoke(it) ?: it.toString()) }
-                            .apply(candidate)
-                    }
-                })
+    val component = remember {
+        // Installed once, reading the latest lambdas: replacing it recreates the widget's search engine.
+        SearchComponent<T?>(object : SearchComponent.ISearchUI<T?> {
+            override fun search(word: String, find: IResultHandler<T?>) {
+                current.search?.invoke(word) { find.acceptResult(it) }
             }
-        },
+
+            override fun resultText(value: T?): String =
+                if (value == null) "" else current.resultText?.invoke(value) ?: value.toString()
+
+            override fun onResultSelected(value: T?) = Unit
+        }).apply {
+            setCandidateUIProvider(UIElementProvider { candidate ->
+                val content = current.candidateContent
+                if (candidate != null && content != null) {
+                    content(candidate)
+                } else {
+                    UIElementProvider.text<T?> { Component.literal(if (it == null) "" else current.resultText?.invoke(it) ?: it.toString()) }
+                        .apply(candidate)
+                }
+            })
+        }
+    }
+    PopupOfDialog(component.dialog)
+    ControlledNode<SearchComponent<T?>, T?, T?>(
+        factory = { component },
         value = selected,
         onValueChange = onSelectedChange,
         fromElement = { it },
@@ -207,12 +208,14 @@ private class SearchCallbacks<T> {
 /**
  * The editor's property inspector, showing [target]'s configurators.
  *
- * <p>Edits change [target] directly — that is what configurators do — and [onChange] reports each one.
- * A different target object is what makes it rebuild; the same object with new values is not, so a
- * target edited elsewhere should be inspected afresh by passing it again as a new object, or by
- * keying the call.
+ * <p>Edits change [target] directly and [onChange] reports each one. Only a different target object
+ * rebuilds it, not the same object with new values: to show edits made elsewhere, pass a new object or
+ * key the call.
  *
- * @param historyStack where edits record undo entries. Null records none.
+ * @param historyStack where edits record undo entries. Null records none. For a target the widget
+ *   can snapshot (an `INBTSerializable` one), inspecting it records an entry too, whose undo clears
+ *   the inspector: undoing that far leaves it empty until [target] changes, since the same target is
+ *   not inspected twice.
  */
 @Composable
 fun Inspector(
@@ -290,10 +293,11 @@ fun Scene(
             write(draggable) { setDraggable(it) }
             write(scalable) { setScalable(it) }
             write(interactive) { setIntractable(it) }
-            // The scene before the blocks: rendering blocks needs a scene to render them in.
+            // Before the blocks, which need a scene to render into.
             write(Identity(world)) { if (world != null) createScene(world) }
             write(Identity(world) to blocks.toSet()) { (_, positions) ->
-                if (world != null) setRenderedCore(positions, null, autoCamera)
+                // A null world leaves the last scene in place, so it is emptied instead.
+                if (world != null) setRenderedCore(positions, null, autoCamera) else setRenderedCore(emptyList(), null, false)
             }
         },
     )
@@ -323,7 +327,6 @@ fun GraphView(
         enabled = enabled, visible = visible, focusable = focusable, events = events,
         widgetStyle = graphStyle?.let { block -> { getGraphViewStyle().apply(block) } },
     )
-    // Into the panned and zoomed content root, not beside it: GraphView has no content host of its
-    // own, so plain children would sit outside the transform.
+    // GraphView has no content host of its own, so plain children would sit outside the pan and zoom.
     Subcompose(view.contentRoot, content)
 }

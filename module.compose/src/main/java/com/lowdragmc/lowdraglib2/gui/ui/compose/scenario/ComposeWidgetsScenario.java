@@ -19,17 +19,9 @@ import com.lowdragmc.lowdraglib2.uitest.target.Texts;
 import java.util.List;
 
 /**
- * Covers the two claims the other compose scenarios leave untested.
- *
- * <p><b>Subcomposition is invisible.</b> A split view's panes are separate compositions wired to the
- * parent through a {@code CompositionContext}. If that wiring is wrong the symptoms are subtle
- * rather than loud: the panes render, but state changes stop crossing the boundary, or a
- * {@code CompositionLocal} provided outside reads as its default inside. Both are checked.
- *
- * <p><b>Reordering keeps focus.</b> {@code UIElement.reorderChild} exists so a keyed list can shuffle
- * without detaching anything. Remove-and-re-add would give the same visible order, so order alone
- * proves nothing — the assertion that has teeth is that the focused field is still focused, and is
- * still the same element, after the swap.
+ * The widgets demo: split-view panes sharing state and a {@code CompositionLocal} across their
+ * composition boundary, a keyed reorder keeping focus, and the visibility, tab, dialog, escape-hatch,
+ * hover, remount and node-observer cases.
  */
 @LDLRegisterClient(name = "compose_widgets", group = "ldlib2", registry = UIScenario.REGISTRY,
         environment = RegistrationEnvironment.DEV_ONLY)
@@ -76,9 +68,8 @@ public class ComposeWidgetsScenario implements UIScenario {
                 .checkFocused(".field-a")
                 .step("remember which element field-a is", ctx -> fieldABefore = element(ctx, ".field-a"))
 
-                // Dispatched rather than clicked. A real click would move focus to the button first
-                // — correct behaviour, but it would mean this test measured the input system's focus
-                // policy instead of what the reorder does to focus.
+                // Dispatched rather than clicked: a click would move focus to the button and test the
+                // input system's focus policy instead of the reorder.
                 .step("swap without touching focus", ctx -> press(ctx, ".swap-fields"))
                 .frames(3)
                 .check("the fields swapped places", ctx -> {
@@ -89,11 +80,9 @@ public class ComposeWidgetsScenario implements UIScenario {
                 // The one that would fail if `move` were implemented as remove plus re-add.
                 .checkFocused(".field-a")
 
-                // AnimatedVisibility against a real element tree. Frames, not ticks: the tween runs
-                // off the frame clock, and a dev world renders far faster than it ticks.
+                // AnimatedVisibility. Frames, not ticks: the tween runs off the frame clock.
                 .checkNotExists(".fade-content")
-                // Pressed rather than clicked: a full click settles between hover, press and
-                // release, and those settles alone outlast the fade — leaving nothing to observe.
+                // Pressed rather than clicked: a full click's settles alone outlast the fade.
                 .step("show the panel", ctx -> press(ctx, ".fade-toggle"))
                 .frames(3)
                 .checkExists(".fade-content")
@@ -101,19 +90,14 @@ public class ComposeWidgetsScenario implements UIScenario {
 
                 .step("hide the panel", ctx -> press(ctx, ".fade-toggle"))
                 .frames(2)
-                // Mid-fade the element is still mounted, and already partly transparent. A plain
-                // `if (visible)` would have removed it on the first frame.
                 .check("still present while fading out", ctx ->
                         ctx.query().select(".fade-content").optional().isPresent())
                 .check("and already fading", ctx -> opacity(ctx) < 1f)
                 .waitUntil("the fade-out finishes and unmounts it", ctx ->
                         ctx.query().select(".fade-content").optional().isEmpty())
 
-                // Entering and leaving with a slide and a size change. The panel's height belongs to
-                // the animation: part-way it is part-open and drawn shifted, at rest it is exactly as
-                // tall as its content, and the line below moves to make room and back again.
-                // The part-way checks run without the usual settle between steps: three settles
-                // outlast the whole 400ms entrance.
+                // Entering and leaving with a slide and a size change, moving the line below. The
+                // part-way checks skip the usual settle: three settles outlast the 400ms entrance.
                 .checkNotExists(".expand-content")
                 .step("remember where the line below sits", ctx -> belowY = y(ctx, ".expand-below"))
                 .settleMs(0).step("show the expanding panel", ctx -> press(ctx, ".expand-toggle"))
@@ -136,8 +120,7 @@ public class ComposeWidgetsScenario implements UIScenario {
                 .check("the line below is back where it was", ctx ->
                         Math.abs(y(ctx, ".expand-below") - belowY) < 0.5f)
 
-                // Tabs. Only the selected tab's body is displayed, but every tab stays composed —
-                // which is what lets a tab keep its state while you are looking at another one.
+                // Tabs: only the selected body is displayed, but every tab stays composed.
                 .check("tab one is showing", ctx -> paneShown(ctx, ".tab-body-one"))
                 .check("tab two is composed but not showing", ctx -> !paneShown(ctx, ".tab-body-two"))
                 .click(".tab-select-two")
@@ -156,9 +139,7 @@ public class ComposeWidgetsScenario implements UIScenario {
                 .check("removing a tab took its header with it", ctx ->
                         ctx.query().type(Tab.class).count() == 2)
 
-                // Reordering an existing set. The headers have to follow the declared order, and
-                // moving them must not rebuild anything: the selected tab stays selected, and its body
-                // is still the element it was.
+                // Reordering: the headers follow the declared order and nothing is rebuilt.
                 .check("headers start in declared order", ctx -> tabHeaders(ctx).equals(List.of("One", "Two")))
                 .step("remember tab two's body", ctx -> tabTwoBefore = element(ctx, ".tab-body-two"))
                 .click(".tab-reverse")
@@ -177,8 +158,7 @@ public class ComposeWidgetsScenario implements UIScenario {
                 .frames(3)
                 .check("and back to declared order", ctx -> tabHeaders(ctx).equals(List.of("One", "Two")))
 
-                // onSelect is for the player's choices. Everything above - tabs added, removed and
-                // reordered, a selection pushed in from state - happened without one.
+                // onSelect is for the player's choices; nothing above reported one.
                 .checkText(".tab-state", "selected=two reports=0")
                 .step("pick tab one by its header", ctx -> pressHeader(ctx, "One"))
                 .frames(3)
@@ -206,8 +186,37 @@ public class ComposeWidgetsScenario implements UIScenario {
                 .checkText(".tab-state", "selected=two reports=3")
                 .screenshotElement("widgets-tabs", ".__root__")
 
-                // A modal driven by state. Its content has to be composed before `show()` runs, or
-                // the dialog decides it has none and displays an empty body.
+                // Removing the selected tab while picking another in the same change: the caller's
+                // pick wins, and the neighbour fallback neither runs nor reports.
+                .step("add tab three again", ctx -> press(ctx, ".tab-toggle"))
+                .frames(3)
+                .step("pick it once more", ctx -> pressHeader(ctx, "Three"))
+                .frames(3)
+                .checkText(".tab-state", "selected=three reports=4")
+                .step("close it and pick tab one", ctx -> press(ctx, ".tab-close-pick-one"))
+                .frames(3)
+                .checkText(".tab-state", "selected=one reports=4")
+                .check("and the view shows tab one", ctx -> paneShown(ctx, ".tab-body-one"))
+
+                // Two tabs removed at once, one of them selected: one report, naming a tab that is
+                // still there.
+                .step("add tab three back", ctx -> press(ctx, ".tab-toggle"))
+                .frames(3)
+                .step("and pick it", ctx -> pressHeader(ctx, "Three"))
+                .frames(3)
+                .checkText(".tab-state", "selected=three reports=5")
+                .step("keep only tab one", ctx -> press(ctx, ".tab-minimal"))
+                .frames(3)
+                .checkText(".tab-state", "selected=one reports=6")
+                .check("only tab one is left, and showing", ctx ->
+                        ctx.query().type(Tab.class).count() == 1 && paneShown(ctx, ".tab-body-one"))
+                .step("bring the tabs back", ctx -> press(ctx, ".tab-minimal"))
+                .frames(3)
+                .step("and drop tab three", ctx -> press(ctx, ".tab-toggle"))
+                .frames(3)
+                .checkText(".tab-state", "selected=one reports=6")
+
+                // A modal driven by state; its content must be composed before `show()` or the body is empty.
                 .checkNotExists(".dialog-body")
                 // Pressed, not clicked: the dialog opens on mouse-down and its modal overlay then
                 // covers the button, so re-resolving the selector for the release fails.
@@ -222,8 +231,7 @@ public class ComposeWidgetsScenario implements UIScenario {
                 .checkNotExists(".dialog-body")
                 .checkTextContains(".dialog-answer", "yes")
 
-                // A widget with no wrapper of its own, used through the generic escape hatch. It
-                // mounts, and its properties track composition state, with no per-widget code.
+                // A widget with no wrapper of its own, used through the generic escape hatch.
                 .check("the unwrapped widget mounted", ctx ->
                         ctx.query().type(TreeList.class).count() == 1)
                 .check("it shows the two branches it was given", ctx -> treeRows(ctx) == 2)
@@ -231,10 +239,7 @@ public class ComposeWidgetsScenario implements UIScenario {
                 .frames(3)
                 .check("changing state re-drives it", ctx -> treeRows(ctx) == 4)
 
-                // Hover as composition state. The class half a stylesheet could do on its own via
-                // the __hovered__ class core maintains; the caption could not, and that round trip
-                // - pointer to element event to composition state to recomposed text - is what is
-                // actually under test here.
+                // Hover as composition state: pointer, element event, composition state, recomposed text.
                 .check("the card starts idle", ctx -> !hasClass(ctx, ".hover-card", "hovered"))
                 .hover(".hover-card")
                 .frames(3)
@@ -245,9 +250,8 @@ public class ComposeWidgetsScenario implements UIScenario {
                 .frames(3)
                 .check("leaving clears it again", ctx -> !hasClass(ctx, ".hover-card", "hovered"))
 
-                // A nested ComposeElement removed and put back. Removal disposes its composition -
-                // that is what stops a closed screen being retained forever - so re-adding it has to
-                // rebuild from scratch rather than leave an empty element behind.
+                // A nested ComposeElement removed and put back: removal disposes its composition, so
+                // re-adding it has to rebuild it.
                 .checkExists(".remount-body")
                 .click(".remount-toggle")
                 .frames(3)
@@ -257,15 +261,15 @@ public class ComposeWidgetsScenario implements UIScenario {
                 .check("the composition was rebuilt on re-attach", ctx ->
                         ctx.query().select(".remount-body").optional().isPresent())
 
-                // A layout block that reads state, with nothing else reading it. Blocks run in the
-                // apply phase, where reads are invisible to the composition, so no recomposition can
-                // possibly be involved here - if the width follows the button it is because the node
-                // observer re-ran that one block.
+                // A layout block reading state nothing else reads: only the node observer can make it follow.
                 .check("the observed box starts narrow", ctx -> width(ctx, ".observed-box") < 60f)
+                .check("the observed text starts at its content height", ctx -> height(ctx, ".observed-text") < 20f)
                 .click(".observed-toggle")
                 .frames(3)
                 .check("a block that reads state follows it, with no recomposition", ctx ->
                         width(ctx, ".observed-box") > 100f)
+                .check("and a text given a height that way takes it", ctx ->
+                        Math.abs(height(ctx, ".observed-text") - 30f) < 0.5f)
                 .click(".observed-toggle")
                 .frames(3)
                 .check("and back again", ctx -> width(ctx, ".observed-box") < 60f)
@@ -285,7 +289,7 @@ public class ComposeWidgetsScenario implements UIScenario {
         UIEventDispatcher.dispatchEvent(event);
     }
 
-    /** Presses the header captioned [caption], the way a player picks a tab. */
+    /** Presses the header captioned {@code caption}, the way a player picks a tab. */
     private static void pressHeader(TestContext ctx, String caption) {
         var header = ctx.query().type(Tab.class).list().stream()
                 .map(ref -> ref.as(UIElement.class))
@@ -345,11 +349,8 @@ public class ComposeWidgetsScenario implements UIScenario {
     }
 
     /**
-     * Whether the pane holding {@code bodySelector} is the one on show.
-     *
-     * <p>Asks the pane, not the body. {@code isDisplayed()} reports an element's own display flag and
-     * does not consult its ancestors, and it is the pane that a tab view shows and hides — so the
-     * body inside a hidden pane still answers "displayed".
+     * Whether the pane holding {@code bodySelector} is on show. Asks the pane: {@code isDisplayed()}
+     * ignores ancestors, and a tab view hides the pane, not the body.
      */
     private static boolean paneShown(TestContext ctx, String bodySelector) {
         var pane = element(ctx, bodySelector).getParent();

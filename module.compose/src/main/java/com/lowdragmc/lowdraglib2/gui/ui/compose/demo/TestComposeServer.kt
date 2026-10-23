@@ -12,6 +12,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Box
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Button
 import com.lowdragmc.lowdraglib2.gui.ui.compose.ComposeElement
+import com.lowdragmc.lowdraglib2.gui.ui.compose.FluidSlot
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Row
 import com.lowdragmc.lowdraglib2.gui.ui.compose.ScrollView
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Text
@@ -24,24 +25,17 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister
 import com.lowdragmc.lowdraglib2.test.ui.IMenuTest
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.player.Player
+import net.neoforged.neoforge.fluids.FluidStack
 
 /**
- * A composition whose shape is decided by the server: `/ldlib2_screen_test` cannot open this one —
- * it goes through the real menu path, so a scenario opens it with
- * `PlayerUIMenuType.openUI(player, ldlib2:compose_server)`.
+ * A composition whose shape is decided by the server, opened through the real menu path with
+ * `PlayerUIMenuType.openUI(player, ldlib2:compose_server)` rather than `/ldlib2_screen_test`.
  *
- * <p>The point is the thing that does not work naively. `UISyncManager` numbers sync values and RPC
- * events by registration order, and both sides get their numbering by running this same `createUI`.
- * A composition runs on the client only and adds and removes elements as state changes — so if rows
- * registered anything, the two sides would disagree about what index means what.
+ * <p>`UISyncManager` numbers sync values and RPC events by registration order on both sides, and the
+ * composition runs on the client only, so nothing in it registers: the model rides **one** sync value
+ * and the rows send **named messages**, which share one RPC event.
  *
- * <p>So nothing in the composition registers. The whole model rides **one** sync value declared
- * below, and the rows send **named messages** back, which share one RPC event however many of them
- * there are. Between those two the row count is free to be anything, and the numbering never moves.
- *
- * <p>Client and server each build their own instance through `PlayerUIMenuType`; [CLIENT] and
- * [SERVER] hand the scenario both, so it can assert on the authoritative state and the displayed
- * state separately.
+ * <p>[CLIENT] and [SERVER] hand the scenario each side's instance.
  */
 @LDLRegister(name = "compose_server", registry = "ldlib2:menu_test")
 class TestComposeServer : IMenuTest {
@@ -57,6 +51,10 @@ class TestComposeServer : IMenuTest {
 
     val serverRows: List<String> get() = rows
 
+    /** Pings received from the second composition. Only ever counted on the server. */
+    var serverPings = 0
+        private set
+
     /** The composition's host on this side; on the server it must never have been composed. */
     lateinit var host: ComposeElement
         private set
@@ -71,29 +69,24 @@ class TestComposeServer : IMenuTest {
         }
         root.style { style -> style.backgroundTexture(Sprites.BORDER) }
 
-        // The composition's host. Built on both sides — only its *content* is client-only — which is
-        // what lets the message handlers below sit on the same element the composition sends from.
+        // Built on both sides (only its content is client-only), so the message handlers below can
+        // sit on the element the composition sends from.
         host = ComposeElement { ServerDrivenRows(model) }
 
-        // ---- everything that registers lives here, outside the composition ----------------------
-        //
-        // One sync value for the entire model. Three rows or three hundred, it is this one slot, so
-        // its index is the same on both sides no matter what the UI does with the contents.
+        // Everything that registers lives here, outside the composition: one sync value for the
+        // whole model, whatever the row count.
         root.addChild(
             BindableValue<String>().bind(
                 DataBindingBuilder.stringS2C { rows.joinToString(SEPARATOR) }
                     .name("rows")
-                    // Only ever runs on the client: bind() makes the element itself the data source
-                    // on the receiving side, so the getter above is the server's half and this is
-                    // the client's.
+                    // Client side only; the getter above is the server's half.
                     .onRemoteSyncReceived { encoded -> model.value = decode(encoded) }
                     .build()
             ).setId("rows_carrier")
         )
 
-        // Messages are addressed by name and share a single RPC event, so the composition can send
-        // any of these without registering anything of its own. The handlers only need to exist where
-        // they run: ComposeElement creates the shared event itself, on both sides, when it is built.
+        // ComposeElement registers the shared message RPC on both sides when built, so handlers are
+        // only needed where they run.
         if (!player.level().isClientSide) {
             host.onMessage("add") { rows = rows + "row ${nextRow++}" }
             host.onMessage("remove") { tag -> rows = rows - tag.getString("row") }
@@ -101,6 +94,12 @@ class TestComposeServer : IMenuTest {
         }
 
         root.addChild(host)
+
+        // Its message RPC registers after everything the first composition composed: a composed widget
+        // registering an RPC would shift its index on the client only, and pings would never arrive.
+        val tail = ComposeElement { Pinger() }
+        if (!player.level().isClientSide) tail.onMessage("ping") { serverPings++ }
+        root.addChild(tail)
 
         if (player.level().isClientSide) CLIENT = this else SERVER = this
         return ModularUI(
@@ -110,11 +109,7 @@ class TestComposeServer : IMenuTest {
     }
 
     companion object {
-        /**
-         * Joining with a delimiter is the demo being small, not a recommendation: one sync value can
-         * carry anything the sync layer can serialise, and a real model would use a CompoundTag or a
-         * registered type rather than a string. What matters here is that it is *one* value.
-         */
+        /** A string join keeps the demo small; a real model would sync a CompoundTag or registered type. */
         private const val SEPARATOR = "|"
 
         @JvmStatic
@@ -133,13 +128,7 @@ class TestComposeServer : IMenuTest {
 /** Row names are server-generated and contain spaces; class names cannot. */
 private fun slug(row: String) = row.replace(' ', '-')
 
-/**
- * One row per item the server says exists.
- *
- * <p>Nothing here knows how many rows there will be, and nothing here registers anything — the row
- * count is read out of composition state that the sync value writes into, and the buttons talk back
- * by name.
- */
+/** One row per item the server says exists; the buttons talk back by message name. */
 @Composable
 private fun ServerDrivenRows(model: MutableState<List<String>>) {
     val rows by model
@@ -160,9 +149,11 @@ private fun ServerDrivenRows(model: MutableState<List<String>>) {
                 text = Component.literal("清空"),
                 classes = "cs-clear",
             )
+            // Composed on the client only: it must not register the click RPC its widget carries.
+            FluidSlot(FluidStack.EMPTY, classes = "cs-fluid")
         }
 
-        ScrollView(layout = { width(200.px); height(90.px) }, contentLayout = { gap { all(2.px) } }, classes = "cs-list") {
+        ScrollView(layout = { width(200.px); height(80.px) }, contentLayout = { gap { all(2.px) } }, classes = "cs-list") {
             rows.forEach { row ->
                 key(row) {
                     Row(layout = { gap { all(2.px) } }, classes = "cs-row cs-row-${slug(row)}") {
@@ -178,4 +169,10 @@ private fun ServerDrivenRows(model: MutableState<List<String>>) {
             }
         }
     }
+}
+
+@Composable
+private fun Pinger() {
+    val server = rememberServerMessenger()
+    Button(onClick = { server.send("ping") }, text = Component.literal("ping"), classes = "cs-ping")
 }

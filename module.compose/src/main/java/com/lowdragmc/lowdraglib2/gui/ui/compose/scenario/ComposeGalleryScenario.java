@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.gui.ui.compose.scenario;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.BindableUIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
 import com.lowdragmc.lowdraglib2.gui.ui.compose.demo.TestComposeGallery;
 import com.lowdragmc.lowdraglib2.registry.RegistrationEnvironment;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
@@ -11,6 +12,7 @@ import com.lowdragmc.lowdraglib2.uitest.ScenarioOptions;
 import com.lowdragmc.lowdraglib2.uitest.TestContext;
 import com.lowdragmc.lowdraglib2.uitest.UIScenario;
 
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
@@ -24,18 +26,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Runs every widget wrapper the other scenarios never reach.
- *
- * <p>Two thirds of the wrappers were compiled but had never been instantiated. That gap is exactly
- * how {@code LazyRow} shipped with a wrong line in it — it looked fine and nothing had ever rendered
- * it. So the first half of this scenario is deliberately unglamorous: mount all of them and check
- * they are there.
- *
- * <p>The second half checks the thing that would realistically be broken rather than merely absent —
- * the controlled-value round trip. Pushing a value down from composition state and reading it back
- * off the element is what catches a comparison done on the wrong type, which is the mistake these
- * wrappers are most prone to: {@code TextArea} and {@code CodeEditor} hold {@code String[]}, and an
- * array compares by identity, so a naive guard would fight the user on every keystroke.
+ * Runs every widget wrapper the other scenarios never reach: mounts them all, checks every registered
+ * widget is covered, then checks the controlled-value round trip.
  */
 @LDLRegisterClient(name = "compose_gallery", group = "ldlib2", registry = UIScenario.REGISTRY,
         environment = RegistrationEnvironment.DEV_ONLY)
@@ -69,18 +61,25 @@ public class ComposeGalleryScenario implements UIScenario {
 
     @Override
     public void define(ScenarioBuilder s) {
-        s.openModularUI("compose gallery", ctx -> new TestComposeGallery().createUI(ctx.requirePlayer()))
+        s.setHeldItem(new ItemStack(Items.EMERALD, 5))
+                .openModularUI("compose gallery", ctx -> new TestComposeGallery().createUI(ctx.requirePlayer()))
                 .awaitScreen(ModularUIScreen.class)
                 .awaitModularUI()
                 .awaitElement(".gallery-root")
                 .frames(3);
 
-        // Composing at all is the bar these have not cleared before now.
         for (var styleClass : MOUNTED) {
             s.checkExists("." + styleClass);
         }
 
         s.check("every registered widget is wrapped and on the gallery", ComposeGalleryScenario::everyWidgetCovered)
+                // Some wrappers build a subclass of the widget; stylesheets select by element name, so
+                // that has to stay the widget's registered one.
+                .check("wrapper subclasses keep the element name stylesheets select", ctx ->
+                        "text-field".equals(element(ctx, ".g-textfield").getElementName())
+                                && "toggle".equals(element(ctx, ".g-toggle").getElementName())
+                                && "fluid-slot".equals(element(ctx, ".g-fluidslot").getElementName())
+                                && "inventory-slots".equals(element(ctx, ".g-inventory").getElementName()))
                 .screenshotElement("gallery", ".gallery-root")
 
                 // Array-valued widgets: the guard has to compare contents, not identity.
@@ -99,7 +98,6 @@ public class ComposeGalleryScenario implements UIScenario {
                 .frames(3)
                 .check("and follows state", ctx -> value(ctx, ".g-slider", 0f) == 0.75f)
 
-                // Selector was the fiddly one to type; check the value actually arrives.
                 .check("the selector starts on beta", ctx -> "beta".equals(rawValue(ctx, ".g-selector")))
                 .click(".g-set-selector")
                 .frames(3)
@@ -112,7 +110,7 @@ public class ComposeGalleryScenario implements UIScenario {
                 .check("and follows state to red", ctx ->
                         Integer.valueOf(0xFFCC3333).equals(rawValue(ctx, ".g-colour")))
 
-                // Item slot: a stack is not a scalar, so it is worth checking the whole thing lands.
+                // Item slot: item and count both land.
                 .check("the item slot holds the stack it was given", ctx ->
                         stack(ctx).is(Items.APPLE) && stack(ctx).getCount() == 3)
                 .click(".g-set-item")
@@ -120,13 +118,16 @@ public class ComposeGalleryScenario implements UIScenario {
                 .check("and follows state to a different stack", ctx ->
                         stack(ctx).is(Items.DIAMOND) && stack(ctx).getCount() == 7)
 
-                // Siblings in a Column must not sit on top of each other. Worth asserting rather
-                // than eyeballing: a widget whose layout box collapses to zero still draws, so an
-                // overlap looks like a styling quirk when it is actually a sizing bug.
+                // Column siblings must not overlap: a widget whose layout box collapses to zero still
+                // draws, so the overlap is a sizing bug, not a styling quirk.
                 .check("the item row starts below the button above it", ctx ->
                         bounds(ctx, ".g-itemslot").y() >= bounds(ctx, ".g-set-item").bottom() - 0.5f)
                 .check("the tag field starts below the colour selector", ctx ->
                         bounds(ctx, ".g-tagfield").y() >= bounds(ctx, ".g-colour").bottom() - 0.5f)
+
+                // Outside a menu the inventory is display-only, but it does show the player's items.
+                .waitUntil("the inventory slots show what the player holds", ctx ->
+                        inventoryHolds(ctx, Items.EMERALD))
 
                 // Mount adopts an element built outside the composition; it must be that instance.
                 .check("Mount attached the element it was handed, inside the split", ctx -> {
@@ -138,9 +139,8 @@ public class ComposeGalleryScenario implements UIScenario {
     }
 
     /**
-     * Walks the gallery for every widget type in LDLib2's registry. Only elements a wrapper put there
-     * count - a widget's own internal parts (the label inside a toggle, the scrollbar inside a scroll
-     * view) would otherwise make types look covered that no composable creates.
+     * Whether every LDLib2 widget type in the registry is on the gallery. Internal parts (the label
+     * inside a toggle) don't count, or they would cover types no composable creates.
      */
     private static boolean everyWidgetCovered(TestContext ctx) {
         var present = new HashSet<Class<?>>();
@@ -186,6 +186,17 @@ public class ComposeGalleryScenario implements UIScenario {
     private static float value(TestContext ctx, String selector, float fallback) {
         var value = rawValue(ctx, selector);
         return value instanceof Float f ? f : fallback;
+    }
+
+    private static boolean inventoryHolds(TestContext ctx, Item item) {
+        var pending = new ArrayDeque<UIElement>();
+        pending.push(element(ctx, ".g-inventory"));
+        while (!pending.isEmpty()) {
+            var element = pending.pop();
+            if (element instanceof ItemSlot slot && slot.getValue().is(item)) return true;
+            element.getChildren().forEach(pending::push);
+        }
+        return false;
     }
 
     private static ItemStack stack(TestContext ctx) {

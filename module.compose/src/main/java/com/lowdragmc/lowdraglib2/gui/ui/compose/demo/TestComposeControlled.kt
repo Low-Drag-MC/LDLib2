@@ -2,7 +2,9 @@ package com.lowdragmc.lowdraglib2.gui.ui.compose.demo
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -12,6 +14,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.compose.Button
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Dialog
 import com.lowdragmc.lowdraglib2.gui.ui.compose.ProgressBar
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Row
+import com.lowdragmc.lowdraglib2.gui.ui.compose.Selector
 import com.lowdragmc.lowdraglib2.gui.ui.compose.ScrollView
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Slider
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Switch
@@ -28,18 +31,12 @@ import com.lowdragmc.lowdraglib2.test.ui.IScreenTest
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.player.Player
 
-/**
- * Controlled widgets where the caller says no: `/ldlib2_screen_test compose_controlled`.
- *
- * <p>Each row is one of the things a controlled widget has to get right besides following state —
- * an edit the caller refuses, a value that only makes sense against a range given alongside it, a
- * group whose side effects are not edits, a dialog that starts open. The scenario beside it drives
- * each one.
- */
+/** Controlled widgets where the caller says no: `/ldlib2_screen_test compose_controlled`. */
 @LDLRegisterClient(name = "compose_controlled", registry = "ldlib2:screen_test")
 class TestComposeControlled : IScreenTest {
     override fun createUI(entityPlayer: Player?): ModularUI =
-        composeModularUI(entityPlayer, StylesheetManager.MODERN) { Controlled() }
+        // Escape reaches a dialog only in a UI that does not close on it first.
+        composeModularUI(entityPlayer, StylesheetManager.MODERN) { Controlled() }.shouldCloseOnEsc(false)
 }
 
 @Composable
@@ -47,6 +44,7 @@ private fun Controlled() {
     Box(layout = { width(300.px); padding { all(6.px) }; gap { all(3.px) } }, classes = "c-root") {
         Refusals()
         Ranges()
+        Candidates()
         Labels()
         Group()
         Dialogs()
@@ -63,7 +61,6 @@ private fun Refusals() {
     var shout by remember { mutableStateOf(listOf("")) }
 
     Row(layout = { gap { all(3.px) } }) {
-        // At most five characters, enforced by simply not storing anything longer.
         TextField(
             value = short,
             onValueChange = { if (it.length <= 5) short = it },
@@ -86,7 +83,6 @@ private fun Refusals() {
         )
     }
     Text("short=$short digits=$digits three=$three", classes = "c-text-state")
-    // Upper-cases whatever is typed: a correction the caller applies on every edit.
     TextArea(
         lines = shout,
         onLinesChange = { lines -> shout = lines.map { it.uppercase() } },
@@ -109,7 +105,23 @@ private fun Ranges() {
         classes = "c-slider",
     )
     ProgressBar(progress = level, range = 0f..max, layout = { width(200.px); height(8.px) }, classes = "c-progress")
-    Button(onClick = { max = 1000f; level = 500f }, text = "widen", classes = "c-widen")
+    Row(layout = { gap { all(3.px) } }) {
+        Button(onClick = { max = 1000f; level = 500f }, text = "widen", classes = "c-widen")
+        // Range only: the value is clamped on the way down and comes back on the way up.
+        Button(onClick = { max = 100f }, text = "shrink", classes = "c-shrink")
+        Button(onClick = { max = 1000f }, text = "restore", classes = "c-restore")
+    }
+}
+
+/** A selector whose candidates are a list changed in place. */
+@Composable
+private fun Candidates() {
+    val options = remember { mutableStateListOf("x") }
+    var chosen by remember { mutableStateOf<String?>("x") }
+    Row(layout = { gap { all(3.px) } }) {
+        Selector(chosen, { chosen = it }, options, layout = { width(60.px) }, classes = "c-selector")
+        Button(onClick = { options += "y" }, text = "add y", classes = "c-add-option")
+    }
 }
 
 /** A button whose label comes and goes, a toggle with none, and a switch. */
@@ -132,26 +144,38 @@ private fun Labels() {
     Text("on=$on", classes = "c-on")
 }
 
-/** Three toggles in a group, all driven by one value. */
+/**
+ * Toggles in a group, all driven by one value. Checking "d" is refused, and "drop picked" removes the
+ * checked toggle while leaving the state naming it.
+ */
 @Composable
 private fun Group() {
     var pick by remember { mutableStateOf("a") }
     var reports by remember { mutableIntStateOf(0) }
+    var names by remember { mutableStateOf(listOf("a", "b", "c", "d")) }
+    // Hoisted so unchanged toggles are skipped, leaving only the group wrapper to correct a toggle
+    // the widget checked on its own.
+    val labels = remember { listOf("a", "b", "c", "d").associateWith { Component.literal(it) } }
 
     ToggleGroup(layout = { flexDirection(dev.vfyjxf.taffy.style.FlexDirection.ROW) }, classes = "c-group") {
-        for (key in listOf("a", "b", "c")) {
-            Toggle(
-                checked = pick == key,
-                onCheckedChange = { checked ->
-                    reports++
-                    if (checked) pick = key
-                },
-                text = Component.literal(key),
-                classes = "c-toggle-$key",
-            )
+        for (name in names) {
+            key(name) {
+                Toggle(
+                    checked = pick == name,
+                    onCheckedChange = { checked ->
+                        reports++
+                        if (checked && name != "d") pick = name
+                    },
+                    text = labels[name],
+                    classes = "c-toggle-$name",
+                )
+            }
         }
     }
-    Button(onClick = { pick = "c" }, text = "pick c", classes = "c-pick-c")
+    Row(layout = { gap { all(3.px) } }) {
+        Button(onClick = { pick = "c" }, text = "pick c", classes = "c-pick-c")
+        Button(onClick = { names = names - pick }, text = "drop picked", classes = "c-drop-picked")
+    }
     Text("pick=$pick reports=$reports", classes = "c-pick-state")
 }
 
@@ -160,6 +184,7 @@ private fun Group() {
 private fun Dialogs() {
     var open by remember { mutableStateOf(true) }
     var dismissed by remember { mutableIntStateOf(0) }
+    var titled by remember { mutableStateOf(true) }
 
     Button(onClick = { open = true }, text = "open", classes = "c-dialog-open")
     Text("dismissed=$dismissed", classes = "c-dismissed")
@@ -169,13 +194,14 @@ private fun Dialogs() {
             dismissed++
             open = false
         },
-        title = { Text("title", classes = "c-dialog-title") },
+        title = { if (titled) Text("title", classes = "c-dialog-title") },
         buttons = { Button(onClick = { open = false }, text = "close", classes = "c-dialog-close") },
         dismissOnClickOutside = true,
         layout = { width(160.px) },
         classes = "c-dialog",
     ) {
         Text("body", classes = "c-dialog-body")
+        Button(onClick = { titled = !titled }, text = "title", classes = "c-dialog-retitle")
     }
 }
 

@@ -44,14 +44,8 @@ import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.player.Player
 
 /**
- * Third demo: `/ldlib2_screen_test compose_widgets`.
- *
- * <p>Covers the two things the other two demos do not — a widget with named slots, and whether a
- * reordered row really keeps the element it had.
- *
- * <p>The split view is the interesting one. Its two panes are separate compositions, so the question
- * worth answering is whether that boundary is invisible: state read on both sides, and a
- * `CompositionLocal` provided outside it, both have to work exactly as they would in one tree.
+ * Third demo: `/ldlib2_screen_test compose_widgets`. The split view's panes are separate
+ * compositions, so state and a `CompositionLocal` read in both show that boundary is invisible.
  */
 @LDLRegisterClient(name = "compose_widgets", registry = "ldlib2:screen_test")
 class TestComposeWidgets : IScreenTest {
@@ -76,7 +70,6 @@ private fun WidgetsDemo() {
             )
         }
 
-        // Display-only widget driven straight from state.
         ProgressBar(
             progress = (count.coerceIn(0, 10)) / 10f,
             layout = { width(240.px); height(10.px) },
@@ -96,12 +89,8 @@ private fun WidgetsDemo() {
 }
 
 /**
- * A `layout` block that reads state, where *nothing else does*.
- *
- * <p>This is the case the node observer exists for, arranged so it cannot pass by accident. Blocks
- * run in the apply phase, so their reads are invisible to the composition; `wide` is never read from
- * a composable body here, so no recomposition can be triggered by changing it. If the width follows
- * the button, it is because the observer re-ran this one block — nothing else could have.
+ * A `layout` block that reads state nothing else reads, so only the node observer re-running the
+ * block can make the width follow the button.
  */
 @Composable
 private fun ObservedBlock() {
@@ -116,15 +105,11 @@ private fun ObservedBlock() {
         layout = { width(if (wide.value) 120.px else 40.px); height(8.px) },
         classes = "observed-box",
     )
+    // A height given only once `wide` flips: the text must stop sizing to its content, with no recomposition.
+    Text("tall", layout = { if (wide.value) height(30.px) }, classes = "observed-text")
 }
 
-/**
- * Hover that changes *what is composed*, not just how it is painted.
- *
- * <p>The class flip below could equally have been a `.__hovered__` stylesheet rule — core maintains
- * that class on the hovered element and its ancestors already. The caption underneath could not: a
- * stylesheet cannot swap the text, and that is what [rememberInteraction] is for.
- */
+/** Hover that changes *what is composed*: a `.__hovered__` stylesheet rule could not swap the caption. */
 @Composable
 private fun HoverCard() {
     val interaction = rememberInteraction()
@@ -137,14 +122,7 @@ private fun HoverCard() {
     }
 }
 
-/**
- * A nested [ComposeElement] taken out of the tree and put back.
- *
- * <p>Removal runs `onRemoved`, which disposes the composition — that is what stops a closed screen
- * from being retained forever by the recomposer's global snapshot observer. Putting the element back
- * therefore has to rebuild the composition from scratch, and this is the demo that proves it does
- * rather than leaving a silently empty element behind.
- */
+/** A nested [ComposeElement] taken out and put back: removal disposes its composition, so it must rebuild. */
 @Composable
 private fun Remounted() {
     var mounted by remember { mutableStateOf(true) }
@@ -162,23 +140,11 @@ private fun Remounted() {
     }
 }
 
-/**
- * A widget with no wrapper at all, used directly.
- *
- * <p>[TreeList] has no `@Composable` of its own anywhere in this package — it is here precisely
- * because it does not. [UIElementNode] takes any [com.lowdragmc.lowdraglib2.gui.ui.UIElement]
- * subclass, from this mod or another, and gives it the same treatment a wrapped widget gets:
- * `factory` builds it once, `set` re-applies a property only when it changes, and the same
- * `layout` / `style` / `classes` blocks work as usual.
- *
- * <p>Which means a wrapper is sugar, not a prerequisite. Writing one is worth it for a widget used
- * often enough that naming its properties pays for itself; for everything else this is the API.
- */
+/** A widget with no wrapper ([TreeList]), used directly through [UIElementNode]. */
 @Composable
 private fun UnwrappedWidget() {
     var depth by remember { mutableStateOf(2) }
 
-    // Rebuilt whenever the state it derives from changes - exactly like any other derived value.
     val root = remember(depth) {
         TreeNode<String, String>("root").also { node ->
             repeat(depth) { i -> node.getOrCreateChild("branch $i") }
@@ -191,28 +157,19 @@ private fun UnwrappedWidget() {
         classes = "tree-grow",
     )
     UIElementNode(
-        // One-off construction settings belong here, not in `update`: flattenRoot has to be true
-        // before setRoot runs, because that is what decides whether the root itself becomes a row.
+        // flattenRoot has to be set before setRoot runs, so it belongs here rather than in `update`.
         factory = { TreeList<TreeNode<String, String>>().setFlattenRoot(true) },
         layout = { width(240.px); height(60.px) },
         classes = "demo-tree",
         update = {
-            // Gated on `depth`, not on `root` — and that distinction is the one thing to know about
-            // this escape hatch. `set` decides whether to run by comparing with `equals`, and
-            // TreeNode's equals looks at its key and content but not at its children: two different
-            // trees rooted at "root" compare equal, so `set(root)` would silently never fire.
-            // Key the update on whatever actually varies.
+            // Gated on `depth`, not `root`: `set` compares with `equals`, which TreeNode bases on key
+            // and content but not children, so `set(root)` would never fire.
             set(depth) { setRoot(root) }
         },
     )
 }
 
-/**
- * A modal driven by state rather than by calling `show()`.
- *
- * <p>The case worth demonstrating is closing it from the inside: the dialog's own button sets the
- * same state the `visible` flag reads, so the two never disagree.
- */
+/** A modal driven by state rather than `show()`, closed from inside by its own button. */
 @Composable
 private fun ConfirmDialog() {
     var asking by remember { mutableStateOf(false) }
@@ -235,21 +192,15 @@ private fun ConfirmDialog() {
     }
 }
 
-/**
- * Tabs that come, go and change places.
- *
- * <p>Each tab's body is a separate composition, and each keeps its own state — a tab survives
- * switching away and back, and being moved, because it stays composed. Closing one has to take its
- * elements with it, which is the case that leaks if the teardown is missing.
- */
+/** Tabs that come, go and change places; each body is its own composition and keeps its state. */
 @Composable
 private fun Tabs() {
     var extra by remember { mutableStateOf(false) }
     var reversed by remember { mutableStateOf(false) }
     var hidden by remember { mutableStateOf(false) }
+    var minimal by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<Any>("one") }
-    // How many times the TabView has reported a selection: only the player's picks, and a removed
-    // selected tab handing over to its neighbour, should count.
+    // Only the player's picks, and a removed selected tab handing over to its neighbour, should count.
     var reports by remember { mutableStateOf(0) }
 
     Row(layout = { gap { all(3.px) } }) {
@@ -273,6 +224,19 @@ private fun Tabs() {
             text = Component.literal("隐藏"),
             classes = "tab-hide",
         )
+        Button(
+            onClick = {
+                extra = false
+                selected = "one"
+            },
+            text = Component.literal("关第三页选第一页"),
+            classes = "tab-close-pick-one",
+        )
+        Button(
+            onClick = { minimal = !minimal },
+            text = Component.literal("只留第一页"),
+            classes = "tab-minimal",
+        )
     }
     Text(Component.literal("selected=$selected reports=$reports"), classes = "tab-state")
 
@@ -286,7 +250,11 @@ private fun Tabs() {
             layout = { width(240.px); height(60.px) },
             classes = "demo-tabs",
         ) {
-            val pages = if (extra) listOf("one", "two", "three") else listOf("one", "two")
+            val pages = when {
+                minimal -> listOf("one")
+                extra -> listOf("one", "two", "three")
+                else -> listOf("one", "two")
+            }
             for (page in if (reversed) pages.reversed() else pages) {
                 tab(page, page.replaceFirstChar { it.uppercase() }) {
                     Text(Component.literal("page $page"), classes = "tab-body-$page")
@@ -296,13 +264,7 @@ private fun Tabs() {
     }
 }
 
-/**
- * A panel that fades rather than blinking in and out.
- *
- * <p>The interesting half is hiding: the content has to stay in the tree for the length of the fade,
- * so a plain `if (visible)` cannot express this — it would remove the element on the same frame and
- * leave nothing to animate.
- */
+/** A panel that fades rather than blinking; on hide the content stays in the tree until the fade ends. */
 @Composable
 private fun FadePanel() {
     var shown by remember { mutableStateOf(false) }
@@ -323,10 +285,7 @@ private fun FadePanel() {
     }
 }
 
-/**
- * A panel that slides in from the left and leaves to the right, while the space it takes opens and
- * closes — so the text below is pushed down and pulled back smoothly instead of jumping.
- */
+/** A panel that slides in and out while the space it takes opens and closes, moving the text below smoothly. */
 @Composable
 private fun ExpandPanel() {
     var shown by remember { mutableStateOf(false) }
@@ -358,7 +317,6 @@ private fun ExpandPanel() {
 @Composable
 private fun SplitPane(side: String, count: Int, onClick: () -> Unit) {
     Box(layout = { padding { all(3.px) }; gap { all(2.px) } }) {
-        // Both panes read the same `count` and the same local, across a composition boundary.
         Text(Component.literal("$side ${LocalGreeting.current} $count"), classes = "pane-$side")
         Button(
             onClick = onClick,
@@ -369,13 +327,7 @@ private fun SplitPane(side: String, count: Int, onClick: () -> Unit) {
     }
 }
 
-/**
- * Keyed text fields that can be reordered.
- *
- * <p>The point is focus. Reordering goes through `UIElement.reorderChildren`, which moves a child
- * without detaching it; doing the same thing with remove-and-re-add would produce the same visible
- * order while dropping whatever had keyboard focus.
- */
+/** Keyed text fields reordered without losing focus: `reorderChildren` moves rather than detaches. */
 @Composable
 private fun ReorderableFields() {
     var order by remember { mutableStateOf(listOf("a", "b")) }
