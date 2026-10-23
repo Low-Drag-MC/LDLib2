@@ -98,9 +98,7 @@ jobs:
     strategy:
       matrix:
         include:
-          # Root-qualified: ldlib2-compose is a subproject with a release of its own
-          # (compose-build-publish.yml), and an unqualified task would build and test it here too.
-          # -Pcompose=false: the core's dev runs load it by default, and this game test is the core's.
+          # Core only: ldlib2-compose has its own workflow, and the core's runs load it unless told not to.
           - name: "Main Build"
             gradle-tasks: ":build :test :runGameTestServer -Pcompose=false"
     steps:
@@ -174,7 +172,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Publish to Maven
-        # Root-qualified, so ldlib2-compose is not published alongside under the core's release.
+        # Root-qualified: ldlib2-compose publishes from its own workflow.
         run: ./gradlew :publish --stacktrace
         env:
           MAVEN_PASS: ${{ secrets.MAVEN_PASS }}

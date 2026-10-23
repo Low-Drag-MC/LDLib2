@@ -1,37 +1,27 @@
-// ldlib2-compose - LDLib2's declarative UI layer, shipped as a separate optional mod.
-//
-// Released on its own: its version is compose_version in this directory's gradle.properties, and
-// .github/workflows/compose-build-publish.yml builds and publishes it. The core jar and its release never
-// include it; only the core's dev runs load it, so working on LDLib2 always has it at hand (see "Dev runs"
-// below).
-//
-// A mod rather than a plain library because it carries the Compose runtime, and that has to reach the
-// game as Jar-in-Jar: NeoForge then keeps one copy when other mods ship the same libraries (several
-// bundle kotlinx-coroutines). Downstream mods Jar-in-Jar this mod's -all jar in turn; NeoForge unpacks
-// nested Jar-in-Jar recursively, so the runtime comes with it. Downstream setup is in compose.md.
+// ldlib2-compose: LDLib2's declarative UI layer, a separate optional mod with its own version
+// (gradle.properties here) and release (.github/workflows/compose-build-publish.yml). The core jar never
+// contains it. It is a mod rather than a library so the Compose runtime ships as Jar-in-Jar and NeoForge
+// can dedupe it against other mods; downstream setup is in compose.md.
 
 plugins {
     id 'java-library'
     id 'maven-publish'
     id 'net.neoforged.gradle.userdev'
     id 'org.jetbrains.kotlin.jvm'
-    // Must be the same version as kotlin.jvm above, which the root project pins.
+    // Must match the kotlin.jvm version the root project pins.
     id 'org.jetbrains.kotlin.plugin.compose' version '2.1.20'
 }
 
 version = compose_version
 group = maven_group
 
-// NeoGradle otherwise gives this project a run of every type, as it does the core - and an IDE
-// configuration for each. Those load this mod without the core it requires, and an unqualified
-// `gradlew runClient` would launch one beside the core's. The module joins the core's runs instead (see
-// "Dev runs" below). Set before the NeoForge dependency is declared: that is when the runs are created.
+// This module joins the core's runs (see "Dev runs") instead of getting NeoGradle's default ones, which
+// would launch it without the core. Must be set before the NeoForge dependency is declared.
 subsystems.conventions.runs.shouldDefaultRunsBeCreated = false
 
 repositories {
     maven {
-        // androidx.collection / androidx.annotation, pulled in by the Compose runtime. Not on Maven
-        // Central, and nothing else here should ever resolve from Google.
+        // androidx.collection / androidx.annotation from the Compose runtime; not on Maven Central.
         name = "Google"
         url = "https://maven.google.com"
         content {
@@ -43,8 +33,7 @@ repositories {
 jarJar.enable()
 
 configurations {
-    // Same shape as the core project: everything in `libraries` is both a compile dependency, an api
-    // dependency of the published artifact, and Jar-in-Jar'd into the mod jar below.
+    // As in the core: compile dependency, api dependency of the publication, and Jar-in-Jar'd below.
     libraries
     api.extendsFrom libraries
 }
@@ -64,18 +53,12 @@ kotlin {
 
 sourceSets.main.kotlin { srcDir("src/main/java") }
 
-// The core's access transformer, so both projects compile against the same Minecraft. Not shipped in
-// this jar's mods.toml - at runtime the core applies it.
+// Compile against the same Minecraft as the core; the core applies it at runtime.
 minecraft.accessTransformers.file rootProject.file('src/main/resources/META-INF/accesstransformer.cfg')
 
 /**
- * Jar-in-Jar a library, pinning the embedded artifact to exactly {@code ver} while still advertising
- * {@code [ver,)} as the compatible range, so NeoForge can still dedupe against other mods shipping
- * the same library.
- *
- * <p>Declaring only the open range lets Gradle resolve it to whatever is newest in the repository at
- * build time, which is not what this was compiled against: for {@code runtime-desktop} that once
- * picked up a 5 KB alias stub with no classes in it at all.
+ * Jar-in-Jar a library at exactly {@code ver} while advertising {@code [ver,)}, so NeoForge can still
+ * dedupe it. A bare range would embed whatever is newest in the repository at build time.
  */
 void embed(String group, String name, String ver) {
     dependencies.jarJar(group: group, name: name) {
@@ -87,27 +70,17 @@ void embed(String group, String name, String ver) {
 }
 
 dependencies {
-    // compileOnly, not implementation: NeoGradle materialises its own patched Minecraft jar per
-    // project, under <project>/.gradle/repositories. Putting it on this module's *runtime* classpath
-    // as well as the core's lands both copies in the dev run, and FML aborts with "Found multiple
-    // copies of net/minecraft/server/MinecraftServer.class". At runtime Minecraft always comes from
-    // the core project (dev) or from the loader (production), so this module never needs its own.
+    // compileOnly: NeoGradle makes a separate Minecraft jar per project, and having this one on the dev
+    // run's class path next to the core's makes FML refuse to start ("Found multiple copies").
     compileOnly "net.neoforged:neoforge:${neo_version}"
-    // api, not implementation: half of what these composables take and return is LDLib2's own types
-    // - UIElement, ModularUI, Stylesheet - so a consumer cannot call them without the core on its
-    // compile classpath.
+    // api: the composables take and return LDLib2 types.
     api rootProject
 
-    // Compose runtime - the recomposition engine only. `compose.ui` is deliberately absent: the
-    // rendering side is LDLib2's own UIElement tree, reached through a custom Applier.
+    // The recomposition engine only; rendering is LDLib2's own element tree, so no compose.ui.
     libraries("org.jetbrains.compose.runtime:runtime-desktop:${compose_runtime_version}")
-    // rememberSaveable and SaveableStateHolder. Same version line as the runtime, and its only other
-    // dependencies are ones already embedded below.
     libraries("org.jetbrains.compose.runtime:runtime-saveable-desktop:${compose_runtime_version}")
-    // The runtime's transitives, each of which needs its own jarJar entry. `annotation-internal` /
-    // `collection-internal` are alias modules with no classes of their own, so only the artifacts
-    // they redirect to are listed. Re-check with `gradlew :module.compose:dependencies
-    // --configuration libraries` after a compose bump.
+    // Each transitive needs its own entry. Re-check after a Compose bump with
+    // `gradlew :module.compose:dependencies --configuration libraries`.
     embed('org.jetbrains.compose.runtime', 'runtime-desktop', compose_runtime_version)
     embed('org.jetbrains.compose.runtime', 'runtime-saveable-desktop', compose_runtime_version)
     embed('androidx.annotation', 'annotation-jvm', androidx_annotation_version)
@@ -129,12 +102,22 @@ test {
     }
 }
 
+/** Numeric comparison of dotted versions; a missing component counts as 0. */
+static int compareVersions(String a, String b) {
+    def left = a.tokenize('.').collect { it.replaceAll('[^0-9].*', '') as int }
+    def right = b.tokenize('.').collect { it.replaceAll('[^0-9].*', '') as int }
+    for (int i = 0; i < Math.max(left.size(), right.size()); i++) {
+        int diff = (i < left.size() ? left[i] : 0) <=> (i < right.size() ? right[i] : 0)
+        if (diff != 0) return diff
+    }
+    return 0
+}
+
+def coreVersion = rootProject.version.toString()
+
 tasks.withType(ProcessResources).configureEach {
-    // The LDLib2 version mods.toml asks for. ldlib2_min_version names the first *release* with the hooks
-    // this module needs; until that release exists, the core in this checkout - which already has them -
-    // is older than that, and asking for the release would stop every dev run from loading. Publishing
-    // refuses a core older than ldlib2_min_version (below), so a published jar always asks for the release.
-    def coreVersion = rootProject.version.toString()
+    // Until the core release named by ldlib2_min_version exists, dev builds ask for the checkout's core
+    // instead, or they would not load. Publishing refuses such a core (below).
     def requiredCore = compareVersions(coreVersion, ldlib2_min_version) < 0 ? coreVersion : ldlib2_min_version
     var replaceProperties = [
             "version"           : version,
@@ -149,28 +132,16 @@ tasks.withType(ProcessResources).configureEach {
     }
 }
 
-// Dev runs. This module joins the core project's runs - one client, both mods - so `gradlew runClient`
-// (or the same task from an IDE's Gradle run configuration) always has it loaded. What ships is
-// unaffected: the core jar never contains this module. Leave it out of a run with
+// Dev runs: the core's runs load this module too, so `gradlew runClient` (or that task from an IDE's
+// Gradle run configuration) always has it. `-Pcompose=false` leaves it out; runParTest / runMpTest child
+// builds don't inherit -P, so use gradle.properties for those. NeoGradle's generated IDE application
+// configurations never include it: they are written before this project is configured.
 //
-//     gradlew runClient -Pcompose=false      (or compose=false in gradle.properties: the child builds
-//                                             runParTest / runMpTest start do not inherit -P)
-//
-// The IDE's own application configurations do not include it: NeoGradle writes them while the core
-// project is configured, before this module is.
-//
-// Registered from here so that dropping this module from settings.gradle leaves the core untouched.
-//
-// Captured locals, not `project.…`: inside a run closure the delegate is the Run, and NeoGradle's
-// Run has its own getProject() pointing at the project that declared the run - the root. Reading
-// `project.sourceSets.main` in there silently re-adds the core source set instead of this one.
+// Captured outside the closure: in there `project` is the Run's project, i.e. the root.
 def composeSources = sourceSets.main
 def composeLibraries = configurations.libraries
-
-// A Gradle property, read through providers rather than hasProperty(): the latter also answers for
-// extensions, and a compose-related plugin registering one called `compose` would answer for it.
-def joinCoreRuns = providers.gradleProperty('compose').map { it != 'false' }.getOrElse(true)
-if (joinCoreRuns) {
+// providers, not hasProperty(): the latter also matches an extension named `compose`.
+if (providers.gradleProperty('compose').map { it != 'false' }.getOrElse(true)) {
     rootProject.runs.configureEach {
         modSource composeSources
         dependencies {
@@ -179,27 +150,13 @@ if (joinCoreRuns) {
     }
 }
 
-/** Numeric comparison of dotted versions; a missing component counts as 0. */
-static int compareVersions(String a, String b) {
-    def left = a.tokenize('.').collect { it.replaceAll('[^0-9].*', '') as int }
-    def right = b.tokenize('.').collect { it.replaceAll('[^0-9].*', '') as int }
-    for (int i = 0; i < Math.max(left.size(), right.size()); i++) {
-        int diff = (i < left.size() ? left[i] : 0) <=> (i < right.size() ? right[i] : 0)
-        if (diff != 0) return diff
-    }
-    return 0
-}
-
-// The published pom depends on the core at its current mod_version. Publishing while that is older
-// than ldlib2_min_version would hand every consumer a core without the hooks this module calls, which
-// compiles against nothing and crashes at runtime - so it is refused rather than released.
-def coreVersion = rootProject.version.toString()
+// The publication depends on the core at this checkout's version; one older than ldlib2_min_version
+// lacks the hooks this module calls.
 tasks.withType(PublishToMavenRepository).configureEach {
     doFirst {
         if (compareVersions(coreVersion, ldlib2_min_version) < 0) {
             throw new GradleException("ldlib2-compose ${compose_version} needs LDLib2 ${ldlib2_min_version} or later, " +
-                    "but this checkout's core is ${coreVersion}. Release the core first (or lower ldlib2_min_version " +
-                    "if the hooks really are in an older release).")
+                    "but this checkout's core is ${coreVersion}. Release the core first.")
         }
     }
 }

@@ -1,8 +1,7 @@
 name: ldlib2-compose Build & Publish
 
-# ldlib2-compose is released on its own schedule and version (module.compose/gradle.properties),
-# separately from LDLib2 itself. This workflow only ever builds and publishes the :module.compose
-# subproject; the core's own workflow only ever touches the root project.
+# Builds and publishes only :module.compose, versioned by module.compose/gradle.properties.
+# The core's workflow never touches it.
 
 on:
   workflow_dispatch:
@@ -47,9 +46,9 @@ jobs:
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "ldlib2-min=$LDLIB2_MIN" >> $GITHUB_OUTPUT
+          echo "core=$CORE" >> $GITHUB_OUTPUT
+          echo "mc=$(read_prop minecraft_version gradle.properties)" >> $GITHUB_OUTPUT
           echo "ldlib2-compose $VERSION, needs LDLib2 $LDLIB2_MIN+, core in this checkout is $CORE"
-          # The published pom depends on the core at this checkout's mod_version; the Gradle publish
-          # task refuses an older one too, this just says so before anything is built.
           if [ "$(printf '%s\n%s\n' "$LDLIB2_MIN" "$CORE" | sort -V | head -n1)" != "$LDLIB2_MIN" ]; then
             echo "⚠️ The core in this checkout ($CORE) is older than ldlib2_min_version ($LDLIB2_MIN); publishing will be refused."
           fi
@@ -63,6 +62,20 @@ jobs:
           fi
           echo "should-publish=$SHOULD_PUBLISH" >> $GITHUB_OUTPUT
           echo "Should publish: $SHOULD_PUBLISH"
+
+      # The publication depends on the core at this checkout's mod_version, which consumers can only
+      # resolve once that version is on Maven.
+      - name: Check the core version is released
+        if: ${{ steps.check.outputs.should-publish == 'true' }}
+        run: |
+          CORE="${{ steps.version.outputs.core }}"
+          MC="${{ steps.version.outputs.mc }}"
+          URL="https://maven.firstdark.dev/snapshots/com/lowdragmc/ldlib2/ldlib2-neoforge-$MC/$CORE/ldlib2-neoforge-$MC-$CORE.pom"
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+          if [ "$CODE" != "200" ]; then
+            echo "❌ LDLib2 $CORE is not on Maven yet ($URL -> $CODE). Release the core first."
+            exit 1
+          fi
 
   build:
     name: Build & Test
@@ -89,8 +102,6 @@ jobs:
       - name: Grant execute permission
         run: chmod +x gradlew
 
-      # Compiles against the core in this checkout, runs the module's unit tests, and produces the
-      # plain, -all (Jar-in-Jar) and -sources jars.
       - name: Build and test
         run: ./gradlew :module.compose:build --stacktrace
 

@@ -74,15 +74,12 @@ tasks.register('runMpTest', JavaExec) {
             // Not inherited by the child builds this spawns; see MPTestOrchestrator#spawnChild.
             '--headless', project.hasProperty('ldTestHeadless').toString()
     // The exit code is informative only; verifyMpTest below is authoritative - it also catches the
-    // orchestrator dying before it could write a report at all. Which only works if there is no
-    // report left over from last time: otherwise a run that died on startup is reported as whatever
-    // the previous one scored.
+    // orchestrator dying before it could write a report at all - so no report may survive from last time.
     ignoreExitValue = true
     doFirst { new File(ldMpOutDir).deleteDir() }
     finalizedBy 'verifyMpTest'
-    // The server and clients are separate Gradle builds started together, so anything their runs
-    // need built would be built by all of them at once, racing on the same files. Built here first,
-    // they find it up to date. One client stands in for all: every client run needs the same.
+    // The child builds start together and would all build their runs' inputs at once, racing on the same
+    // files; building them here first leaves them up to date. Every client run needs the same as A.
     dependsOn {
         ['runMpServer', 'runMpClientA'].collect { tasks.getByName(it).taskDependencies.getDependencies(null) }.flatten()
     }
