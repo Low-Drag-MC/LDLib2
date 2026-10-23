@@ -1,11 +1,11 @@
 package com.lowdragmc.lowdraglib2.gui.ui.compose
 
-import androidx.compose.runtime.AbstractApplier
 import androidx.compose.runtime.BroadcastFrameClock
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ComposeNode
 import androidx.compose.runtime.Composition
 import androidx.compose.runtime.Recomposer
+import androidx.compose.runtime.key
 import androidx.compose.runtime.snapshots.Snapshot
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -13,60 +13,58 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlin.coroutines.CoroutineContext
 
-/**
- * A stand-in for the real element tree, so reconciliation can be tested without Minecraft.
- *
- * <p>`src/test` has no Minecraft on its classpath — `uitest.md` is explicit about it — which rules
- * out touching `UIElement` here. The Compose runtime is a plain JVM library though, and the applier
- * contract it drives is the same whatever the node type is. So everything about *when* Compose
- * inserts, removes and moves nodes is testable at this level; only the part that talks to a live
- * `UIElement` needs the in-client harness.
- */
+/** A stand-in for the real element tree, so reconciliation can be tested without Minecraft. */
 internal class TestNode(var name: String) {
+    var parent: TestNode? = null
     val children = mutableListOf<TestNode>()
 
-    /** Renders the subtree as `a(b,c)`, so a whole tree is one readable assertion. */
+    /** Renders the subtree as `a(b,c)`. */
     override fun toString(): String =
         if (children.isEmpty()) name else "$name(${children.joinToString(",")})"
 }
 
-/**
- * The same shape as the real [UIApplier], minus the internal-child index mapping — that part is
- * covered separately by `ComposedChildIndexTest`, against the arithmetic in isolation.
- */
-internal class TestApplier(root: TestNode) : AbstractApplier<TestNode>(root) {
-    /** Counts of each operation, so tests can assert a change was minimal rather than a rebuild. */
+/** The same tree semantics as `UIElement`: adding a node takes it from its old parent. */
+internal class TestTree : NodeTree<TestNode> {
     var inserts = 0
-        private set
     var removes = 0
-        private set
     var moves = 0
-        private set
+
+    override fun parentOf(node: TestNode) = node.parent
+    override fun hostOf(node: TestNode) = node
+    override fun childrenOf(host: TestNode): List<TestNode> = host.children
+
+    override fun add(host: TestNode, child: TestNode, index: Int) {
+        require(child.parent !== host) { "Cannot add the same child twice" }
+        inserts++
+        child.parent?.children?.remove(child)
+        host.children.add(index, child)
+        child.parent = host
+    }
+
+    override fun remove(host: TestNode, child: TestNode) {
+        removes++
+        host.children.remove(child)
+        child.parent = null
+    }
+
+    override fun reorder(host: TestNode, order: List<TestNode>) {
+        moves++
+        host.children.clear()
+        host.children.addAll(order)
+    }
+}
+
+/** The real [TreeApplier] over [TestNode]s, counting what it does to the tree. */
+internal open class TestApplier(root: TestNode, private val tree: TestTree = TestTree()) : TreeApplier<TestNode>(root, tree) {
+    val inserts get() = tree.inserts
+    val removes get() = tree.removes
+    val moves get() = tree.moves
 
     fun resetCounts() {
-        inserts = 0
-        removes = 0
-        moves = 0
+        tree.inserts = 0
+        tree.removes = 0
+        tree.moves = 0
     }
-
-    override fun insertTopDown(index: Int, instance: TestNode) = Unit
-
-    override fun insertBottomUp(index: Int, instance: TestNode) {
-        inserts++
-        current.children.add(index, instance)
-    }
-
-    override fun remove(index: Int, count: Int) {
-        removes += count
-        current.children.remove(index, count)
-    }
-
-    override fun move(from: Int, to: Int, count: Int) {
-        moves++
-        current.children.move(from, to, count)
-    }
-
-    override fun onClear() = current.children.clear()
 }
 
 @Composable
@@ -78,12 +76,13 @@ internal fun Node(name: String, content: @Composable () -> Unit = {}) {
     )
 }
 
-/**
- * Queues continuations instead of running them, so [TestHarness.frame] decides when they run.
- *
- * <p>Mirrors the real host: everything Compose does is funnelled onto one thread at one point in the
- * frame, which is what keeps recomposition away from Minecraft's threading rules.
- */
+/** Emits an existing node, the way `Mount` emits an existing element. */
+@Composable
+internal fun Adopt(node: TestNode, content: @Composable () -> Unit = {}) {
+    key(node) { ComposeNode<TestNode, TestApplier>(factory = { node }, update = {}, content = content) }
+}
+
+/** Queues continuations instead of running them, so [TestHarness.frame] decides when they run. */
 private class QueueDispatcher : CoroutineDispatcher() {
     private val queue = ArrayDeque<Runnable>()
 
@@ -96,12 +95,7 @@ private class QueueDispatcher : CoroutineDispatcher() {
     }
 }
 
-/**
- * Drives a composition one simulated frame at a time.
- *
- * <p>The frame sequence is deliberately identical to [ComposeHost.onFrame]; if the two drift, these
- * tests stop saying anything about the real thing.
- */
+/** Drives a composition one simulated frame at a time, in the same sequence as [ComposeHost.onFrame]. */
 internal class TestHarness {
     val root = TestNode("root")
     val applier = TestApplier(root)
@@ -122,17 +116,14 @@ internal class TestHarness {
         composition.setContent(content)
     }
 
-    /**
-     * One frame: publish snapshot writes, let the recomposer see them, then tick it.
-     *
-     * @param advanceMillis how far the frame clock moves. Anything reading `withFrameNanos` — which
-     *   is to say anything animated — sees this as elapsed time, so a test can step an animation
-     *   frame by frame instead of waiting for one.
-     */
-    fun frame(advanceMillis: Long = 16) {
+    /** One frame; [advanceMillis] is how far the frame clock moves, which animations see as elapsed time. */
+    fun frame(advanceMillis: Long = 16) = frameOf(advanceMillis * 1_000_000)
+
+    /** [frame] for periods that are not whole milliseconds. */
+    fun frameOf(advanceNanos: Long) {
         Snapshot.sendApplyNotifications()
         dispatcher.drain()
-        frameNanos += advanceMillis * 1_000_000
+        frameNanos += advanceNanos
         clock.sendFrame(frameNanos)
         dispatcher.drain()
     }
@@ -159,7 +150,7 @@ internal class TestHarness {
         return limit
     }
 
-    /** Mirrors [ComposeHost.dispose], final drain included — see the comment there for why. */
+    /** Mirrors [ComposeHost.dispose]; the final drain is what lets cancelled effects run their `finally`. */
     fun dispose() {
         composition.dispose()
         recomposer.cancel()
@@ -169,6 +160,12 @@ internal class TestHarness {
 
     fun tree(): String = root.toString()
 
-    /** Convenience for the very common single-container shape `root(container(...))`. */
+    /** The node named [name], anywhere in the tree. */
+    fun find(name: String): TestNode {
+        fun search(node: TestNode): TestNode? = if (node.name == name) node else node.children.firstNotNullOfOrNull(::search)
+        return search(root) ?: error("no node named $name in ${tree()}")
+    }
+
+    /** The root's only child, for the common `root(container(...))` shape. */
     fun container(): TestNode = root.children.single()
 }

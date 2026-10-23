@@ -11,19 +11,10 @@ import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent
 
 /**
- * Proves at startup that the Compose runtime this mod ships actually loaded.
- *
- * <p>Worth doing because of how the runtime gets here. It is not on anyone's classpath — it is
- * Jar-in-Jar'd inside this mod, six nested jars of it (and this mod is itself usually Jar-in-Jar'd
- * inside the mod that uses it), and NeoForge unpacks those at load time. In
- * development none of that happens: the dev run puts everything on a flat classpath, so a Jar-in-Jar
- * declaration that is wrong — a missing transitive, a version range that resolved to an alias stub
- * with no classes in it — is invisible right up until it reaches a player.
- *
- * <p>Without this the first sign of that would be a `NoClassDefFoundError` the first time someone
- * opened a screen, hours in, pointing at a class nobody has heard of. A snapshot write and read, and
- * one saveable-state registry — the two runtime jars — are enough to touch the parts that matter and
- * cost microseconds once.
+ * Proves at startup that the Compose runtime this mod Jar-in-Jars actually loaded. Dev runs use a flat
+ * classpath, so a wrong Jar-in-Jar declaration (a missing transitive, a range resolving to an empty
+ * alias stub) would otherwise first show as a `NoClassDefFoundError` when a player opens a screen.
+ * A snapshot write and read plus one saveable-state registry touch both runtime jars.
  */
 @EventBusSubscriber(modid = "ldlib2_compose", bus = EventBusSubscriber.Bus.MOD)
 object ComposeModule {
@@ -38,8 +29,7 @@ object ComposeModule {
             SaveableStateRegistry(null) { true }.performSave()
             LDLib2.LOGGER.info("[compose] runtime ready ({})", Snapshot::class.java.packageName)
         } catch (e: Throwable) {
-            // Rethrown, not swallowed: a runtime that is not there cannot be worked around, and
-            // failing at setup names the cause while the mod list is still on screen.
+            // Rethrown: failing at setup names the cause while the mod list is still on screen.
             throw IllegalStateException(
                 "ldlib2-compose could not load the Compose runtime it ships with. Whatever jar " +
                     "brought ldlib2-compose in has to carry its -all jar (which embeds the runtime under " +
@@ -53,8 +43,8 @@ object ComposeModule {
 /**
  * Forgets saved screen state when the player leaves a world; see [ComposeSavedState].
  *
- * <p>Client only. The event class does not exist on a dedicated server, and the `value` filter is what
- * keeps FML from loading this object there.
+ * <p>Client only: the `value` filter keeps FML from loading this object on a dedicated server, where
+ * the event class does not exist.
  */
 @EventBusSubscriber(modid = "ldlib2_compose", value = [Dist.CLIENT])
 object ComposeClientEvents {
@@ -62,6 +52,13 @@ object ComposeClientEvents {
     @JvmStatic
     @SubscribeEvent
     fun onLoggingOut(event: ClientPlayerNetworkEvent.LoggingOut) {
+        ComposeSavedState.clearAll()
+    }
+
+    /** Again on the way in: a screen closed by the disconnect itself saves after LoggingOut has run. */
+    @JvmStatic
+    @SubscribeEvent
+    fun onLoggingIn(event: ClientPlayerNetworkEvent.LoggingIn) {
         ComposeSavedState.clearAll()
     }
 }

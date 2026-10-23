@@ -4,63 +4,44 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 /**
- * Regression tests for the one piece of arithmetic in the applier that is easy to get wrong.
- *
- * <p>Composed child indices count only the children a composition owns; the real child list also
- * holds whatever internal parts the widget built for itself, and anything added to it by hand. Getting
- * the mapping wrong is not a crash — it silently inserts content in the wrong place, e.g. before a
- * button's own label.
+ * Where the applier puts composed children among children it does not own. Upper case stands in for
+ * those: a widget's internal parts, or children added by hand.
  */
 class ComposedChildIndexTest {
 
-    /** One flag per real child: true for a child the composition does not own. */
-    private fun flags(vararg notOwned: Boolean) = notOwned.toList()
-
-    private fun realIndexOfComposed(notOwned: List<Boolean>, composedIndex: Int) =
-        realIndexOfComposed(notOwned.size, composedIndex) { !notOwned[it] }
-
-    @Test
-    fun `maps straight through when there are no internal children`() {
-        val list = flags(false, false, false)
-        assertEquals(0, realIndexOfComposed(list, 0))
-        assertEquals(1, realIndexOfComposed(list, 1))
-        assertEquals(2, realIndexOfComposed(list, 2))
+    /** Inserts [child] at composed [index] the way [TreeApplier] does, returning the new real list. */
+    private fun insert(real: List<String>, composed: List<String>, index: Int, child: String): List<String> {
+        val siblings = composed.toMutableList().apply { add(index, child) }
+        val at = insertionIndex(siblings, index, real.size) { real.indexOf(it) }
+        return real.toMutableList().apply { add(at, child) }
     }
 
     @Test
-    fun `skips a leading internal child`() {
-        // What a Button looks like: its own TextElement first, then composed content.
-        val list = flags(true, false, false)
-        assertEquals(1, realIndexOfComposed(list, 0))
-        assertEquals(2, realIndexOfComposed(list, 1))
+    fun `the first composed child goes after the internal parts`() {
+        assertEquals(listOf("A", "a"), insert(listOf("A"), emptyList(), 0, "a"))
+        assertEquals(listOf("a"), insert(emptyList(), emptyList(), 0, "a"))
     }
 
     @Test
-    fun `skips internal children wherever they sit`() {
-        val list = flags(false, true, false, true, false)
-        assertEquals(0, realIndexOfComposed(list, 0))
-        assertEquals(2, realIndexOfComposed(list, 1))
-        assertEquals(4, realIndexOfComposed(list, 2))
+    fun `an append stays with the composed children, before a child added by hand later`() {
+        assertEquals(listOf("a", "b", "M"), insert(listOf("a", "M"), listOf("a"), 1, "b"))
     }
 
     @Test
-    fun `an index past the end appends after everything`() {
-        assertEquals(3, realIndexOfComposed(flags(true, false, false), 2))
-        assertEquals(2, realIndexOfComposed(flags(true, true), 0))
-        assertEquals(0, realIndexOfComposed(emptyList(), 0))
+    fun `an insert goes before the next composed sibling`() {
+        assertEquals(listOf("A", "a", "b", "c"), insert(listOf("A", "a", "c"), listOf("a", "c"), 1, "b"))
+        assertEquals(listOf("A", "z", "a"), insert(listOf("A", "a"), listOf("a"), 0, "z"))
     }
 
     @Test
-    fun `an all-internal list has no composed positions to land on`() {
-        val list = flags(true, true, true)
-        // Nothing to match, so every composed index appends.
-        assertEquals(3, realIndexOfComposed(list, 0))
-        assertEquals(3, realIndexOfComposed(list, 1))
+    fun `siblings no longer in the real list are skipped`() {
+        // "b" was taken by another parent: composed still lists it, the real list does not.
+        assertEquals(listOf("a", "c", "M"), insert(listOf("a", "M"), listOf("a", "b"), 2, "c"))
+        assertEquals(listOf("A", "c"), insert(listOf("A"), listOf("b"), 1, "c"))
     }
 
     @Test
     fun `a splice moves only the picked-out children`() {
-        // Upper case stands in for internal parts, which have to keep their slots.
         val children = listOf("A", "b", "c", "D", "e")
         val spliced = spliceOrder(children, listOf("e", "c", "b")) { it.first().isLowerCase() }
         assertEquals(listOf("A", "e", "c", "D", "b"), spliced)

@@ -13,10 +13,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement
 
 /**
- * Emits any [UIElement] subclass as a composition node.
- *
- * <p>Every wrapper in this package is a thin call to this, and it is also the escape hatch: a widget
- * with no wrapper yet, or one from another mod, can be used immediately.
+ * Emits any [UIElement] subclass as a composition node. Every wrapper here is a thin call to this,
+ * and it is the escape hatch for a widget with no wrapper yet, or one from another mod.
  *
  * ```kotlin
  * UIElementNode(
@@ -51,16 +49,12 @@ fun <T : UIElement> UIElementNode(
     content: @Composable () -> Unit = {},
 ) {
     val observer = LocalNodeObserver.current
-    // A RememberObserver, so it hears about leaving the composition and can drop the reads the
-    // NodeObserver recorded for it.
     val applied = remember { AppliedProps<T>() }
     ComposeNode<T, UIApplier>(
         factory = factory,
         update = {
-            // reconcile, not set: the blocks are fresh lambdas on every recomposition, so there is
-            // nothing meaningful to compare them against. Running them again is cheap — a style
-            // write whose value is unchanged returns early in StyleBag#replaceOrPutCandidate without
-            // dirtying anything — and classes and events are diffed properly inside.
+            // reconcile, not set: the blocks are fresh lambdas every recomposition, and re-running
+            // them is cheap since an unchanged style write returns early without dirtying anything.
             reconcile {
                 applied.apply(
                     observer, this, layout, style, widgetStyle,
@@ -76,34 +70,33 @@ fun <T : UIElement> UIElementNode(
 /**
  * Mounts an element that already exists, built by hand or by the builder DSL.
  *
- * <p>Useful for dropping a configured widget into a declarative tree without writing a wrapper for
- * it. The element is adopted as-is: the composition will attach, move and detach it, but never
- * touches its properties, so whoever built it stays in charge of what it looks like.
+ * <p>The element is adopted as-is: the composition attaches, moves and detaches it, but never touches
+ * its properties.
  *
- * <p>Passing a different element swaps it in: the old one is detached and the new one attached in
- * its place. So the element should be stable across recompositions — pass one from `remember` —
- * because a freshly constructed one on every recomposition would be swapped in every time, throwing
- * away whatever state it held.
+ * <p>Passing a different element detaches the old one and attaches the new one in its place, so pass
+ * a stable one (from `remember`): a fresh one every recomposition is swapped in every time, losing
+ * whatever state it held. Emitted again later, the element first loses the children [content] gave it
+ * last time.
+ *
+ * <p>Client only, like the rest of the composition: an element with sync values, RPCs or menu slots
+ * has to be added to the tree in `createUI`, outside the [ComposeElement], for the server to have it.
  */
 @Composable
 fun Mount(element: UIElement, content: @Composable () -> Unit = {}) {
-    // Keyed on the element: a node's factory only runs when the node is created, so without this a
-    // different element would never replace the first one.
+    // A node's factory only runs when it is created, so without the key a new element would never
+    // replace the first.
     key(element) {
         ComposeNode<UIElement, UIApplier>(factory = { element }, update = {}, content = content)
     }
 }
 
 /**
- * Composes [content] into an element that is not where the surrounding composition is emitting.
+ * Composes [content] into [container] rather than where the surrounding composition is emitting,
+ * for widgets with named slots such as the two panes of a
+ * [com.lowdragmc.lowdraglib2.gui.ui.elements.SplitView]. Emits nothing where it is called.
  *
- * <p>This is what makes widgets with named slots work. A [com.lowdragmc.lowdraglib2.gui.ui.elements.SplitView]
- * does not have one child list to fill — it has two panes — and an applier only ever knows one place
- * to put things. So each pane gets its own composition, pointed at that pane.
- *
- * <p>It is a real subcomposition, not an independent one: [rememberCompositionContext] links it to
- * the composition it is called from, so `CompositionLocal`s reach it, it recomposes on the same
- * frames, and it is torn down with its parent. Emits nothing where it is called.
+ * <p>A subcomposition of the caller: `CompositionLocal`s reach it, it recomposes on the same frames,
+ * and it is torn down with its parent.
  *
  * ```kotlin
  * val view = remember { SplitView.Horizontal() }
@@ -115,14 +108,11 @@ fun Mount(element: UIElement, content: @Composable () -> Unit = {}) {
 @Composable
 fun Subcompose(container: UIElement, content: @Composable () -> Unit) {
     val parent = rememberCompositionContext()
-    // `content` is a fresh lambda every recomposition, capturing whatever state the caller read. Held
-    // in state and read inside the child composition, a new one invalidates the child by itself.
+    // Read inside the child, so a new lambda invalidates the child without another setContent.
     val current by rememberUpdatedState(content)
     val composition = remember(container, parent) { Composition(UIApplier(container), parent) }
-    // The content is set from an effect rather than during composition, and from a DisposableEffect
-    // rather than a SideEffect: the runtime runs every DisposableEffect before any SideEffect, so this
-    // way the container is filled before effects declared after the Subcompose call run - which is
-    // what lets a Dialog inspect its content when it is shown on the very first frame.
+    // DisposableEffect, not SideEffect: every DisposableEffect runs before any SideEffect, so the
+    // container is filled before later effects run - a Dialog shown on its first frame inspects it.
     DisposableEffect(composition) {
         composition.setContent { current() }
         onDispose { composition.dispose() }

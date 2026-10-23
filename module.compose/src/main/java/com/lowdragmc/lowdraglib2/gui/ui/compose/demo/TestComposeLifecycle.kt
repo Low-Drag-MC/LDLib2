@@ -2,13 +2,25 @@ package com.lowdragmc.lowdraglib2.gui.ui.compose.demo
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
+import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI
 import com.lowdragmc.lowdraglib2.gui.ui.UI
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement
+import com.lowdragmc.lowdraglib2.gui.ui.compose.AnimatedVisibility
+import com.lowdragmc.lowdraglib2.gui.ui.compose.EnterTransition
+import com.lowdragmc.lowdraglib2.gui.ui.compose.ExitTransition
+import com.lowdragmc.lowdraglib2.gui.ui.compose.expandVertically
+import com.lowdragmc.lowdraglib2.gui.ui.compose.fadeIn
+import com.lowdragmc.lowdraglib2.gui.ui.compose.fadeOut
+import com.lowdragmc.lowdraglib2.gui.ui.compose.rememberInteraction
+import com.lowdragmc.lowdraglib2.gui.ui.compose.shrinkVertically
+import com.lowdragmc.lowdraglib2.gui.ui.compose.track
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Box
 import com.lowdragmc.lowdraglib2.gui.ui.compose.Button
 import com.lowdragmc.lowdraglib2.gui.ui.compose.ComposeElement
@@ -26,20 +38,12 @@ import com.lowdragmc.lowdraglib2.test.ui.IScreenTest
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.player.Player
 
-/**
- * The composition's own housekeeping: `/ldlib2_screen_test compose_lifecycle`.
- *
- * <p>Nothing here is a feature anyone would build a screen around. Each row is one of the ways a
- * composition meets the element tree around it — an element handed in from outside, a child added
- * by hand, a nested composition that leaves and comes back, a composition that fails — and the
- * scenario beside it checks each one still behaves.
- */
+/** The composition's own housekeeping against the element tree around it: `/ldlib2_screen_test compose_lifecycle`. */
 @LDLRegisterClient(name = "compose_lifecycle", registry = "ldlib2:screen_test")
 class TestComposeLifecycle : IScreenTest {
     override fun createUI(entityPlayer: Player?): ModularUI {
         val host = ComposeElement { Lifecycle() }
-        // Added by hand, after the composition's own children. The composition must leave it alone -
-        // through recompositions, and through clearing its own children.
+        // Added by hand after the composition's own children; the composition must leave it alone.
         host.addChild(TextElement().setText(Component.literal("manual")).addClass("lc-manual"))
         return ModularUI.of(UI.of(host, StylesheetManager.MODERN), entityPlayer)
     }
@@ -56,8 +60,12 @@ private fun Lifecycle() {
     // Built outside the composition and handed in, the way existing widgets are adopted.
     val a = remember { TextElement().setText(Component.literal("mount a")).addClass("lc-mount-a") }
     val b = remember { TextElement().setText(Component.literal("mount b")).addClass("lc-mount-b") }
-    // A composition inside a composition, which leaves the tree and comes back.
-    val inner = remember { ComposeElement { InnerCounter() }.addClass("lc-inner") }
+    // A nested composition with a manual child of its own, which leaves the tree and comes back.
+    val inner = remember {
+        ComposeElement { InnerCounter() }.addClass("lc-inner").also {
+            it.addChild(TextElement().setText(Component.literal("inner manual")).addClass("lc-inner-manual"))
+        }
+    }
     // A composition whose content always throws: it has to fail on its own, quietly.
     val broken = remember { ComposeElement { error("this content always fails, on purpose") }.addClass("lc-broken") }
 
@@ -87,7 +95,93 @@ private fun Lifecycle() {
 
         Bridges()
         Reshuffle()
+        Moves()
+        Leftovers()
+        Stolen()
+        FirstEffect()
+        Channels()
+        Tracking()
     }
+}
+
+/** Movable content with children of its own, carried between parents and then edited. */
+@Composable
+private fun Moves() {
+    var left by remember { mutableStateOf(true) }
+    var extra by remember { mutableStateOf(false) }
+    val movable = remember {
+        movableContentOf {
+            Box(classes = "lc-movable") {
+                Text("m", classes = "lc-m1")
+                if (extra) Text("m2", classes = "lc-m2")
+            }
+        }
+    }
+    Row(layout = { gap { all(3.px) } }) {
+        Box(classes = "lc-left") { if (left) movable() }
+        Box(classes = "lc-right") { if (!left) movable() }
+        Button(onClick = { left = !left }, text = "move", classes = "lc-move")
+        Button(onClick = { extra = !extra }, text = "extra", classes = "lc-extra")
+    }
+}
+
+/** A remembered element emitted again by a new node, which must not keep its last children. */
+@Composable
+private fun Leftovers() {
+    var open by remember { mutableStateOf(true) }
+    val card = remember { UIElement().addClass("lc-card") }
+    Row(layout = { gap { all(3.px) } }) {
+        if (open) Mount(card) { Text("x", classes = "lc-card-x") }
+        Button(onClick = { open = !open }, text = "card", classes = "lc-card-toggle")
+    }
+}
+
+/** One element moving to a parent that is updated first, which takes it before the old one lets go. */
+@Composable
+private fun Stolen() {
+    var top by remember { mutableStateOf(false) }
+    val shared = remember { TextElement().setText(Component.literal("shared")).addClass("lc-shared") }
+    Box(classes = "lc-top") { if (top) Mount(shared) }
+    Box(classes = "lc-bottom") {
+        if (!top) Mount(shared)
+        Text("tail", classes = "lc-tail")
+    }
+    Button(onClick = { top = !top }, text = "steal", classes = "lc-steal")
+}
+
+/** What the first run of an effect sees: the composed elements already belong to the UI. */
+@Composable
+private fun FirstEffect() {
+    var attached by remember { mutableStateOf<Boolean?>(null) }
+    val probe = remember { UIElement().addClass("lc-probe") }
+    Mount(probe)
+    LaunchedEffect(Unit) { attached = probe.modularUI != null }
+    Text("first effect attached=$attached", classes = "lc-effect")
+}
+
+/** Transitions dropped while shown: what they wrote has to go, not be overwritten with defaults. */
+@Composable
+private fun Channels() {
+    var plain by remember { mutableStateOf(false) }
+    AnimatedVisibility(
+        visible = true,
+        enter = if (plain) EnterTransition.None else fadeIn() + expandVertically(),
+        exit = if (plain) ExitTransition.None else fadeOut() + shrinkVertically(),
+        classes = "lc-av",
+    ) {
+        Text("av", layout = { height(10.px) })
+    }
+    Button(onClick = { plain = !plain }, text = "plain", classes = "lc-plain")
+}
+
+/** Pressed state while the pointer moves from the tracked element onto its own child. */
+@Composable
+private fun Tracking() {
+    val interaction = rememberInteraction()
+    Box(layout = { padding { all(6.px) } }, events = { track(interaction) }, classes = "lc-track") {
+        Text("inside", classes = "lc-track-child")
+    }
+    Text("pressed=${interaction.pressed}", classes = "lc-pressed")
 }
 
 /**

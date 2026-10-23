@@ -6,20 +6,21 @@ import com.lowdragmc.lowdraglib2.gui.ui.compose.demo.TestComposeLifecycle;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventDispatcher;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
+import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
+import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.registry.RegistrationEnvironment;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.uitest.ScenarioBuilder;
 import com.lowdragmc.lowdraglib2.uitest.ScenarioOptions;
 import com.lowdragmc.lowdraglib2.uitest.TestContext;
 import com.lowdragmc.lowdraglib2.uitest.UIScenario;
+import com.lowdragmc.lowdraglib2.uitest.input.Keys;
 
-/**
- * How a composition gets along with the element tree around it.
- *
- * <p>The applier only ever touches what it inserted, an adopted element can be swapped, a nested
- * composition comes back after leaving the tree, and a composition that fails - its content, or one
- * node's style block - fails on its own while the rest of the screen keeps working.
- */
+import java.util.List;
+
+/** How a composition gets along with the element tree around it. */
 @LDLRegisterClient(name = "compose_lifecycle", group = "ldlib2", registry = UIScenario.REGISTRY,
         environment = RegistrationEnvironment.DEV_ONLY)
 public class ComposeLifecycleScenario implements UIScenario {
@@ -27,6 +28,7 @@ public class ComposeLifecycleScenario implements UIScenario {
     private UIElement mountedA;
     private UIElement itemA;
     private UIElement itemC;
+    private UIElement movable;
 
     @Override
     public void configure(ScenarioOptions options) {
@@ -77,6 +79,7 @@ public class ComposeLifecycleScenario implements UIScenario {
                 .check("it was rebuilt from its content", ctx ->
                         ctx.query().select(".lc-inner-button").optional().isPresent())
                 .checkText(".lc-inner-button", "inner 0")
+                .checkExists(".lc-inner-manual")
                 .step("and it still recomposes", ctx -> press(ctx, ".lc-inner-button"))
                 .frames(3)
                 .checkText(".lc-inner-button", "inner 1")
@@ -110,9 +113,8 @@ public class ComposeLifecycleScenario implements UIScenario {
                 .frames(3)
                 .checkText(".lc-bridge-state", "bridged=100 collected=100")
 
-                // Moves, a removal and an insertion in one change. The applier holds moves back and
-                // applies them as one permutation, and has to land them before it touches indices
-                // for the removal and the insertion.
+                // Moves, a removal and an insertion in one change: the applier's batched moves have to
+                // land before the removal and the insertion touch indices.
                 .step("remember two rows that survive", ctx -> {
                     itemA = element(ctx, ".lc-item-a");
                     itemC = element(ctx, ".lc-item-c");
@@ -128,7 +130,84 @@ public class ComposeLifecycleScenario implements UIScenario {
                         element(ctx, ".lc-item-a") == itemA && element(ctx, ".lc-item-c") == itemC)
                 .checkNotExists(".lc-item-b")
 
+                // Movable content with children, carried to another parent and edited there.
+                .step("remember the movable box", ctx -> movable = element(ctx, ".lc-movable"))
+                .step("move it", ctx -> press(ctx, ".lc-move"))
+                .frames(3)
+                .check("it moved, the same element", ctx -> element(ctx, ".lc-movable") == movable
+                        && movable.getParent() == element(ctx, ".lc-right"))
+                .step("add a child inside it", ctx -> press(ctx, ".lc-extra"))
+                .frames(3)
+                .check("after its first child", ctx -> movedChildren().equals(List.of("lc-m1", "lc-m2")))
+                .step("and take it out again", ctx -> press(ctx, ".lc-extra"))
+                .frames(3)
+                .check("only the first child is left", ctx -> movedChildren().equals(List.of("lc-m1")))
+                .step("move it back", ctx -> press(ctx, ".lc-move"))
+                .frames(3)
+                .check("back on the left", ctx -> movable.getParent() == element(ctx, ".lc-left"))
+
+                // A remembered element emitted again starts with only the new children.
+                .step("close the card", ctx -> press(ctx, ".lc-card-toggle"))
+                .frames(3)
+                .step("and open it", ctx -> press(ctx, ".lc-card-toggle"))
+                .frames(3)
+                .check("its old child is gone", ctx -> element(ctx, ".lc-card").getChildren().size() == 1)
+
+                // An element taken by the parent that is updated first, before the old one lets go.
+                .step("move the shared element up", ctx -> press(ctx, ".lc-steal"))
+                .frames(3)
+                .check("it is in the top box", ctx -> element(ctx, ".lc-shared").getParent() == element(ctx, ".lc-top"))
+                .checkExists(".lc-tail")
+                .step("and back down", ctx -> press(ctx, ".lc-steal"))
+                .frames(3)
+                .check("before the tail again", ctx -> {
+                    var bottom = element(ctx, ".lc-bottom").getChildren();
+                    return bottom.size() == 2 && bottom.get(0) == element(ctx, ".lc-shared");
+                })
+
+                .checkText(".lc-effect", "first effect attached=true")
+
+                // Transitions dropped while shown: what they wrote goes, rather than becoming defaults.
+                .check("the transitions write opacity and height", ctx ->
+                        inline(ctx, ".lc-av", PropertyRegistry.OPACITY) && inline(ctx, ".lc-av", LayoutProperties.HEIGHT))
+                .step("drop them", ctx -> press(ctx, ".lc-plain"))
+                .frames(3)
+                .check("and what they wrote is gone", ctx ->
+                        !inline(ctx, ".lc-av", PropertyRegistry.OPACITY) && !inline(ctx, ".lc-av", LayoutProperties.HEIGHT))
+
+                // Pressed survives the pointer moving onto the tracked element's own child.
+                .step("press on the tracked box's padding", ctx -> {
+                    var box = ctx.query().select(".lc-track").one().bounds();
+                    ctx.input().moveTo(box.x() + 2, box.y() + 2);
+                    ctx.input().mouseDown(box.x() + 2, box.y() + 2, Keys.MOUSE_LEFT);
+                })
+                .frames(3)
+                .checkText(".lc-pressed", "pressed=true")
+                .step("move onto its child", ctx -> {
+                    var child = ctx.query().select(".lc-track-child").one().bounds();
+                    ctx.input().moveTo(child.centerX(), child.centerY());
+                })
+                .frames(3)
+                .checkText(".lc-pressed", "pressed=true")
+                .step("release", ctx -> {
+                    var child = ctx.query().select(".lc-track-child").one().bounds();
+                    ctx.input().mouseUp(child.centerX(), child.centerY(), Keys.MOUSE_LEFT);
+                })
+                .frames(3)
+                .checkText(".lc-pressed", "pressed=false")
+
                 .closeScreen();
+    }
+
+    /** Which of the movable box's two children it holds, in order. */
+    private List<String> movedChildren() {
+        return movable.getChildren().stream()
+                .map(child -> child.getClasses().stream().filter(c -> c.startsWith("lc-m")).findFirst().orElse("?"))
+                .toList();
+    }
+
+    private static boolean inline(TestContext ctx, String selector, Property<?> property) {
+        return element(ctx, selector).getStyleBag().containsCandidate(property, slot -> slot.origin() == StyleOrigin.INLINE);
     }
 
     private static UIElement element(TestContext ctx, String selector) {
