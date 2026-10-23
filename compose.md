@@ -342,14 +342,32 @@ LaunchedEffect(Unit) {
     x.animateTo(0f, TweenSpec(400))
 }
 
-AnimatedVisibility(visible = shown, animationSpec = TweenSpec(300)) {
-    Text(Component.literal("淡入淡出"))
+AnimatedVisibility(
+    visible = shown,
+    enter = fadeIn() + slideInVertically() + expandVertically(),
+    exit = fadeOut() + shrinkVertically(),
+) {
+    Details()
 }
 ```
 
 缓动用的是 LDLib2 自己的 `Eases`，和样式表 transition、`StyleAnimation` 同一套。
 
-`AnimatedVisibility` 存在的意义在**淡出**：内容必须在树里多留一段时间，`if (visible)` 当帧就删了，没东西可动。目前只做透明度。
+`AnimatedVisibility` 存在的意义在**退场**：内容必须在树里多留一段时间，`if (visible)` 当帧就删了，没东西可动。进场和退场各自用 `+` 组合，同时跑、各用各的 spec；同一种属性组合了两次时左边的生效。
+
+| 进场 / 退场 | 动的是什么 |
+|---|---|
+| `fadeIn` / `fadeOut` | 透明度 |
+| `slideIn` / `slideOut`（及 `Horizontally` / `Vertically`） | 绘制偏移，**按自身尺寸的比例**给（`-1f` = 往左一整个宽度）—— 尺寸要布局后才知道，比例在绘制时才解析，所以第一帧就对 |
+| `scaleIn` / `scaleOut` | 绘制缩放，pivot 也按比例给 |
+| `expandVertically` / `shrinkVertically`（及 `Horizontally`） | **占的布局空间**，下面的东西被平滑地推开、收回；内容从顶部开始露出，超出部分裁掉 |
+
+几点和 Compose 原版不同的地方：
+
+- **默认只淡入淡出**。原版默认还带 expand；这里要显式要，因为改尺寸要多一层量尺寸的包装元素。
+- slide / scale 只改绘制，不动布局 —— 邻居不会动。要邻居跟着动就再加 `expandVertically`。
+- 改尺寸时，那条轴的尺寸归动画管：`layout` 里别给盒子设那个方向的尺寸，设在内容上；盒子会裁剪。
+- 打断是连续的：退到一半再显示，从当前位置往回走，即使进场和退场方向不同。
 
 > 这一层驱动的是**组合状态**，所以读它的部分每帧重组一次。LDLib2 原有的 `StyleAnimation` 是直接改样式包、完全不碰组合 —— 两套机制都在，按需要选。
 
@@ -490,6 +508,7 @@ h.applier.inserts  // 断言这次改动确实是最小的
 - **`click(selector)` 在 release 时会重新解析选择器**，而 LDLib2 按钮在 mouse-**down** 触发。所以点了会删掉自己、或者会被弹窗盖住的按钮，`click()` 必然报 no element matched —— 要一次解析、复用坐标。
 - **点按钮会抢走焦点**（正常行为）。要测「重排是否保留焦点」得绕开真实点击直接派发 `MOUSE_DOWN`。
 - **`ModularUI.select()` 返回的是注册顺序，不是文档顺序**，重排之后两者会分叉。顺序敏感的断言要走 `getChildren()` 逐层走树。
+- **场景的每一步之间默认有 settle**（`compose_*` 场景是 120ms）。要断言动画"进行到一半"，那几步得用 `settleMs(0)` 连起来 —— 三次 settle 就够把一个 400ms 的 tween 走完。
 
 ---
 
@@ -523,7 +542,7 @@ cannot access class kotlinx.coroutines.debug.internal.DebugProbesImpl (in module
 | **`rememberSaveable`** | 没有。关闭界面重开状态会丢（最小化编辑器换宿主的场景是能存活的） |
 | **无障碍** | 组合出来的元素不向 MC 旁白贡献信息 |
 | **网格列宽** | `LazyVerticalGrid` 的行高可以变（`variableHeight`），列宽固定 |
-| **`AnimatedVisibility`** | 只有淡入淡出，没有 slide / expand |
+| **`AnimatedVisibility` 改尺寸** | 只能单轴（原版的 `expandIn` 两轴同时没做）；进场和退场必须是同一条轴 |
 | **服务端 UI** | 组合只在客户端跑，但行数可以完全由服务端驱动 —— 见「服务端驱动的 UI」。限制是注册必须在组合外 |
 
 `Menu` / `SearchComponent` / `Scene` / `GraphView` 没有类型化封装 —— 用 `UIElementNode` 直接使。

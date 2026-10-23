@@ -24,11 +24,18 @@ import com.lowdragmc.lowdraglib2.gui.ui.compose.TextField
 import com.lowdragmc.lowdraglib2.gui.ui.compose.TweenSpec
 import com.lowdragmc.lowdraglib2.gui.ui.compose.UIElementNode
 import com.lowdragmc.lowdraglib2.gui.ui.compose.composeModularUI
+import com.lowdragmc.lowdraglib2.gui.ui.compose.expandVertically
+import com.lowdragmc.lowdraglib2.gui.ui.compose.fadeIn
+import com.lowdragmc.lowdraglib2.gui.ui.compose.fadeOut
+import com.lowdragmc.lowdraglib2.gui.ui.compose.shrinkVertically
+import com.lowdragmc.lowdraglib2.gui.ui.compose.slideInHorizontally
+import com.lowdragmc.lowdraglib2.gui.ui.compose.slideOutHorizontally
 import com.lowdragmc.lowdraglib2.gui.ui.compose.rememberInteraction
 import com.lowdragmc.lowdraglib2.gui.ui.compose.track
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TreeList
 import com.lowdragmc.lowdraglib2.gui.ui.layout.px
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager
+import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites
 import com.lowdragmc.lowdraglib2.gui.util.TreeNode
 import com.lowdragmc.lowdraglib2.math.interpolate.Eases
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient
@@ -78,6 +85,7 @@ private fun WidgetsDemo() {
 
         ReorderableFields()
         FadePanel()
+        ExpandPanel()
         Tabs()
         ConfirmDialog()
         UnwrappedWidget()
@@ -291,12 +299,45 @@ private fun FadePanel() {
     )
     AnimatedVisibility(
         visible = shown,
-        animationSpec = TweenSpec(durationMillis = 400, easing = Eases.QUAD_OUT),
+        enter = fadeIn(TweenSpec(durationMillis = 400, easing = Eases.QUAD_OUT)),
+        exit = fadeOut(TweenSpec(durationMillis = 400, easing = Eases.QUAD_OUT)),
         layout = { width(240.px) },
         classes = "fade-panel",
     ) {
         Text(Component.literal("faded in"), classes = "fade-content")
     }
+}
+
+/**
+ * A panel that slides in from the left and leaves to the right, while the space it takes opens and
+ * closes — so the text below is pushed down and pulled back smoothly instead of jumping.
+ */
+@Composable
+private fun ExpandPanel() {
+    var shown by remember { mutableStateOf(false) }
+    val spec = TweenSpec(durationMillis = 400, easing = Eases.QUAD_OUT)
+
+    Button(
+        onClick = { shown = !shown },
+        text = Component.literal("展开收起"),
+        classes = "expand-toggle",
+    )
+    AnimatedVisibility(
+        visible = shown,
+        enter = fadeIn(spec) + slideInHorizontally(spec) + expandVertically(spec),
+        exit = fadeOut(spec) + slideOutHorizontally(spec, targetOffsetX = 0.5f) + shrinkVertically(spec),
+        layout = { width(240.px) },
+        classes = "expand-panel",
+    ) {
+        Box(
+            layout = { height(30.px); padding { all(4.px) } },
+            style = { backgroundTexture(Sprites.BORDER) },
+            classes = "expand-content",
+        ) {
+            Text(Component.literal("slides in, pushes the line below down"))
+        }
+    }
+    Text(Component.literal("below the panel"), classes = "expand-below")
 }
 
 @Composable

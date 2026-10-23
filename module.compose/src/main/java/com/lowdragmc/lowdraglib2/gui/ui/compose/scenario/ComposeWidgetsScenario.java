@@ -37,6 +37,7 @@ public class ComposeWidgetsScenario implements UIScenario {
 
     private UIElement fieldABefore;
     private UIElement tabTwoBefore;
+    private float belowY;
 
     @Override
     public void configure(ScenarioOptions options) {
@@ -107,6 +108,33 @@ public class ComposeWidgetsScenario implements UIScenario {
                 .check("and already fading", ctx -> opacity(ctx) < 1f)
                 .waitUntil("the fade-out finishes and unmounts it", ctx ->
                         ctx.query().select(".fade-content").optional().isEmpty())
+
+                // Entering and leaving with a slide and a size change. The panel's height belongs to
+                // the animation: part-way it is part-open and drawn shifted, at rest it is exactly as
+                // tall as its content, and the line below moves to make room and back again.
+                // The part-way checks run without the usual settle between steps: three settles
+                // outlast the whole 400ms entrance.
+                .checkNotExists(".expand-content")
+                .step("remember where the line below sits", ctx -> belowY = y(ctx, ".expand-below"))
+                .settleMs(0).step("show the expanding panel", ctx -> press(ctx, ".expand-toggle"))
+                .settleMs(0).frames(3)
+                .settleMs(0).checkExists(".expand-content")
+                .settleMs(0).check("the panel is part-way open", ctx -> height(ctx, ".expand-panel") < 29.5f)
+                .settleMs(0).check("and drawn shifted in from the left", ctx -> panelOffsetX(ctx) < 0f)
+                .screenshotElement("widgets-expanding", ".__root__")
+                .waitUntil("the panel finishes opening", ctx ->
+                        height(ctx, ".expand-panel") >= 29.5f && Math.abs(panelOffsetX(ctx)) < 0.01f)
+                .check("the line below made room for it", ctx -> y(ctx, ".expand-below") >= belowY + 29.5f)
+
+                .settleMs(0).step("hide the expanding panel", ctx -> press(ctx, ".expand-toggle"))
+                .settleMs(0).frames(4)
+                .settleMs(0).check("still mounted while it closes", ctx ->
+                        ctx.query().select(".expand-content").optional().isPresent())
+                .check("and leaving towards the right", ctx -> panelOffsetX(ctx) > 0f)
+                .waitUntil("the panel closes and unmounts", ctx ->
+                        ctx.query().select(".expand-content").optional().isEmpty())
+                .check("the line below is back where it was", ctx ->
+                        Math.abs(y(ctx, ".expand-below") - belowY) < 0.5f)
 
                 // Tabs. Only the selected tab's body is displayed, but every tab stays composed —
                 // which is what lets a tab keep its state while you are looking at another one.
@@ -231,6 +259,20 @@ public class ComposeWidgetsScenario implements UIScenario {
 
     private static String text(TestContext ctx, String selector) {
         return ctx.query().select(selector).one().text();
+    }
+
+    private static float y(TestContext ctx, String selector) {
+        return ctx.query().select(selector).one().bounds().y();
+    }
+
+    private static float height(TestContext ctx, String selector) {
+        return ctx.query().select(selector).one().bounds().height();
+    }
+
+    /** How far the expanding panel is drawn from where it is laid out, in pixels. */
+    private static float panelOffsetX(TestContext ctx) {
+        var panel = element(ctx, ".expand-panel");
+        return panel.getStyle().transform2D().translate().resolveX(panel.getSizeWidth());
     }
 
     private static boolean hasClass(TestContext ctx, String selector, String styleClass) {
