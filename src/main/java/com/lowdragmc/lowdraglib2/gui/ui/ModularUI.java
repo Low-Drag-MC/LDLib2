@@ -275,7 +275,7 @@ public class ModularUI {
             }
         }
         var id = element.getId();
-        if (!id.isEmpty()) {
+        if (id != null && !id.isEmpty()) {
             elementsById.computeIfAbsent(id, k -> new ArrayList<>()).add(element);
         }
     }

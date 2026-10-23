@@ -79,9 +79,10 @@ tasks.register('runMpTest', JavaExec) {
     doFirst { new File(ldMpOutDir).deleteDir() }
     finalizedBy 'verifyMpTest'
     // The child builds start together and would all build their runs' inputs at once, racing on the same
-    // files; building them here first leaves them up to date. Every client run needs the same as A.
+    // files; building them here first leaves them up to date. Every client run needs the same as the first.
     dependsOn {
-        ['runMpServer', 'runMpClientA'].collect { tasks.getByName(it).taskDependencies.getDependencies(null) }.flatten()
+        def firstClient = (project.findProperty('ldMpClients') ?: 'A,B').toString().split(',')[0].trim()
+        ['runMpServer', "runMpClient${firstClient}"].collect { tasks.getByName(it).taskDependencies.getDependencies(null) }.flatten()
     }
 }
 
