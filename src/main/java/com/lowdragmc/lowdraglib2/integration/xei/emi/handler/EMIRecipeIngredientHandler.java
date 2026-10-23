@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.integration.xei.emi.handler;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
 import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.api.stack.EmiStack;
+import dev.emi.emi.api.stack.ListEmiIngredient;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,11 +27,16 @@ public final class EMIRecipeIngredientHandler {
 
     public void add(IngredientIO role, List<EmiIngredient> ingredients) {
         if (role == IngredientIO.INPUT) {
-            addInput(ingredients);
+            addInput(mergeVariants(ingredients));
         } else if (role == IngredientIO.CATALYST) {
-            addCatalyst(ingredients);
+            addCatalyst(mergeVariants(ingredients));
         } else if (role == IngredientIO.OUTPUT) {
             addOutput(ingredients.stream().flatMap(ingredient -> ingredient.getEmiStacks().stream()).toList());
         }
+    }
+
+    private static List<EmiIngredient> mergeVariants(List<EmiIngredient> ingredients) {
+        if (ingredients.size() < 2) return ingredients;
+        return List.of(new ListEmiIngredient(ingredients, ingredients.getFirst().getAmount()));
     }
 }
