@@ -20,8 +20,22 @@ import java.util.function.LongConsumer
  * distinction is load-bearing: minimising an editor window keeps the element tree but re-hosts it in
  * a fresh `ModularUI`, and anything keyed on the old host is abandoned at that point. Only the
  * per-frame registration follows the host around; state built up by `remember` survives the move.
+ *
+ * <p>Closing the screen is different: the composition goes, and `remember` state with it. Give the
+ * element a [stateKey] for `rememberSaveable` state to come back the next time it is built.
  */
 class ComposeElement() : UIElement() {
+    /**
+     * Names this composition's `rememberSaveable` state, so it is kept in [ComposeSavedState] when the
+     * element is torn down and handed back when an element with the same key is built. Pick something
+     * that identifies the screen *and* what it shows — `"mymod:furnace@" + pos` rather than
+     * `"mymod:furnace"`, or every furnace shares one set of state.
+     *
+     * <p>Read when the composition starts and when it is disposed, so set it before [setContent];
+     * the constructor taking one does. Null, the default, keeps nothing across a close.
+     */
+    var stateKey: String? = null
+
     private var host: ComposeHost? = null
     private var boundUI: ModularUI? = null
     private var content: (@Composable () -> Unit)? = null
@@ -34,6 +48,11 @@ class ComposeElement() : UIElement() {
     }
 
     constructor(content: @Composable () -> Unit) : this() {
+        setContent(content)
+    }
+
+    constructor(stateKey: String?, content: @Composable () -> Unit) : this() {
+        this.stateKey = stateKey
         setContent(content)
     }
 
@@ -74,16 +93,25 @@ class ComposeElement() : UIElement() {
         super.onRemoved()
     }
 
-    /** Tears the composition down, running every `DisposableEffect`'s cleanup. */
+    /**
+     * Tears the composition down, running every `DisposableEffect`'s cleanup. Saves its
+     * `rememberSaveable` state first, if it has a [stateKey].
+     */
     fun dispose() {
         boundUI?.removeFrameCallback(frameCallback)
         boundUI = null
-        host?.dispose()
+        host?.let { host ->
+            // Before disposing: the values are collected from the providers each rememberSaveable
+            // registered, and disposing the composition unregisters them.
+            stateKey?.let { ComposeSavedState.save(it, host.saveState()) }
+            host.dispose()
+        }
         host = null
     }
 
     private fun startComposition(content: @Composable () -> Unit) {
-        val host = this.host ?: ComposeHost(this).also { this.host = it }
+        val host = this.host
+            ?: ComposeHost(this, stateKey?.let(ComposeSavedState::restore)).also { this.host = it }
         host.setContent {
             CompositionLocalProvider(LocalUIElement provides this) { content() }
         }
@@ -101,7 +129,8 @@ class ComposeElement() : UIElement() {
         val mui = modularUI
         // Attached again after [onRemoved] tore the composition down. Rebuilding from the content we
         // were handed beats leaving a silently empty element behind; `remember` state does not
-        // survive, because the composition that held it is gone.
+        // survive, because the composition that held it is gone — `rememberSaveable` does, given a
+        // stateKey.
         if (host == null && mui != null) content?.let { startComposition(it) }
         if (mui === boundUI) return
         boundUI?.removeFrameCallback(frameCallback)

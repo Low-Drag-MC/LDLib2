@@ -6,6 +6,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.getValue
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement
 import net.minecraft.network.chat.Component
@@ -22,7 +23,8 @@ class TabScope internal constructor() {
      *
      * @param key identifies the tab across recompositions. A tab keeps its element, its selection
      *   and everything its content remembered for as long as the same key keeps appearing — so use
-     *   something stable, not the index.
+     *   something stable, not the index. Its `rememberSaveable` state outlives even that: a tab
+     *   removed and later declared again under the same key gets it back.
      */
     fun tab(key: Any, title: Component, content: @Composable () -> Unit) {
         specs += TabSpec(key, title, content)
@@ -78,6 +80,9 @@ fun TabView(
     val keysByTab = remember { HashMap<LdlTab, Any>() }
     val tabsByKey = remember { HashMap<Any, LdlTab>() }
     val currentOnSelect by rememberUpdatedState(onSelect)
+    // Where a removed tab's rememberSaveable state waits, in case the tab comes back. Also what keeps
+    // the tabs' saved state apart: each one saves under its own key.
+    val tabStates = rememberSaveableStateHolder()
 
     UIElementNode(
         factory = { view },
@@ -113,7 +118,7 @@ fun TabView(
                 tab.setText(spec.title)
                 onDispose { }
             }
-            Subcompose(host, spec.content)
+            Subcompose(host) { tabStates.SaveableStateProvider(spec.key, spec.content) }
         }
     }
 
