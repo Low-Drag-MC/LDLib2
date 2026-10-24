@@ -1,4 +1,10 @@
 # ChangeLogs
+## v26.2.2.43.a
+* Fixed a cached scene drawing nothing once its blocks changed after its first compile, such as an editor scene filled after it was first shown
+* Fixed a scene compile cancelled while still running writing into, or freeing, the buffers the next compile builds into
+* Fixed UI test worlds not freezing time, weather, mob spawning and fire, their game rules being set by names 26.2 no longer has
+* Improved UI test frame waits to allow time for each frame rather than a fixed timeout, so several test clients on one GPU no longer time out
+
 ## v26.2.2.43
 * Added `@ManagedCodec`, which saves and syncs a managed field with a codec of your own instead of the accessor registered for its type, from methods a subclass can override
 * Fixed a graph or UI editor opened from the resource panel landing behind the Scene tab, and opening a resource that is already open giving it a second editor instead of bringing its tab forward
