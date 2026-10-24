@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 562.5" role="img" aria-labelledby="title desc">
   <title id="title">LDLib2 Data Synchronization and Persistence</title>
   <desc id="desc">A compact comparison between manual Minecraft synchronization boilerplate and LDLib2 annotation-driven data sync and persistence.</desc>
   <defs>
@@ -12,10 +12,11 @@
     </filter>
   </defs>
 
-  <rect width="1000" height="520" rx="28" fill="url(#bg)"/>
+  <rect width="1000" height="562.5" rx="28" fill="url(#bg)"/>
   <circle cx="135" cy="88" r="70" fill="#38bdf8" opacity="0.12"/>
-  <circle cx="880" cy="430" r="110" fill="#f59e0b" opacity="0.10"/>
+  <circle cx="880" cy="460" r="110" fill="#f59e0b" opacity="0.10"/>
 
+  <g transform="translate(0 21)">
   <text x="56" y="70" fill="#f8fafc" font-family="Segoe UI, Arial, sans-serif" font-size="32" font-weight="700">Data Sync + Persistence</text>
   <text x="56" y="106" fill="#cbd5e1" font-family="Segoe UI, Arial, sans-serif" font-size="18">Declare what each field is. LDLib2 handles when and how it is saved or synchronized.</text>
 
@@ -27,7 +28,7 @@
   <text x="88" y="196" fill="#fca5a5" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700">Typical boilerplate</text>
   <text x="576" y="196" fill="#5eead4" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700">With LDLib2</text>
 
-  <g font-family="Cascadia Mono, Consolas, monospace" font-size="16">
+  <g font-family="Cascadia Mono, Consolas, monospace" font-size="14.5">
     <text x="88" y="236" fill="#e5e7eb">saveAdditional(tag)</text>
     <text x="88" y="266" fill="#e5e7eb">load(tag)</text>
     <text x="88" y="296" fill="#e5e7eb">getUpdateTag()</text>
@@ -36,10 +37,10 @@
     <text x="88" y="386" fill="#94a3b8">repeated per BlockEntity</text>
 
     <text x="576" y="236" fill="#c4b5fd">public class ExampleBE</text>
-    <text x="576" y="266" fill="#93c5fd">  implements ISyncPersistRPCBlockEntity {</text>
-    <text x="576" y="296" fill="#fde68a">  @Persisted</text>
-    <text x="576" y="326" fill="#fde68a">  @DescSynced</text>
-    <text x="576" y="356" fill="#f8fafc">  public int energy = 0;</text>
+    <text x="576" y="266" fill="#93c5fd">  implements ISyncPersistRPCBlockEntity {</text>
+    <text x="576" y="296" fill="#fde68a">  @Persisted</text>
+    <text x="576" y="326" fill="#fde68a">  @DescSynced</text>
+    <text x="576" y="356" fill="#f8fafc">  public int energy = 0;</text>
     <text x="576" y="386" fill="#94a3b8">}</text>
   </g>
 
@@ -55,5 +56,6 @@
     <text x="489" y="477" fill="#dbeafe">RPC packets</text>
     <rect x="642" y="454" width="220" height="34" rx="17" fill="#123c3a"/>
     <text x="676" y="477" fill="#ccfbf1">Generated codecs</text>
+  </g>
   </g>
 </svg>
