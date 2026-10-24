@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.client.scene;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.core.mixins.accessor.MeshDataAccessor;
 import com.lowdragmc.lowdraglib2.math.Position;
 import com.lowdragmc.lowdraglib2.math.PositionedRect;
@@ -129,7 +130,7 @@ public abstract class WorldSceneRenderer {
     /** GPU-resident cache, drawn each frame via {@link #renderTerrain}. Closed in {@link #deleteCacheBuffer()}. */
     @Nullable
     protected Map<ChunkSectionLayer, List<SectionGpuMesh>> cachedGpuMeshes;
-    /** Long-lived buffer pack backing {@link #cachedMeshes}. Closed in {@link #deleteCacheBuffer()}. */
+    /** The pack backing {@link #cachedMeshes} until they are uploaded; also the sync compile's pack. */
     @Nullable
     protected SectionBufferBuilderPack cacheBuilders;
     protected Set<BlockPos> blockEntities;
@@ -430,11 +431,7 @@ public abstract class WorldSceneRenderer {
             cachedMeshes = null;
         }
         if (cachedGpuMeshes != null) {
-            for (List<SectionGpuMesh> list : cachedGpuMeshes.values()) {
-                for (SectionGpuMesh m : list) {
-                    m.close();
-                }
-            }
+            closeGpuMeshes(cachedGpuMeshes);
             cachedGpuMeshes = null;
         }
         if (cacheBuilders != null) {
@@ -449,7 +446,6 @@ public abstract class WorldSceneRenderer {
     protected void makeSureCacheBufferCreated() {
         if (cachedMeshes == null && cachedGpuMeshes == null) {
             cachedMeshes = new EnumMap<>(ChunkSectionLayer.class);
-            cacheBuilders = new SectionBufferBuilderPack();
             cancelCompile();
             cacheState.set(CacheState.NEED);
         }
@@ -476,11 +472,14 @@ public abstract class WorldSceneRenderer {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
+            if (t instanceof CompileThread compile) compile.abandon();
         }
         if (syncCompileState != null) {
             syncCompileState.discard();
             syncCompileState = null;
         }
+        // nothing compiles any more: without this, cancelling from add/removeRenderedBlocks never recompiles
+        if (cacheState.get() == CacheState.COMPILING) cacheState.set(CacheState.NEED);
     }
 
     public WorldSceneRenderer addRenderedBlocks(Collection<BlockPos> blocks, @Nullable ISceneBlockRenderHook renderHook) {
@@ -1022,9 +1021,8 @@ public abstract class WorldSceneRenderer {
      * storing them into {@link #cachedMeshes}. Once COMPILED, the CPU meshes are uploaded once into
      * {@link #cachedGpuMeshes} (render thread) and drawn each frame via {@link #renderTerrain}.
      * <p>
-     * The compile thread reuses a long-lived {@link SectionBufferBuilderPack} ({@link #cacheBuilders});
-     * {@link MeshData} instances reference into its underlying {@link ByteBufferBuilder}s, so the
-     * pack must outlive the CPU meshes (released right after the GPU upload).
+     * {@link MeshData} instances reference into the {@link ByteBufferBuilder}s of the pack they were built in, so
+     * the pack must outlive the CPU meshes (both released right after the GPU upload).
      */
     private void renderCacheBuffer(Minecraft mc) {
         if (cacheState.get() == CacheState.NEED || cacheState.get() == CacheState.UNCREATED) {
@@ -1032,25 +1030,27 @@ public abstract class WorldSceneRenderer {
             progress = 0;
             int totalBlocks = renderedBlocksMap.values().stream().map(e -> e.snapshot().size()).reduce(0, Integer::sum);
             maxProgress = totalBlocks * (syncCompile ? 1 : 2);
-            // Snapshot the pack we'll write into; deleteCacheBuffer() may swap cacheBuilders concurrently.
-            final SectionBufferBuilderPack compileBuilders = cacheBuilders;
-            if (compileBuilders == null) {
-                return;
-            }
             if (syncCompile) {
-                startSyncCompile(compileBuilders);
+                // released with every upload below, so any recompile after the first needs a new one
+                if (cacheBuilders == null) cacheBuilders = new SectionBufferBuilderPack();
+                startSyncCompile(cacheBuilders);
             } else {
-                startAsyncCompile(mc, compileBuilders);
+                startAsyncCompile(mc);
                 return;
             }
         }
         if (syncCompile && cacheState.get() == CacheState.COMPILING && syncCompileState != null) {
             tickSyncCompile();
         }
+        if (thread instanceof CompileThread compile && compile.isDone()) {
+            takeAsyncCompile(compile);
+        }
         // Once compiled, upload the CPU section meshes to GPU buffers once (render thread only),
         // then release the CPU data and the backing pack. Subsequent frames draw straight from GPU.
         if (cacheState.get() == CacheState.COMPILED && cachedMeshes != null) {
+            var previous = cachedGpuMeshes;
             cachedGpuMeshes = uploadSectionMeshes(cachedMeshes);
+            closeGpuMeshes(previous);
             closeCpuMeshes(cachedMeshes);
             cachedMeshes = null;
             if (cacheBuilders != null) {
@@ -1065,50 +1065,115 @@ public abstract class WorldSceneRenderer {
         }
     }
 
-    private void startAsyncCompile(Minecraft mc, SectionBufferBuilderPack compileBuilders) {
+    private void startAsyncCompile(Minecraft mc) {
         var entriesSnapshot = List.copyOf(renderedBlocksMap.values());
-        thread = new Thread(() -> {
-            cacheState.set(CacheState.COMPILING);
+        var compile = new CompileThread(self -> {
             EnumMap<ChunkSectionLayer, List<SectionCpuMesh>> compiled = new EnumMap<>(ChunkSectionLayer.class);
+            Set<BlockPos> poses = new HashSet<>();
+            boolean complete = false;
             try {
                 var region = world instanceof BlockAndTintGetter g ? g : world instanceof DummyWorld dummyWorld ? DummyWorld.ClientSupport.asClientWorld(dummyWorld) : new WrappedBlockAndTintGetter(world);
                 for (var entry : entriesSnapshot) {
-                    if (Thread.interrupted()) return;
-                    Results r = renderBlocks(region, entry.snapshot(), entry.hook(), compileBuilders);
+                    if (self.isInterrupted()) return;
+                    Results r = renderBlocks(region, entry.snapshot(), entry.hook(), self.pack);
                     r.renderedLayers.forEach((layer, list) ->
                             compiled.computeIfAbsent(layer, k -> new ArrayList<>()).addAll(list));
-                    // blockEntities collected separately below to keep compile-thread minimal.
                 }
-            } catch (Exception e) {
-                closeCpuMeshes(compiled);
-                return;
-            }
-            Set<BlockPos> poses = new HashSet<>();
-            for (var entry : entriesSnapshot) {
-                for (BlockPos pos : entry.snapshot()) {
-                    progress++;
-                    if (Thread.interrupted()) return;
-                    BlockEntity tile = world.getBlockEntity(pos);
-                    if (tile != null && mc.getBlockEntityRenderDispatcher().getRenderer(tile) != null) {
-                        poses.add(pos);
+                for (var entry : entriesSnapshot) {
+                    for (BlockPos pos : entry.snapshot()) {
+                        progress++;
+                        if (self.isInterrupted()) return;
+                        BlockEntity tile = world.getBlockEntity(pos);
+                        if (tile != null && mc.getBlockEntityRenderDispatcher().getRenderer(tile) != null) {
+                            poses.add(pos);
+                        }
                     }
                 }
+                complete = !self.isInterrupted();
+            } catch (Exception e) {
+                LDLib2.LOGGER.error("Failed to compile the scene's blocks", e);
+            } finally {
+                if (!complete) closeCpuMeshes(compiled);
+                self.finish(complete ? compiled : null, poses);
+                maxProgress = -1;
             }
-            if (Thread.interrupted()) {
-                closeCpuMeshes(compiled);
-                return;
-            }
-            if (thread != null) {
-                Map<ChunkSectionLayer, List<SectionCpuMesh>> oldMeshes = cachedMeshes;
-                cachedMeshes = compiled;
-                blockEntities = poses;
-                cacheState.set(CacheState.COMPILED);
-                thread = null;
-                closeCpuMeshes(oldMeshes);
-            }
-            maxProgress = -1;
         });
-        thread.start();
+        thread = compile;
+        cacheState.set(CacheState.COMPILING);
+        compile.start();
+    }
+
+    /** Render thread: swap a finished background compile in; a failed one keeps what is drawn. */
+    private void takeAsyncCompile(CompileThread compile) {
+        thread = null;
+        var meshes = compile.takeMeshes();
+        if (meshes == null) {
+            compile.pack.close();
+        } else {
+            closeCpuMeshes(cachedMeshes);
+            if (cacheBuilders != null) cacheBuilders.close();
+            cachedMeshes = meshes;
+            cacheBuilders = compile.pack;
+            blockEntities = compile.blockEntities;
+        }
+        cacheState.set(CacheState.COMPILED);
+    }
+
+    /**
+     * A background compile writing into a pack of its own. The render thread takes the result once it is done; one
+     * cancelled while still running is abandoned and releases its pack itself, so no two compiles share a pack and
+     * none is closed under a thread still writing into it.
+     */
+    private static final class CompileThread extends Thread {
+        private final SectionBufferBuilderPack pack = new SectionBufferBuilderPack();
+        private final Consumer<CompileThread> body;
+        @Nullable
+        private Map<ChunkSectionLayer, List<SectionCpuMesh>> meshes;
+        private Set<BlockPos> blockEntities = Set.of();
+        private boolean done, abandoned;
+
+        private CompileThread(Consumer<CompileThread> body) {
+            super("LDLib2 scene compile");
+            setDaemon(true);
+            this.body = body;
+        }
+
+        @Override
+        public void run() {
+            body.accept(this);
+        }
+
+        private synchronized void finish(@Nullable Map<ChunkSectionLayer, List<SectionCpuMesh>> meshes,
+                                         Set<BlockPos> blockEntities) {
+            done = true;
+            if (abandoned) {
+                closeCpuMeshes(meshes);
+                pack.close();
+            } else {
+                this.meshes = meshes;
+                this.blockEntities = blockEntities;
+            }
+        }
+
+        private synchronized void abandon() {
+            abandoned = true;
+            if (done) {
+                closeCpuMeshes(meshes);
+                meshes = null;
+                pack.close();
+            }
+        }
+
+        private synchronized boolean isDone() {
+            return done;
+        }
+
+        @Nullable
+        private synchronized Map<ChunkSectionLayer, List<SectionCpuMesh>> takeMeshes() {
+            var taken = meshes;
+            meshes = null;
+            return taken;
+        }
     }
 
     private void startSyncCompile(SectionBufferBuilderPack compileBuilders) {
@@ -1164,6 +1229,12 @@ public abstract class WorldSceneRenderer {
     private static void closeCpuMeshes(@Nullable Map<ChunkSectionLayer, List<SectionCpuMesh>> meshes) {
         if (meshes != null) {
             meshes.values().forEach(list -> list.forEach(m -> m.mesh().close()));
+        }
+    }
+
+    private static void closeGpuMeshes(@Nullable Map<ChunkSectionLayer, List<SectionGpuMesh>> meshes) {
+        if (meshes != null) {
+            meshes.values().forEach(list -> list.forEach(SectionGpuMesh::close));
         }
     }
 
