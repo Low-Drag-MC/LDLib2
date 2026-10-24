@@ -24,6 +24,8 @@ public final class Step {
     public long settleMs = -1;
     /** How long {@link TestContext#repeat(String)} may keep asking. {@code -1} means scenario default. */
     public long timeoutMs = -1;
+    /** The least the scenario default may give this step: a wait for a number of frames, not for a time. */
+    public long minTimeoutMs;
     /** Label of the enclosing {@code group(..)} block, or {@code null}. */
     public String group;
 

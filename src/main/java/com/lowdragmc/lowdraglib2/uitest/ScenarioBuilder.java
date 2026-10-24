@@ -646,14 +646,20 @@ public final class ScenarioBuilder {
     /** Pumps {@code n} rendered frames. Prefer a condition wait; frame counts are not time. */
     public ScenarioBuilder frames(int n) {
         var remaining = new int[]{n};
-        return add("frames " + n, StepKind.WAIT, ctx -> {
+        add("frames " + n, StepKind.WAIT, ctx -> {
             if (remaining[0]-- > 0) {
                 ctx.repeat("frame " + (n - remaining[0]) + "/" + n);
             } else {
                 remaining[0] = n;
             }
         });
+        // a count of frames, not a time: several clients at once on one GPU can draw at a few frames a second
+        steps.getLast().minTimeoutMs = n * FRAME_BUDGET_MS;
+        return this;
     }
+
+    /** What a frame may take before {@link #frames} gives up on it, over the scenario's default timeout. */
+    private static final long FRAME_BUDGET_MS = 250;
 
     /**
      * Waits {@code n} client ticks.

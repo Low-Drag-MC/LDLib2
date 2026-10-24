@@ -125,7 +125,7 @@ public final class ScenarioRun {
     }
 
     public long effectiveTimeoutMs(Step step) {
-        return step.timeoutMs >= 0 ? step.timeoutMs : options.defaultTimeoutMs();
+        return step.timeoutMs >= 0 ? step.timeoutMs : Math.max(options.defaultTimeoutMs(), step.minTimeoutMs);
     }
 
     /** 1-based position for report indices and screenshot file-name prefixes. */
