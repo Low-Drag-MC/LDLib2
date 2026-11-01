@@ -27,7 +27,6 @@ import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.sceneobject.utils.Transfo
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
-import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
 import org.joml.AxisAngle4f;
 import org.joml.Quaternionf;
@@ -333,10 +332,20 @@ public class SceneEditor extends UIElement implements IScene {
     public Optional<Vector2f> project(Vector3f pos) {
         var renderer = scene.<com.lowdragmc.lowdraglib2.client.scene.WorldSceneRenderer>getRenderer();
         if (renderer == null) return Optional.empty();
-        var window = Minecraft.getInstance().getWindow();
+        var viewportWidth = renderer.getViewportWidth();
+        var viewportHeight = renderer.getViewportHeight();
+        if (viewportWidth <= 0 || viewportHeight <= 0) return Optional.empty();
         var result = renderer.project(pos);
-        var x = result.x() * window.getGuiScaledWidth() / window.getWidth();
-        var y = (window.getHeight() - result.y()) * window.getGuiScaledHeight() / window.getHeight();
+        // The scene is a deferred picture-in-picture: the renderer's viewport is that texture, which
+        // spans the scene's content box snapped outward to whole gui units (see Scene's renderer) and
+        // is sized by the gui scale of the surface it is drawn on - an OS window's own, if it has one.
+        // Mapping through the box itself rather than through any scale holds either way.
+        var x0 = Mth.floor(scene.getContentX());
+        var y0 = Mth.floor(scene.getContentY());
+        var x1 = Mth.ceil(scene.getContentX() + scene.getContentWidth());
+        var y1 = Mth.ceil(scene.getContentY() + scene.getPaddingHeight());
+        var x = x0 + result.x() * (x1 - x0) / viewportWidth;
+        var y = y0 + (viewportHeight - result.y()) * (y1 - y0) / viewportHeight;
         return Optional.of(new Vector2f(x, y));
     }
 

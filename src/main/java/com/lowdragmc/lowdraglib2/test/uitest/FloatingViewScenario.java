@@ -38,6 +38,7 @@ public class FloatingViewScenario implements UIScenario {
     private static final String DOCKED_BACKGROUND = "docked_code_editor_background";
     private static final String PANE_ON_DESKTOP = "inspector_pane_on_desktop";
     private static final String MOVED_TO = "inspector_window_moved_to";
+    private static final String CLOSED_WINDOW = "closed_floating_window";
 
     @Override
     public void configure(ScenarioOptions options) {
@@ -156,12 +157,17 @@ public class FloatingViewScenario implements UIScenario {
                         .step("ask the window to close, the way its close button does", ctx -> {
                             var window = editor(ctx).getFloatingViews().windowOf(editor(ctx).inspectorView);
                             ctx.require("the inspector is in a native window", window != null);
+                            ctx.put(CLOSED_WINDOW, window);
                             window.window().post(new OsWindowEvent.CloseRequest());
                         })
                         .frames(10)
                         .check("the window closed", ctx -> !OsWindowManager.hasWindows())
+                        .check("the window's UI was torn down",
+                                ctx -> ctx.<FloatingViewWindow>get(CLOSED_WINDOW).getModularUI().isRemoved())
                         .check("the inspector came home",
-                                ctx -> editor(ctx).rootWindow.getAllViews().contains(editor(ctx).inspectorView)))
+                                ctx -> editor(ctx).rootWindow.getAllViews().contains(editor(ctx).inspectorView))
+                        .check("and is live in the editor's ModularUI",
+                                ctx -> editor(ctx).inspectorView.getModularUI() == ctx.requireUI()))
 
                 .group("styling follows the editor into the window", g -> g
                         .step("float the inspector once more", ctx ->

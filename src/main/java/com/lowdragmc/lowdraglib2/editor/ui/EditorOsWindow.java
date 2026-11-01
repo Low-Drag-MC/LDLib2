@@ -69,10 +69,8 @@ public class EditorOsWindow extends ModularUIWindow {
     public void onDestroyed() {
         editorWindow.rememberBounds(restoredBounds());
         editorWindow._setOsWindowInternal(null);
+        // Tears the UI down (ModularUIWindow#onDestroyed), as a screen's is when the screen goes. A move to
+        // the game window or a minimize keeps the tree alive — EditorWindow#onRemoved stands down for both.
         super.onDestroyed();
-        // What a screen's UI gets when the screen goes (ScreenMixin), and a window has nothing else to give it:
-        // without it an editor closed in its own window was never torn down. A move to the game window or a
-        // minimize keeps the tree alive — EditorWindow#onRemoved stands down for both.
-        getModularUI().onRemoved();
     }
 }

@@ -98,8 +98,9 @@ jobs:
     strategy:
       matrix:
         include:
+          # Core only: ldlib2-compose has its own workflow, and the core's runs load it unless told not to.
           - name: "Main Build"
-            gradle-tasks: "build test runGameTestServer"
+            gradle-tasks: ":build :test :runGameTestServer -Pcompose=false"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -171,7 +172,8 @@ jobs:
         run: chmod +x gradlew
 
       - name: Publish to Maven
-        run: ./gradlew publish --stacktrace
+        # Root-qualified: ldlib2-compose publishes from its own workflow.
+        run: ./gradlew :publish --stacktrace
         env:
           MAVEN_PASS: ${{ secrets.MAVEN_PASS }}
           MAVEN_USER: ${{ secrets.MAVEN_USER }}

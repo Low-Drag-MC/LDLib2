@@ -11,6 +11,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.OffscreenSurface;
 import com.lowdragmc.lowdraglib2.gui.ui.style.Stylesheet;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.gui.ui.window.WindowBounds;
@@ -30,6 +31,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.annotation.Nonnull;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Optional;
 
 public class AppearanceSettings implements Settings {
     public static final Identifier ID = LDLib2.id("appearance");
@@ -66,7 +68,16 @@ public class AppearanceSettings implements Settings {
     private Stylesheet currentStylesheet;
     @Nullable
     private WeakReference<ModularUI> appliedModularUI;
+    @Nullable
+    private WeakReference<Editor> appliedEditor;
     private final UIEventListener onMuiChangedListener = this::onModularUIChanged;
+
+    /** The appearance settings of an editor, or empty when it has none registered. */
+    public static Optional<AppearanceSettings> of(Editor editor) {
+        return editor.getEditorSettings().getSettings(ID)
+                .filter(AppearanceSettings.class::isInstance)
+                .map(AppearanceSettings.class::cast);
+    }
 
     @Override
     public Identifier getId() {
@@ -97,17 +108,26 @@ public class AppearanceSettings implements Settings {
         if (!editor.hasEventListener(UIEvents.MUI_CHANGED, onMuiChangedListener)) {
             editor.addEventListener(UIEvents.MUI_CHANGED, onMuiChangedListener);
         }
+        appliedEditor = new WeakReference<>(editor);
         applyStylesheet(editor);
         applyPreferredHost(editor);
-        // screenScale. -1 means the player never picked an editor-specific scale, so their own GUI scale
-        // stands. Without this the value would reach options#guiScale, be clamped to 0, and silently
-        // switch the game to "auto" the first time any editor is created.
-        if (screenScale < 0) return;
-        // ⚠️ There is one gui scale and it is the game's - a surface cannot have its own (see
-        // UISurface). For an editor in a window of its own this setting would resize the HUD of the
-        // game being played next to it, so it does not apply there.
+        applyScreenScale(editor);
+    }
+
+    /**
+     * Applies {@link #screenScale} to wherever the editor is shown: its own window's scale when it is
+     * in one, which leaves the game alone, or else the game's gui scale.
+     */
+    private void applyScreenScale(Editor editor) {
         var window = editor.getWindow();
-        if (window != null && window.isInOsWindow()) return;
+        if (window != null && window.isInOsWindow()) {
+            window.getOsWindow().setGuiScale(screenScale);
+            return;
+        }
+        // -1 means the player never picked an editor-specific scale, so their own GUI scale stands.
+        // Without this the value would reach options#guiScale, be clamped to 0, and silently switch
+        // the game to "auto" the first time any editor is created.
+        if (screenScale < 0) return;
         var minecraft = Minecraft.getInstance();
         var guiScale = minecraft.options.guiScale();
         var maxScale =  minecraft.getWindow().calculateScale(0, minecraft.isEnforceUnicode());
@@ -207,16 +227,28 @@ public class AppearanceSettings implements Settings {
     public void buildConfigurator(ConfiguratorGroup father) {
         Settings.super.buildConfigurator(father);
         // scale
+        var editor = appliedEditor == null ? null : appliedEditor.get();
+        var osWindow = editor == null || editor.getWindow() == null || !editor.getWindow().isInOsWindow()
+                ? null : editor.getWindow().getOsWindow();
         var minecraft = Minecraft.getInstance();
-        var guiScale = minecraft.options.guiScale();
-        var maxScale =  minecraft.getWindow().calculateScale(0, minecraft.isEnforceUnicode());
-        var scales = new ArrayList<Integer>(maxScale + 1);
+        var maxScale = osWindow != null
+                ? Math.max(osWindow.getMaxGuiScale(), screenScale)
+                : minecraft.getWindow().calculateScale(0, minecraft.isEnforceUnicode());
+        var scales = new ArrayList<Integer>(maxScale + 2);
+        if (osWindow != null) {
+            scales.add(OffscreenSurface.FOLLOW_GAME);
+        }
         for (int i = 0; i <= maxScale; i++) {
             scales.add(i);
         }
         father.addConfiguratorAt(new SelectorConfigurator<>("ldlib.gui.editor.menu.view.window_size", () -> screenScale, scale -> {
-            guiScale.set(scale);
             setScreenScale(scale);
-        }, -1, true, scales, scale -> scale == 0 ? "options.guiScale.auto" : scale + ""), 1);
+            if (editor != null) {
+                applyScreenScale(editor);
+            } else {
+                minecraft.options.guiScale().set(scale);
+            }
+        }, -1, true, scales, scale -> scale < 0 ? "editor.window.scale.follow_game"
+                : scale == 0 ? "options.guiScale.auto" : scale + ""), 1);
     }
 }

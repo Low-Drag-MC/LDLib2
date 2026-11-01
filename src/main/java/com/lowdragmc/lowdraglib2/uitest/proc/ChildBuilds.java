@@ -48,7 +48,9 @@ public final class ChildBuilds {
         } else {
             command.add(projectDir.resolve("gradlew").toString());
         }
-        command.add(task);
+        // Root-qualified: the root is where these runs live - it is where gradlew is, which the lines
+        // above already rely on - and a subproject has no business answering for them.
+        command.add(":" + task);
         command.addAll(extraArgs);
         command.add("--console=plain");
         var builder = new ProcessBuilder(command)

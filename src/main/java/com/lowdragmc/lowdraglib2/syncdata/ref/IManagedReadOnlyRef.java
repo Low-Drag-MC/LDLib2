@@ -10,6 +10,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import java.util.*;
 
 public class IManagedReadOnlyRef extends ReadOnlyRef<IManaged> {
+    private long seenSyncMarks = -1;
 
     public IManagedReadOnlyRef(ReadOnlyVar<IManaged> managed, ManagedKey key, IManagedObjectAccessor accessor) {
         super(managed, key, accessor);
@@ -45,7 +46,12 @@ public class IManagedReadOnlyRef extends ReadOnlyRef<IManaged> {
 
         if (storage.hasDirtySyncFields()) {
             if (getKey().isDestSync()) {
-                markAsDirty();
+                // unsent changes can wait many periods while nobody watches; mark this ref again only for new ones
+                long marks = storage.getSyncMarkCount();
+                if (marks < 0 || marks != seenSyncMarks) {
+                    markAsDirty();
+                }
+                seenSyncMarks = marks;
             } else {
                 for (var field : storage.getSyncFields()) {
                     field.clearSyncDirty();

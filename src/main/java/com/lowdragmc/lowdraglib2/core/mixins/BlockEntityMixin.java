@@ -81,7 +81,7 @@ public abstract class BlockEntityMixin {
 
     @Inject(method = "setRemoved", at = @At(value = "RETURN"))
     private void injectSetRemoved(CallbackInfo ci) {
-        if (this instanceof ISyncPersistRPCBlockEntity syncMangedHolder && getLevel() instanceof ServerLevel) {
+        if (this instanceof ISyncMangedHolder syncMangedHolder && getLevel() instanceof ServerLevel) {
             syncMangedHolder.detachAsyncLogic();
         }
     }

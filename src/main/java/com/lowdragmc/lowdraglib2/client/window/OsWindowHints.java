@@ -6,7 +6,7 @@ import org.lwjgl.glfw.GLFW;
 /**
  * The GLFW window hints a second window has to be created with.
  *
- * <p>The context hints are Minecraft's own, replayed by calling the very same method the game does.
+ * <p>The context hints are the game's own, replayed by calling the very same method the game does.
  * Matching them is not cosmetic: two contexts can only share objects if they were created against a
  * compatible pixel format, and the surest way to get that is to ask for exactly what the first one
  * asked for.
@@ -43,19 +43,25 @@ public final class OsWindowHints {
      * Mojang changing them; and drift there would not be cosmetic, since two contexts can only share
      * objects if their pixel formats are compatible.
      *
+     * <p>Under NeoForge the game window is the early loading screen's, taken over rather than created,
+     * so what counts is that screen's request — and it asks for the same OpenGL 3.3 core profile. (On
+     * 26.1 it did not match Mojang's 3.2, so that branch reads the hints back from the window; here
+     * that would be wrong under Vulkan, copying the early window's OpenGL client API onto a window that
+     * must have none.)
+     *
      * <p>What it sets, for reference: under OpenGL, 3.3 core with the native context API and
      * forward-compat — note the latter on <em>every</em> platform, not just macOS, so the new context
      * has no default vertex array object either, which is fine because presenting is a framebuffer
      * blit and needs neither a VAO nor a program. Under Vulkan, no client API at all, which is not
      * merely thrift: {@code glfwCreateWindowSurface} rejects a window that has one.
      */
-    private static void applyMinecraftContextHints() {
+    private static void applyGameContextHints() {
         GLFW.glfwDefaultWindowHints();
         Minecraft.getInstance().getWindow().backend().setWindowHints();
     }
 
     /**
-     * Applies the hints specific to a child window, on top of {@link #applyMinecraftContextHints()}.
+     * Applies the hints specific to a child window, on top of {@link #applyGameContextHints()}.
      *
      * <p>Created hidden so the first frame is presented before anything is shown — otherwise the
      * window flashes white. {@code GLFW_SCALE_TO_MONITOR} is deliberately left off, matching
@@ -68,7 +74,7 @@ public final class OsWindowHints {
      *                  drags the window.
      */
     public static void applyChildWindowHints(boolean decorated) {
-        applyMinecraftContextHints();
+        applyGameContextHints();
         GLFW.glfwWindowHint(GLFW.GLFW_VISIBLE, GLFW.GLFW_FALSE);
         GLFW.glfwWindowHint(GLFW.GLFW_FOCUS_ON_SHOW, focusOnShow ? GLFW.GLFW_TRUE : GLFW.GLFW_FALSE);
         GLFW.glfwWindowHint(GLFW.GLFW_DECORATED, decorated ? GLFW.GLFW_TRUE : GLFW.GLFW_FALSE);

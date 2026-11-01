@@ -94,4 +94,15 @@ public interface IManagedStorage {
      */
     void requireInit();
 
+    /**
+     * How many times a field of this storage has been marked to sync, so a caller can tell new changes from ones that
+     * are still waiting to be sent. Only differences between two calls mean anything.
+     *
+     * @return the count, or {@code -1} if this storage doesn't count, in which case callers have to treat every look as
+     * possibly having new changes
+     */
+    default long getSyncMarkCount() {
+        return -1;
+    }
+
 }

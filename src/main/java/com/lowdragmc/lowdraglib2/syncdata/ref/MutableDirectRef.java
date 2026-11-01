@@ -48,8 +48,9 @@ public final class MutableDirectRef<TYPE> extends DirectRef<TYPE> {
         }
         var accessor = getAccessor();
         if (accessor instanceof IMarkFunction markFunction) {
-            if (oldValueMark == null || markFunction.areDifferent(oldValueMark, newValue)) {
-                oldValueMark = markFunction.obtainManagedMark(newValue);
+            var newValueMark = oldValueMark == null ? markFunction.obtainManagedMark(newValue) : markFunction.updateMark(oldValueMark, newValue);
+            if (newValueMark != null) {
+                oldValueMark = newValueMark;
                 markAsDirty();
             }
         } else if (accessor instanceof IDirectAccessor) {

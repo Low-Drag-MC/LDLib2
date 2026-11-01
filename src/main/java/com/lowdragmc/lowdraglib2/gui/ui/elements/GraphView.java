@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.UISurface;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.DelegatingUIElementRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
@@ -337,13 +338,15 @@ public class GraphView extends UIElement {
         return GraphViewLod.FULL;
     }
 
-    /** 1.0 off-client or before the window exists, so this is safe to call from a game test. */
-    private static double currentGuiScale() {
+    /**
+     * The scale of the window this view is shown in, which for one in an OS window can differ from
+     * the game's. 1.0 off-client or before the window exists, so this is safe to call from a game test.
+     */
+    private double currentGuiScale() {
         if (!LDLib2.isClient()) return 1d;
         var minecraft = Minecraft.getInstance();
-        if (minecraft == null) return 1d;
-        var window = minecraft.getWindow();
-        return window == null ? 1d : window.getGuiScale();
+        if (minecraft == null || minecraft.getWindow() == null) return 1d;
+        return UISurface.of(getModularUI()).guiScale();
     }
 
     protected void refreshContentTransform() {

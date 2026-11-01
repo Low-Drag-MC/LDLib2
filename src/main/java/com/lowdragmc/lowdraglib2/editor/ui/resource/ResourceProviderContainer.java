@@ -39,6 +39,7 @@ import it.unimi.dsi.fastutil.Pair;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import net.minecraft.util.Util;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
@@ -380,9 +381,9 @@ public class ResourceProviderContainer<T> extends UIElement {
         flash.setAllowHitTest(false);
         flash.style(style -> style.backgroundTexture(new ColorRectTexture(0x554852ff)));
         flash.addClass("__drop-flash__");
-        var expiry = System.currentTimeMillis() + 400;
+        var expiry = Util.getMillis() + 400;
         flash.addEventListener(UIEvents.TICK, e -> {
-            if (System.currentTimeMillis() > expiry) {
+            if (Util.getMillis() > expiry) {
                 flash.removeSelf();
             }
         });

@@ -4,13 +4,15 @@
 //
 //     apply from: rootProject.file('gradle/ldlib2-uitest.gradle')
 //
-// Then:  gradlew runClient -PldTest=all
-// Docs:  https://github.com/Low-Drag-MC/LDLib2 -> docs/uitest.md
+// Then:  gradlew runClient -PldTest=all          (tests:      UIScenario)
+//        gradlew runClient -PldRecord=all        (recordings: UIRecording, videos via ffmpeg)
+// Docs:  https://github.com/Low-Drag-MC/LDLib2 -> uitest.md
 //
-// Inert unless -PldTest is given, and scoped to the invocation that gives it: nothing is written to
-// build/moddev, so a later `gradlew runClient` - or a launch from the IDE, which reuses whatever
+// Inert unless -PldTest or -PldRecord is given, and scoped to the invocation that gives it: nothing is
+// written to build/moddev, so a later `gradlew runClient` - or a launch from the IDE, which reuses whatever
 // ModDev last wrote there - is completely unaffected. The run plays in runs/uiTest, emptied first, so
-// run/ neither feeds it state nor collects its leftovers (see ldTestGameDir).
+// run/ neither feeds it state nor collects its leftovers (see ldTestGameDir). A plain `gradlew runClient`
+// only gains the encoding settings /ldlib2_autotest record reads, which are inert unless something records.
 //
 // The one thing every run task carries unconditionally is the early-window check at the bottom, which
 // is two File.exists() calls and does nothing without a marker to act on. It has to run on the plain
@@ -20,13 +22,19 @@
 // delegate rather than the project, so ldTestOutDir would not be visible where it is needed.
 def ldTestOutDir = layout.buildDirectory.dir('ldlib2-uitest').get().asFile.absolutePath
 def ldTestRequested = project.hasProperty('ldTest')
+// -PldRecord=<selection>: run UIRecordings (a registry of their own, never selected by -PldTest) and encode
+// their takes to build/ldlib2-recordings/<recording>/. A bare -PldRecord means all of them.
+def ldRecordRequested = project.hasProperty('ldRecord')
+// Recordings get a directory of their own: a test run wipes ldlib2-uitest, and must not take videos with it.
+def ldRecordOutDir = layout.buildDirectory.dir('ldlib2-recordings').get().asFile.absolutePath
 
 // ⚠️ A UI test run gets a game directory of its own, emptied before every run, rather than the developer's
 // run/. Whatever their own sessions leave there is read back by the scenarios: measured, an editor's
 // remembered gui scale and theme in run/config/ldlib2/editor.json ("windowSize": 3) made three editor
 // scenarios lay out too cramped to click, while the same code passed 40/40 from an empty directory. It also
 // keeps the suite's own leftovers - layouts, settings, test worlds - out of the developer's directory.
-// The parallel shards already have one each (runs/uiTestShard<n>), and are emptied the same way.
+// The parallel shards already have one each (runs/uiTestShard<n>), and are emptied the same way. A recording
+// run uses the same one, for the same reason and more so: a video should not depend on whose machine made it.
 def ldTestGameDir = file('runs/uiTest')
 def ldTestRunsDir = file('runs')
 
@@ -114,16 +122,20 @@ if (ldTestHeadless) {
                     + "(instanced rendering) are absent.")
 }
 
+if (ldTestRequested && ldRecordRequested) {
+    throw new GradleException("-PldTest runs tests and -PldRecord makes recordings; pass one or the other.")
+}
+
 // System properties rather than program arguments: Minecraft's own argument parser owns the command
 // line and rejects what it does not recognise.
 //
 // Resolved here, once, rather than inside the task closure: with the configuration cache on, a body
 // that runs later may not reach back into `project`.
-def ldTestJvmArgs = []
-if (ldTestRequested) {
-    ldTestJvmArgs = [
-            "-Dldlib2.uitest.run=${project.property('ldTest')}",
-            "-Dldlib2.uitest.out=${ldTestOutDir}",
+//
+// Settings shared by test runs and recording runs.
+def ldHarnessJvmArgs = { String outDir ->
+    def args = [
+            "-Dldlib2.uitest.out=${outDir}",
             "-Dldlib2.uitest.exclude=${project.findProperty('ldTestExclude') ?: ''}",
             // Run-wide default; individual scenarios override it via ScenarioOptions#guiScale.
             "-Dldlib2.uitest.guiScale=${project.findProperty('ldTestGuiScale') ?: '2'}",
@@ -133,8 +145,30 @@ if (ldTestRequested) {
             "-Dldlib2.uitest.watchdogSec=${project.findProperty('ldTestWatchdogSec') ?: '90'}",
     ]*.toString()
     if (project.hasProperty('ldTestKeepOpen')) {
-        ldTestJvmArgs += '-Dldlib2.uitest.keepOpen=true'
+        args += '-Dldlib2.uitest.keepOpen=true'
     }
+    return args
+}
+
+// On every runClient, so /ldlib2_autotest record works from a plain `gradlew runClient` too: where recordings
+// go, and how they are encoded. Inert unless something records. Needs ffmpeg on PATH or -PldRecordFfmpeg=<path>;
+// codec "auto" picks h264_nvenc where it works. A launch from the IDE carries none of this and gets RunConfig's
+// defaults (ffmpeg on PATH, 60 fps, auto, 18, under the game directory), like every other harness setting.
+def ldTestJvmArgs = [
+        "-Dldlib2.uitest.recordingsOut=${ldRecordOutDir}",
+        "-Dldlib2.uitest.recordFps=${project.findProperty('ldRecordFps') ?: '60'}",
+        "-Dldlib2.uitest.recordFfmpeg=${project.findProperty('ldRecordFfmpeg') ?: ''}",
+        "-Dldlib2.uitest.recordCodec=${project.findProperty('ldRecordCodec') ?: 'auto'}",
+        "-Dldlib2.uitest.recordQuality=${project.findProperty('ldRecordQuality') ?: '18'}",
+]*.toString()
+if (ldTestRequested) {
+    ldTestJvmArgs += "-Dldlib2.uitest.run=${project.property('ldTest')}".toString()
+    ldTestJvmArgs += ldHarnessJvmArgs(ldTestOutDir)
+}
+if (ldRecordRequested) {
+    def selection = project.property('ldRecord').toString().trim()
+    ldTestJvmArgs += "-Dldlib2.uitest.recordings=${selection.isEmpty() ? 'all' : selection}".toString()
+    ldTestJvmArgs += ldHarnessJvmArgs(ldRecordOutDir)
 }
 
 // Turns report.json into a build failure.
@@ -197,16 +231,58 @@ tasks.register('ldlib2CleanUiTestReport') {
     doLast { ldTestOutFile.deleteDir() }
 }
 
+// Recordings: only the report is cleared up front, for the same reason as above. Videos stay - each
+// recording clears its own folder when it starts, so recording one never deletes another's.
+def ldRecordOutFile = file(ldRecordOutDir)
+tasks.register('ldlib2CleanRecordingReport') {
+    onlyIf { ldRecordRequested }
+    doLast {
+        ['report.json', 'report.txt'].each { new File(ldRecordOutFile, it).delete() }
+        new File(ldRecordOutFile, 'screenshots').deleteDir()
+    }
+}
+
+// Fails the build if a recording's checks failed: a video of a UI that did not do what the script says
+// is not a video to publish. Lists what was written either way.
+tasks.register('verifyUiRecording') {
+    group = 'verification'
+    description = 'Fails the build if an LDLib2 UI recording failed its checks.'
+    onlyIf { ldRecordRequested }
+    doLast {
+        def reportFile = new File(ldRecordOutFile, 'report.json')
+        if (!reportFile.exists()) {
+            throw new GradleException("LDLib2 UI recording: no report at ${reportFile}." + System.lineSeparator() +
+                    "The client crashed, never reached the runner, or -PldRecord matched no recordings.")
+        }
+        def report = new groovy.json.JsonSlurper().parse(reportFile)
+        report.scenarios.each { recording ->
+            def files = recording.steps.collectMany { it.captures ?: [] }.findAll { it.kind in ['VIDEO', 'POSTER', 'CAPTIONS', 'TIMELINE'] }
+            logger.lifecycle("LDLib2 UI recording '${recording.name}': ${recording.status}")
+            files.each { logger.lifecycle("  ${new File(ldRecordOutFile, it.path)}") }
+            recording.steps.findAll { it.status != 'PASS' }.each { step ->
+                logger.error("  step ${step.index} [${step.kind}] ${step.name} -> ${step.status}")
+                if (step.error) logger.error("    error: ${step.error.message}")
+                step.checks.findAll { !it.passed }.each { logger.error("    check '${it.desc}'") }
+            }
+        }
+        if (report.status != 'PASS') {
+            throw new GradleException("LDLib2 UI recording ${report.status} - full report: ${reportFile}")
+        }
+    }
+}
+
 // The run tasks are created after this script is evaluated, so runClient cannot be looked up by
 // name here - match it lazily instead.
 tasks.configureEach { task ->
     if (task.name != 'runClient') return
     task.finalizedBy 'verifyUiTest'
     task.dependsOn 'ldlib2CleanUiTestReport'
+    task.finalizedBy 'verifyUiRecording'
+    task.dependsOn 'ldlib2CleanRecordingReport'
 
     // On the task for the reason the flags below are, see there: ModDev sets the task's directory from the run
     // definition, and the run definition is what the IDE launches with.
-    if (ldTestRequested) {
+    if (ldTestRequested || ldRecordRequested) {
         task.gameDirectory.set(ldTestGameDir)
     }
 
@@ -245,7 +321,7 @@ tasks.configureEach { task ->
         task.jvmArgs '-Dldlib2.uitest.headless=true'
     }
     // Decided here, while `project` may still be asked - see ldTestGameDir at the top.
-    def ldTestOwnsGameDir = (task.name == 'runClient' && ldTestRequested) || task.name ==~ /runUiTestShard\d+/
+    def ldTestOwnsGameDir = (task.name == 'runClient' && (ldTestRequested || ldRecordRequested)) || task.name ==~ /runUiTestShard\d+/
     // FML's early loading window calls glfwGetPrimaryMonitor and treats NULL as fatal, so on a
     // machine with no monitor it dies long before Minecraft is reached - and it dies behind a modal
     // dialog nobody is there to dismiss, so the run hangs rather than fails. Minecraft's own Window

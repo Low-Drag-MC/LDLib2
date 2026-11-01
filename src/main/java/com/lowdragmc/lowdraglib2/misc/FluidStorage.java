@@ -4,6 +4,8 @@ import com.google.common.util.concurrent.Runnables;
 import com.lowdragmc.lowdraglib2.syncdata.IContentChangeAware;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 
@@ -38,6 +40,22 @@ public class FluidStorage extends FluidTank implements IFluidHandlerModifiable, 
 
     public void onContentsChanged() {
         onContentsChanged.run();
+    }
+
+    /**
+     * The fluid, as {@link FluidTank} saves it, and the capacity, which {@code FluidTank} leaves out: one changed at
+     * runtime, by an upgrade say, has to survive a reload and reach the client, and both go through here.
+     */
+    @Override
+    public void serialize(ValueOutput output) {
+        super.serialize(output);
+        output.putInt("capacity", capacity);
+    }
+
+    @Override
+    public void deserialize(ValueInput input) {
+        super.deserialize(input);
+        capacity = input.getIntOr("capacity", capacity);
     }
 
     public FluidStorage copy() {

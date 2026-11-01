@@ -29,7 +29,9 @@ public final class LDMenuTypes {
     public static void init(IEventBus eventBus) {
         PlayerUIMenuType.register(UIEditor.WINDOW_ID, ignored -> player -> {
             if (player.level().isClientSide()) {
-                return new ModularUI(UI.of(EditorWindow.open(UIEditor.WINDOW_ID, UIEditor::new)))
+                var window = EditorWindow.open(UIEditor.WINDOW_ID, UIEditor::new)
+                        .setGameWindowReopener(UIEditor::requestMenu);
+                return new ModularUI(UI.of(window))
                         .shouldCloseOnEsc(false)
                         .shouldCloseOnKeyInventory(false);
             }

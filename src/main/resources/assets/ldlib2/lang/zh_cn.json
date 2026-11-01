@@ -261,6 +261,8 @@
   "editor.tab.dock_back": "停靠回编辑器",
   "editor.window.open_in_window": "在独立窗口中打开",
   "editor.window.dock_into_game": "停靠回游戏窗口",
+  "editor.window.scale": "窗口缩放",
+  "editor.window.scale.follow_game": "跟随游戏",
   "editor.settings": "设置",
   "editor.empty_editor": "空编辑器",
   "editor.open_project": "[%s]",

@@ -3,7 +3,6 @@ package com.lowdragmc.lowdraglib2.client.scene;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.render.TextureSetup;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.state.gui.BlitRenderState;
@@ -48,11 +47,16 @@ public class ScenePIPRenderer extends PictureInPictureRenderer<SceneRenderState>
             );
         } else {
             // Immediate renderer: PIP base class already set output overrides
-            // pointing to the PIP's texture. Render the scene directly into it.
-            // Use the PIP texture dimensions as viewport (guiSize * guiScale).
-            int guiScale = Minecraft.getInstance().getWindow().getGuiScale();
-            int texWidth = (state.x1() - state.x0()) * guiScale;
-            int texHeight = (state.y1() - state.y0()) * guiScale;
+            // pointing to the PIP's texture. Render the scene directly into it, with that
+            // texture as the viewport. Its size is guiSize * the gui scale the gui renderer
+            // prepared it with - for a UI in an OS window with a scale of its own, that window's,
+            // not the game's (see IGuiRendererExt#ldlib2$windowOverride) - so it is read back
+            // rather than worked out again here.
+            var target = RenderSystem.outputColorTextureOverride;
+            if (target == null) return;
+            int texWidth = target.getWidth(0);
+            int texHeight = target.getHeight(0);
+            float guiScale = texWidth / (float) Math.max(1, state.x1() - state.x0());
             // mouseX/Y from SceneRenderState are GUI logical px in element-local pre-pose space;
             // sceneX/Y is the content origin in the same space. Translate to content-relative,
             // scale to texture px, and flip Y because GL viewport origin is bottom-left while

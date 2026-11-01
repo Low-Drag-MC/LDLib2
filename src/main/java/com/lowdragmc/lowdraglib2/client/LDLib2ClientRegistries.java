@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.RegisteredUIElementRenderer;
 import com.lowdragmc.lowdraglib2.registry.AutoRegistry;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.test.ui.IScreenTest;
+import com.lowdragmc.lowdraglib2.uitest.UIRecording;
 import com.lowdragmc.lowdraglib2.uitest.UIScenario;
 
 import javax.annotation.Nullable;
@@ -64,11 +65,20 @@ public class LDLib2ClientRegistries {
     @Nullable
     public static AutoRegistry.LDLibRegisterClient<UIScenario, Supplier<UIScenario>> UI_SCENARIOS;
 
+    /**
+     * Scripted UI videos. Separate from {@link #UI_SCENARIOS} so a test run never selects them.
+     *
+     * @see com.lowdragmc.lowdraglib2.uitest.UIRecording
+     */
+    @Nullable
+    public static AutoRegistry.LDLibRegisterClient<UIRecording, Supplier<UIRecording>> UI_RECORDINGS;
+
     static {
         GUI_TEXTURES.setMissingKey("missing");
         if (Platform.isDevEnv()) {
             SCREEN_TESTS = AutoRegistry.LDLibRegisterClient.create(LDLib2.id("screen_test"), IScreenTest.class, AutoRegistry::noArgsCreator);
             UI_SCENARIOS = AutoRegistry.LDLibRegisterClient.create(LDLib2.id("ui_scenario"), UIScenario.class, AutoRegistry::noArgsCreator);
+            UI_RECORDINGS = AutoRegistry.LDLibRegisterClient.create(LDLib2.id("ui_recording"), UIRecording.class, AutoRegistry::noArgsCreator);
         }
     }
 

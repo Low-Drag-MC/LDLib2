@@ -13,6 +13,8 @@ import com.lowdragmc.lowdraglib2.math.HDRColor;
 import com.lowdragmc.lowdraglib2.math.Position;
 import com.lowdragmc.lowdraglib2.math.Range;
 import com.lowdragmc.lowdraglib2.math.Size;
+import com.lowdragmc.lowdraglib2.syncdata.mark.MarkStrategies;
+import com.lowdragmc.lowdraglib2.syncdata.utils.StackSnapshots;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.IAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.arraylike.ArrayAccessor;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.arraylike.CollectionAccessor;
@@ -332,6 +334,7 @@ public class AccessorRegistries {
      * Initialize the default accessors.
      */
     public static void init() {
+        MarkStrategies.init();
         setPriority(-1);
 
         registerAccessor(PrimitiveAccessor.of(Codec.INT, ByteBufCodecs.VAR_INT, int.class, Integer.class));
@@ -495,12 +498,12 @@ public class AccessorRegistries {
         registerAccessor(CustomDirectAccessor.builder(FluidStack.class)
                 .codec(FluidStack.OPTIONAL_CODEC)
                 .streamCodec(FluidStack.OPTIONAL_STREAM_CODEC)
-                .customMark(FluidStack::copy, FluidStack::matches)
+                .customMark(StackSnapshots::of, FluidStack::matches)
                 .build());
         registerAccessor(CustomDirectAccessor.builder(ItemStack.class)
                 .codec(LDLibExtraCodecs.ITEM_STACK)
                 .streamCodec(ItemStack.OPTIONAL_STREAM_CODEC)
-                .customMark(ItemStack::copy, ItemStack::matches)
+                .customMark(StackSnapshots::of, ItemStack::matches)
                 .build());
         if (LDLib2.isClient()) {
             registerAccessor(CustomDirectAccessor.builder(IGuiTexture.class, true)

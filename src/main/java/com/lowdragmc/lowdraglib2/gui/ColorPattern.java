@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.ColorBorderTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
+import net.minecraft.util.Util;
 
 /**
  * @author KilaBash
@@ -77,7 +78,7 @@ public enum ColorPattern {
     }
 
     public static int generateRainbowColor() {
-        float hue = (System.currentTimeMillis() % 3600) / 3600f;
+        float hue = (Util.getMillis() % 3600) / 3600f;
         int rgb = ColorUtils.HSBtoRGB(hue, 1.0f, 1.0f, 1.0f);
         return (0xff << 24) | (rgb & 0x00FFFFFF);
     }

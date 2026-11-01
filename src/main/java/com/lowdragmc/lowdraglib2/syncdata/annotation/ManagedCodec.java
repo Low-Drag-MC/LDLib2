@@ -58,7 +58,11 @@ import java.lang.annotation.Target;
  * <ul>
  *     <li>Saves and the initial sync, the one a client gets with the block entity's update tag when it loads the
  *     chunk, use the codec, with registry-aware ops, so codecs such as {@code ItemStack.CODEC} work.</li>
- *     <li>Later sync packets use the stream codec, or the codec's value as NBT when there is none.</li>
+ *     <li>Anything that writes the field to a byte buffer uses the stream codec, or the codec's value as NBT when
+ *     there is none: a managed holder's sync packets after the initial sync, and {@code PersistedParser} writing an
+ *     object to a buffer, as {@link com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable#writeToBuff
+ *     IPersistedSerializable#writeToBuff} and {@code PersistedParser#createStreamCodec} do, which reaches
+ *     {@link Persisted} fields too.</li>
  *     <li>A {@code null} field is saved and synced as null without calling either.</li>
  *     <li>Reading a value back assigns a new instance to the field rather than filling in the one it holds.</li>
  *     <li>Changes are detected by encoding the value on every update and comparing it with the last encoding,
@@ -88,8 +92,8 @@ public @interface ManagedCodec {
     /**
      * Name of a method returning either
      * <ul>
-     *     <li>a {@code Codec<T>} for the field's type {@code T}, used for saves and the initial sync, and for sync
-     *     packets unless {@link #streamCodec()} names one of its own; or</li>
+     *     <li>a {@code Codec<T>} for the field's type {@code T}, used for saves and the initial sync, and for byte
+     *     buffers unless {@link #streamCodec()} names a stream codec of its own; or</li>
      *     <li>an {@link com.lowdragmc.lowdraglib2.syncdata.accessor.IAccessor IAccessor&lt;T&gt;} that takes over
      *     saving, syncing and change detection entirely, in which case {@link #streamCodec()} must be left empty.</li>
      * </ul>
@@ -97,12 +101,15 @@ public @interface ManagedCodec {
     String value();
 
     /**
-     * Name of a method returning a {@code StreamCodec<? super RegistryFriendlyByteBuf, T>} for sync packets.
+     * Name of a method returning a {@code StreamCodec<? super RegistryFriendlyByteBuf, T>}, used wherever the field
+     * is written to a byte buffer instead of being saved: a managed holder's sync packets after the initial sync,
+     * and {@code PersistedParser} writing an object to a buffer. It is never used for saves.
      * <br>
      * Saves and the initial sync still use the codec, so the two must agree on every value: a client that loads
      * the chunk later gets what the codec decodes, while one that was watching got what this decodes.
      * <br>
-     * When empty, sync packets carry the codec's value encoded as NBT.
+     * When empty, the codec's value is written to the buffer as NBT, which works the same and is only larger and
+     * slower, so a stream codec is an optimization.
      */
     String streamCodec() default "";
 
