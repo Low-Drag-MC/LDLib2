@@ -716,6 +716,18 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return children.contains(child);
     }
 
+    /**
+     * The element that externally-supplied children actually belong under, for callers that read and
+     * remove children as well as insert them.
+     *
+     * <p>This element by default. A widget built from internal parts overrides it to return the part
+     * that holds its content, the same one {@link #addEditorChild} inserts into:
+     * {@link com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView} returns its view container.
+     */
+    public UIElement getContentHost() {
+        return this;
+    }
+
     public UIElement addChildAt(@Nullable UIElement child, int index) {
         if (child == null) {
             return this;
@@ -786,6 +798,62 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         return true;
     }
 
+    /**
+     * Rearranges this element's children into {@code newOrder}, without detaching any of them.
+     *
+     * <p>Unlike {@link #removeChild} followed by {@link #addChildAt}, this runs no {@code onRemoved()}
+     * and leaves each child's {@link ModularUI} registration (sync values, animations), visual layer
+     * and style-engine registration in place, so focus and running animations survive. The whole
+     * permutation is applied in one pass.
+     *
+     * <p>Because nothing re-registers, {@link ModularUI#getAllElements()}, and so
+     * {@link ModularUI#select}, stays in the order elements were first attached and diverges from
+     * document order. Read {@link #getChildren()} when order matters.
+     *
+     * @param newOrder a permutation of this element's current children; equal to the current order is a no-op
+     * @throws IllegalArgumentException if {@code newOrder} is not a permutation of the current children
+     */
+    public void reorderChildren(List<UIElement> newOrder) {
+        if (newOrder.size() != children.size()) {
+            throw new IllegalArgumentException(
+                    "Expected a permutation of %d children, got %d".formatted(children.size(), newOrder.size()));
+        }
+        if (newOrder.equals(children)) return;
+        var seen = Collections.newSetFromMap(new IdentityHashMap<UIElement, Boolean>());
+        for (var child : newOrder) {
+            if (child == null || child.parent != this) {
+                throw new IllegalArgumentException("Not a child of this element: " + child);
+            }
+            if (!seen.add(child)) {
+                throw new IllegalArgumentException("Child listed twice: " + child);
+            }
+        }
+        children.clear();
+        children.addAll(newOrder);
+
+        // The taffy child list mirrors `children` one-for-one, so it gets the new order too.
+        if (modularUI != null && nodeId != null) {
+            var taffyTree = modularUI.getTaffyTree();
+            if (taffyTree.containsNode(nodeId)) {
+                var nodes = new NodeId[children.size()];
+                var complete = true;
+                for (int i = 0; i < children.size(); i++) {
+                    var childNode = children.get(i).nodeId;
+                    if (childNode == null) {
+                        // Unexpected in an attached tree; keep the old layout order rather than a partial one.
+                        complete = false;
+                        break;
+                    }
+                    nodes[i] = childNode;
+                }
+                if (complete) {
+                    taffyTree.setChildren(nodeId, nodes);
+                }
+            }
+        }
+        clearSortedChildrenCache();
+    }
+
     public void clearAllChildren() {
         for (var element : getSafeChildren()) {
             removeChild(element);
@@ -814,7 +882,12 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
 
     @ConfigSetter(field = "id")
     public UIElement setId(String id) {
+        var previous = this.id;
         this.id = id;
+        // Re-key the id lookup, or getElementById misses the new id and the old entry keeps the element alive.
+        if (modularUI != null && !Objects.equals(previous, id)) {
+            modularUI.onElementIdChanged(this, previous);
+        }
         onClassIdChanged();
         return this;
     }
@@ -1586,9 +1659,13 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
      * The messageRPC is initialized as an RPC event with a String name and a CompoundTag data payload.
      * It handles registered message handlers by invoking them with the provided data.
      *
+     * <p>Created lazily, and RPC events are matched between server and client by registration order:
+     * a subclass that sends messages from code running on only one side should call this from its
+     * constructor, so both sides register it.
+     *
      * @return The existing or newly created RPCEvent instance for message handling.
      */
-    private RPCEvent getOrCreateMessageRPC() {
+    protected RPCEvent getOrCreateMessageRPC() {
         if (messageRPC == null) {
             messageRPC = RPCEventBuilder.simple(String.class, CompoundTag.class, (name, data) -> {
                 var handlers = messageHandlers.get(name);

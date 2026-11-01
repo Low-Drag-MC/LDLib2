@@ -1277,7 +1277,7 @@ public class TextField extends BindableUIElement<String> {
             }
 
             var cursorPosX = font.getSplitter().stringWidth(TextUtilities.truncateStyled(styledLine, field.getCursorPos())) * scale;
-            if (field.isFocused() && System.currentTimeMillis() % 1000 < 500) {
+            if (field.isFocused() && Util.getMillis() % 1000 < 500) {
                 DrawerHelperClient.drawSolidRect(context,
                         x + cursorPosX - field.getDisplayOffset(),
                         lineY,

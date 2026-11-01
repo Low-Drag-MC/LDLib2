@@ -22,6 +22,7 @@ import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import lombok.Getter;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
+import net.minecraft.util.Util;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
@@ -340,7 +341,7 @@ public class TextElement extends UIElement {
                 if (roll && lineWidth > width) {
                     var rollSpeed = textElement.getTextStyle().rollSpeed();
                     float totalW = width + lineWidth + 10;
-                    var t = rollSpeed > 0 ? ((((rollSpeed * Math.abs((int) (System.currentTimeMillis() % 1000000)) / 10) % (totalW))) / (totalW)) : 0.5;
+                    var t = rollSpeed > 0 ? ((((rollSpeed * Math.abs((int) (Util.getMillis() % 1000000)) / 10) % (totalW))) / (totalW)) : 0.5;
                     lineX = (float) (x + width - totalW * t);
                 } else {
                     lineX = switch (hAlign) {

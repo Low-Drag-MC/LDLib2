@@ -34,6 +34,8 @@ public class FieldManagedStorage implements IManagedStorage {
     private final Map<ManagedKey, List<FieldUpdateSubscription>> listeners = new HashMap<>();
 
     private boolean initialized = false;
+    // fields are marked from the async thread and the server thread; a lost increment still moves the count
+    private volatile long syncMarks;
     private final ReentrantLock lock = new ReentrantLock();
 
     public <T> ISubscription addSyncUpdateListener(ManagedKey key, IFieldUpdateListener<T> listener) {
@@ -86,6 +88,7 @@ public class FieldManagedStorage implements IManagedStorage {
 
             var result = ManagedFieldUtils.getFieldRefs(fields, owner, (ref, index, changed) -> {
                 if (dirtySyncFields != null && index >= 0) {
+                    if (changed) syncMarks++;
                     dirtySyncFields.set(index, changed);
                     owner.onSyncMarkChanged(ref, changed);
                 }
@@ -122,6 +125,11 @@ public class FieldManagedStorage implements IManagedStorage {
     public IRef<?>[] getSyncFields() {
         requireInit();
         return syncFields;
+    }
+
+    @Override
+    public long getSyncMarkCount() {
+        return syncMarks;
     }
 
     @Override

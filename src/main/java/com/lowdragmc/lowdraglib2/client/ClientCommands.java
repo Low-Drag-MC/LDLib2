@@ -33,7 +33,8 @@ public class ClientCommands {
         if (LDLib2ClientRegistries.SCREEN_TESTS != null && !LDLib2ClientRegistries.SCREEN_TESTS.values().isEmpty()) {
             commands.add(createScreenTestCommands());
         }
-        if (LDLib2ClientRegistries.UI_SCENARIOS != null && !LDLib2ClientRegistries.UI_SCENARIOS.values().isEmpty()) {
+        if (LDLib2ClientRegistries.UI_SCENARIOS != null && !LDLib2ClientRegistries.UI_SCENARIOS.values().isEmpty()
+                || LDLib2ClientRegistries.UI_RECORDINGS != null && !LDLib2ClientRegistries.UI_RECORDINGS.values().isEmpty()) {
             commands.add(createAutoTestCommands());
         }
         return commands;
@@ -72,6 +73,24 @@ public class ClientCommands {
                                     context.getSource().sendSuccess(() -> Component.literal(
                                             "Running UI scenarios: " + selection
                                                     + " (results go to the log and report.json)"), false);
+                                    return 1;
+                                })))
+                .then(createLiteral("record")
+                        .then(Commands.argument("selection", StringArgumentType.greedyString())
+                                .suggests((context, builder) -> {
+                                    builder.suggest("all");
+                                    UITestRunner.registeredRecordingNames().forEach(builder::suggest);
+                                    return builder.buildFuture();
+                                })
+                                .executes(context -> {
+                                    var selection = StringArgumentType.getString(context, "selection");
+                                    var error = UITestRunner.recordInteractive(selection);
+                                    if (error != null) {
+                                        context.getSource().sendFailure(Component.literal(error));
+                                        return 0;
+                                    }
+                                    context.getSource().sendSuccess(() -> Component.literal(
+                                            "Recording: " + selection + " (videos go to the recordings folder)"), false);
                                     return 1;
                                 })));
     }

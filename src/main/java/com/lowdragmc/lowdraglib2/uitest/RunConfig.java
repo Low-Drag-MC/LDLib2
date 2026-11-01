@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.uitest;
 
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import com.lowdragmc.lowdraglib2.uitest.record.RecordSettings;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
@@ -30,6 +31,17 @@ public final class RunConfig {
     public static final String PROP_SHARD = "ldlib2.uitest.shard";
     /** Path to the previous run's scenario durations, used to balance the slices. Optional. */
     public static final String PROP_WEIGHTS = "ldlib2.uitest.weights";
+    /**
+     * Which {@link UIRecording}s to run, in the same grammar as {@link #PROP_RUN}. A run sets this or
+     * {@link #PROP_RUN}, never both; only a recording run encodes video. See {@link #record()}.
+     */
+    public static final String PROP_RECORDINGS = "ldlib2.uitest.recordings";
+    /** Where recordings go, whichever kind of run launched the game; used by in-game {@code record}. */
+    public static final String PROP_RECORDINGS_OUT = "ldlib2.uitest.recordingsOut";
+    public static final String PROP_RECORD_FPS = "ldlib2.uitest.recordFps";
+    public static final String PROP_RECORD_FFMPEG = "ldlib2.uitest.recordFfmpeg";
+    public static final String PROP_RECORD_CODEC = "ldlib2.uitest.recordCodec";
+    public static final String PROP_RECORD_QUALITY = "ldlib2.uitest.recordQuality";
 
     /**
      * The frame a headless run gets when {@link #PROP_WINDOW} does not say otherwise. Maximising is
@@ -53,11 +65,14 @@ public final class RunConfig {
     private final int shardCount;
     @Nullable
     private final Path weightsFile;
+    @Nullable
+    private final RecordSettings record;
 
     private RunConfig(String selection, String exclusion, Path outDir, int guiScale,
                       int windowWidth, int windowHeight, InputMode inputMode,
                       int watchdogSeconds, boolean keepOpen, boolean headless,
-                      int shardIndex, int shardCount, @Nullable Path weightsFile) {
+                      int shardIndex, int shardCount, @Nullable Path weightsFile,
+                      @Nullable RecordSettings record) {
         this.selection = selection;
         this.exclusion = exclusion;
         this.outDir = outDir;
@@ -71,12 +86,20 @@ public final class RunConfig {
         this.shardIndex = shardIndex;
         this.shardCount = shardCount;
         this.weightsFile = weightsFile;
+        this.record = record;
     }
 
     /** @return {@code null} when no selection was requested, i.e. this is an ordinary client launch */
     public static RunConfig fromSystemProperties() {
         var selection = System.getProperty(PROP_RUN, "").trim();
-        if (selection.isEmpty()) return null;
+        var recordings = System.getProperty(PROP_RECORDINGS, "").trim();
+        if (!selection.isEmpty() && !recordings.isEmpty()) {
+            throw new IllegalArgumentException(PROP_RUN + " and " + PROP_RECORDINGS
+                    + " select tests and recordings; a run does one or the other");
+        }
+        if (selection.isEmpty() && recordings.isEmpty()) return null;
+        boolean recording = !recordings.isEmpty();
+        if (recording) selection = recordings;
 
         var out = System.getProperty(PROP_OUT, "").trim();
         var outDir = out.isEmpty() ? Path.of("ldlib2-uitest").toAbsolutePath() : Path.of(out).toAbsolutePath();
@@ -161,7 +184,17 @@ public final class RunConfig {
                 headless,
                 shardIndex,
                 shardCount,
-                weights.isEmpty() ? null : Path.of(weights).toAbsolutePath());
+                weights.isEmpty() ? null : Path.of(weights).toAbsolutePath(),
+                recording ? recordSettings() : null);
+    }
+
+    private static RecordSettings recordSettings() {
+        var ffmpeg = System.getProperty(PROP_RECORD_FFMPEG, "").trim();
+        var codec = System.getProperty(PROP_RECORD_CODEC, "").trim();
+        return new RecordSettings(Math.max(1, intProperty(PROP_RECORD_FPS, 60)),
+                ffmpeg.isEmpty() ? "ffmpeg" : ffmpeg,
+                codec.isEmpty() ? "auto" : codec,
+                intProperty(PROP_RECORD_QUALITY, 18));
     }
 
     /**
@@ -173,7 +206,17 @@ public final class RunConfig {
      */
     public static RunConfig interactive(String selection) {
         return new RunConfig(selection, "", Path.of("ldlib2-uitest").toAbsolutePath(),
-                2, 1280, 720, InputMode.SYNTHETIC, 90, true, false, 0, 1, null);
+                2, 1280, 720, InputMode.SYNTHETIC, 90, true, false, 0, 1, null, null);
+    }
+
+    /**
+     * {@link #interactive(String)} for {@link UIRecording}s. Encodes with the {@code -PldRecord*} settings
+     * the game was launched with, or the defaults (ffmpeg on {@code PATH}, 60 fps) when it was not.
+     */
+    public static RunConfig interactiveRecording(String selection) {
+        var out = System.getProperty(PROP_RECORDINGS_OUT, "").trim();
+        return new RunConfig(selection, "", out.isEmpty() ? Path.of("ldlib2-recordings").toAbsolutePath() : Path.of(out).toAbsolutePath(),
+                2, 1280, 720, InputMode.SYNTHETIC, 90, true, false, 0, 1, null, recordSettings());
     }
 
     /**
@@ -187,7 +230,7 @@ public final class RunConfig {
         var headless = Boolean.getBoolean(PROP_HEADLESS);
         return new RunConfig("<multi-process>", "", outDir,
                 2, headless ? HEADLESS_WIDTH : 0, headless ? HEADLESS_HEIGHT : 0,
-                InputMode.SYNTHETIC, 180, false, headless, 0, 1, null);
+                InputMode.SYNTHETIC, 180, false, headless, 0, 1, null, null);
     }
 
     private static int intProperty(String key, int fallback) {
@@ -310,5 +353,20 @@ public final class RunConfig {
     @Nullable
     public Path weightsFile() {
         return weightsFile;
+    }
+
+    /**
+     * How takes are encoded, or {@code null} for a test run. Set exactly when this run is of
+     * {@link UIRecording}s; in a test run {@code take(..)} blocks run their steps unrecorded and
+     * {@code hold(..)} does not wait.
+     */
+    @Nullable
+    public RecordSettings record() {
+        return record;
+    }
+
+    /** Whether this run is of {@link UIRecording}s rather than {@link UIScenario}s. */
+    public boolean recordings() {
+        return record != null;
     }
 }

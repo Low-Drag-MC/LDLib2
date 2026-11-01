@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.uitest;
 
+import com.lowdragmc.lowdraglib2.uitest.record.Pacing;
 import com.lowdragmc.lowdraglib2.uitest.report.RunReport;
 
 import java.util.ArrayList;
@@ -32,6 +33,8 @@ public final class ScenarioRun {
     private long firstAttemptAtNanos;
     private long startedAtNanos;
     private boolean teardownStarted;
+
+    private Pacing pacing;
 
     /** Set by {@link TestContext#repeat(String)}; cleared before each attempt. */
     boolean repeatRequested;
@@ -126,6 +129,12 @@ public final class ScenarioRun {
 
     public long effectiveTimeoutMs(Step step) {
         return step.timeoutMs >= 0 ? step.timeoutMs : options.defaultTimeoutMs();
+    }
+
+    /** Seeded by the scenario's name, so a scenario recorded twice moves the same way both times. */
+    public Pacing pacing() {
+        if (pacing == null) pacing = new Pacing(name.hashCode());
+        return pacing;
     }
 
     /** 1-based position for report indices and screenshot file-name prefixes. */

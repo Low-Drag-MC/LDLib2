@@ -24,6 +24,8 @@ final class ModularUIClientState {
     @Getter
     private final ModularUIWidget widget;
     final List<Rect2i> extraAreas = new ArrayList<>();
+    /** The {@link ModularUI#getLayoutGeneration()} {@link #extraAreas} were computed at. */
+    int extraAreasGeneration = -1;
 
     ModularUIClientState(ModularUI modularUI) {
         this.widget = new ModularUIWidget(modularUI);

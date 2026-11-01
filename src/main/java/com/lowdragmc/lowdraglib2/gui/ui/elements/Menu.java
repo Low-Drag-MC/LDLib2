@@ -131,6 +131,10 @@ public class Menu<K, T> extends UIElement {
     protected ITreeNode<K, T> openedNode;
     @Nullable
     protected Menu<K, T> opened;
+    /** Whoever had focus before this menu took it, given it back when the menu closes. */
+    @Nullable
+    private UIElement focusBeforeOpen;
+    private boolean closing;
 
     public Menu(ITreeNode<K, T> root) {
         this(root, (key) -> new TextElement().setText(key.toString()));
@@ -148,6 +152,12 @@ public class Menu<K, T> extends UIElement {
         getStyle().zIndex(100);
         setFocusable(true);
         addEventListener(UIEvents.BLUR, this::onBlur, true);
+        addEventListener(UIEvents.FOCUS, e -> {
+            if (focusBeforeOpen == null && e.relatedTarget != null
+                    && !isAncestorOf(e.relatedTarget) && !(e.relatedTarget instanceof Menu<?, ?>)) {
+                focusBeforeOpen = e.relatedTarget;
+            }
+        });
 
         initMenu();
         internalSetup();
@@ -158,7 +168,16 @@ public class Menu<K, T> extends UIElement {
         return "menu";
     }
 
+    /** This menu or one it opened from is closing, so a submenu must not take focus back on blur. */
+    private boolean isClosing() {
+        for (var menu = this; menu != null; menu = menu.parentMenu) {
+            if (menu.closing) return true;
+        }
+        return false;
+    }
+
     protected void onBlur(UIEvent event) {
+        if (isClosing()) return;
         if (event.relatedTarget != null && this.isAncestorOf(event.relatedTarget)) { // focus on children
             return;
         }
@@ -236,13 +255,27 @@ public class Menu<K, T> extends UIElement {
     }
 
     public void close(){
-        var entry = this.getParent();
-        if (entry != null) {
-            entry.removeChild(this);
-            // the entry of the menu this one opened from, lifted while it was open
-            if (parentMenu != null) entry.style(style -> style.zIndex(0));
+        if (closing) return;
+        closing = true;
+        try {
+            // Focus left on a removed menu would swallow every key and shortcut until something else
+            // took it, so hand it back before going.
+            var mui = getModularUI();
+            if (mui != null && (isFocused() || isChildFocused())) {
+                mui.requestFocus(focusBeforeOpen != null && focusBeforeOpen.getModularUI() == mui ? focusBeforeOpen
+                        : parentMenu != null && parentMenu.getModularUI() == mui ? parentMenu : null);
+            }
+            focusBeforeOpen = null;
+            var entry = this.getParent();
+            if (entry != null) {
+                entry.removeChild(this);
+                // the entry of the menu this one opened from, lifted while it was open
+                if (parentMenu != null) entry.style(style -> style.zIndex(0));
+            }
+            onClose.run();
+        } finally {
+            closing = false;
         }
-        onClose.run();
     }
 
     /**

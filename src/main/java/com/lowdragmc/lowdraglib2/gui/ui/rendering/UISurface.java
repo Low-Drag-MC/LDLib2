@@ -1,9 +1,12 @@
 package com.lowdragmc.lowdraglib2.gui.ui.rendering;
 
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.lowdragmc.lowdraglib2.gui.ui.window.ModularUIWindow;
 import com.lowdragmc.lowdraglib2.utils.Scope;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * The destination a UI frame is presented in: its render target, its gui scale and its OS window.
@@ -91,6 +94,20 @@ public interface UISurface {
      */
     static UISurface current() {
         return SurfaceStack.current();
+    }
+
+    /**
+     * The surface {@code ui} is presented on: its OS window's, or {@link #main()}. Unlike
+     * {@link #current()} it does not depend on being called mid-render, for code that needs a UI's
+     * scale from an event handler or a layout pass.
+     */
+    static UISurface of(@Nullable ModularUI ui) {
+        if (ui != null) {
+            var window = ModularUIWindow.windowOf(ui);
+            var surface = window == null ? null : window.surface();
+            if (surface != null) return surface;
+        }
+        return main();
     }
 
     /**

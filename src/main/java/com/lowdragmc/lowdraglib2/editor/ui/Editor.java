@@ -686,7 +686,8 @@ public abstract class Editor extends UIElement implements EditorHost {
         if (currentProject != null) {
             EditorLayoutStore.save(currentProject.getProjectType().getName(), captureLayout(),
                     floatingViews == null ? List.of() : floatingViews.capture(),
-                    floatingViews == null ? Map.of() : floatingViews.captureBounds());
+                    floatingViews == null ? Map.of() : floatingViews.captureBounds(),
+                    floatingViews == null ? Map.of() : floatingViews.captureScales());
         }
         if (floatingViews != null) {
             floatingViews.closeAll();
@@ -1201,6 +1202,7 @@ public abstract class Editor extends UIElement implements EditorHost {
             // Before restore(), so a window re-opened from the saved layout does not overwrite the
             // remembered rectangle of a view that was docked when the editor last closed.
             getFloatingViews().restoreBounds(EditorLayoutStore.loadFloatingBounds(projectTypeName));
+            getFloatingViews().restoreScales(EditorLayoutStore.loadFloatingScales(projectTypeName));
             // After applyLayout, so the views are docked and findable by name before any of them is
             // pulled back out into a window.
             getFloatingViews().restore(EditorLayoutStore.loadFloating(projectTypeName));

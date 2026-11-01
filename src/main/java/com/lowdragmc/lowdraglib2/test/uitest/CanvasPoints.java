@@ -33,10 +33,16 @@ public final class CanvasPoints {
      *                               selection changed
      */
     public static Vector2f emptySpot(TestContext ctx, GraphView view) {
+        return emptySpot(ctx, view, 0.8f, 0.15f);
+    }
+
+    /** {@link #emptySpot(TestContext, GraphView)} searching rows from {@code fromY} to {@code toY}, as fractions of the canvas height. */
+    public static Vector2f emptySpot(TestContext ctx, GraphView view, float fromY, float toY) {
         var canvas = view.graphView;
         var bounds = ElementBounds.of(canvas);
         var ui = ctx.requireUI();
-        for (var fy = 0.8f; fy >= 0.15f; fy -= 0.05f) {
+        float step = fromY > toY ? -0.05f : 0.05f;
+        for (var fy = fromY; step < 0 ? fy >= toY : fy <= toY; fy += step) {
             for (var fx = 0.1f; fx <= 0.9f; fx += 0.05f) {
                 var x = bounds.x() + bounds.width() * fx;
                 var y = bounds.y() + bounds.height() * fy;

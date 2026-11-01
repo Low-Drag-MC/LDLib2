@@ -1,14 +1,14 @@
 package com.lowdragmc.lowdraglib2.client.window;
 
+import net.minecraft.client.Minecraft;
 import org.lwjgl.glfw.GLFW;
 
 /**
  * The GLFW window hints a second window has to be created with.
  *
- * <p>The context hints are Minecraft's own, replayed verbatim from
- * {@code com.mojang.blaze3d.platform.Window}'s constructor. Matching them is not cosmetic: two
- * contexts can only share objects if they were created against a compatible pixel format, and the
- * surest way to get that is to ask for exactly what the first one asked for.
+ * <p>The context hints are read back from the game window's actual context rather than assumed.
+ * Matching them is not cosmetic: two contexts can only share objects if they were created against a
+ * compatible pixel format, and the surest way to get that is to ask for exactly what the first one got.
  *
  * <p>{@code glfwWindowHint} state is process-global and sticky, so every call here starts from
  * {@link GLFW#glfwDefaultWindowHints()} — a launcher shim or another mod may have left hints set.
@@ -33,23 +33,31 @@ public final class OsWindowHints {
     }
 
     /**
-     * Resets the hints and applies Minecraft's context request: OpenGL 3.2 core, native context API,
-     * forward-compatible. Note forward-compat is set on <em>every</em> platform, not just macOS, so
-     * the new context has no default vertex array object either — which is fine, because presenting
-     * is a framebuffer blit and needs neither a VAO nor a program.
+     * Resets the hints and asks for the context the game window has.
+     *
+     * <p>Not Minecraft's own request, OpenGL 3.2: under NeoForge the game window is the early loading
+     * screen's, which takes the highest version it can get — 4.1 on macOS — and macOS will not share
+     * objects between a 3.2 and a 4.x core context, so a child asking for 3.2 there is never created.
+     * The creation API is replayed for the same reason: an EGL and a native context cannot share
+     * either.
+     *
+     * <p>Forward-compat comes along with the core profile, so the new context has no default vertex
+     * array object — which is fine, because presenting is a framebuffer blit and needs neither a VAO
+     * nor a program.
      */
-    private static void applyMinecraftContextHints() {
+    private static void applyGameContextHints() {
         GLFW.glfwDefaultWindowHints();
-        GLFW.glfwWindowHint(GLFW.GLFW_CLIENT_API, GLFW.GLFW_OPENGL_API);
-        GLFW.glfwWindowHint(GLFW.GLFW_CONTEXT_CREATION_API, GLFW.GLFW_NATIVE_CONTEXT_API);
-        GLFW.glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MAJOR, 3);
-        GLFW.glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MINOR, 2);
-        GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_PROFILE, GLFW.GLFW_OPENGL_CORE_PROFILE);
-        GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_FORWARD_COMPAT, GLFW.GLFW_TRUE);
+        var game = Minecraft.getInstance().getWindow().handle();
+        GLFW.glfwWindowHint(GLFW.GLFW_CLIENT_API, GLFW.glfwGetWindowAttrib(game, GLFW.GLFW_CLIENT_API));
+        GLFW.glfwWindowHint(GLFW.GLFW_CONTEXT_CREATION_API, GLFW.glfwGetWindowAttrib(game, GLFW.GLFW_CONTEXT_CREATION_API));
+        GLFW.glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MAJOR, GLFW.glfwGetWindowAttrib(game, GLFW.GLFW_CONTEXT_VERSION_MAJOR));
+        GLFW.glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MINOR, GLFW.glfwGetWindowAttrib(game, GLFW.GLFW_CONTEXT_VERSION_MINOR));
+        GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_PROFILE, GLFW.glfwGetWindowAttrib(game, GLFW.GLFW_OPENGL_PROFILE));
+        GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_FORWARD_COMPAT, GLFW.glfwGetWindowAttrib(game, GLFW.GLFW_OPENGL_FORWARD_COMPAT));
     }
 
     /**
-     * Applies the hints specific to a child window, on top of {@link #applyMinecraftContextHints()}.
+     * Applies the hints specific to a child window, on top of {@link #applyGameContextHints()}.
      *
      * <p>Created hidden so the first frame is presented before anything is shown — otherwise the
      * window flashes white. {@code GLFW_SCALE_TO_MONITOR} is deliberately left off, matching
@@ -62,7 +70,7 @@ public final class OsWindowHints {
      *                  drags the window.
      */
     public static void applyChildWindowHints(boolean decorated) {
-        applyMinecraftContextHints();
+        applyGameContextHints();
         GLFW.glfwWindowHint(GLFW.GLFW_VISIBLE, GLFW.GLFW_FALSE);
         GLFW.glfwWindowHint(GLFW.GLFW_FOCUS_ON_SHOW, focusOnShow ? GLFW.GLFW_TRUE : GLFW.GLFW_FALSE);
         GLFW.glfwWindowHint(GLFW.GLFW_DECORATED, decorated ? GLFW.GLFW_TRUE : GLFW.GLFW_FALSE);

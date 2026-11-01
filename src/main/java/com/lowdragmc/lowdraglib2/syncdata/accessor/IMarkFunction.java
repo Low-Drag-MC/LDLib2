@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.syncdata.accessor;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
 import java.util.Objects;
@@ -59,4 +60,23 @@ public interface IMarkFunction<TYPE, MARK> {
      * @return true if the two values are different.
      */
     boolean areDifferent(@Nonnull MARK managedMark, @Nonnull TYPE value);
+
+    /**
+     * Compares the value with its mark and returns the mark to keep from now on. Refs call this each time they check
+     * their value for changes, instead of {@link #areDifferent} followed by {@link #obtainManagedMark}.
+     * <br>
+     * The default does exactly that. Override it when the comparison already produces the new mark (e.g. both
+     * serialize the value), so a change costs one computation instead of two. Collection and map accessors still call
+     * the two methods directly for their elements, so an override must agree with them: return {@code null} exactly
+     * when {@link #areDifferent} would return false, and otherwise a mark equal to what {@link #obtainManagedMark}
+     * would return.
+     *
+     * @param managedMark the current mark, obtained from {@link #obtainManagedMark} or a previous call
+     * @param value       the value to compare
+     * @return {@code null} if the value has not changed, otherwise the new mark of the value
+     */
+    @Nullable
+    default MARK updateMark(@Nonnull MARK managedMark, @Nonnull TYPE value) {
+        return areDifferent(managedMark, value) ? obtainManagedMark(value) : null;
+    }
 }

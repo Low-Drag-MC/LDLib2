@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.syncdata.accessor.direct;
 
+import com.lowdragmc.lowdraglib2.syncdata.accessor.IMarkFunction;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
 import com.lowdragmc.lowdraglib2.syncdata.var.FieldVar;
 import com.lowdragmc.lowdraglib2.syncdata.ref.DirectRef;
@@ -14,7 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-public class EnumAccessor implements IDirectAccessor<Enum<?>> {
+public class EnumAccessor implements IDirectAccessor<Enum<?>>, IMarkFunction.LAZY<Enum<?>> {
     private static final WeakHashMap<Class<? extends Enum<?>>, Enum<?>[]> enumCache = new WeakHashMap<>();
     private static final WeakHashMap<Class<? extends Enum<?>>, Map<String, Enum<?>>> enumNameCache = new WeakHashMap<>();
 

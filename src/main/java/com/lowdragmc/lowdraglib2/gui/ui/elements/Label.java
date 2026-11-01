@@ -43,7 +43,7 @@ public class Label extends TextElement implements IBindable<Component>, IDataCon
         }
         var subscription = dataProvider.registerListener(this::setText, true);
         if (tickableListener != null) {
-            subscription.andThen(() -> removeEventListener(UIEvents.TICK, tickableListener));
+            subscription = subscription.andThen(() -> removeEventListener(UIEvents.TICK, tickableListener));
         }
         this.dataSources.put(dataProvider, subscription);
         return this;

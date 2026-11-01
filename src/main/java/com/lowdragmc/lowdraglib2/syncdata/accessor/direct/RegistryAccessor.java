@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.syncdata.accessor.direct;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.syncdata.accessor.IMarkFunction;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
 import com.lowdragmc.lowdraglib2.syncdata.var.FieldVar;
 import com.lowdragmc.lowdraglib2.syncdata.ref.DirectRef;
@@ -17,7 +18,7 @@ import net.minecraft.network.codec.StreamCodec;
 import org.jetbrains.annotations.NotNull;
 
 @Getter
-public final class RegistryAccessor<TYPE> implements IDirectAccessor<TYPE> {
+public final class RegistryAccessor<TYPE> implements IDirectAccessor<TYPE>, IMarkFunction.LAZY<TYPE> {
     private final Class<TYPE> typeClass;
     private final Registry<TYPE> registry;
     private final Codec<TYPE> codec;

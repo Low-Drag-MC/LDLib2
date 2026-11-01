@@ -104,6 +104,11 @@ tasks.register('runParTest', JavaExec) {
     // dying before it could write a report at all.
     ignoreExitValue = true
     finalizedBy 'verifyParTest'
+    // The shards start together and would all build their run's inputs at once, racing on the same files
+    // ("Cannot expand ZIP"); building them here first leaves them up to date.
+    if (ldParJobs > 0) {
+        dependsOn { tasks.getByName('runUiTestShard0').taskDependencies.getDependencies(null) }
+    }
 }
 
 tasks.register('verifyParTest') {

@@ -52,7 +52,7 @@ public class Interpolator {
      * whatever progress it has already made.
      *
      * <p>The whole conversion is one offset, because that is the only thing separating two clocks both
-     * derived from {@link System#nanoTime()}: an interpolator a second into a three second run stays a
+     * derived from {@link net.minecraft.util.Util#getNanos()}: an interpolator a second into a three second run stays a
      * second in, and one whose duration ran out while nobody was updating it still finishes on the very
      * next update.
      *

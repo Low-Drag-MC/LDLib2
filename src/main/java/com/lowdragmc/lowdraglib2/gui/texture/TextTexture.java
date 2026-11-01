@@ -15,6 +15,7 @@ import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.utils.LocalizationUtils;
 import lombok.Setter;
+import net.minecraft.util.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.FormattedText;
@@ -305,7 +306,7 @@ public class TextTexture extends TransformTexture {
             // pose-transformed corners here both double-transformed the box and fed a corner in where
             // a size was expected, so the clip landed nowhere near the text.
             context.enableScissor(x, y, width, height);
-            var t = texture.rollSpeed > 0 ? ((((texture.rollSpeed * Math.abs((int) (System.currentTimeMillis() % 1000000)) / 10) % (totalW))) / totalW) : 0.5;
+            var t = texture.rollSpeed > 0 ? ((((texture.rollSpeed * Math.abs((int) (Util.getMillis() % 1000000)) / 10) % (totalW))) / totalW) : 0.5;
             LDFonts.drawText(context, fontRenderer, line, (int) (from - t * totalW), (int) drawY, texture.color, texture.dropShadow);
             context.disableScissor();
         }

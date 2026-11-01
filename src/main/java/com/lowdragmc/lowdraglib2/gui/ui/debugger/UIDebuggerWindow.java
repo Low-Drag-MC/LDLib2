@@ -419,13 +419,14 @@ public class UIDebuggerWindow extends ModularUIWindow {
     @Override
     public void onDestroyed() {
         rememberGeometry();
-        super.onDestroyed();
         // Only if it is still ours. A hand-off to the screen host has already reparented it, and
         // taking it back off there would leave the debugger with no host at all.
         if (debugger != null && debugger.getParent() == root) {
             debugger.removeSelf();
         }
         chrome.removeSelf();
+        // after the detach, so tearing this window's UI down does not run onRemoved on them a second time
+        super.onDestroyed();
         if (releaseOnClose) {
             target.setDebugMode(false);
         }

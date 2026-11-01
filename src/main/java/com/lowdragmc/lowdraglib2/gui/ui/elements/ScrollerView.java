@@ -271,10 +271,12 @@ public class ScrollerView extends UIElement {
 
     private void updateScrollers() {
         if (!isDisplayed()) return;   // avoid adaptive broken
-        // Ancestor display:none (or first frame before layout) leaves our own size at 0.
+        // Ancestor display:none (or first frame before layout) leaves our own size at 0x0.
         // Reverse-deriving chrome from getSizeHeight() - viewPort.getContentHeight() would
         // collapse to 0 and bake a zero-chrome important override into our height/width.
-        if (getSizeWidth() <= 0 || getSizeHeight() <= 0) return;
+        // Only one axis at 0 is a laid-out scroller that is simply empty along it — a tab strip
+        // created before its first tab — and padding is a floor on size, so its chrome really is 0.
+        if (getSizeWidth() <= 0 && getSizeHeight() <= 0) return;
         var lastContainerWidth = getContainerWidth();
         var lastContainerHeight = getContainerHeight();
         var mode = scrollerViewStyle.mode();
@@ -432,6 +434,11 @@ public class ScrollerView extends UIElement {
 
     public void clearAllScrollViewChildren() {
         viewContainer.clearAllChildren();
+    }
+
+    @Override
+    public UIElement getContentHost() {
+        return viewContainer;
     }
 
     @Override

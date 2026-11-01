@@ -155,6 +155,7 @@ public class ModularUIWindow implements OsWindowHost {
     private float mouseX;
     private float mouseY;
     private double lastGuiScale;
+    private int guiScaleSetting = OffscreenSurface.FOLLOW_GAME;
     private final List<Stylesheet> mirroredStylesheets = new ArrayList<>();
 
     /**
@@ -222,12 +223,16 @@ public class ModularUIWindow implements OsWindowHost {
      * @param decorated whether the OS draws the frame. Leave this false unless you know you want the
      *                  platform's modal move/resize loop and the game freeze that comes with it.
      * @return {@code false} if no second window could be opened, in which case the caller should host
-     *         the UI in the game window instead
+     *         the UI's root in the game window instead. This window is spent then: its own
+     *         {@link ModularUI} has been disposed, as it would otherwise be held forever by the style
+     *         manager with nothing left to close it.
      */
     public boolean open(int x, int y, int width, int height, boolean decorated) {
         if (window != null) return true;
-        if (!OsWindowManager.isAvailable()) return false;
-        if (!OsWindowManager.open(this, title, width, height, decorated)) return false;
+        if (!OsWindowManager.isAvailable() || !OsWindowManager.open(this, title, width, height, decorated)) {
+            modularUI.getStyleEngine().dispose();
+            return false;
+        }
         var opened = window;
         if (opened == null) return false;
         if (x != Integer.MIN_VALUE && y != Integer.MIN_VALUE) {
@@ -273,16 +278,55 @@ public class ModularUIWindow implements OsWindowHost {
         return surface;
     }
 
+    /**
+     * Gives this window a gui scale of its own instead of the game window's. Can be called before
+     * {@link #open}; takes effect on the next frame, which re-lays the UI out at the new size. The
+     * game window is never affected.
+     *
+     * @param setting {@link OffscreenSurface#FOLLOW_GAME} (the default); {@code 0} for auto, picked from
+     *                this window's size the way the game picks its own; or a fixed scale, lowered when
+     *                the window is too small for it. See {@link OffscreenSurface#setGuiScaleSetting}.
+     */
+    public void setGuiScale(int setting) {
+        this.guiScaleSetting = setting < 0 ? OffscreenSurface.FOLLOW_GAME : setting;
+        if (surface != null) {
+            surface.setGuiScaleSetting(guiScaleSetting);
+        }
+    }
+
+    /** What {@link #setGuiScale} was given: {@link OffscreenSurface#FOLLOW_GAME}, 0 for auto, or a scale. */
+    public int getGuiScaleSetting() {
+        return guiScaleSetting;
+    }
+
+    /** The scale this window draws at right now, or the game's before it has opened. */
+    public double getGuiScale() {
+        return surface != null ? surface.guiScale() : Minecraft.getInstance().getWindow().getGuiScale();
+    }
+
+    /** The largest fixed scale this window's current size allows, 1 before it has opened. */
+    public int getMaxGuiScale() {
+        return surface != null ? surface.calculateScale(0) : 1;
+    }
+
     @Override
     public void onAttached(OsWindow window) {
         this.window = window;
         this.surface = new OffscreenSurface(window.handle(),
                 window.getFramebufferWidth(), window.getFramebufferHeight(),
                 window.getWindowWidth(), window.getWindowHeight());
+        surface.setGuiScaleSetting(guiScaleSetting);
         this.lastGuiScale = surface.guiScale();
         modularUI.init(surface.guiScaledWidth(), surface.guiScaledHeight());
     }
 
+    /**
+     * Destroys the surface and tears the UI down, as closing a screen does.
+     *
+     * <p>A subclass that moves part of the tree elsewhere on its way out must do so before calling
+     * this, or that part is torn down too. A root already re-hosted in another {@link ModularUI} is
+     * left alone.
+     */
     @Override
     public void onDestroyed() {
         if (surface != null) {
@@ -304,6 +348,9 @@ public class ModularUIWindow implements OsWindowHost {
         }
         window = null;
         gesture = Gesture.NONE;
+        if (!modularUI.isRemoved()) {
+            modularUI.onRemoved();
+        }
     }
 
     public boolean isMaximized() {
@@ -695,8 +742,8 @@ public class ModularUIWindow implements OsWindowHost {
         sampleRestoredBounds();
         syncStylesheets();
 
-        // The gui scale is shared with the game window (see OffscreenSurface), so a change to the
-        // option relays out this UI too.
+        // The scale changes under this UI with the game's option when following it, with setGuiScale,
+        // and with the window's size when auto or clamped.
         var guiScale = currentSurface.guiScale();
         if (guiScale != lastGuiScale
                 || modularUI.getScreenWidth() != currentSurface.guiScaledWidth()

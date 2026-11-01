@@ -29,10 +29,28 @@ import java.util.concurrent.RejectedExecutionException;
  */
 public interface ISyncMangedHolder extends IManagedHolder, IAsyncLogic {
 
+    /**
+     * Builds the packet carrying the changes a sync found, on the server thread right before it is sent. For a sync
+     * from the async thread that is once the period ends, and not at all while no player watches
+     * {@link #getTrackingPos()}.
+     * <br>
+     * Packets of exactly {@link com.lowdragmc.lowdraglib2.networking.s2c.SPacketAutoSyncBlockEntity} built for the
+     * same period and chunk travel together in one
+     * {@link com.lowdragmc.lowdraglib2.networking.s2c.SPacketAutoSyncBlockEntities} to the players that support it;
+     * any other payload is sent as it is.
+     *
+     * @param changed the indices of the changed fields in {@code getRootStorage().getSyncFields()}
+     * @param data    the changed fields' values, in that order
+     * @param extra   what {@link #writeCustomSyncData} wrote
+     */
     CustomPacketPayload createSyncPacket(BitSet changed, byte[] data, CompoundTag extra);
 
     /**
-     * do a sync now. if the block entity is tickable then this would be handled automatically, I think.
+     * Sends the managed fields that changed since the last sync to the players watching {@link #getTrackingPos()}.
+     * Holders on the async thread run it every period. From an async period, the changes go out with the rest of the
+     * period's once it ends, to the watchers of the chunk {@link #getTrackingPos()} returned when it ran; from anywhere
+     * else, right away. Changes always count for persistence, but while nobody watches the chunk an async sync leaves
+     * them marked instead of sending them, unless {@code force} is set.
      *
      * @param force if true, all fields will be synced, otherwise only the ones that have changed will be synced
      */
@@ -42,6 +60,7 @@ public interface ISyncMangedHolder extends IManagedHolder, IAsyncLogic {
             field.update();
         }
         if (rootStorage.hasDirtySyncFields()) {
+            if (!force && SyncPacketBatch.deferUnwatched(this)) return;
             var changed = new BitSet();
             var syncedFields = rootStorage.getSyncFields();
             var serverLevel = getServerLevel();
@@ -57,6 +76,7 @@ public interface ISyncMangedHolder extends IManagedHolder, IAsyncLogic {
                     }
                 }
             }, serverLevel.registryAccess());
+            if (SyncPacketBatch.offer(this, changed, data)) return;
             try {
                 server.executeIfPossible(() -> {
                     if (!Platform.serverSafe(server)) return;
@@ -76,7 +96,8 @@ public interface ISyncMangedHolder extends IManagedHolder, IAsyncLogic {
     }
 
     /**
-     * write custom data to the packet. it will always be synced.
+     * Writes custom data into every sync packet, on the server thread. Not called for a sync from the async thread while
+     * no player watches {@link #getTrackingPos()}, since nothing is sent then.
      */
     default void writeCustomSyncData(HolderLookup.Provider provider, CompoundTag tag) {
     }

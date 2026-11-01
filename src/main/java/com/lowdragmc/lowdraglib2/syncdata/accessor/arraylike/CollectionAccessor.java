@@ -64,11 +64,12 @@ public class CollectionAccessor<TYPE> implements
         var stream = op.getStream(payload).getOrThrow();
         if (childAccessor instanceof IDirectAccessor<TYPE> directAccessor) {
             value.clear();
-            var holder = ManagedHolderVar.ofNull(childType);
             stream.map(p -> {
-                if (p == LDLibExtraCodecs.createStringNull(op)) {
+                if (LDLibExtraCodecs.isEmptyOrStringNull(op, p)) {
                     return null;
                 }
+                // a holder per element, so one that fails to parse stays null instead of repeating the one before it
+                var holder = ManagedHolderVar.ofNull(childType);
                 directAccessor.writeDirectVar(op, holder, p);
                 return holder.value();
             }).forEach(value::add);

@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.test.uitest;
 
 import com.lowdragmc.lowdraglib2.client.window.OsWindow;
 import com.lowdragmc.lowdraglib2.client.window.OsWindowManager;
+import com.lowdragmc.lowdraglib2.gui.ui.debugger.UIDebuggerWindow;
 import com.lowdragmc.lowdraglib2.gui.ui.debugger.UIDebuggerWindowState;
 import com.lowdragmc.lowdraglib2.registry.RegistrationEnvironment;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
@@ -39,6 +40,7 @@ public class UIDebuggerWindowScenario implements UIScenario {
     private static final String GEOMETRY = "debugger_window_geometry";
     private static final String PIN_BEFORE = "debugger_pin_before";
     private static final String PIN_AFTER = "debugger_pin_after";
+    private static final String CLOSED_WINDOW = "closed_debugger_window";
 
     @Override
     public void configure(ScenarioOptions options) {
@@ -146,9 +148,12 @@ public class UIDebuggerWindowScenario implements UIScenario {
                             return geometry[2] > 0 && geometry[3] > 0;
                         })
 
+                        .step("remember the window", ctx -> ctx.put(CLOSED_WINDOW, window(ctx)))
                         .key(GLFW.GLFW_KEY_F12)
                         .frames(10)
                         .check("the debugger closed", ctx -> !OsWindowManager.hasWindows())
+                        .check("the window's UI was torn down",
+                                ctx -> ctx.<UIDebuggerWindow>get(CLOSED_WINDOW).getModularUI().isRemoved())
                         .check("the inspected UI is still open", ctx -> !targetUI(ctx).isRemoved()))
 
                 .group("reopening puts it back where it was", g -> {

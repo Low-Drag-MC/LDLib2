@@ -73,8 +73,9 @@ public class ReadOnlyRef<TYPE> extends ReadOnlyManagedRef<TYPE> {
         }
         var accessor = getAccessor();
         if (accessor instanceof IMarkFunction markFunction) {
-            if (markFunction.areDifferent(oldValueMark, value)) {
-                oldValueMark = markFunction.obtainManagedMark(value);
+            var newValueMark = markFunction.updateMark(oldValueMark, value);
+            if (newValueMark != null) {
+                oldValueMark = newValueMark;
                 markAsDirty();
             }
         } else {

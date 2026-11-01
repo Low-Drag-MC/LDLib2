@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.networking.s2c;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.networking.PacketIntLocation;
 import com.lowdragmc.lowdraglib2.syncdata.holder.blockentity.ISyncBlockEntity;
+import lombok.Getter;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -20,6 +21,7 @@ import java.util.*;
 /**
  * a packet that contains payload for managed fields
  */
+@Getter
 public class SPacketAutoSyncBlockEntity extends PacketIntLocation {
     public static final Identifier ID = LDLib2.id("auto_sync_block_entity");
     public static final Type<SPacketAutoSyncBlockEntity> TYPE = new Type<>(ID);
@@ -41,6 +43,10 @@ public class SPacketAutoSyncBlockEntity extends PacketIntLocation {
     /**
      * Create a packet to sync fields of a block entity. This will also clear the dirty flag of all synced fields.
      */
+    public BlockPos getPos() {
+        return pos;
+    }
+
     public static SPacketAutoSyncBlockEntity of(ISyncBlockEntity tile, BitSet changed, byte[] data, CompoundTag extra) {
         return new SPacketAutoSyncBlockEntity(tile.getSelf().getType(), tile.getSelf().getBlockPos(), changed, data, extra);
     }

@@ -5,10 +5,15 @@ import com.lowdragmc.lowdraglib2.client.window.OsWindowManager;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.editor.ui.EditorLayout;
 import com.lowdragmc.lowdraglib2.editor.ui.View;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.OffscreenSurface;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.UISurface;
+import com.lowdragmc.lowdraglib2.gui.ui.window.ModularUIWindow;
 import com.lowdragmc.lowdraglib2.gui.ui.window.WindowBounds;
-import net.minecraft.client.Minecraft;
+import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
@@ -49,6 +54,8 @@ public class FloatingViewManager {
      * which is the same key {@link FloatingLayout} and {@link #findDockedView} already use.
      */
     private final Map<String, WindowBounds> rememberedBounds = new LinkedHashMap<>();
+    /** Each view's window's gui scale setting, by view name, kept the same way as {@link #rememberedBounds}. */
+    private final Map<String, Integer> rememberedScales = new LinkedHashMap<>();
 
     public FloatingViewManager(Editor editor) {
         this.editor = editor;
@@ -64,6 +71,7 @@ public class FloatingViewManager {
         var title = view.getViewNameComponent();
         if (OsWindowManager.isAvailable()) {
             var window = new FloatingViewWindow(editor, title);
+            window.setGuiScale(initialScale(view));
             var bounds = initialBounds(view);
             if (window.open(bounds.x(), bounds.y(), bounds.width(), bounds.height(), false)) {
                 attach(window);
@@ -98,14 +106,25 @@ public class FloatingViewManager {
     }
 
     /**
+     * What {@code view}'s window was last set to, or else whatever the window it is torn out of draws
+     * at, so it comes off at the size it was.
+     */
+    private int initialScale(View view) {
+        var remembered = rememberedScales.get(view.getName());
+        if (remembered != null) return remembered;
+        var source = view.getModularUI() == null ? null : ModularUIWindow.windowOf(view.getModularUI());
+        return source == null ? OffscreenSurface.FOLLOW_GAME : source.getGuiScaleSetting();
+    }
+
+    /**
      * The rectangle {@code view} currently occupies on the desktop, or {@code null} if it has no size
      * to measure.
      *
      * <p>Three coordinate spaces meet here. The pane's rectangle is in the element tree's local
-     * space, {@code getWorldMouse} lifts it into the game window's GUI space, multiplying by the GUI
-     * scale gives game-window pixels, and the game window's own desktop position turns those into the
-     * virtual-screen pixels a window is positioned in. Skipping any one of them puts the window
-     * somewhere plausible-looking and wrong.
+     * space, {@code getWorldMouse} lifts it into the GUI space of the window it is shown in,
+     * multiplying by that window's GUI scale gives its pixels, and its desktop position turns those
+     * into the virtual-screen pixels a window is positioned in. Skipping any one of them puts the
+     * window somewhere plausible-looking and wrong.
      *
      * <p>The container rather than the view: the view is the tab's contents, and what the user sees
      * themselves tearing out is the pane around it.
@@ -118,11 +137,11 @@ public class FloatingViewManager {
         var bottomRight = pane.getWorldMouse(pane.getPositionX() + pane.getSizeWidth(),
                 pane.getPositionY() + pane.getSizeHeight());
 
-        var gameWindow = Minecraft.getInstance().getWindow();
-        var scale = gameWindow.getGuiScale();
+        var surface = UISurface.of(pane.getModularUI());
+        var scale = surface.guiScale();
         var originX = new int[1];
         var originY = new int[1];
-        GLFW.glfwGetWindowPos(gameWindow.handle(), originX, originY);
+        GLFW.glfwGetWindowPos(surface.windowHandle(), originX, originY);
         return new WindowBounds(
                 originX[0] + (int) (topLeft.x * scale),
                 originY[0] + (int) (topLeft.y * scale),
@@ -131,17 +150,49 @@ public class FloatingViewManager {
     }
 
     /**
-     * Records where {@code window} is, against every view it currently holds.
+     * Records where {@code window} is and its gui scale, against every view it currently holds.
      *
      * <p>Called on the way out rather than every frame: a view leaves a floating window by being
      * docked back or by the window closing, and both of those come through here.
      */
-    private void rememberBounds(FloatingViewWindow window) {
+    private void rememberPlacement(FloatingViewWindow window) {
         var bounds = window.restoredBounds();
-        if (bounds == null) return;
         for (var view : window.views()) {
-            rememberedBounds.put(view.getName(), bounds);
+            if (bounds != null) {
+                rememberedBounds.put(view.getName(), bounds);
+            }
+            rememberedScales.put(view.getName(), window.getGuiScaleSetting());
         }
+    }
+
+    /**
+     * Sets {@code window}'s gui scale, see {@link ModularUIWindow#setGuiScale}, and remembers it for
+     * the views in it.
+     */
+    public void setWindowScale(FloatingViewWindow window, int setting) {
+        window.setGuiScale(setting);
+        for (var view : window.views()) {
+            rememberedScales.put(view.getName(), window.getGuiScaleSetting());
+        }
+    }
+
+    /**
+     * Adds a submenu for picking {@code window}'s gui scale: follow the game, auto, or any fixed scale
+     * the window's size allows. Used by the tab menu of a view in it and by its title bar.
+     */
+    public void appendScaleMenu(TreeBuilder.Menu menu, FloatingViewWindow window) {
+        menu.branch("editor.window.scale", scales -> {
+            var current = window.getGuiScaleSetting();
+            scales.leaf(current == OffscreenSurface.FOLLOW_GAME ? Icons.CHECK : IGuiTexture.EMPTY,
+                    "editor.window.scale.follow_game", () -> setWindowScale(window, OffscreenSurface.FOLLOW_GAME));
+            scales.leaf(current == 0 ? Icons.CHECK : IGuiTexture.EMPTY,
+                    "options.guiScale.auto", () -> setWindowScale(window, 0));
+            for (int scale = 1; scale <= Math.max(window.getMaxGuiScale(), current); scale++) {
+                var picked = scale;
+                scales.leaf(current == picked ? Icons.CHECK : IGuiTexture.EMPTY,
+                        Integer.toString(picked), () -> setWindowScale(window, picked));
+            }
+        });
     }
 
     private void attach(FloatingViewWindow window) {
@@ -199,7 +250,7 @@ public class FloatingViewManager {
             if (!window.views().contains(view)) continue;
             // Before it leaves: once it is docked back the window no longer lists it, and a window
             // with other tabs left in it will not pass through closeWindow at all.
-            rememberBounds(window);
+            rememberPlacement(window);
             editor.redockView(view);
             if (window.isEmpty()) {
                 closeWindow(window);
@@ -213,7 +264,7 @@ public class FloatingViewManager {
      */
     public void closeWindow(FloatingViewWindow window) {
         if (!windows.remove(window)) return;
-        rememberBounds(window);
+        rememberPlacement(window);
         for (var view : window.views()) {
             editor.redockView(view);
         }
@@ -262,7 +313,8 @@ public class FloatingViewManager {
             layouts.add(new FloatingLayout(os.getPositionX(), os.getPositionY(),
                     os.getWindowWidth(), os.getWindowHeight(),
                     new EditorLayout(window.rootWindow().getLayoutConfig(),
-                            EditorLayout.captureSlots(window.rootWindow()))));
+                            EditorLayout.captureSlots(window.rootWindow())),
+                    window.getGuiScaleSetting()));
         }
         return layouts;
     }
@@ -277,9 +329,22 @@ public class FloatingViewManager {
      */
     public Map<String, WindowBounds> captureBounds() {
         for (var window : windows) {
-            rememberBounds(window);
+            rememberPlacement(window);
         }
         return Map.copyOf(rememberedBounds);
+    }
+
+    /** Every remembered gui scale setting, including the windows still open right now. */
+    public Map<String, Integer> captureScales() {
+        for (var window : windows) {
+            rememberPlacement(window);
+        }
+        return Map.copyOf(rememberedScales);
+    }
+
+    /** Seeds the remembered gui scale settings from a saved layout. */
+    public void restoreScales(Map<String, Integer> scales) {
+        rememberedScales.putAll(scales);
     }
 
     /** Seeds the remembered rectangles from a saved layout. */
@@ -312,6 +377,7 @@ public class FloatingViewManager {
                 continue;
             }
             var window = new FloatingViewWindow(editor, title);
+            window.setGuiScale(layout.guiScale());
             var width = layout.width() > 0 ? layout.width() : DEFAULT_WIDTH;
             var height = layout.height() > 0 ? layout.height() : DEFAULT_HEIGHT;
             if (!window.open(layout.x(), layout.y(), width, height, false)) {

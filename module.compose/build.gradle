@@ -1,0 +1,194 @@
+// ldlib2-compose: LDLib2's declarative UI layer, a separate optional mod with its own version
+// (gradle.properties here) and release (.github/workflows/compose-build-publish.yml). The core jar never
+// contains it. It is a mod rather than a library so the Compose runtime ships as Jar-in-Jar and NeoForge
+// can dedupe it against other mods.
+
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    // No versions: the root project already put ModDev and the Kotlin plugin on the build's class path.
+    id 'net.neoforged.moddev'
+    id 'org.jetbrains.kotlin.jvm'
+    // Must match the kotlin.jvm version the root project pins.
+    id 'org.jetbrains.kotlin.plugin.compose' version '2.3.0'
+}
+
+version = compose_version
+group = maven_group
+
+// Repositories come from the root's allprojects block, Google's (for androidx) included.
+
+configurations {
+    // As in the core: compile dependency, api dependency of the publication, and Jar-in-Jar'd below.
+    libraries
+    api.extendsFrom libraries
+}
+
+base {
+    archivesName = compose_archives_name
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(25)
+    withSourcesJar()
+}
+
+kotlin {
+    jvmToolchain(25)
+    compilerOptions {
+        // At runtime the Kotlin stdlib is whatever the core Jar-in-Jars (kotlin_stdlib_version, 2.1.x),
+        // not the 2.3 this is compiled with, so newer stdlib API must not be reachable from here.
+        apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_1
+    }
+}
+
+sourceSets.main.kotlin { srcDir("src/main/java") }
+
+// Compiles against the same Minecraft as the core, access transformer included, so ModDev reuses the
+// core's artifacts instead of building a second set. The core applies the transformer at runtime.
+neoForge {
+    version = neo_version
+    accessTransformers.from(rootProject.file('src/main/resources/META-INF/accesstransformer.cfg'))
+}
+
+/**
+ * Jar-in-Jar a library at exactly {@code ver} while advertising {@code [ver,)}, so NeoForge can still
+ * dedupe it. A bare range would embed whatever is newest in the repository at build time.
+ */
+void embed(String group, String name, String ver) {
+    dependencies.jarJar(group: group, name: name) {
+        version {
+            require "[${ver},)"
+            prefer ver
+        }
+    }
+}
+
+// The recomposition engine only; rendering is LDLib2's own element tree, so no compose.ui.
+def composeRuntimeLibraries = [
+        "org.jetbrains.compose.runtime:runtime-desktop:${compose_runtime_version}",
+        "org.jetbrains.compose.runtime:runtime-saveable-desktop:${compose_runtime_version}",
+]
+
+dependencies {
+    // api: the composables take and return LDLib2 types.
+    api rootProject
+    // The stdlib the core Jar-in-Jars, which is what this runs with. Declared, so the Kotlin plugin does not
+    // add its own 2.3 - and as a hard version: the core only *prefers* it, which atomicfu's 1.9 requirement
+    // would otherwise override on the compile class path.
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:${kotlin_stdlib_version}"
+
+    composeRuntimeLibraries.each { libraries it }
+    // Each transitive needs its own entry. Re-check after a Compose bump with
+    // `gradlew :module.compose:dependencies --configuration libraries`.
+    embed('org.jetbrains.compose.runtime', 'runtime-desktop', compose_runtime_version)
+    embed('org.jetbrains.compose.runtime', 'runtime-saveable-desktop', compose_runtime_version)
+    embed('androidx.annotation', 'annotation-jvm', androidx_annotation_version)
+    embed('androidx.collection', 'collection-jvm', androidx_collection_version)
+    embed('org.jetbrains.kotlinx', 'atomicfu-jvm', atomicfu_version)
+    embed('org.jetbrains.kotlinx', 'kotlinx-coroutines-core-jvm', kotlinx_coroutines_version)
+
+    // Plain JUnit: the tests drive the Compose runtime over a stand-in tree and never start the game.
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.10.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.10.0'
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+        showStandardStreams = false
+    }
+}
+
+/** Numeric comparison of dotted versions; a missing component counts as 0. */
+static int compareVersions(String a, String b) {
+    def left = a.tokenize('.').collect { it.replaceAll('[^0-9].*', '') as int }
+    def right = b.tokenize('.').collect { it.replaceAll('[^0-9].*', '') as int }
+    for (int i = 0; i < Math.max(left.size(), right.size()); i++) {
+        int diff = (i < left.size() ? left[i] : 0) <=> (i < right.size() ? right[i] : 0)
+        if (diff != 0) return diff
+    }
+    return 0
+}
+
+def coreVersion = rootProject.version.toString()
+def minCoreVersion = ldlib2_min_version.toString()
+// Decided here, at configuration time: the configuration cache does not let a task action reach back
+// into the project or this script.
+def coreOlderThanMin = compareVersions(coreVersion, minCoreVersion) < 0
+
+tasks.withType(ProcessResources).configureEach {
+    // Until the core release named by ldlib2_min_version exists, dev builds ask for the checkout's core
+    // instead, or they would not load. Publishing refuses such a core (below).
+    var replaceProperties = [
+            "version"             : version.toString(),
+            "loader_version_range": loader_version_range,
+            "neo_version_range"   : neo_version_range,
+            "mod_license"         : mod_license,
+            "mod_url"             : mod_url,
+            "ldlib2_min_version"  : coreOlderThanMin ? coreVersion : minCoreVersion,
+    ]
+    inputs.properties replaceProperties
+    filesMatching(['META-INF/neoforge.mods.toml']) {
+        expand replaceProperties
+    }
+}
+
+// Dev runs: the core's runs load this module too, so `gradlew runClient` (or that task from an IDE's
+// Gradle run configuration) always has it. `-Pcompose=false` leaves it out; runParTest / runMpTest child
+// builds don't inherit -P, so use gradle.properties for those.
+//
+// ModDev groups a mod's class and resource folders through `neoForge.mods`, and on this Minecraft a run's
+// class path is its source set's runtime class path - there is no per-run extra class path any more. So
+// the core gets this mod's folders and the Compose runtime on `localRuntime`, which feeds its
+// runtimeClasspath but is never published: the core's pom must not depend on Compose.
+//
+// The core's unit tests stay core-only (its build.gradle pins unitTest.loadedMods): they run on
+// testRuntimeClasspath, which localRuntime does not feed, so a loaded ldlib2_compose would find no Compose runtime.
+//
+// providers, not hasProperty(): the latter also matches an extension named `compose`.
+if (providers.gradleProperty('compose').map { it != 'false' }.getOrElse(true)) {
+    def composeSources = sourceSets.main
+    def core = rootProject
+    core.neoForge.mods.create('ldlib2_compose') {
+        sourceSet composeSources
+    }
+    core.dependencies {
+        localRuntime files(composeSources.output)
+        composeRuntimeLibraries.each { localRuntime it }
+    }
+}
+
+// The publication depends on the core at this checkout's version; one older than ldlib2_min_version
+// lacks the hooks this module calls.
+tasks.withType(PublishToMavenRepository).configureEach {
+    def message = "ldlib2-compose ${version} needs LDLib2 ${minCoreVersion} or later, " +
+            "but this checkout's core is ${coreVersion}. Release the core first."
+    doFirst {
+        if (coreOlderThanMin) {
+            throw new GradleException(message)
+        }
+    }
+}
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            artifactId = base.archivesName.get()
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            url "https://maven.firstdark.dev/snapshots"
+            credentials {
+                username System.getenv("MAVEN_USER")
+                password System.getenv("MAVEN_PASS")
+            }
+        }
+    }
+}

@@ -31,6 +31,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.utils.KeyState;
 import com.lowdragmc.lowdraglib2.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
+import net.minecraft.util.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -1341,7 +1342,7 @@ public class TextArea extends BindableUIElement<String[]> {
         }
 
         private static void drawCursor(TextArea area, GUIContext context, Font font, float scale, float x, float y) {
-            if (area.isVisible() && area.isFocused() && area.isDisplayed() && (!area.isActive() || System.currentTimeMillis() % 1000 < 500)) {
+            if (area.isVisible() && area.isFocused() && area.isDisplayed() && (!area.isActive() || Util.getMillis() % 1000 < 500)) {
                 float cursorPosX = font.getSplitter().stringWidth(area.styledLineComponent(area.getCursorLine(), 0, area.getCursorCol())) * scale;
                 float cursorY = y + area.getCursorLine() * area.lineHeight() - area.getScrollY();
                 DrawerHelperClient.drawSolidRect(

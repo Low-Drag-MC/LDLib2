@@ -76,9 +76,11 @@ public final class ModularUIClientAccess {
 
     public static List<Rect2i> getGuiExtraAreas(ModularUI modularUI) {
         var state = getState(modularUI);
-        if (state.extraAreas.isEmpty()) {
+        // recomputed after every layout pass, as the element rectangles it is made of move with it
+        if (state.extraAreas.isEmpty() || state.extraAreasGeneration != modularUI.getLayoutGeneration()) {
             state.extraAreas.clear();
             UIElementClientAccess.appendExtraAreas(modularUI.ui.rootElement, state.extraAreas);
+            state.extraAreasGeneration = modularUI.getLayoutGeneration();
         }
         return state.extraAreas;
     }
