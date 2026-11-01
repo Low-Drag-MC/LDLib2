@@ -15,6 +15,15 @@ Nothing is human-in-the-loop, and nothing is mocked: input goes through the real
 `Screen` → `ModularUIWidget` → `UIEventDispatcher` path, and machine UIs open through the real
 right-click → menu → S2C packet path.
 
+The same scripts also make **documentation videos**: a `UIRecording` is run with `-PldRecord`, never
+by `-PldTest`, and encodes MP4s with a smooth pointer, click ripples, the keys pressed, captions,
+spotlights and zooms. See [Recording video](#recording-video).
+
+```
+gradlew runClient -PldRecord=all
+  -> build/ldlib2-recordings/<recording>/<take>.mp4   plus .png poster, .vtt captions, .timeline.json
+```
+
 ---
 
 ## Status
@@ -88,6 +97,7 @@ public class FurnaceUiScenario implements UIScenario {
 | `-PldTestInputMode=REAL` | drive the real OS cursor instead of the logical one (**foreground only**) |
 | `-PldTestHeadless` | no visible window; works with no monitor attached (see [Headless runs](#headless-runs)) |
 | `-PgraphicsBackend=vulkan` | pin the renderer, which is otherwise a video option that tries OpenGL first |
+| `-PldRecord=<selection>` | run `UIRecording`s instead of tests and encode their takes to video (see [Recording video](#recording-video)) |
 
 `verifyUiTest` is attached to `runClient` with `finalizedBy`, so it runs even if the client crashes,
 and **a missing report is itself a failure**.
@@ -251,6 +261,169 @@ Check `GL_RENDERER` before blaming the harness. A dozen lines of LWJGL — `SDL_
 If the context really is GDI Generic, a virtual display driver or an HDMI dummy plug fixes it and
 needs no code change here.
 
+### Recording video
+
+The same DSL scripts videos for documentation: a pointer that glides from target to target, clicks
+that ripple, the keys being pressed, captions in several languages, spotlights and camera zooms, all
+encoded straight to MP4 while the script drives a real client.
+
+A video is a **`UIRecording`**, not a test. It lives in a registry of its own, so `-PldTest` never
+selects one and a test run never pays for it, and it runs with `-PldRecord` instead:
+
+```java
+@LDLRegisterClient(name = "add_node", group = "mymod", registry = UIRecording.REGISTRY,
+                   environment = RegistrationEnvironment.DEV_ONLY)
+public class AddNodeRecording implements UIRecording {
+    @Override
+    public void configure(ScenarioOptions options) {
+        options.guiScale(4);                      // written for a 3840x2160 window
+    }
+
+    @Override
+    public void define(ScenarioBuilder s) {
+        s.openModularUI("editor", AddNodeRecording::ui).awaitModularUI()
+         .take("add_node", o -> o.size(1920, 1080).burnCaptions("en"), t -> t
+             .caption("Click + to add a node")
+             .caption("zh", "点击 + 添加节点")
+             .click("#add")
+             .hold(800)                           // a beat for the viewer
+             .click("#confirm"))
+         .checkExists(".node");                   // the video only counts if this holds
+    }
+}
+```
+
+```
+gradlew runClient -PldRecord=add_node -PldTestHeadless -PldTestWindow=3840x2160
+gradlew runClient -PldRecord=all ...          # every recording; group:, tag:, mod:, regex: work too
+```
+
+| | tests (`UIScenario`) | recordings (`UIRecording`) |
+|---|---|---|
+| run with | `-PldTest=<selection>` | `-PldRecord=<selection>` (bare `-PldRecord` = all) |
+| output | `build/ldlib2-uitest/`, wiped by every test run | `build/ldlib2-recordings/<recording>/`; a recording only replaces its own folder |
+| game directory | `runs/uiTest`, emptied before every run | the same, so a video never depends on what a developer's `run/` remembers |
+| `take`, `caption`, `hold`, `spotlight`, `zoom` | run their steps, record nothing, wait for nothing | record |
+| checks | fail the build (`verifyUiTest`) | fail the build too (`verifyUiRecording`): a video of a UI that did not do what the script says is not one to publish |
+
+`-PldTest` and `-PldRecord` cannot be combined. Every other `-PldTest*` property (window, GUI scale,
+headless, keep open, input mode) applies to recordings as well. To iterate on one without relaunching,
+start with `-PldRecord=<name> -PldTestKeepOpen` and run `/ldlib2_autotest record <name>` in the game.
+
+A recording and a test can share their steps: put them in a static method both `define` methods call.
+In the test the takes, captions and holds simply do nothing.
+
+Next to each `<take>.mp4` go `<take>.png` (poster), `<take>.<language>.vtt` per caption language and
+`<take>.timeline.json`; the build log lists them all. LDLib2's own recordings are the demos
+`demo_form` (`VideoDemoFormRecording`, framed tightly around one panel) and `demo_graph`
+(`VideoDemoGraphRecording`, a whole editor with a zoom), written for a 3840x2160 window, and two checks
+on the recorder itself: `video_clock` (the stepped clock) and `recorder_outputs` (framing, scale, frame
+rate, poster, caption tracks, timeline, two takes in a row).
+
+`take(name, selector, body)` records only the part of the screen around one element (its bounds when
+the take starts, 12 GUI pixels around them, and a strip below for the key display) instead of the whole
+window. For a component demo that is usually what you want, combined with a larger GUI scale so the UI
+is big and crisp.
+
+Everything else about a take is set per take with `take(name, options, body)`:
+
+```java
+s.take("graph", o -> o
+        .region("#graph").padding(16)   // or region(x, y, w, h); default: the whole window
+        .size(1920, 1080)               // exact video size; the region grows to match its aspect
+        .fps(30)                        // default -PldRecordFps
+        .burnCaptions("en")             // also draw these captions into the video
+        .poster(1500),                  // still from 1.5 s in; noPoster() for none
+    t -> t ...);
+```
+
+| Option | Default | |
+|---|---|---|
+| `region(selector)` / `region(x, y, w, h)` | whole window | GUI coordinates, resolved when the take starts |
+| `padding` | 12 | GUI pixels around a region |
+| `keyStrip` | on | a region gets a strip below it for the key display |
+| `size(w, h)` | the region's pixel size | exact video size; record a bigger window (4K at GUI scale 4) and output 1080p for a supersampled video that stays sharp under `zoom` |
+| `scale(f)` | 1 | video size as a multiple of the region's pixels, when `size` is not set |
+| `fps` | `-PldRecordFps` | video time steps `1/fps` per rendered frame |
+| `cursor` / `clicks` / `keys` | on | which overlays the video shows |
+| `burnCaptions(lang)` | none | draws that language's captions into the video |
+| `poster(ms)` / `noPoster()` | first frame | the `.png` still written next to the video |
+
+Directing steps, all no-ops outside a recording take so they cost a test run nothing:
+
+- `caption(text)` / `caption(language, text)` start a caption on the next frame. It lasts until the next
+  caption in that language, an empty text, or the end of the take. Every language goes to its own
+  `<take>.<language>.vtt`, ready for `<video><track>`, so one video serves the English and Chinese
+  wiki alike.
+- `spotlight(selector)` dims everything but one element, following it if it moves, until
+  `clearSpotlight()`.
+- `zoom(selector, ms)` / `zoomTo(description, rect, ms)` glide the camera in until the element fills the
+  video, and `zoomOut(ms)` glides back. The UI and pointer are magnified; captions and keys keep their
+  size.
+
+Next to `<take>.mp4` a take writes `<take>.png` (poster), one `.vtt` per caption language, and
+`<take>.timeline.json`: the video time of every step, press, key, scroll, caption, spotlight and zoom.
+All of them are listed in the report on the take's closing step.
+
+**Gestures look like a person's while a take records**, and only then:
+
+- The cursor travels to every target instead of jumping. Duration follows Fitts's law (far and small
+  targets take longer), the path bows gently, and speed follows a minimum-jerk profile. Inside a menu it
+  goes across and then down, so it never crosses a sibling entry and closes the submenu it is heading
+  for. A move is dispatched every frame, so whatever it crosses is really hovered on the way: hover
+  styles light up, tooltips appear.
+- Presses wait a moment after arriving, buttons and keys stay down for a natural time, `type` runs at
+  typing speed with pauses after spaces and punctuation, and `scroll` turns the wheel a notch at a time.
+- The video shows a pointer (an I-beam over text inputs), a ripple for each click (blue, orange for right, green for middle) and the
+  keys being pressed: chords like `Ctrl + A`, typed text gathered into one key, repeats counted. The
+  overlay is drawn into the video only; screenshots and the game window never contain it.
+
+The rhythm varies a little from gesture to gesture, from a generator seeded by the scenario's name, so
+recording a scenario again produces the same video. Custom steps that call `ctx.input()` directly still
+jump; use `hoverAt(description, point)`, `clickAt(description, point, button)`,
+`hover(description, element)`, `click(description, element, button)` or
+`drag(description, element, destination)` for targets that a selector cannot name. The element and
+point variants resolve their target once, so a click that closes what it clicked (a menu entry, a
+dropdown candidate) still releases.
+
+**Time is stepped, not sampled.** While a take records, every rendered frame becomes exactly one video
+frame and advances `Util.getNanos()` by exactly `1/fps` seconds, however long that frame took to render,
+read back and encode. Client ticks, the integrated server, transitions, the caret blink, `waitMs` and
+`hold` all run on that clock, so the video never stutters or drops a frame, on any machine and at any
+resolution. A take renders faster than real time when it can (the run finishes sooner), and slower when
+it must (the video is unaffected). When it runs ahead, it waits each frame for the integrated server to
+tick up to video time, so what the server drives keeps pace in the video. The `video_clock` recording
+asserts all of this.
+
+Two consequences when writing UI code:
+
+- **Read time through `Util.getMillis()`/`Util.getNanos()`**, never `System.currentTimeMillis()` or
+  `System.nanoTime()`, for anything that shows on screen or decides an interaction (animations, blink,
+  double-click windows, debounces). A direct `System` read keeps running at wall-clock speed while the
+  video is stepped, and will look too fast or too slow in a recording.
+- Outside a take the clock reports wall-clock time plus a fixed offset, so time never jumps when a take
+  opens or closes.
+
+| Property | Default | |
+|---|---|---|
+| `-PldRecordFfmpeg` | `ffmpeg` on `PATH` | path to the executable; must support `rawvideo` input (`winget install Gyan.FFmpeg`) |
+| `-PldRecordCodec` | `auto` | `h264_nvenc` where it works, else `libx264`; any ffmpeg encoder name |
+| `-PldRecordQuality` | `18` | `-cq` for NVENC, `-crf` otherwise; lower is better |
+| `-PldRecordFps` | `60` | |
+
+Frames are converted to I420 (BT.709, limited range) on the GPU and read back asynchronously through a
+ring of pixel buffers, so the CPU moves 1.5 bytes per pixel and the render thread never waits on the GPU.
+Measured on an RTX 4080 SUPER, with headless runs, NVENC and a full-window take:
+
+| frame | recording speed | recorder cost per frame |
+|---|---|---|
+| 3840x2160 | 107 fps (1.8x real time) | ~2 ms |
+| 1920x1080, node graph editor | 274 fps (4.6x real time) | ~0.6 ms |
+| 972x570 region at GUI scale 3 | 411 fps (6.9x real time) | ~0.4 ms |
+
+The window must not be resized during a take. A take a scenario aborts out of is still closed and keeps
+what it recorded.
+
 ### Iterating
 
 A cold run spends most of its wall clock on Gradle, mod loading and world creation — none of which
@@ -293,6 +466,8 @@ s.step("anything on the client thread", ctx -> { ... })   // TestContext
 **Capture** — `screenshot` `screenshotElement` `screenshotSurface`
 
 **Structure** — `group` `repeat` `teardown` `teardownServer` `settleMs` `timeoutMs` `log`
+
+**Video** — `take` `hold` `caption` `spotlight` `clearSpotlight` `zoom` `zoomTo` `zoomOut`
 
 ### Targeting
 
@@ -537,12 +712,13 @@ Adopting it downstream mirrors the solo harness: write `MPScenario`s in `src/mai
 
 | Package | Contents |
 |---|---|
-| `com.lowdragmc.lowdraglib2.uitest` | public API + engine: `UIScenario`, `ScenarioBuilder`, `TestContext`, `ServerContext`, `UITestRunner`, and the shard split (`ShardPlan`, `ShardWeights`) |
+| `com.lowdragmc.lowdraglib2.uitest` | public API + engine: `UIScenario`, `UIRecording`, `ScenarioBuilder`, `TestContext`, `ServerContext`, `UITestRunner`, and the shard split (`ShardPlan`, `ShardWeights`) |
 | `...uitest.input` | `InputDriver`, synthetic/real drivers, `Keys`, `WindowInput` (a UI in its own OS window) |
 | `...uitest.target` | selector validation, stable element paths, text extraction |
 | `...uitest.capture` | framebuffer readback and cropping |
+| `...uitest.record` | video takes: the stepped clock, GPU YUV conversion, ffmpeg encoding |
 | `...uitest.report` | report model and writer |
 | `...uitest.par` | `ParallelTestOrchestrator` (no Minecraft imports); Gradle wiring in `gradle/ldlib2-uitest-par.gradle` |
 | `...uitest.proc` | `ChildBuilds`, shared by both orchestrators for launching and reaping child Gradle builds |
 | `com.lowdragmc.lowdraglib2.gui.ui.utils` | the seams a run installs itself into: `KeyState`, `CursorState`, `RawInputGate` |
-| `com.lowdragmc.lowdraglib2.test.uitest` | LDLib2's own scenarios (dev only) |
+| `com.lowdragmc.lowdraglib2.test.uitest` | LDLib2's own scenarios and recordings (dev only) |

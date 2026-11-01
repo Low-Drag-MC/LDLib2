@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.test.gametest.syncdata;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.test.gametest.syncdata.bench.SyncBenchmarkGameTest;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -33,20 +34,31 @@ public final class SyncDataGameTests {
         MapSerializationGameTest.registerFunctions();
         ManagedCodecGameTest.registerFunctions();
         SyncTestBlockEntityGameTest.registerFunctions();
+        PersistedCustomDataGameTest.registerFunctions();
+        MarkStrategyGameTest.registerFunctions();
+        SyncChangeDetectionGameTest.registerFunctions();
+        SyncPacketBatchGameTest.registerFunctions();
+        AsyncThreadDataGameTest.registerFunctions();
+        AsyncPersistenceGameTest.registerFunctions();
+        SyncBenchmarkGameTest.registerFunctions();
         TEST_FUNCTIONS.register(eventBus);
         eventBus.addListener(SyncDataGameTests::registerGameTests);
     }
 
-    static DeferredHolder<Consumer<GameTestHelper>, Consumer<GameTestHelper>> registerFunction(String path, Consumer<GameTestHelper> function) {
+    public static DeferredHolder<Consumer<GameTestHelper>, Consumer<GameTestHelper>> registerFunction(String path, Consumer<GameTestHelper> function) {
         return TEST_FUNCTIONS.register(path, () -> function);
     }
 
-    static ResourceKey<Consumer<GameTestHelper>> functionKey(String path) {
+    public static ResourceKey<Consumer<GameTestHelper>> functionKey(String path) {
         return ResourceKey.create(Registries.TEST_FUNCTION, LDLib2.id(path));
     }
 
-    static TestData<Holder<TestEnvironmentDefinition<?>>> defaultTestData(Holder<TestEnvironmentDefinition<?>> environment, String structurePath) {
-        return new TestData<>(environment, LDLib2.id(structurePath), 20, 0, true, Rotation.NONE);
+    public static TestData<Holder<TestEnvironmentDefinition<?>>> defaultTestData(Holder<TestEnvironmentDefinition<?>> environment, String structurePath) {
+        return testData(environment, structurePath, 20);
+    }
+
+    public static TestData<Holder<TestEnvironmentDefinition<?>>> testData(Holder<TestEnvironmentDefinition<?>> environment, String structurePath, int maxTicks) {
+        return new TestData<>(environment, LDLib2.id(structurePath), maxTicks, 0, true, Rotation.NONE);
     }
 
     private static void registerGameTests(RegisterGameTestsEvent event) {
@@ -57,9 +69,16 @@ public final class SyncDataGameTests {
         MapSerializationGameTest.register(event, environment);
         ManagedCodecGameTest.register(event, environment);
         SyncTestBlockEntityGameTest.register(event, environment);
+        PersistedCustomDataGameTest.register(event, environment);
+        MarkStrategyGameTest.register(event, environment);
+        SyncChangeDetectionGameTest.register(event, environment);
+        SyncPacketBatchGameTest.register(event, environment);
+        AsyncThreadDataGameTest.register(event, environment);
+        AsyncPersistenceGameTest.register(event, environment);
+        SyncBenchmarkGameTest.register(event, environment);
     }
 
-    static void registerFunctionTest(
+    public static void registerFunctionTest(
             RegisterGameTestsEvent event,
             String path,
             ResourceKey<Consumer<GameTestHelper>> functionKey,

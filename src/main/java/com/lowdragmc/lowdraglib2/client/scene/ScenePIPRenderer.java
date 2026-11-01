@@ -45,13 +45,14 @@ public class ScenePIPRenderer extends PictureInPictureRenderer<SceneRenderState>
         } else {
             // Immediate renderer: straight into this picture-in-picture's own textures, which the base
             // class has just sized and cleared. They are sized guiSize * guiScale against whatever
-            // surface is being drawn - the game window or a hosted one - so the scale is read back
-            // off them rather than off the game window.
+            // surface is being drawn - the game window or an OS window with a scale of its own (see
+            // IGuiRendererExt#ldlib2$windowOverride) - so the scale is read back off them rather than
+            // off the game window.
             var textures = (PictureInPictureRendererAccessor) (Object) this;
             var color = textures.ldlib2$getTextureView();
             int texWidth = color.getWidth(0);
             int texHeight = color.getHeight(0);
-            int guiScale = Math.max(1, texWidth / Math.max(1, state.x1() - state.x0()));
+            float guiScale = texWidth / (float) Math.max(1, state.x1() - state.x0());
             // mouseX/Y from SceneRenderState are GUI logical px in element-local pre-pose space;
             // sceneX/Y is the content origin in the same space. Translate to content-relative,
             // scale to texture px, and flip Y because GL viewport origin is bottom-left while

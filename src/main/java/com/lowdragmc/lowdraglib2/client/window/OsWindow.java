@@ -121,7 +121,7 @@ public final class OsWindow {
             return null;
         }
         // Same density flag as the game's own window, so a HiDPI display gets a full-resolution
-        // framebuffer here too and a UI drawn at the shared gui scale is not blurred.
+        // framebuffer here too and a UI drawn at its gui scale is not blurred.
         // Before creating it: SDL queues the new window's size and position events during creation,
         // and any that reached vanilla would be applied to the game's own window.
         OsWindowEvents.install();

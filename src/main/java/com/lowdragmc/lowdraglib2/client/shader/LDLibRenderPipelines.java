@@ -1,6 +1,8 @@
 package com.lowdragmc.lowdraglib2.client.shader;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.mojang.renderpearl.api.GpuFormat;
+import com.mojang.renderpearl.api.pipeline.BindGroupLayout;
 import com.mojang.renderpearl.api.pipeline.PrimitiveTopology;
 import com.mojang.renderpearl.api.pipeline.BlendFunction;
 import com.mojang.renderpearl.api.pipeline.ColorTargetState;
@@ -8,6 +10,7 @@ import com.mojang.renderpearl.api.pipeline.DepthStencilState;
 import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import com.mojang.renderpearl.api.pipeline.BlendFactor;
 import com.mojang.renderpearl.api.pipeline.CompareOp;
+import com.mojang.renderpearl.api.pipeline.UniformType;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import net.minecraft.client.renderer.BindGroupLayouts;
 import net.minecraft.client.renderer.oit.OitPipelineSet;
@@ -222,6 +225,25 @@ public class LDLibRenderPipelines {
         register(set.accumulatePipeline());
         return set;
     }
+
+    /**
+     * The UI recorder's frame conversion ({@code uitest.record.YuvConverter}): a region of {@code Source}, cropped and
+     * scaled, written as the bytes of one I420 frame into a single-channel target. Drawn only by {@code -PldRecord}
+     * runs; a full-screen triangle, so it needs neither vertices nor the game's transforms.
+     */
+    public static final RenderPipeline UITEST_I420 = register(RenderPipeline.builder()
+            .withLocation(LDLib2.id("pipeline/uitest_i420"))
+            .withVertexShader("core/screenquad")
+            .withFragmentShader(LDLib2.id("uitest/i420"))
+            .withBindGroupLayout(BindGroupLayout.builder()
+                    .withUniform("Source", UniformType.COMBINED_IMAGE_SAMPLER)
+                    .withUniform("I420Params", UniformType.UNIFORM_BUFFER)
+                    .build())
+            // the attachment is single-channel, and a pipeline must name the format it writes
+            .withColorTargetState(new ColorTargetState(Optional.empty(), GpuFormat.R8_UNORM, ColorTargetState.WRITE_ALL))
+            .withCull(false)
+            .withPrimitiveTopology(PrimitiveTopology.TRIANGLES)
+            .build());
 
     public static void register(RegisterRenderPipelinesEvent event) {
         PIPELINES.forEach(event::registerPipeline);

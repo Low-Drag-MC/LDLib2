@@ -2,6 +2,7 @@ package com.lowdragmc.lowdraglib2.syncdata.accessor.direct;
 
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.IMarkFunction;
+import com.lowdragmc.lowdraglib2.syncdata.mark.MarkStrategies;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
 import com.lowdragmc.lowdraglib2.syncdata.ref.DirectRef;
 import com.lowdragmc.lowdraglib2.syncdata.ref.MutableDirectRef;
@@ -96,12 +97,46 @@ public class CustomDirectAccessor<TYPE> implements IDirectAccessor<TYPE>, IMarkF
         return markFunction == null ? IMarkFunction.lazy().areDifferent(managedMark, value) : markFunction.areDifferent(managedMark, value);
     }
 
+    @Override
+    public Object updateMark(@NotNull Object managedMark, @NotNull TYPE value) {
+        // a subclass may override areDifferent or obtainManagedMark, which the default goes through
+        if (getClass() != CustomDirectAccessor.class) return IMarkFunction.super.updateMark(managedMark, value);
+        return markFunction == null ? IMarkFunction.lazy().updateMark(managedMark, value) : markFunction.updateMark(managedMark, value);
+    }
+
+    private record CodecMark<T>(Codec<T> codec) implements IMarkFunction<T, Object> {
+        // JavaOps encodes empty values as null, which updateMark returns for "unchanged"
+        private static final Object EMPTY = new Object();
+
+        private Object encode(T value) {
+            var encoded = codec.encodeStart(Platform.getFrozenRegistry().createSerializationContext(JavaOps.INSTANCE), value).getOrThrow();
+            return encoded == null ? EMPTY : encoded;
+        }
+
+        @Override
+        public @NotNull Object obtainManagedMark(@NotNull T value) {
+            return encode(value);
+        }
+
+        @Override
+        public boolean areDifferent(@NotNull Object managedMark, @NotNull T value) {
+            return !Objects.equals(managedMark, encode(value));
+        }
+
+        @Override
+        public Object updateMark(@NotNull Object managedMark, @NotNull T value) {
+            var mark = encode(value);
+            return Objects.equals(managedMark, mark) ? null : mark;
+        }
+    }
+
     public static class Builder<TYPE> {
         private final Class<TYPE> type;
         private final boolean supportChildClass;
         private Codec<TYPE> codec;
         private StreamCodec<? super RegistryFriendlyByteBuf, TYPE> streamCodec;
         private @Nullable IMarkFunction<TYPE, ?> markFunction;
+        private boolean codecMark;
 
         protected Builder(Class<TYPE> type, boolean supportChildClass) {
             this.type = type;
@@ -119,12 +154,12 @@ public class CustomDirectAccessor<TYPE> implements IDirectAccessor<TYPE>, IMarkF
         }
 
         /**
-         * Use the codec to mark the value. This will use the {@link JavaOps} to generate the mark.
+         * Use the codec to mark the value. This will use the {@link JavaOps} to generate the mark, unless the value's
+         * class has a {@link MarkStrategies strategy} registered, which is used instead.
          */
         public Builder<TYPE> codecMark() {
-            this.markFunction = new IMarkFunction.Simple<>(
-                    value -> codec.encodeStart(Platform.getFrozenRegistry().createSerializationContext(JavaOps.INSTANCE), value).getOrThrow(),
-                    (mark, value) -> !Objects.equals(mark, codec.encodeStart(Platform.getFrozenRegistry().createSerializationContext(JavaOps.INSTANCE), value).getOrThrow()));
+            this.markFunction = null;
+            this.codecMark = true;
             return this;
         }
 
@@ -136,6 +171,7 @@ public class CustomDirectAccessor<TYPE> implements IDirectAccessor<TYPE>, IMarkF
          */
         public Builder<TYPE> copyMark(Function<TYPE, TYPE> managedMarkFunction) {
             this.markFunction = new IMarkFunction.Simple<>(managedMarkFunction, (a, b) -> !Objects.equals(a, b));
+            this.codecMark = false;
             return this;
         }
 
@@ -147,14 +183,15 @@ public class CustomDirectAccessor<TYPE> implements IDirectAccessor<TYPE>, IMarkF
          */
         public <MARK> Builder<TYPE> customMark(Function<TYPE, MARK> managedMarkFunction, BiPredicate<MARK, TYPE> areEqualFunction) {
             this.markFunction = new IMarkFunction.Simple<>(managedMarkFunction, (a, b) -> !areEqualFunction.test(a, b));
+            this.codecMark = false;
             return this;
         }
 
         public CustomDirectAccessor<TYPE> build() {
-            return new CustomDirectAccessor<>(type, supportChildClass,
-                    Objects.requireNonNull(codec, "Codec is not set"),
+            Objects.requireNonNull(codec, "Codec is not set");
+            return new CustomDirectAccessor<>(type, supportChildClass, codec,
                     Objects.requireNonNull(streamCodec, "Stream codec is not set"),
-                    markFunction);
+                    codecMark ? MarkStrategies.orElse(new CodecMark<>(codec)) : markFunction);
         }
     }
 }

@@ -9,11 +9,18 @@ import com.lowdragmc.lowdraglib2.uitest.capture.CaptureRequest;
 import com.lowdragmc.lowdraglib2.uitest.capture.FrameCapture;
 import com.lowdragmc.lowdraglib2.uitest.input.InputDriver;
 import com.lowdragmc.lowdraglib2.uitest.mp.MPRunConfig;
+import com.lowdragmc.lowdraglib2.uitest.record.Pacing;
+import com.lowdragmc.lowdraglib2.uitest.record.RecordSettings;
+import com.lowdragmc.lowdraglib2.uitest.record.Take;
+import com.lowdragmc.lowdraglib2.uitest.record.TakeOptions;
 import com.lowdragmc.lowdraglib2.uitest.report.ReportWriter;
 import com.lowdragmc.lowdraglib2.uitest.report.RunReport;
 import com.lowdragmc.lowdraglib2.uitest.target.ElementPath;
 import com.mojang.blaze3d.platform.NativeImage;
+import net.minecraft.util.Util;
+import net.minecraft.client.InactivityFpsLimit;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.Options;
 import net.minecraft.client.gui.screens.AccessibilityOnboardingScreen;
 import net.minecraft.client.gui.screens.ConnectScreen;
 import net.minecraft.client.gui.screens.DisconnectedScreen;
@@ -28,6 +35,9 @@ import org.lwjgl.sdl.SDLVideo;
 import org.lwjgl.sdl.SDL_Rect;
 import org.lwjgl.system.MemoryStack;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -92,6 +102,15 @@ public final class UITestRunner {
     private final Deque<CaptureRequest> pendingCaptures = new ArrayDeque<>();
     private long lastHeartbeatNanos = System.nanoTime();
     private long runStartedNanos;
+    @Nullable
+    private Take take;
+    /** A take whose input is closed, while ffmpeg finalises the file. */
+    @Nullable
+    private Take closingTake;
+    private String takeName;
+    /** Why the open take stopped recording, raised as the failure of the step that was running. */
+    @Nullable
+    private Throwable takeFailure;
     /** Read by the watchdog thread, hence volatile. */
     private volatile boolean shuttingDown;
 
@@ -153,10 +172,21 @@ public final class UITestRunner {
      */
     @Nullable
     public static String runInteractive(String selection) {
+        return runInteractive(RunConfig.interactive(selection), selection);
+    }
+
+    /** {@link #runInteractive(String)} for {@link UIRecording}s; backs {@code /ldlib2_autotest record <name>}. */
+    @Nullable
+    public static String recordInteractive(String selection) {
+        return runInteractive(RunConfig.interactiveRecording(selection), selection);
+    }
+
+    @Nullable
+    private static String runInteractive(RunConfig config, String selection) {
         if (isRunning()) {
             return "A UI test run is already in progress";
         }
-        var runner = new UITestRunner(RunConfig.interactive(selection), "interactive", null);
+        var runner = new UITestRunner(config, "interactive", null);
         runner.begin();
         runner.collectEnvironment(Minecraft.getInstance());
         runner.collectScenarios();
@@ -188,6 +218,18 @@ public final class UITestRunner {
         return names;
     }
 
+    /** Registered recording names, for command completion. */
+    public static List<String> registeredRecordingNames() {
+        var registry = LDLib2ClientRegistries.UI_RECORDINGS;
+        if (registry == null) return List.of();
+        var names = new ArrayList<String>();
+        for (var holder : registry) {
+            names.add(holder.annotation().name());
+        }
+        names.sort(String::compareTo);
+        return names;
+    }
+
     private void begin() {
         runStartedNanos = System.nanoTime();
         report.runId = runId;
@@ -208,6 +250,7 @@ public final class UITestRunner {
      * frame and the run never progresses past it.
      */
     public void onFrame() {
+        captureVideoFrame();
         if (inStep) return;
         inStep = true;
         try {
@@ -237,7 +280,7 @@ public final class UITestRunner {
             return;
         }
 
-        if (System.nanoTime() < settleUntilNanos) return;
+        if (Util.getNanos() < settleUntilNanos) return;
 
         switch (phase) {
             case WAIT_GAME_READY -> {
@@ -439,6 +482,10 @@ public final class UITestRunner {
         scenarioReport.className = entry.scenarioClass().getName();
         scenarioReport.tags.addAll(entry.options().tags());
         report.scenarios.add(scenarioReport);
+        if (config.recordings()) {
+            // A take that is renamed or removed must not leave its old video behind to be mistaken for current.
+            deleteRecursively(config.outDir().resolve(sanitize(entry.name())));
+        }
 
         var builder = new ScenarioBuilder();
         try {
@@ -477,13 +524,15 @@ public final class UITestRunner {
         }
 
         long now = System.nanoTime();
-        if (run.elapsedNanos(now) > run.options.scenarioTimeoutMs() * 1_000_000L && !run.isInTeardown()) {
-            LDLib2.LOGGER.error("[uitest] scenario '{}' exceeded its {} ms budget", run.name,
-                    run.options.scenarioTimeoutMs());
+        long clockNow = Util.getNanos();
+        // a recording can run slower than real time, and its budget is wall-clock time
+        long budgetMs = run.options.scenarioTimeoutMs() * (config.recordings() ? 4 : 1);
+        if (run.elapsedNanos(now) > budgetMs * 1_000_000L && !run.isInTeardown()) {
+            LDLib2.LOGGER.error("[uitest] scenario '{}' exceeded its {} ms budget", run.name, budgetMs);
             run.report.status = RunReport.Status.worst(run.report.status, RunReport.Status.ERROR);
             if (run.report.error == null) {
                 run.report.error = RunReport.ErrorInfo.of(
-                        new IllegalStateException("scenario timed out after " + run.options.scenarioTimeoutMs() + " ms"));
+                        new IllegalStateException("scenario timed out after " + budgetMs + " ms"));
             }
             run.abortToTeardown();
         }
@@ -503,8 +552,9 @@ public final class UITestRunner {
             currentStepReport.settleMs = run.effectiveSettleMs(step);
             run.report.steps.add(currentStepReport);
             stepStartedNanos = now;
+            if (take != null) take.step(step.name);
         }
-        run.startAttempt(step, now);
+        run.startAttempt(step, clockNow);
         ctx.bindStep(currentStepReport);
 
         inStep = true;
@@ -516,9 +566,13 @@ public final class UITestRunner {
         } finally {
             inStep = false;
         }
+        if (failure == null && takeFailure != null) {
+            failure = new IllegalStateException("take '" + takeName + "' stopped recording: " + takeFailure, takeFailure);
+        }
+        takeFailure = null;
 
         if (failure == null && run.repeatRequested) {
-            if (run.waitedNanos(now) > run.effectiveTimeoutMs(step) * 1_000_000L) {
+            if (run.waitedNanos(clockNow) > run.effectiveTimeoutMs(step) * 1_000_000L) {
                 failure = new IllegalStateException("timed out after " + run.effectiveTimeoutMs(step)
                         + " ms waiting for: " + run.waitingFor);
                 currentStepReport.waitingFor = run.waitingFor;
@@ -571,10 +625,12 @@ public final class UITestRunner {
             run.abortToTeardown();
         }
 
-        settle(run.effectiveSettleMs(step));
+        settle(step.paced && take != null ? 0 : run.effectiveSettleMs(step));
     }
 
     private void finishScenario(ScenarioRun run) {
+        abortOpenTake(run);
+        takeFailure = null;
         run.report.durationMs = run.elapsedNanos(System.nanoTime()) / 1_000_000L;
         LDLib2.LOGGER.info("[uitest] --- scenario '{}' {} in {} ms", run.name, run.report.status,
                 run.report.durationMs);
@@ -664,8 +720,8 @@ public final class UITestRunner {
             FrameCapture.closeQuietly(cropped);
             FrameCapture.closeQuietly(frame);
             // Queued captures are serviced one per frame, so the pointer stays away until the last one
-            // has been read back.
-            if (pendingCaptures.isEmpty()) {
+            // has been read back. A take draws its own pointer into the video, so it stays away then too.
+            if (pendingCaptures.isEmpty() && take == null) {
                 CursorOverlay.setHidden(false);
             }
         }
@@ -673,8 +729,169 @@ public final class UITestRunner {
 
     // endregion
 
+    // region recording
+
+    /** Whether this run encodes {@code take(..)} blocks to video. */
+    public boolean isRecording() {
+        return config.record() != null;
+    }
+
+    /** How takes are encoded, or {@code null} when this run does not record. */
+    @Nullable
+    public RecordSettings recordSettings() {
+        return config.record();
+    }
+
+    /**
+     * The rhythm gestures keep while a take is recording, or {@code null} when none is, in which case
+     * gestures run at test speed.
+     */
+    @Nullable
+    public Pacing pacing() {
+        return take != null && currentRun != null ? currentRun.pacing() : null;
+    }
+
+    /** The take recording right now, or {@code null}. Captions, spotlights and zooms go through it. */
+    @Nullable
+    public Take currentTake() {
+        return take;
+    }
+
+    void startTake(TestContext ctx, String name, TakeOptions options) throws IOException {
+        var settings = config.record();
+        if (settings == null) return;
+        if (take != null || closingTake != null) {
+            throw new IllegalStateException("take '" + name + "' started while take '" + takeName + "' is still open");
+        }
+        float[] target = null;
+        if (options.regionSelector() != null) {
+            var bounds = ctx.el(options.regionSelector()).bounds();
+            target = new float[]{bounds.x(), bounds.y(), bounds.width(), bounds.height()};
+        }
+        var directory = config.outDir().resolve(sanitize(ctx.run().name));
+        var window = ctx.mc().getWindow();
+        take = Take.open(settings, options, sanitize(name), directory, inputDriver,
+                Minecraft.getInstance().gameRenderer.mainRenderTarget(), window.getGuiScale(), target);
+        takeName = name;
+        CursorOverlay.setHidden(true);
+        var home = take.home();
+        float cursorX = inputDriver.cursorX();
+        float cursorY = inputDriver.cursorY();
+        float insetX = home[2] * 0.08f;
+        float insetY = home[3] * 0.08f;
+        if (cursorX < home[0] + insetX || cursorX > home[0] + home[2] - insetX
+                || cursorY < home[1] + insetY || cursorY > home[1] + home[3] - insetY) {
+            inputDriver.moveTo(home[0] + home[2] / 2f, home[1] + home[3] / 2f);
+        }
+        ctx.log("recording " + relativeToOut(take.video()));
+    }
+
+    /** @return {@code false} while ffmpeg is still finalising the file */
+    boolean finishTake(TestContext ctx) {
+        if (take != null) {
+            var closing = take;
+            take = null;
+            restoreCursorOverlay();
+            try {
+                closing.finish();
+            } catch (IOException | RuntimeException e) {
+                closing.abort();
+                throw e instanceof IOException io ? new UncheckedIOException(io) : (RuntimeException) e;
+            }
+            closingTake = closing;
+        }
+        var closing = closingTake;
+        if (closing == null) return true;
+        if (!closing.isDone()) return false;
+        closingTake = null;
+        ctx.log("take '" + takeName + "': " + closing.summary());
+        LDLib2.LOGGER.info("[uitest] take '{}': {}", takeName, closing.summary());
+        if (closing.exitCode() != 0) {
+            throw new IllegalStateException("ffmpeg exited with " + closing.exitCode() + ", see " + closing.log());
+        }
+        if (closing.failure() != null) {
+            throw new UncheckedIOException("take '" + takeName + "' is missing frames", closing.failure());
+        }
+        if (closing.posterMissing()) {
+            ctx.log("take '" + takeName + "' wrote no poster: its time is past the end of the video");
+        }
+        addCapture(ctx.stepReport(), "VIDEO", closing.video());
+        for (var file : closing.extras()) {
+            var fileName = file.getFileName().toString();
+            addCapture(ctx.stepReport(), fileName.endsWith(".png") ? "POSTER" : fileName.endsWith(".vtt") ? "CAPTIONS" : "TIMELINE", file);
+        }
+        return true;
+    }
+
+    private void addCapture(RunReport.StepReport stepReport, String kind, Path file) {
+        var reference = new RunReport.CaptureRef();
+        reference.kind = kind;
+        reference.path = relativeToOut(file);
+        stepReport.captures.add(reference);
+    }
+
+    private void restoreCursorOverlay() {
+        if (pendingCaptures.isEmpty()) {
+            CursorOverlay.setHidden(false);
+        }
+    }
+
+    private void captureVideoFrame() {
+        var recording = take;
+        if (recording == null) return;
+        try {
+            recording.captureFrame(Minecraft.getInstance().gameRenderer.mainRenderTarget());
+        } catch (Throwable t) {
+            LDLib2.LOGGER.error("[uitest] take '{}' failed", takeName, t);
+            take = null;
+            takeFailure = t;
+            restoreCursorOverlay();
+            // keep what was recorded playable: drain and close normally, unless the encoder is what failed
+            try {
+                recording.finish();
+                closingTake = recording;
+            } catch (Throwable unfinished) {
+                recording.abort();
+            }
+        }
+    }
+
+    /** A take its scenario never closed, such as one an abort skipped the end of. Keeps what was recorded. */
+    private void abortOpenTake(ScenarioRun run) {
+        var open = take != null ? take : closingTake;
+        if (open == null) return;
+        take = null;
+        closingTake = null;
+        restoreCursorOverlay();
+        try {
+            open.finish();
+            // Nothing renders while this waits, and on Vulkan only rendered frames complete the reads still in
+            // flight: close with what has come back - all but the last frame or two - rather than wait for them.
+            open.closeNow();
+            long deadline = System.nanoTime() + 10_000_000_000L;
+            while (!open.isDone() && System.nanoTime() < deadline) {
+                Thread.sleep(20);
+            }
+        } catch (Throwable t) {
+            LDLib2.LOGGER.warn("[uitest] could not finalise take '{}'", takeName, t);
+        }
+        if (!open.isDone()) open.abort();
+        var message = "take '" + takeName + "' was cut short: " + open.summary() + " -> " + open.video();
+        LDLib2.LOGGER.warn("[uitest] {}", message);
+        if (!run.report.steps.isEmpty()) {
+            run.report.steps.getLast().log.add(message);
+        }
+    }
+
+    private String relativeToOut(Path path) {
+        return config.outDir().relativize(path).toString().replace('\\', '/');
+    }
+
+    // endregion
+
     private void finish(Minecraft minecraft) {
         shuttingDown = true;
+        if (currentRun != null) abortOpenTake(currentRun);
         inputDriver.uninstall();
         uninstallBackgroundMode();
         report.finishedAt = System.currentTimeMillis();
@@ -816,7 +1033,7 @@ public final class UITestRunner {
     }
 
     private void settle(long millis) {
-        settleUntilNanos = System.nanoTime() + Math.max(0, millis) * 1_000_000L;
+        settleUntilNanos = Util.getNanos() + Math.max(0, millis) * 1_000_000L;
     }
 
     private static long elapsedMsSince(long startNanos) {
@@ -877,6 +1094,10 @@ public final class UITestRunner {
         options.pauseOnLostFocus = false;
         options.renderDistance().set(4);
         options.entityShadows().set(false);
+        // 26.1 throttles to 30 fps a minute after the last real input and to 10 fps after ten; synthetic input is not
+        // real input, so a long run slows to a crawl and every frame wait times out. A recording would be hit even
+        // harder: the AFK clock reads Util.getMillis(), which a take advances by one video frame per frame.
+        options.inactivityFpsLimit().set(InactivityFpsLimit.MINIMIZED);
         // Hides the hotbar, crosshair and chat backlog. Screens still render, so this only removes
         // things that would sit in frame behind whatever the scenario is actually looking at.
         // 26.2 moved the flag onto the hud itself, and only exposes a toggle.
@@ -888,6 +1109,11 @@ public final class UITestRunner {
             // whole run keeps. What a hidden window's swap interval does is a driver decision; take
             // it out of the loop rather than let it set the pace.
             options.enableVsync().set(false);
+        }
+        if (config.record() != null) {
+            // A take steps video time per frame, so a frame cap only slows the recording down.
+            options.enableVsync().set(false);
+            options.framerateLimit().set(Options.UNLIMITED_FRAMERATE_CUTOFF);
         }
         minecraft.resizeGui();
         // resizeGui only recalculates the gui scale and relays out the screen. What actually follows
@@ -1020,32 +1246,39 @@ public final class UITestRunner {
                     queue.stream().map(ScenarioEntry::name).toList());
             return;
         }
-        var registry = LDLib2ClientRegistries.UI_SCENARIOS;
-        if (registry == null) {
-            LDLib2.LOGGER.error("[uitest] the ldlib2:ui_scenario registry is unavailable");
-            return;
-        }
         var selected = new ArrayList<ScenarioEntry>();
-        for (var holder : registry) {
-            UIScenario scenario;
-            try {
-                scenario = holder.value().get();
-            } catch (Throwable t) {
-                LDLib2.LOGGER.error("[uitest] could not instantiate scenario '{}'",
-                        holder.annotation().name(), t);
-                continue;
+        if (config.recordings()) {
+            var registry = LDLib2ClientRegistries.UI_RECORDINGS;
+            if (registry == null) {
+                LDLib2.LOGGER.error("[uitest] the ldlib2:ui_recording registry is unavailable");
+                return;
             }
-            var options = new ScenarioOptions();
-            try {
-                scenario.configure(options);
-            } catch (Throwable t) {
-                LDLib2.LOGGER.error("[uitest] scenario '{}' threw while configuring",
-                        holder.annotation().name(), t);
-                continue;
+            for (var holder : registry) {
+                UIRecording recording;
+                try {
+                    recording = holder.value().get();
+                } catch (Throwable t) {
+                    LDLib2.LOGGER.error("[uitest] could not instantiate recording '{}'", holder.annotation().name(), t);
+                    continue;
+                }
+                select(selected, holder.annotation(), recording::define, recording::configure, recording.getClass());
             }
-            if (!config.matches(holder.annotation(), scenario.getClass(), options)) continue;
-            selected.add(new ScenarioEntry(holder.annotation().name(), holder.annotation().group(),
-                    scenario, options, scenario.getClass()));
+        } else {
+            var registry = LDLib2ClientRegistries.UI_SCENARIOS;
+            if (registry == null) {
+                LDLib2.LOGGER.error("[uitest] the ldlib2:ui_scenario registry is unavailable");
+                return;
+            }
+            for (var holder : registry) {
+                UIScenario scenario;
+                try {
+                    scenario = holder.value().get();
+                } catch (Throwable t) {
+                    LDLib2.LOGGER.error("[uitest] could not instantiate scenario '{}'", holder.annotation().name(), t);
+                    continue;
+                }
+                select(selected, holder.annotation(), scenario, scenario::configure, scenario.getClass());
+            }
         }
         // Registry iteration order is priority-based and stable, but sorting by name makes a run's
         // output diffable against another run regardless of what got registered in between. It is
@@ -1054,6 +1287,19 @@ public final class UITestRunner {
         queue.addAll(applyShard(selected));
         LDLib2.LOGGER.info("[uitest] selected {} scenario(s): {}", queue.size(),
                 queue.stream().map(ScenarioEntry::name).toList());
+    }
+
+    private void select(List<ScenarioEntry> selected, com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient annotation,
+                        UIScenario scenario, java.util.function.Consumer<ScenarioOptions> configure, Class<?> type) {
+        var options = new ScenarioOptions();
+        try {
+            configure.accept(options);
+        } catch (Throwable t) {
+            LDLib2.LOGGER.error("[uitest] '{}' threw while configuring", annotation.name(), t);
+            return;
+        }
+        if (!config.matches(annotation, type, options)) return;
+        selected.add(new ScenarioEntry(annotation.name(), annotation.group(), scenario, options, type));
     }
 
     /**
@@ -1082,6 +1328,17 @@ public final class UITestRunner {
         return slice;
     }
 
+
+    private static void deleteRecursively(Path directory) {
+        if (!java.nio.file.Files.isDirectory(directory)) return;
+        try (var paths = java.nio.file.Files.walk(directory)) {
+            for (var path : paths.sorted(java.util.Comparator.reverseOrder()).toList()) {
+                java.nio.file.Files.deleteIfExists(path);
+            }
+        } catch (IOException e) {
+            LDLib2.LOGGER.warn("[uitest] could not clear {}", directory, e);
+        }
+    }
 
     private static String sanitize(String name) {
         return name.replaceAll("[^A-Za-z0-9._-]+", "_");

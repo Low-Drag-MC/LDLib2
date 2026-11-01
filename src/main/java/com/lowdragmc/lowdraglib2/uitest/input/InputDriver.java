@@ -50,6 +50,8 @@ public abstract class InputDriver {
     /** Kept for the same reason as {@link #keyStateSource}. Never installed by {@link RealInputDriver}. */
     @Nullable
     private CursorState.Source cursorSource;
+    @Nullable
+    protected InputListener listener;
 
     public static InputDriver of(InputMode mode) {
         return mode == InputMode.REAL ? new RealInputDriver() : new SyntheticInputDriver();
@@ -123,6 +125,20 @@ public abstract class InputDriver {
         if (minecraft.mouseHandler instanceof MouseHandlerAccessor accessor) {
             accessor.setMouseGrabbed(false);
         }
+    }
+
+    /** Observes every primitive this driver delivers from now on; {@code null} stops observing. */
+    public void setListener(@Nullable InputListener listener) {
+        this.listener = listener;
+    }
+
+    /** Where the logical cursor is, in GUI-scaled screen space. Negative while parked off screen. */
+    public float cursorX() {
+        return cursorX;
+    }
+
+    public float cursorY() {
+        return cursorY;
     }
 
     protected void markHeld(int keyCode, boolean held) {

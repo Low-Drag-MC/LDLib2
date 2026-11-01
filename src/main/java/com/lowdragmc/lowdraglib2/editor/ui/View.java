@@ -221,6 +221,10 @@ public class View extends UIElement {
             var floating = editor.getFloatingViews();
             if (floating.isFloating(this)) {
                 menu.leaf(Icons.WINDOW_RESTORE, "editor.tab.dock_back", () -> floating.dockBack(this));
+                var floatingWindow = floating.windowOf(this);
+                if (floatingWindow != null) {
+                    floating.appendScaleMenu(menu, floatingWindow);
+                }
             } else {
                 menu.leaf(Icons.WINDOW_MAXIMIZE, "editor.tab.float", () -> floating.floatView(this));
             }

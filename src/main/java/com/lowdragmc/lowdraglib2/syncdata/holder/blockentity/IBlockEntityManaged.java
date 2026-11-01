@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.syncdata.holder.blockentity;
 
 import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.async.AsyncThreadData;
 import com.lowdragmc.lowdraglib2.syncdata.IManaged;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedKey;
 import net.minecraft.server.level.ServerLevel;
@@ -49,6 +50,7 @@ public interface IBlockEntityManaged extends IManaged {
         if (blockEntity.getLevel() instanceof ServerLevel serverLevel) {
             var server = serverLevel.getServer();
             if (!Platform.serverSafe(server)) return;
+            if (AsyncThreadData.deferSetChanged(blockEntity)) return;
             try {
                 server.executeIfPossible(() -> {
                     if (Platform.serverSafe(server)) {

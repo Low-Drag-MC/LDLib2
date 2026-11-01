@@ -55,6 +55,16 @@ public final class ContextMenus {
         ctx.input().moveTo(bounds.centerX(), bounds.centerY());
     }
 
+    /** The one branch entry carrying this label, for {@code ScenarioBuilder#hover(String, Function)}. */
+    public static UIElement branch(TestContext ctx, String translationKey) {
+        return one(ctx, BRANCH, translationKey);
+    }
+
+    /** The one leaf entry carrying this label, for {@code ScenarioBuilder#click(String, Function, int)}. */
+    public static UIElement leaf(TestContext ctx, String translationKey) {
+        return one(ctx, LEAF, translationKey);
+    }
+
     /** Clicks a leaf entry, pressing and releasing before the menu it lives in can close. */
     public static void clickLeaf(TestContext ctx, String translationKey) {
         var bounds = ElementBounds.of(one(ctx, LEAF, translationKey));

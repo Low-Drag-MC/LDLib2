@@ -41,6 +41,7 @@ import dev.vfyjxf.taffy.style.FlexWrap;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.Util;
 import net.minecraft.resources.Identifier;
 
 import org.jetbrains.annotations.Nullable;
@@ -1399,7 +1400,7 @@ public class AssetBrowser extends UIElement {
     }
 
     private void scheduleSearch(long delayMs) {
-        searchDueAt = System.currentTimeMillis() + delayMs;
+        searchDueAt = Util.getMillis() + delayMs;
     }
 
     /** @param replaceGrid keep the grid until the walk is over, instead of clearing it and streaming in. */
@@ -1462,7 +1463,7 @@ public class AssetBrowser extends UIElement {
     }
 
     private void tickSearch() {
-        if (searchDueAt != 0 && System.currentTimeMillis() >= searchDueAt) {
+        if (searchDueAt != 0 && Util.getMillis() >= searchDueAt) {
             startSearch(false);
         }
         var search = this.search;

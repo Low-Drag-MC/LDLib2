@@ -33,6 +33,7 @@ import com.lowdragmc.lowdraglib2.utils.HistoryStack;
 import com.lowdragmc.lowdraglib2.utils.TextUtilities;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 import it.unimi.dsi.fastutil.Pair;
+import net.minecraft.util.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -1375,7 +1376,7 @@ public class TextArea extends BindableUIElement<String[]> {
                 TextCompositionOverlay.submit(modularUI, context, area.getComposition(),
                         x + caretX - area.getScrollX(), caretY, area.getTextAreaStyle().fontSize());
             }
-            if (area.isVisible() && area.isFocused() && area.isDisplayed() && (!area.isActive() || System.currentTimeMillis() % 1000 < 500)) {
+            if (area.isVisible() && area.isFocused() && area.isDisplayed() && (!area.isActive() || Util.getMillis() % 1000 < 500)) {
                 float cursorPosX = font.getSplitter().stringWidth(area.styledLineComponent(area.getCursorLine(), 0, area.getCursorCol())) * scale;
                 float cursorY = y + area.getCursorLine() * area.lineHeight() - area.getScrollY();
                 DrawerHelperClient.drawSolidRect(

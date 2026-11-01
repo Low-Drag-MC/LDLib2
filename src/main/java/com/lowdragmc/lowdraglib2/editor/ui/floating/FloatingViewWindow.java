@@ -5,7 +5,9 @@ import com.lowdragmc.lowdraglib2.editor.ui.SplittableWindow;
 import com.lowdragmc.lowdraglib2.editor.ui.View;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.window.ModularUIWindow;
+import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import lombok.Getter;
 import net.minecraft.network.chat.Component;
 
@@ -49,6 +51,12 @@ public class FloatingViewWindow extends ModularUIWindow {
         root.addClasses(editor.getClasses().toArray(new String[0]));
         root.closeButton.setOnClick(e -> onCloseRequested());
         root.maximizeButton.setOnClick(e -> toggleMaximized());
+        root.titleBar.addEventListener(UIEvents.MOUSE_DOWN, e -> {
+            if (e.button != 1) return;
+            var menu = TreeBuilder.Menu.start();
+            editor.getFloatingViews().appendScaleMenu(menu, this);
+            editor.openMenu(root.titleBar, e.x, e.y, menu);
+        });
         // The whole title bar moves the window; the buttons in it are blockers by default.
         setDragArea(root.titleBar);
         // The editor's theme lives in its style engine, not in its UI's stylesheet list, and can be

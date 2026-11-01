@@ -1309,7 +1309,7 @@ public class TextField extends BindableUIElement<String> {
                 TextCompositionOverlay.submit(modularUI, context, field.getComposition(),
                         x + cursorPosX - field.getDisplayOffset(), lineY, fontSize);
             }
-            if (field.isFocused() && System.currentTimeMillis() % 1000 < 500) {
+            if (field.isFocused() && Util.getMillis() % 1000 < 500) {
                 DrawerHelperClient.drawSolidRect(context,
                         x + cursorPosX - field.getDisplayOffset(),
                         lineY,

@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import net.minecraft.client.Minecraft;
 import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.util.Util;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
@@ -192,7 +193,7 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
                 UIEventDispatcher.dispatchEvent(clickEvent);
                 hasHandler |= clickEvent.hasHandler;
                 if (modularUI.lastMouseClickElement == releasedElement && button == modularUI.lastMouseClickButton) {
-                    if (System.currentTimeMillis() - modularUI.lastMouseClickTime < 300) {
+                    if (Util.getMillis() - modularUI.lastMouseClickTime < 300) {
                         var doubleClickEvent = UIEvent.create(UIEvents.DOUBLE_CLICK);
                         doubleClickEvent.x = (float) mouseX;
                         doubleClickEvent.y = (float) mouseY;
@@ -209,11 +210,11 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
                 }
             }
             modularUI.lastMouseClickButton = button;
-            modularUI.lastMouseClickTime = System.currentTimeMillis();
+            modularUI.lastMouseClickTime = Util.getMillis();
             return lastMouseReleasedResult = hasHandler;
         }
         modularUI.lastMouseClickButton = button;
-        modularUI.lastMouseClickTime = System.currentTimeMillis();
+        modularUI.lastMouseClickTime = Util.getMillis();
         return lastMouseReleasedResult = false;
     }
 
@@ -529,6 +530,8 @@ public final class ModularUIWidget implements GuiEventListener, NarratableEntry,
             mouseY = DebugScreen.REAL_MOUSE_POS.y;
         }
         modularUI.getAnimationEngine().updateFrame();
+        // Before layout so tree changes made by a callback are laid out in this same frame.
+        modularUI.runFrameCallbacks();
         modularUI.calculateStyleAndLayout();
         ModularUIClientAccess.cleanTooltip(modularUI);
         // Focus changes switch text input immediately; this catches the focused element becoming

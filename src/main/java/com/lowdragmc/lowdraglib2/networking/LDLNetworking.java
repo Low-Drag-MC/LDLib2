@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.networking.both.PacketRPCBlockEntity;
 import com.lowdragmc.lowdraglib2.networking.both.PacketRPCPacket;
 import com.lowdragmc.lowdraglib2.networking.both.PacketUIRPCEvent;
 import com.lowdragmc.lowdraglib2.networking.both.PacketUIRPCEventReturn;
+import com.lowdragmc.lowdraglib2.networking.s2c.SPacketAutoSyncBlockEntities;
 import com.lowdragmc.lowdraglib2.networking.s2c.SPacketAutoSyncBlockEntity;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
@@ -21,6 +22,7 @@ public class LDLNetworking {
         PayloadRegistrar registrar = event.registrar(LDLib2.MOD_ID).optional();
 
         registrar.playToClient(SPacketAutoSyncBlockEntity.TYPE, SPacketAutoSyncBlockEntity.CODEC, SPacketAutoSyncBlockEntity::execute);
+        registrar.playToClient(SPacketAutoSyncBlockEntities.TYPE, SPacketAutoSyncBlockEntities.CODEC, SPacketAutoSyncBlockEntities::execute);
 
         registrar.playBidirectional(PacketUIRPCEvent.TYPE, PacketUIRPCEvent.CODEC, PacketUIRPCEvent::execute, PacketUIRPCEvent::execute);
         registrar.playBidirectional(PacketUIRPCEventReturn.TYPE, PacketUIRPCEventReturn.CODEC, PacketUIRPCEventReturn::execute, PacketUIRPCEventReturn::execute);

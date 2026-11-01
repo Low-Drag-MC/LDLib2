@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Predicate;
+import net.minecraft.util.Util;
 
 public class AnimationEngine {
 
@@ -59,7 +60,7 @@ public class AnimationEngine {
         }
     }
 
-    private final long startTime = System.nanoTime();
+    private final long startTime = Util.getNanos();
     // runtime
     private final Queue<Playback> waitToPlay = new ConcurrentLinkedQueue<>();
     private final List<Playback> playing = new ArrayList<>();
@@ -71,7 +72,7 @@ public class AnimationEngine {
     }
 
     public float getAppTime() {
-        long elapsed = System.nanoTime() - startTime;
+        long elapsed = Util.getNanos() - startTime;
         return (float) (elapsed / 1_000_000_000.0);
     }
 
@@ -116,7 +117,7 @@ public class AnimationEngine {
      * leaves its running animations behind in an engine nobody touches again, where they never reach
      * their {@code onFinished}. Moving them across is what stops a re-host from freezing them for good.
      *
-     * <p>Progress survives because both engines measure from {@link System#nanoTime()} and differ only
+     * <p>Progress survives because both engines measure from {@link Util#getNanos()} and differ only
      * in when they started, so a single offset converts between the clocks: a bar three quarters of the
      * way along stays three quarters of the way along, and one whose duration ran out while nothing was
      * being drawn finishes on the destination's next frame — exactly as it would have without the move.

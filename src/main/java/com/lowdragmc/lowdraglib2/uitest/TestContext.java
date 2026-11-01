@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.window.ModularUIWindow;
 import com.lowdragmc.lowdraglib2.uitest.input.InputDriver;
 import com.lowdragmc.lowdraglib2.uitest.input.WindowInput;
 import com.lowdragmc.lowdraglib2.uitest.report.RunReport;
+import net.minecraft.util.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -347,7 +348,7 @@ public final class TestContext {
 
     /** Milliseconds since this step's first attempt. */
     public long elapsedMs() {
-        return run.waitedNanos(System.nanoTime()) / 1_000_000L;
+        return run.waitedNanos(Util.getNanos()) / 1_000_000L;
     }
 
     // endregion

@@ -29,6 +29,8 @@ final class ModularUIClientState {
     /** The element files dragged in from outside are over, see {@link ModularUIClientAccess#onFileDragUpdate}. */
     @Nullable
     UIElement fileDragElement;
+    /** The {@link ModularUI#getLayoutGeneration()} {@link #extraAreas} were computed at. */
+    int extraAreasGeneration = -1;
 
     ModularUIClientState(ModularUI modularUI) {
         this.widget = new ModularUIWidget(modularUI);
