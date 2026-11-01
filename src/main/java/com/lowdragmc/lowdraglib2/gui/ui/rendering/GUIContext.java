@@ -238,13 +238,15 @@ public class GUIContext implements IGUIContext {
         IGuiTexture mask = style.mask();
         IGuiTexture effectiveMask = (style.clip().isMask() && mask != null && mask != IGuiTexture.EMPTY) ? mask : null;
 
-        // Off-target spans the full window in logical px — matches the sub
-        // GuiRenderer's main-window ortho, so recorded screen-coords render at
-        // their original positions. The outer blit is also full-screen; areas
-        // outside the element's subtree start cleared (alpha 0) and stay invisible.
-        var window = mc.getWindow();
-        int screenW = window.getGuiScaledWidth();
-        int screenH = window.getGuiScaledHeight();
+        // Off-target spans the full surface in logical px — matches the sub
+        // GuiRenderer's ortho, so recorded screen-coords render at their original
+        // positions. The outer blit is also full-screen; areas outside the
+        // element's subtree start cleared (alpha 0) and stay invisible. The surface
+        // being drawn, not the game window: a UI in an OS window of another gui size
+        // would otherwise have its layer squeezed into the game window's extent.
+        var surface = UISurface.current();
+        int screenW = surface.guiScaledWidth();
+        int screenH = surface.guiScaledHeight();
 
         var element = frame.element();
         var pipState = new VisualLayerPipState(
