@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.utils;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import lombok.experimental.UtilityClass;
+import net.minecraft.locale.Language;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -60,11 +61,9 @@ public final class LocalizationUtils {
      * @return a boolean indicating if the given localisation key has localisations
      */
     public static boolean exist(String localisationKey) {
-        if (LDLib2.isClient()) {
-            return invokeClientExists(localisationKey);
-        } else {
-            return false;
-        }
+        // 26.2 dropped I18n.exists, which this used to call by reflection and so silently answered false for every
+        // key. Language is common code and is what I18n read from, so it is asked directly.
+        return LDLib2.isClient() && Language.getInstance().has(localisationKey);
     }
 
     private static String invokeClientFormat(String localisationKey, Object... substitutions) {
@@ -74,16 +73,6 @@ public final class LocalizationUtils {
             return (String) method.invoke(null, localisationKey, substitutions);
         } catch (ReflectiveOperationException e) {
             return String.format(localisationKey, substitutions);
-        }
-    }
-
-    private static boolean invokeClientExists(String localisationKey) {
-        try {
-            var i18n = Class.forName(CLIENT_I18N_CLASS);
-            var method = i18n.getMethod("exists", String.class);
-            return (boolean) method.invoke(null, localisationKey);
-        } catch (ReflectiveOperationException e) {
-            return false;
         }
     }
 }
