@@ -1,4 +1,7 @@
 # ChangeLogs
+## v26.3.2.45.a
+* Added improved transparency to scenes: while the game uses it, a `WorldSceneRenderer` draws its translucent blocks and features through the order-independent transparency phases, as the level does. `setFollowImprovedTransparency(false)` keeps a scene blending classically, as do orthographic scenes and scenes drawn without depth
+
 ## v26.3.2.45
 * Added `MarkStrategies`, a registry of cheap ways to tell whether values of a class changed, and `IContentVersion` for values that count their own changes
 * Added `UIRecording`, scripted UI videos with a smooth pointer, click and key overlays, captions and zooms, run with `-PldRecord`, on OpenGL and Vulkan alike
