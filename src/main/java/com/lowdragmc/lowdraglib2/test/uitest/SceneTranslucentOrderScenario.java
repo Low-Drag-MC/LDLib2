@@ -36,6 +36,7 @@ public class SceneTranslucentOrderScenario implements UIScenario {
     private static final String WORLD = "world";
     private static final String GLASS_ONLY = "glass_only";
     private static final String CHEST_IN_GLASS = "chest_in_glass";
+    private static final String IMPROVED_TRANSPARENCY = "improved_transparency";
     private static final BlockPos CENTER = BlockPos.ZERO;
 
     @Override
@@ -45,11 +46,20 @@ public class SceneTranslucentOrderScenario implements UIScenario {
 
     @Override
     public void define(ScenarioBuilder s) {
-        s.openModularUI("a scene of a stained glass shell", this::buildUI)
+        boolean oit = improvedTransparency();
+        s.step("improved transparency " + (oit ? "on" : "off"), ctx -> {
+                    var option = ctx.mc().options.improvedTransparency();
+                    ctx.put(IMPROVED_TRANSPARENCY, option.get());
+                    option.set(oit);
+                })
+                .frames(2)
+                .openModularUI("a scene of a stained glass shell", this::buildUI)
                 .awaitScreen(ModularUIScreen.class)
                 .awaitModularUI()
                 .waitUntil("the scene has laid out", ctx -> scene(ctx).getSizeWidth() > 0)
                 .frames(10)
+                .step("the scene is drawn " + (oit ? "with" : "without") + " the OIT phases", ctx -> ctx.check(
+                        "drawn with improved transparency: " + oit, renderer(ctx).isDrawingWithOit() == oit))
                 .step("sample the empty shell", ctx -> ctx.put(GLASS_ONLY, ScenePixels.centre(scene(ctx))))
                 .step("put a chest inside", ctx -> {
                     TrackedDummyWorld world = ctx.get(WORLD);
@@ -77,7 +87,16 @@ public class SceneTranslucentOrderScenario implements UIScenario {
                 .frames(5)
                 .step("the glass was in front of the chest", ctx -> checkDiffers(ctx,
                         "the bare chest looks different from the chest behind glass", ctx.get(CHEST_IN_GLASS), ScenePixels.centre(scene(ctx))))
-                .closeScreen();
+                .closeScreen()
+                .teardown("improved transparency back", ctx -> {
+                    Boolean original = ctx.get(IMPROVED_TRANSPARENCY);
+                    if (original != null) ctx.mc().options.improvedTransparency().set(original);
+                });
+    }
+
+    /** Whether the scene is drawn with the game's improved (order-independent) transparency. */
+    protected boolean improvedTransparency() {
+        return false;
     }
 
     /** Hidden, the chest leaves the frame exactly as it was, so a quarter of the pixels changing is plenty. */

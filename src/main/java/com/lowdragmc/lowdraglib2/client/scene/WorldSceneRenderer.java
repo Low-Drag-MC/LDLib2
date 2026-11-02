@@ -13,6 +13,7 @@ import com.mojang.blaze3d.ProjectionType;
 import com.mojang.blaze3d.buffers.Std140Builder;
 import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.renderpearl.api.pipeline.IndexType;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import com.mojang.renderpearl.api.pipeline.PrimitiveTopology;
 import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
 import com.mojang.renderpearl.api.device.GpuDevice;
@@ -40,6 +41,8 @@ import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
 import net.minecraft.client.renderer.chunk.ChunkSectionLayerGroup;
 import net.minecraft.client.renderer.chunk.VisibilitySet;
 import net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
+import net.minecraft.client.renderer.oit.OitRenderPassProvider;
+import net.minecraft.client.renderer.oit.OitStage;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
@@ -239,6 +242,17 @@ public abstract class WorldSceneRenderer {
     private SceneRenderHook afterTranslucentDispatch;
     @Setter @Nullable
     private SceneRenderHook afterAllDispatch;
+    /**
+     * Whether the scene draws its translucency like the level when the game uses improved (order-independent)
+     * transparency; off, it blends it classically whatever the option.
+     */
+    @Getter @Setter
+    private boolean followImprovedTransparency = true;
+    /** Whether the scene is drawn with improved transparency: decided at the start of each draw. */
+    @Getter
+    private boolean drawingWithOit;
+    @Nullable
+    private SceneOitTargets oitTargets;
     @Setter @Nullable
     private Consumer<BlockHitResult> onLookingAt;
     @Setter @Nullable
@@ -300,6 +314,10 @@ public abstract class WorldSceneRenderer {
         if (featureRenderDispatcher != null) {
             featureRenderDispatcher.close();
             featureRenderDispatcher = null;
+        }
+        if (oitTargets != null) {
+            oitTargets.close();
+            oitTargets = null;
         }
         submitNodeStorage = null;
         cachedBuffersIdentity = null;
@@ -739,6 +757,14 @@ public abstract class WorldSceneRenderer {
         var mc = Minecraft.getInstance();
         var dispatcher = ensureFeatureRenderDispatcher(buffers);
         var storage = submitNodeStorage;
+        // the OIT phases test against the scene's depth and linearize it for a perspective projection: a scene drawn
+        // without depth or through an orthographic camera blends classically
+        drawingWithOit = followImprovedTransparency && depth != null && !ortho && mc.gameRenderer.useImprovedTransparency();
+        storage.setUseImprovedTransparency(drawingWithOit);
+        if (!drawingWithOit && oitTargets != null) {
+            oitTargets.close();
+            oitTargets = null;
+        }
         var poseStack = new PoseStack();
         var partialTicks = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
         camera.setSceneRotation(cameraEntity.getYRot(), cameraEntity.getXRot());
@@ -784,32 +810,45 @@ public abstract class WorldSceneRenderer {
             //     phase draw into the one pass in the game's own order (LevelRenderer.executeSolid +
             //     executeClassicTransparency). Hooks that draw rather than submit get that pass through
             //     SceneRenderContext#renderPass.
-            try (var frame = dispatcher.prepareFrame(storage);
-                 var pass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
-                         () -> "LDLib2 scene", color, Optional.empty(), depth, OptionalDouble.empty())) {
-                RenderSystem.bindDefaultUniforms(pass);
-                if (terrain != null && terrain.isLive(this)) {
-                    terrain.draw(pass, ChunkSectionLayerGroup.OPAQUE);
+            try (var frame = dispatcher.prepareFrame(storage)) {
+                var pass = openScenePass(color, depth, "LDLib2 scene");
+                try {
+                    if (terrain != null && terrain.isLive(this)) {
+                        terrain.draw(pass, ChunkSectionLayerGroup.OPAQUE, null);
+                    }
+                    var dispatchCtx = ctx.withRenderPass(pass);
+                    frame.executeSolid(pass);
+                    if (drawingWithOit) {
+                        // the phases are passes of their own, as the level's are
+                        pass.close();
+                        try {
+                            drawTranslucentOit(frame, terrain, color, Objects.requireNonNull(depth));
+                        } finally {
+                            pass = openScenePass(color, depth, "LDLib2 scene (after OIT)");
+                        }
+                        dispatchCtx = ctx.withRenderPass(pass);
+                    } else {
+                        frame.executeTranslucent(pass);
+                        // Translucent terrain writes depth, so it comes after everything solid: drawn first, it would
+                        // hide the block entities and entities behind it.
+                        if (terrain != null && terrain.isLive(this)) {
+                            terrain.draw(pass, ChunkSectionLayerGroup.TRANSLUCENT, null);
+                        }
+                    }
+
+                    if (afterTranslucentDispatch != null) afterTranslucentDispatch.apply(dispatchCtx);
+
+                    // translucent particles are in the after-terrain phase, or in the OIT phases with them
+                    if (!drawingWithOit) frame.executeTranslucentAfterTerrain(pass);
+                    frame.executeSeeThrough(pass);
+                    frame.executeAlwaysOnTop(pass);
+
+                    // Every phase has drawn, particles included: particle managers draw through the dispatcher,
+                    // not from afterRender(), so a hook here lands over them.
+                    if (afterAllDispatch != null) afterAllDispatch.apply(dispatchCtx);
+                } finally {
+                    pass.close();
                 }
-                var dispatchCtx = ctx.withRenderPass(pass);
-                frame.executeSolid(pass);
-                frame.executeTranslucent(pass);
-                // Translucent terrain writes depth, so it comes after everything solid: drawn first, it would
-                // hide the block entities and entities behind it.
-                if (terrain != null && terrain.isLive(this)) {
-                    terrain.draw(pass, ChunkSectionLayerGroup.TRANSLUCENT);
-                }
-
-                if (afterTranslucentDispatch != null) afterTranslucentDispatch.apply(dispatchCtx);
-
-                // translucent particles are in the after-terrain phase
-                frame.executeTranslucentAfterTerrain(pass);
-                frame.executeSeeThrough(pass);
-                frame.executeAlwaysOnTop(pass);
-
-                // Every phase has drawn, particles included: particle managers draw through the dispatcher,
-                // not from afterRender(), so a hook here lands over them.
-                if (afterAllDispatch != null) afterAllDispatch.apply(dispatchCtx);
             }
         } finally {
             if (terrain != null) {
@@ -824,6 +863,41 @@ public abstract class WorldSceneRenderer {
             if (particleManager != null) particleManager.afterRender();
             SceneCameraContext.clear();
         }
+    }
+
+    private static RenderPass openScenePass(GpuTextureView color, @Nullable GpuTextureView depth, String label) {
+        var pass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
+                () -> label, color, Optional.empty(), depth, OptionalDouble.empty());
+        RenderSystem.bindDefaultUniforms(pass);
+        return pass;
+    }
+
+    /**
+     * The translucent terrain and features through the three phases of improved (order-independent) transparency,
+     * then their composite, as {@code LevelRenderer.executeOit} draws the level's. No pass is open.
+     */
+    private void drawTranslucentOit(FeatureRenderDispatcher.PreparedFrame frame, @Nullable TerrainDraws terrain,
+                                    GpuTextureView color, GpuTextureView depth) {
+        var targets = oitTargets = SceneOitTargets.ensure(oitTargets, color.getWidth(0), color.getHeight(0));
+        targets.clear();
+        var params = targets.parameters(depth);
+        for (OitStage stage : OitStage.values()) {
+            try (var pass = OitRenderPassProvider.createRenderPass(stage, () -> "LDLib2 scene", params)) {
+                if (terrain != null && terrain.isLive(this)) {
+                    terrain.draw(pass, ChunkSectionLayerGroup.TRANSLUCENT, RenderPipelines.OIT_TERRAIN.getPipeline(stage));
+                }
+                frame.executeOit(stage, pass);
+            }
+            if (stage == OitStage.DEPTH_BOUNDS) {
+                targets.cullDepthBounds(depth, params);
+            }
+        }
+        compositeOit(targets, color, depth);
+    }
+
+    /** Resolves the OIT phases onto the scene. No pass is open. */
+    private void compositeOit(SceneOitTargets targets, GpuTextureView color, GpuTextureView depth) {
+        targets.composite(color, depth);
     }
 
     /**
@@ -926,8 +1000,11 @@ public abstract class WorldSceneRenderer {
             return owned || renderer.cachedGpuMeshes == meshes;
         }
 
-        /** Draws one group's layers, like {@code ChunkSectionsToRender.renderGroup}: the opaque one before the features, the translucent one after them. */
-        void draw(RenderPass pass, ChunkSectionLayerGroup group) {
+        /**
+         * Draws one group's layers, like {@code ChunkSectionsToRender.renderGroup}: the opaque one before the features,
+         * the translucent one after them. {@code pipeline}: instead of each layer's own (an OIT phase's).
+         */
+        void draw(RenderPass pass, ChunkSectionLayerGroup group, @Nullable RenderPipeline pipeline) {
             var seq = RenderSystem.getSequentialBuffer(PrimitiveTopology.QUADS);
             // already large enough: buildTerrainDraws grew it before the pass opened
             GpuBuffer defaultIndexBuffer = largestIndexCount == 0 ? null : seq.getBuffer();
@@ -942,7 +1019,7 @@ public abstract class WorldSceneRenderer {
                 var draws = drawsByLayer.get(layer);
                 if (draws == null || draws.isEmpty()) continue;
                 pass.pushDebugGroup(() -> "Scene terrain layer: " + layer.label());
-                pass.setPipeline(RenderSystem.getCompiledPipeline(layer.pipeline(false)));
+                pass.setPipeline(RenderSystem.getCompiledPipeline(pipeline != null ? pipeline : layer.pipeline(false)));
                 pass.drawMultipleIndexed(draws, defaultIndexBuffer, defaultIndexType, List.of("ChunkSection"), sectionInfos);
                 pass.popDebugGroup();
             }
