@@ -111,6 +111,9 @@ public final class UITestRunner {
     private Throwable takeFailure;
     /** Read by the watchdog thread, hence volatile. */
     private volatile boolean shuttingDown;
+    /** When the game was asked to stop, 0 before that (and for keepOpen); read by the watchdog. */
+    private volatile long stopRequestedNanos;
+    private volatile int exitCode;
 
     private record ScenarioEntry(String name, String group, UIScenario scenario, ScenarioOptions options,
                                  Class<?> scenarioClass) {
@@ -883,7 +886,9 @@ public final class UITestRunner {
         boolean failed = !RunReport.Status.PASS.equals(report.status);
         LDLib2.LOGGER.info("[uitest] shutting down with exit code {}", failed ? 1 : 0);
         phase = Phase.EXITING;
-        armExitCode(failed ? 1 : 0);
+        exitCode = failed ? 1 : 0;
+        armExitCode(exitCode);
+        stopRequestedNanos = System.nanoTime();
         minecraft.setScreen(null);
 
         // Minecraft#stop only flips the main loop's running flag. Everything else - unloading the
@@ -942,6 +947,16 @@ public final class UITestRunner {
     /** Whether the watchdog should stand down — shutdown legitimately stops producing frames. */
     boolean isShuttingDown() {
         return shuttingDown;
+    }
+
+    /** When the game was asked to stop, or 0 if it has not been (or is kept open). */
+    long stopRequestedNanos() {
+        return stopRequestedNanos;
+    }
+
+    /** The exit code the finished run decided on. */
+    int exitCode() {
+        return exitCode;
     }
 
     /** Called by the watchdog when no frame has arrived for too long. */
