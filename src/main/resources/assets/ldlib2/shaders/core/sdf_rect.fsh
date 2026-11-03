@@ -39,8 +39,9 @@ void main(){
     float aaI = max(fwidth(dInner), 1e-3);
 
     // --- 覆盖度 ---
-    float covOuter = 1.0 - smoothstep(0.0, aaO, dOuter); // 外轮廓以内
-    float fillA    = 1.0 - smoothstep(0.0, aaI, dInner); // 内轮廓以内
+    // 边缘居中淡出：轮廓线上正好一半
+    float covOuter = 1.0 - smoothstep(-0.5 * aaO, 0.5 * aaO, dOuter); // 外轮廓以内
+    float fillA    = 1.0 - smoothstep(-0.5 * aaI, 0.5 * aaI, dInner); // 内轮廓以内
     float borderA  = clamp(covOuter - fillA, 0.0, 1.0);  // 壳 = 外 − 内（避免重叠）
 
     // --- 预乘后合成（配合 ONE, ONE_MINUS_SRC_ALPHA）---

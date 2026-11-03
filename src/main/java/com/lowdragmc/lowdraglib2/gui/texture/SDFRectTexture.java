@@ -29,6 +29,8 @@ import static com.mojang.blaze3d.vertex.DefaultVertexFormat.*;
 @LDLRegisterClient(name = "sdf_rect_texture", registry = "ldlib2:gui_texture")
 @Accessors(chain = true)
 public class SDFRectTexture extends TransformTexture {
+    private static final float AA_MARGIN = 1f;
+
     @Getter
     @Configurable
     @ConfigNumber(range = {0f, Float.MAX_VALUE}, wheel = 1)
@@ -140,8 +142,9 @@ public class SDFRectTexture extends TransformTexture {
         RenderSystem.applyModelViewMatrix();
 
         RenderSystem.enableBlend();
+        // the shader writes premultiplied colour
         RenderSystem.blendFuncSeparate(
-                GlStateManager.SourceFactor.SRC_ALPHA,
+                GlStateManager.SourceFactor.ONE,
                 GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
                 GlStateManager.SourceFactor.ONE,
                 GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA
@@ -162,10 +165,13 @@ public class SDFRectTexture extends TransformTexture {
 
         var buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, POSITION);
 
-        buffer.addVertex(-halfWidth, halfHeight, 0);
-        buffer.addVertex(halfWidth, halfHeight, 0);
-        buffer.addVertex(halfWidth, -halfHeight, 0);
-        buffer.addVertex(-halfWidth, -halfHeight, 0);
+        // a margin past the shape, so the anti-aliased edge has pixels to fade out on
+        var quadHalfWidth = halfWidth + AA_MARGIN;
+        var quadHalfHeight = halfHeight + AA_MARGIN;
+        buffer.addVertex(-quadHalfWidth, quadHalfHeight, 0);
+        buffer.addVertex(quadHalfWidth, quadHalfHeight, 0);
+        buffer.addVertex(quadHalfWidth, -quadHalfHeight, 0);
+        buffer.addVertex(-quadHalfWidth, -quadHalfHeight, 0);
         BufferUploader.drawWithShader(buffer.buildOrThrow());
 
         modelView.popMatrix();
