@@ -173,6 +173,8 @@ public class SDFRectTexture extends TransformTexture {
         buffer.addVertex(quadHalfWidth, -quadHalfHeight, 0);
         buffer.addVertex(-quadHalfWidth, -quadHalfHeight, 0);
         BufferUploader.drawWithShader(buffer.buildOrThrow());
+        // back to what the GUI draws with: a blit after this one sets no blend function of its own
+        RenderSystem.defaultBlendFunc();
 
         modelView.popMatrix();
         RenderSystem.applyModelViewMatrix();
