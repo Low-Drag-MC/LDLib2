@@ -1095,9 +1095,8 @@ public abstract class WorldSceneRenderer {
             // grown here rather than inside the pass, as the game does for its own sections
             RenderSystem.getSequentialBuffer(PrimitiveTopology.QUADS).getBuffer(largestIndexCount);
         }
-        var dynamicData = RenderSystem.getDynamicUniforms();
-        GpuBufferSlice[] infoSlices = dynamicData.writeChunkSections(infos.toArray(new DynamicGpuData.ChunkSectionInfo[0]));
-        GpuBufferSlice terrainTransform = dynamicData.writeTerrainTransform(viewRotation, blockAtlas.getWidth(0), blockAtlas.getHeight(0));
+        GpuBufferSlice[] infoSlices = SceneChunkSections.write(infos.toArray(new DynamicGpuData.ChunkSectionInfo[0]));
+        GpuBufferSlice terrainTransform = RenderSystem.getDynamicUniforms().writeTerrainTransform(viewRotation, blockAtlas.getWidth(0), blockAtlas.getHeight(0));
         return new TerrainDraws(drawsByLayer, infoSlices, terrainTransform, largestIndexCount, blockAtlas,
                 meshesByLayer, owned);
     }

@@ -213,7 +213,7 @@ public class SceneCompileCancelScenario implements UIScenario {
     }
 
     /** Sampled on a grid within the element's own rectangle, so the surroundings cannot answer for it. */
-    private static boolean isRegionUniform(NativeImage image, UIElement element, double guiScale) {
+    static boolean isRegionUniform(NativeImage image, UIElement element, double guiScale) {
         int x0 = Math.max(0, (int) (element.getPositionX() * guiScale));
         int y0 = Math.max(0, (int) (element.getPositionY() * guiScale));
         int x1 = Math.min(image.getWidth(), (int) ((element.getPositionX() + element.getSizeWidth()) * guiScale));
