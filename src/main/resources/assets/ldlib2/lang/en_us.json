@@ -15,6 +15,7 @@
   "ldlib.gui.tips.cancel": "Cancel",
   "ldlib.fluid.empty": "Empty",
   "ldlib.fluid.amount": "§9Amount: %d/%d",
+  "ldlib.item.amount": "§9Amount: %d",
   "ldlib.fluid.temperature": "§cTemperature: %d K",
   "ldlib.fluid.state_gas": "§aState: Gaseous",
   "ldlib.fluid.state_liquid": "§aState: Liquid",

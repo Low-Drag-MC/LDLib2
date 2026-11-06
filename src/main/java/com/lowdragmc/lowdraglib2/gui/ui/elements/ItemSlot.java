@@ -18,6 +18,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.Property;
 import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.gui.util.TextFormattingUtil;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
 import com.lowdragmc.lowdraglib2.integration.xei.XEITooltipContext;
 import com.lowdragmc.lowdraglib2.integration.xei.emi.LDLibEMIPlugin;
@@ -335,8 +336,14 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
      */
     public List<Component> getFullTooltipTexts(boolean withItemTooltips) {
         var tips = new ArrayList<Component>();
-        if (withItemTooltips && slotStyle.showItemTooltips()) {
-            tips.addAll(DrawerHelper.getItemToolTip(getValue()));
+        if (slotStyle.showItemTooltips()) {
+            var value = getValue();
+            if (withItemTooltips) {
+                tips.addAll(DrawerHelper.getItemToolTip(value));
+            }
+            if (compactCount(value) != null) {
+                tips.add(Component.translatable("ldlib.item.amount", value.getCount()));
+            }
         }
         tips.addAll(getStyle().tooltips().asList());
         return tips;
@@ -444,7 +451,15 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
     }
 
     protected void drawItemStack(GUIContext guiContext, ItemStack itemStack) {
-        DrawerHelper.drawItemStack(guiContext.graphics, itemStack, 0, 0, guiContext.elementColor, null);
+        DrawerHelper.drawItemStack(guiContext.graphics, itemStack, 0, 0, guiContext.elementColor, compactCount(itemStack));
+    }
+
+    /**
+     * @return the count compacted ({@code 1.2k}, {@code 3.4M}) once it would run out of the slot, else {@code null}
+     */
+    @Nullable
+    public static String compactCount(ItemStack stack) {
+        return stack.getCount() >= 1000 ? TextFormattingUtil.formatLongToCompactString(stack.getCount(), 3) : null;
     }
 
     protected void drawHover(GUIContext guiContext) {
