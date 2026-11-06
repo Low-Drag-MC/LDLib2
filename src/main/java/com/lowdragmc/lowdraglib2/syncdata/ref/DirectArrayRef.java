@@ -30,43 +30,19 @@ public final class DirectArrayRef<TYPE, TYPE_ARRAY> extends UniqueDirectRef<TYPE
     }
 
     @Override
-    public void clearSyncDirty() {
-        super.clearSyncDirty();
-        if (refs == null) {
-            return;
-        }
-        for (DirectRef<TYPE> ref : refs) {
-            ref.clearSyncDirty();
-        }
-    }
-
-    @Override
-    public void clearPersistedDirty() {
-        super.clearPersistedDirty();
-        if (refs == null) {
-            return;
-        }
-        for (var ref : refs) {
-            ref.clearPersistedDirty();
-        }
-    }
-
-    @Override
     protected void updateSync() {
         var newValue = readRaw();
         if (!Objects.equals(oldValue, newValue)) {
             oldValue = newValue;
             updateRefs(newValue);
             markAsDirty();
-            if (refs != null) {
-                for (var ref : refs) {
-                    ref.markAsDirty();
-                }
-            }
         } else if (refs != null) {
             for (var ref : refs) {
                 ref.update();
                 if (ref.isSyncDirty() || ref.isPersistedDirty()) {
+                    // the whole array is sent and saved, so the element's marks are only a signal for this one
+                    ref.clearSyncDirty();
+                    ref.clearPersistedDirty();
                     markAsDirty();
                 }
             }

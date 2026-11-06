@@ -179,6 +179,26 @@ public class SyncChangeDetectionTest {
         public int lazy;
         @Persisted
         public int persistOnly;
+        @Persisted
+        @DescSynced
+        public final FluidStorage[] tanks = {new FluidStorage(1000), new FluidStorage(1000)};
+        public boolean shown;
+        @Persisted
+        @DescSynced
+        @ConditionalSynced(methodName = "isShown")
+        public final ItemStackTransfer shownItems = new ItemStackTransfer(2);
+        @Persisted
+        @DescSynced
+        @ConditionalSynced(methodName = "isShown")
+        public final FluidStorage[] shownTanks = {new FluidStorage(1000)};
+        @Persisted
+        @DescSynced
+        @ConditionalSynced(methodName = "isShown")
+        public int[] shownInts = new int[2];
+        @DescSynced
+        @LazyManaged
+        @ConditionalSynced(methodName = "isShown")
+        public int shownLazy;
 
         public Probe(ServerLevel level) {
             super(level);
@@ -193,6 +213,22 @@ public class SyncChangeDetectionTest {
 
         private boolean isPositive(int value) {
             return value > 0;
+        }
+
+        private boolean isShown(ItemStackTransfer value) {
+            return shown;
+        }
+
+        private boolean isShown(FluidStorage[] value) {
+            return shown;
+        }
+
+        private boolean isShown(int[] value) {
+            return shown;
+        }
+
+        private boolean isShown(int value) {
+            return shown;
         }
 
         private static Codec<List<String>> tagsCodec() {
@@ -229,6 +265,7 @@ public class SyncChangeDetectionTest {
             Case.synced("mutable BlockPos moved in place", "pos", p -> ((BlockPos.MutableBlockPos) p.pos).move(Direction.UP)),
             Case.synced("Vector3f changed in place", "vector", p -> p.vector.x = 5),
             Case.synced("int[] element assigned", "ints", p -> p.ints[1] = 7),
+            Case.synced("int[] replaced", "ints", p -> p.ints = new int[]{0, 7, 0}),
             Case.synced("ItemStack[] element assigned", "stacks", p -> p.stacks[1] = new ItemStack(Items.STICK)),
             Case.synced("ItemStack[] element grown in place", "stacks", p -> p.stacks[0].grow(1)),
             Case.synced("List<String> added to", "strings", p -> p.strings.add("b")),
@@ -254,6 +291,7 @@ public class SyncChangeDetectionTest {
             Case.synced("container reading slots through an override: grown in place", "passThroughItems", p -> p.passThroughItems.getStackInSlot(0).grow(1)),
             Case.synced("tank drained empty", "tank", p -> p.tank.drain(1000, IFluidHandler.FluidAction.EXECUTE)),
             Case.synced("tank capacity changed", "tank", p -> p.tank.setCapacity(2000)),
+            Case.synced("tank in an array filled", "tanks", p -> p.tanks[1].fill(new FluidStack(Fluids.WATER, 100), IFluidHandler.FluidAction.EXECUTE)),
             Case.synced("custom container slot set", "lockableItems", p -> p.lockableItems.setStackInSlot(1, new ItemStack(Items.DIAMOND))),
             Case.synced("custom container stack grown in place", "lockableItems", p -> p.lockableItems.getStackInSlot(0).grow(1)),
             Case.synced("custom container's own state changed", "lockableItems", p -> p.lockableItems.locked = true),
@@ -278,6 +316,7 @@ public class SyncChangeDetectionTest {
             Case.unchanged("container in a List: slot set to an equal stack", "itemList", p -> p.itemList.getFirst().setStackInSlot(0, p.itemList.getFirst().getStackInSlot(0).copy())),
             Case.unchanged("INBTSerializable in a Map given an equal value", "nestedMap", p -> p.nestedMap.get("a").label = new String(p.nestedMap.get("a").label)),
             Case.unchanged("tank refilled with an equal copy", "tank", p -> p.tank.setFluid(p.tank.getFluid().copy())),
+            Case.unchanged("tank in an array refilled with an equal copy", "tanks", p -> p.tanks[0].setFluid(p.tanks[0].getFluid().copy())),
             Case.unchanged("custom container slot set to an equal stack", "lockableItems", p -> p.lockableItems.setStackInSlot(0, p.lockableItems.getStackInSlot(0).copy())),
             Case.unchanged("nested managed field assigned the same value", "part", p -> p.part.progress = p.part.progress)
     );
@@ -346,6 +385,38 @@ public class SyncChangeDetectionTest {
 
     @GameTest(template = "empty")
     @PrefixGameTestTemplate(false)
+    public static void conditionalFieldIsSavedWhileHeldBack(GameTestHelper helper) {
+        var level = helper.getLevel();
+        var failures = new ArrayList<String>();
+        var cases = List.of(
+                Case.synced("container", "shownItems", p -> p.shownItems.setStackInSlot(0, new ItemStack(Items.DIAMOND))),
+                Case.synced("array of tanks", "shownTanks", p -> p.shownTanks[0].fill(new FluidStack(Fluids.WATER, 100), IFluidHandler.FluidAction.EXECUTE)),
+                Case.synced("int[]", "shownInts", p -> p.shownInts[1] = 7));
+        for (var c : cases) {
+            var server = settled(level);
+            var client = new Probe(level);
+            server.initClient(client);
+
+            c.change.accept(server);
+            if (server.syncTo(client)) failures.add(c.name + ": synced while held back: " + server.syncFieldNames(server.sentChanged));
+            if (server.persistenceNotices == 0) failures.add(c.name + ": not saved while held back");
+            server.persistenceNotices = 0;
+            if (server.syncTo(client) || server.persistenceNotices > 0) failures.add(c.name + ": noticed again with nothing changed");
+
+            server.shown = true;
+            if (!server.syncTo(client) || !server.sentChanged.get(server.syncIndex(c.field))) {
+                failures.add(c.name + ": the change made while held back was not sent once shown");
+            } else if (!client.syncedValue(c.field).equals(server.syncedValue(c.field))) {
+                failures.add(c.name + ": client has " + client.syncedValue(c.field) + ", server " + server.syncedValue(c.field));
+            }
+            if (server.persistenceNotices > 0) failures.add(c.name + ": saved again just for being shown");
+            if (server.syncTo(client)) failures.add(c.name + ": sent again after being shown");
+        }
+        report(helper, failures);
+    }
+
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
     public static void lazyFieldWaitsForMarkDirty(GameTestHelper helper) {
         var level = helper.getLevel();
         var failures = new ArrayList<String>();
@@ -357,6 +428,22 @@ public class SyncChangeDetectionTest {
         if (server.syncTo(client)) failures.add("synced without markDirty: " + server.syncFieldNames(server.sentChanged));
         server.markDirty("lazy");
         if (!server.syncTo(client) || client.lazy != 3) failures.add("not synced after markDirty, client has " + client.lazy);
+        if (server.syncTo(client)) failures.add("synced again after markDirty was consumed");
+        report(helper, failures);
+    }
+
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void lazyFieldIgnoresItsCondition(GameTestHelper helper) {
+        var level = helper.getLevel();
+        var failures = new ArrayList<String>();
+        var server = settled(level);
+        var client = new Probe(level);
+        server.initClient(client);
+
+        server.shownLazy = 3;
+        server.markDirty("shownLazy");
+        if (!server.syncTo(client) || client.shownLazy != 3) failures.add("not synced after markDirty, client has " + client.shownLazy);
         if (server.syncTo(client)) failures.add("synced again after markDirty was consumed");
         report(helper, failures);
     }
