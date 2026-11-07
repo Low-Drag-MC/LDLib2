@@ -21,7 +21,7 @@ float pickCornerRadius(vec2 p, vec4 r){
 float sdRRect(vec2 p, vec2 halfSize, vec4 r){
     float rc = pickCornerRadius(p, r);
     vec2 q = abs(p) - (halfSize - vec2(rc));
-    return length(max(q, 0.0)) - rc;
+    return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - rc;
 }
 
 void main(){
