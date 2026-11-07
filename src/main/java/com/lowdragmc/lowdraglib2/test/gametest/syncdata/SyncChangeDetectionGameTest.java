@@ -64,7 +64,9 @@ import java.util.function.Consumer;
 public final class SyncChangeDetectionGameTest {
     private static final String EVERY_FIELD_KIND_SYNCS_EXACTLY_ITS_CHANGES_PATH = "sync_change_detection_every_field_kind_syncs_exactly_its_changes";
     private static final String CONDITIONAL_FIELD_WAITS_FOR_ITS_CONDITION_PATH = "sync_change_detection_conditional_field_waits_for_its_condition";
+    private static final String CONDITIONAL_FIELD_IS_SAVED_WHILE_HELD_BACK_PATH = "sync_change_detection_conditional_field_is_saved_while_held_back";
     private static final String LAZY_FIELD_WAITS_FOR_MARK_DIRTY_PATH = "sync_change_detection_lazy_field_waits_for_mark_dirty";
+    private static final String LAZY_FIELD_IGNORES_ITS_CONDITION_PATH = "sync_change_detection_lazy_field_ignores_its_condition";
     private static final String CHANGES_IN_ONE_PERIOD_SHARE_ONE_PACKET_PATH = "sync_change_detection_changes_in_one_period_share_one_packet";
     private static final String CODEC_MARK_WORKS_IN_ANY_BUILDER_ORDER_PATH = "sync_change_detection_codec_mark_works_in_any_builder_order";
     private static final String SUBCLASSED_ACCESSORS_KEEP_THEIR_OWN_COMPARISON_PATH = "sync_change_detection_subclassed_accessors_keep_their_own_comparison";
@@ -76,7 +78,9 @@ public final class SyncChangeDetectionGameTest {
     static void registerFunctions() {
         SyncDataGameTests.registerFunction(EVERY_FIELD_KIND_SYNCS_EXACTLY_ITS_CHANGES_PATH, SyncChangeDetectionGameTest::everyFieldKindSyncsExactlyItsChanges);
         SyncDataGameTests.registerFunction(CONDITIONAL_FIELD_WAITS_FOR_ITS_CONDITION_PATH, SyncChangeDetectionGameTest::conditionalFieldWaitsForItsCondition);
+        SyncDataGameTests.registerFunction(CONDITIONAL_FIELD_IS_SAVED_WHILE_HELD_BACK_PATH, SyncChangeDetectionGameTest::conditionalFieldIsSavedWhileHeldBack);
         SyncDataGameTests.registerFunction(LAZY_FIELD_WAITS_FOR_MARK_DIRTY_PATH, SyncChangeDetectionGameTest::lazyFieldWaitsForMarkDirty);
+        SyncDataGameTests.registerFunction(LAZY_FIELD_IGNORES_ITS_CONDITION_PATH, SyncChangeDetectionGameTest::lazyFieldIgnoresItsCondition);
         SyncDataGameTests.registerFunction(CHANGES_IN_ONE_PERIOD_SHARE_ONE_PACKET_PATH, SyncChangeDetectionGameTest::changesInOnePeriodShareOnePacket);
         SyncDataGameTests.registerFunction(CODEC_MARK_WORKS_IN_ANY_BUILDER_ORDER_PATH, SyncChangeDetectionGameTest::codecMarkWorksInAnyBuilderOrder);
         SyncDataGameTests.registerFunction(SUBCLASSED_ACCESSORS_KEEP_THEIR_OWN_COMPARISON_PATH, SyncChangeDetectionGameTest::subclassedAccessorsKeepTheirOwnComparison);
@@ -90,7 +94,9 @@ public final class SyncChangeDetectionGameTest {
         TestData<Holder<TestEnvironmentDefinition<?>>> testData = SyncDataGameTests.defaultTestData(environment, "empty");
         SyncDataGameTests.registerFunctionTest(event, EVERY_FIELD_KIND_SYNCS_EXACTLY_ITS_CHANGES_PATH, SyncDataGameTests.functionKey(EVERY_FIELD_KIND_SYNCS_EXACTLY_ITS_CHANGES_PATH), testData);
         SyncDataGameTests.registerFunctionTest(event, CONDITIONAL_FIELD_WAITS_FOR_ITS_CONDITION_PATH, SyncDataGameTests.functionKey(CONDITIONAL_FIELD_WAITS_FOR_ITS_CONDITION_PATH), testData);
+        SyncDataGameTests.registerFunctionTest(event, CONDITIONAL_FIELD_IS_SAVED_WHILE_HELD_BACK_PATH, SyncDataGameTests.functionKey(CONDITIONAL_FIELD_IS_SAVED_WHILE_HELD_BACK_PATH), testData);
         SyncDataGameTests.registerFunctionTest(event, LAZY_FIELD_WAITS_FOR_MARK_DIRTY_PATH, SyncDataGameTests.functionKey(LAZY_FIELD_WAITS_FOR_MARK_DIRTY_PATH), testData);
+        SyncDataGameTests.registerFunctionTest(event, LAZY_FIELD_IGNORES_ITS_CONDITION_PATH, SyncDataGameTests.functionKey(LAZY_FIELD_IGNORES_ITS_CONDITION_PATH), testData);
         SyncDataGameTests.registerFunctionTest(event, CHANGES_IN_ONE_PERIOD_SHARE_ONE_PACKET_PATH, SyncDataGameTests.functionKey(CHANGES_IN_ONE_PERIOD_SHARE_ONE_PACKET_PATH), testData);
         SyncDataGameTests.registerFunctionTest(event, CODEC_MARK_WORKS_IN_ANY_BUILDER_ORDER_PATH, SyncDataGameTests.functionKey(CODEC_MARK_WORKS_IN_ANY_BUILDER_ORDER_PATH), testData);
         SyncDataGameTests.registerFunctionTest(event, SUBCLASSED_ACCESSORS_KEEP_THEIR_OWN_COMPARISON_PATH, SyncDataGameTests.functionKey(SUBCLASSED_ACCESSORS_KEEP_THEIR_OWN_COMPARISON_PATH), testData);
@@ -221,6 +227,26 @@ public final class SyncChangeDetectionGameTest {
         public int lazy;
         @Persisted
         public int persistOnly;
+        @Persisted
+        @DescSynced
+        public final FluidStorage[] tanks = {new FluidStorage(1000), new FluidStorage(1000)};
+        public boolean shown;
+        @Persisted
+        @DescSynced
+        @ConditionalSynced(methodName = "isShown")
+        public final ItemStackTransfer shownItems = new ItemStackTransfer(2);
+        @Persisted
+        @DescSynced
+        @ConditionalSynced(methodName = "isShown")
+        public final FluidStorage[] shownTanks = {new FluidStorage(1000)};
+        @Persisted
+        @DescSynced
+        @ConditionalSynced(methodName = "isShown")
+        public int[] shownInts = new int[2];
+        @DescSynced
+        @LazyManaged
+        @ConditionalSynced(methodName = "isShown")
+        public int shownLazy;
 
         public Probe(ServerLevel level) {
             super(level);
@@ -235,6 +261,22 @@ public final class SyncChangeDetectionGameTest {
 
         private boolean isPositive(int value) {
             return value > 0;
+        }
+
+        private boolean isShown(ItemStackTransfer value) {
+            return shown;
+        }
+
+        private boolean isShown(FluidStorage[] value) {
+            return shown;
+        }
+
+        private boolean isShown(int[] value) {
+            return shown;
+        }
+
+        private boolean isShown(int value) {
+            return shown;
         }
 
         private static Codec<List<String>> tagsCodec() {
@@ -271,6 +313,7 @@ public final class SyncChangeDetectionGameTest {
             Case.synced("mutable BlockPos moved in place", "pos", p -> ((BlockPos.MutableBlockPos) p.pos).move(Direction.UP)),
             Case.synced("Vector3f changed in place", "vector", p -> p.vector.x = 5),
             Case.synced("int[] element assigned", "ints", p -> p.ints[1] = 7),
+            Case.synced("int[] replaced", "ints", p -> p.ints = new int[]{0, 7, 0}),
             Case.synced("ItemStack[] element assigned", "stacks", p -> p.stacks[1] = new ItemStack(Items.STICK)),
             Case.synced("ItemStack[] element grown in place", "stacks", p -> p.stacks[0].grow(1)),
             Case.synced("List<String> added to", "strings", p -> p.strings.add("b")),
@@ -296,6 +339,7 @@ public final class SyncChangeDetectionGameTest {
             Case.synced("container reading slots through an override: grown in place", "passThroughItems", p -> p.passThroughItems.getStackInSlot(0).grow(1)),
             Case.synced("tank drained empty", "tank", p -> p.tank.drain(1000, IFluidHandler.FluidAction.EXECUTE)),
             Case.synced("tank capacity changed", "tank", p -> p.tank.setCapacity(2000)),
+            Case.synced("tank in an array filled", "tanks", p -> p.tanks[1].fill(new FluidStack(Fluids.WATER, 100), IFluidHandler.FluidAction.EXECUTE)),
             Case.synced("custom container slot set", "lockableItems", p -> p.lockableItems.setStackInSlot(1, new ItemStack(Items.DIAMOND))),
             Case.synced("custom container stack grown in place", "lockableItems", p -> p.lockableItems.getStackInSlot(0).grow(1)),
             Case.synced("custom container's own state changed", "lockableItems", p -> p.lockableItems.locked = true),
@@ -320,6 +364,7 @@ public final class SyncChangeDetectionGameTest {
             Case.unchanged("container in a List: slot set to an equal stack", "itemList", p -> p.itemList.getFirst().setStackInSlot(0, p.itemList.getFirst().getStackInSlot(0).copy())),
             Case.unchanged("ValueIOSerializable in a Map given an equal value", "nestedMap", p -> p.nestedMap.get("a").label = new String(p.nestedMap.get("a").label)),
             Case.unchanged("tank refilled with an equal copy", "tank", p -> p.tank.setFluid(p.tank.getFluid().copy())),
+            Case.unchanged("tank in an array refilled with an equal copy", "tanks", p -> p.tanks[0].setFluid(p.tanks[0].getFluid().copy())),
             Case.unchanged("custom container slot set to an equal stack", "lockableItems", p -> p.lockableItems.setStackInSlot(0, p.lockableItems.getStackInSlot(0).copy())),
             Case.unchanged("nested managed field assigned the same value", "part", p -> p.part.progress = p.part.progress)
     );
@@ -382,6 +427,36 @@ public final class SyncChangeDetectionGameTest {
         report(helper, failures);
     }
 
+    static void conditionalFieldIsSavedWhileHeldBack(GameTestHelper helper) {
+        var level = helper.getLevel();
+        var failures = new ArrayList<String>();
+        var cases = List.of(
+                Case.synced("container", "shownItems", p -> p.shownItems.setStackInSlot(0, new ItemStack(Items.DIAMOND))),
+                Case.synced("array of tanks", "shownTanks", p -> p.shownTanks[0].fill(new FluidStack(Fluids.WATER, 100), IFluidHandler.FluidAction.EXECUTE)),
+                Case.synced("int[]", "shownInts", p -> p.shownInts[1] = 7));
+        for (var c : cases) {
+            var server = settled(level);
+            var client = new Probe(level);
+            server.initClient(client);
+
+            c.change.accept(server);
+            if (server.syncTo(client)) failures.add(c.name + ": synced while held back: " + server.syncFieldNames(server.sentChanged));
+            if (server.persistenceNotices == 0) failures.add(c.name + ": not saved while held back");
+            server.persistenceNotices = 0;
+            if (server.syncTo(client) || server.persistenceNotices > 0) failures.add(c.name + ": noticed again with nothing changed");
+
+            server.shown = true;
+            if (!server.syncTo(client) || !server.sentChanged.get(server.syncIndex(c.field))) {
+                failures.add(c.name + ": the change made while held back was not sent once shown");
+            } else if (!client.syncedValue(c.field).equals(server.syncedValue(c.field))) {
+                failures.add(c.name + ": client has " + client.syncedValue(c.field) + ", server " + server.syncedValue(c.field));
+            }
+            if (server.persistenceNotices > 0) failures.add(c.name + ": saved again just for being shown");
+            if (server.syncTo(client)) failures.add(c.name + ": sent again after being shown");
+        }
+        report(helper, failures);
+    }
+
     static void lazyFieldWaitsForMarkDirty(GameTestHelper helper) {
         var level = helper.getLevel();
         var failures = new ArrayList<String>();
@@ -393,6 +468,20 @@ public final class SyncChangeDetectionGameTest {
         if (server.syncTo(client)) failures.add("synced without markDirty: " + server.syncFieldNames(server.sentChanged));
         server.markDirty("lazy");
         if (!server.syncTo(client) || client.lazy != 3) failures.add("not synced after markDirty, client has " + client.lazy);
+        if (server.syncTo(client)) failures.add("synced again after markDirty was consumed");
+        report(helper, failures);
+    }
+
+    static void lazyFieldIgnoresItsCondition(GameTestHelper helper) {
+        var level = helper.getLevel();
+        var failures = new ArrayList<String>();
+        var server = settled(level);
+        var client = new Probe(level);
+        server.initClient(client);
+
+        server.shownLazy = 3;
+        server.markDirty("shownLazy");
+        if (!server.syncTo(client) || client.shownLazy != 3) failures.add("not synced after markDirty, client has " + client.shownLazy);
         if (server.syncTo(client)) failures.add("synced again after markDirty was consumed");
         report(helper, failures);
     }

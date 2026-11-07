@@ -11,7 +11,8 @@ public @interface ConditionalSynced {
     /**
      * Specifies the method name that will be used to determine the conditional sync behavior
      * for the annotated field.
-     * This value is used to map the annotated field to control whether it syncs if changes.
+     * This value is used to map the annotated field to control whether it syncs if changes. A persisted field is
+     * still saved while held back, and synced once the condition holds again. {@code @LazyManaged} fields ignore it.
      *
      * <pre>{@code
      * @Configurable

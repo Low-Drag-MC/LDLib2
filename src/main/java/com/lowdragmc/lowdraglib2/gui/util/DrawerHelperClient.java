@@ -24,8 +24,10 @@ import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.client.ClientHooks;
+import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 import net.neoforged.neoforge.fluids.FluidStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
 
 import java.util.ArrayList;
@@ -131,9 +133,18 @@ public class DrawerHelperClient {
     }
 
     public static void drawItemStack(@NotNull GUIContext context, ItemStack itemStack, int x, int y, int seed) {
+        drawItemStack(context, itemStack, x, y, seed, null);
+    }
+
+    /**
+     * @param countText drawn in place of the stack count, or {@code null} for the count itself
+     */
+    public static void drawItemStack(@NotNull GUIContext context, ItemStack itemStack, int x, int y, int seed, @Nullable String countText) {
         if (itemStack.isEmpty()) return;
         context.graphics.item(itemStack, x, y);
-        context.graphics.itemDecorations(context.mc.font, itemStack, x, y);
+        // the item's own count font, as AbstractContainerScreen#renderSlot picks it
+        var font = IClientItemExtensions.of(itemStack).getFont(itemStack, IClientItemExtensions.FontContext.ITEM_COUNT);
+        context.graphics.itemDecorations(font != null ? font : context.mc.font, itemStack, x, y, countText);
     }
 
     public static List<Component> getItemToolTip(ItemStack itemStack) {
