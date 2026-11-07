@@ -1,4 +1,7 @@
 # ChangeLogs
+## v2.2.46.a
+* Fixed SDF rects with a square corner drawing half of their fill transparent since v2.2.46
+
 ## v2.2.46
 * Added compact counts to item slots past three digits, with the full count in the tooltip
 * Fixed fields held back by `@ConditionalSynced` never being saved, and array fields re-sending after their elements changed
