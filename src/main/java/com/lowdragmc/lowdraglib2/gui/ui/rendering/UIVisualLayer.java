@@ -179,6 +179,7 @@ public class UIVisualLayer {
         RenderSystem.setShaderTexture(0, textureId());
         var blitShader = LDLibShaders.getVisualLayerShader();
 
+        blitShader.setSampler("DiffuseSampler", textureId());
         blitShader.safeGetUniform("Opacity").set(opacity);
         if (hasClip && mask != null) {
             blitShader.setSampler("Mask", mask.getColorTextureId());
