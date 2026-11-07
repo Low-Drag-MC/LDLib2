@@ -735,6 +735,9 @@ public class UIElement implements IConfigurable, IPersistedSerializable, ILDLReg
         if (child == this) {
             throw new IllegalArgumentException("Cannot add self as a child");
         }
+        if (child.isInSubtree(this)) {
+            throw new IllegalArgumentException("Cannot add an ancestor as a child");
+        }
         if (hasChild(child)) {
             throw new IllegalArgumentException("Cannot add the same child twice");
         }

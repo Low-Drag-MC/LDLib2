@@ -14,7 +14,7 @@ layout(std140) uniform Projection {
 
 in vec3 Position;
 in vec4 Color;
-in ivec4 RectParams;  // halfW*8, halfH*8, border*8, 0
+in ivec4 RectParams;  // halfW*8, halfH*8, border*8, margin*8
 in ivec4 Radius;      // rTL*8, rTR*8, rBR*8, rBL*8
 
 out vec2 vLocalPos;
@@ -32,9 +32,11 @@ void main() {
     vRadius = vec4(Radius) / 8.0;
     vColor = Color;
 
-    // Derive local position from vertex index within quad
+    // Derive local position from vertex index within quad. The quad reaches past the shape by the margin,
+    // so the anti-aliased edge has pixels to fade out on.
+    vec2 quadHalf = halfSize + vec2(float(RectParams.w) / 8.0);
     int vid = gl_VertexID % 4;
-    float lx = (vid < 2) ? -halfSize.x : halfSize.x;
-    float ly = (vid == 0 || vid == 3) ? -halfSize.y : halfSize.y;
+    float lx = (vid < 2) ? -quadHalf.x : quadHalf.x;
+    float ly = (vid == 0 || vid == 3) ? -quadHalf.y : quadHalf.y;
     vLocalPos = vec2(lx, ly);
 }

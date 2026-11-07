@@ -26,6 +26,8 @@ public abstract class Ref<TYPE> implements IRef<TYPE> {
     @Setter
     @Nullable
     protected Predicate<TYPE> conditionalSynced;
+    // a change found while the condition held the field back, to send once it no longer does
+    private boolean heldBackChange;
 
     protected Ref(ManagedKey key, IAccessor<TYPE> accessor) {
         this.key = key;
@@ -35,6 +37,7 @@ public abstract class Ref<TYPE> implements IRef<TYPE> {
     @Override
     public void clearSyncDirty() {
         isSyncDirty = false;
+        heldBackChange = false;
         if (key.isDestSync()) {
             onSyncListener.accept(false);
         }
@@ -51,8 +54,11 @@ public abstract class Ref<TYPE> implements IRef<TYPE> {
     @Override
     public void markAsDirty() {
         if (key.isDestSync()) {
-            isSyncDirty = true;
-            onSyncListener.accept(true);
+            if (!key.isLazy() && isHeldBack()) {
+                heldBackChange = true;
+            } else {
+                markSyncDirty();
+            }
         }
         if (key.isPersist()) {
             isPersistedDirty = true;
@@ -60,9 +66,25 @@ public abstract class Ref<TYPE> implements IRef<TYPE> {
         }
     }
 
+    private void markSyncDirty() {
+        isSyncDirty = true;
+        onSyncListener.accept(true);
+    }
+
+    private boolean isHeldBack() {
+        return conditionalSynced != null && !conditionalSynced.test(readRaw());
+    }
+
     @Override
     public final void update() {
-        if (conditionalSynced != null && !conditionalSynced.test(readRaw())) return;
+        if (isHeldBack()) {
+            if (key.isPersist()) updateSync();
+            return;
+        }
+        if (heldBackChange) {
+            heldBackChange = false;
+            markSyncDirty();
+        }
         updateSync();
     }
 

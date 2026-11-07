@@ -220,6 +220,9 @@ public class SplittableWindow extends UIElement {
             viewContainer.removeSelf();
             viewContainer = null;
         }
+        // children left behind collapse when their views move out, and must not collapse into the new tree
+        if (first != null && first.parentWindow == this) first.parentWindow = null;
+        if (second != null && second.parentWindow == this) second.parentWindow = null;
         first = null;
         second = null;
 
@@ -264,14 +267,33 @@ public class SplittableWindow extends UIElement {
         SplittableWindow window = null;
         if (childConfig != null && childConfig.anchorId() != null) {
             window = anchorRegistry.get(childConfig.anchorId());
+            // a layout naming a window above this one would nest it in itself: build a plain one instead
+            if (window != null && isSelfOrAncestor(window)) {
+                window = null;
+                childConfig = new LayoutConfig(null, childConfig.vertical(), childConfig.percentage(),
+                        childConfig.first(), childConfig.second());
+            }
         }
         if (window == null) {
             window = new SplittableWindow(this);
         } else {
+            // out of the tree it leaves, so a pane collapsing there cannot pull it back
+            var oldParent = window.parentWindow;
+            if (oldParent != null) {
+                if (oldParent.first == window) oldParent.first = null;
+                if (oldParent.second == window) oldParent.second = null;
+            }
             window.parentWindow = this;
         }
         window.rebuildInternal(childConfig, anchorRegistry, survivors);
         return window;
+    }
+
+    private boolean isSelfOrAncestor(SplittableWindow window) {
+        for (var node = this; node != null; node = node.parentWindow) {
+            if (node == window) return true;
+        }
+        return false;
     }
 
     public List<View> getAllViews() {

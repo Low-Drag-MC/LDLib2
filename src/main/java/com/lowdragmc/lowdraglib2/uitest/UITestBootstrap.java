@@ -2,7 +2,7 @@ package com.lowdragmc.lowdraglib2.uitest;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
-import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderFrameEvent;
@@ -61,7 +61,17 @@ public final class UITestBootstrap {
                 if (active == null) return;
                 // Shutdown legitimately stops producing frames. Without this the watchdog fires at
                 // the end of every successful run and overwrites a good report with a hang report.
-                if (active.isShuttingDown()) return;
+                if (active.isShuttingDown()) {
+                    // but it must still end: vanilla can spin forever saving chunks on the way out (seen on 1.21.1 in
+                    // ChunkMap.processUnloads). The report is already written, so only the exit is left.
+                    long stopAt = active.stopRequestedNanos();
+                    if (stopAt != 0 && System.nanoTime() - stopAt > timeoutNanos) {
+                        LDLib2.LOGGER.error("[uitest] still running {}s after the run finished - halting.\n{}",
+                                runner.config().watchdogSeconds(), dumpThreads());
+                        Runtime.getRuntime().halt(active.exitCode());
+                    }
+                    continue;
+                }
                 if (System.nanoTime() - active.lastHeartbeatNanos() > timeoutNanos) {
                     var dump = dumpThreads();
                     LDLib2.LOGGER.error("[uitest] no rendered frame for {}s - the game appears hung.\n{}",

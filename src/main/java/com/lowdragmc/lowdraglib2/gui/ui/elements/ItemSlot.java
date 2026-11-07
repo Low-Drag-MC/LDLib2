@@ -22,6 +22,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.style.PropertyRegistry;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.gui.util.ItemTooltipTextHelper;
+import com.lowdragmc.lowdraglib2.gui.util.TextFormattingUtil;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
 import com.lowdragmc.lowdraglib2.integration.xei.XEITooltipContext;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
@@ -344,8 +345,14 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
      */
     public List<Component> getFullTooltipTexts(boolean withItemTooltips) {
         var tips = new ArrayList<Component>();
-        if (withItemTooltips && slotStyle.showItemTooltips()) {
-            tips.addAll(ItemTooltipTextHelper.getTooltip(getValue()));
+        if (slotStyle.showItemTooltips()) {
+            var value = getValue();
+            if (withItemTooltips) {
+                tips.addAll(ItemTooltipTextHelper.getTooltip(value));
+            }
+            if (compactCount(value) != null) {
+                tips.add(Component.translatable("ldlib.item.amount", value.getCount()));
+            }
         }
         tips.addAll(getStyle().tooltips().asList());
         return tips;
@@ -379,6 +386,14 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
         slot.set(value);
         if (notify) notifyListeners();
         return this;
+    }
+
+    /**
+     * @return the count compacted ({@code 1.2k}, {@code 3.4M}) once it would run out of the slot, else {@code null}
+     */
+    @Nullable
+    public static String compactCount(ItemStack stack) {
+        return stack.getCount() >= 1000 ? TextFormattingUtil.formatLongToCompactString(stack.getCount(), 3) : null;
     }
 
     /// Editor Support
@@ -441,7 +456,7 @@ public class ItemSlot extends BindableUIElement<ItemStack> {
 
     protected void drawItemStack(IGUIContext context, ItemStack itemStack) {
         if (context instanceof GUIContext guiContext) {
-            DrawerHelperClient.drawItemStack(guiContext, itemStack, 0, 0, 0);
+            DrawerHelperClient.drawItemStack(guiContext, itemStack, 0, 0, 0, compactCount(itemStack));
         }
     }
 
