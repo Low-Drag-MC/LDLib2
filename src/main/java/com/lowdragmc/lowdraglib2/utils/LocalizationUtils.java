@@ -3,13 +3,15 @@ package com.lowdragmc.lowdraglib2.utils;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import lombok.experimental.UtilityClass;
+import net.minecraft.locale.Language;
 
 import java.util.HashMap;
+import java.util.IllegalFormatException;
+import java.util.Locale;
 import java.util.Map;
 
 @UtilityClass
 public final class LocalizationUtils {
-    private static final String CLIENT_I18N_CLASS = "net.minecraft" + ".client.resources.language.I18n";
     private final static Map<String, String> DYNAMIC_LANG = new HashMap<>();
 
     public static void appendDynamicLang(Map<String, String> dynamicLang) {
@@ -25,7 +27,7 @@ public final class LocalizationUtils {
     }
 
     /**
-     * This function formats via the client translation runtime when called on client
+     * This function formats through the loaded language when called on client
      * and falls back to best-effort server formatting otherwise.
      * <ul>
      *  <li>It is intended that translations should be done using `I18n` on the client.</li>
@@ -41,13 +43,18 @@ public final class LocalizationUtils {
     public static String format(String localisationKey, Object... substitutions) {
         if (!LDLib2.isClient()) {
             return String.format(localisationKey, substitutions);
-        } else {
-            return invokeClientFormat(localisationKey, substitutions);
+        }
+        // what I18n.get does: Language is common code, so the client-only class isn't needed
+        var value = Language.getInstance().getOrDefault(localisationKey);
+        try {
+            return String.format(Locale.ROOT, value, substitutions);
+        } catch (IllegalFormatException e) {
+            return "Format error: " + value;
         }
     }
 
     /**
-     * This function checks existence via the client translation runtime when called on client
+     * This function checks existence in the loaded language when called on client
      * and returns false on server.
      * <ul>
      *  <li>It is intended that translations should be done using `I18n` on the client.</li>
@@ -60,30 +67,6 @@ public final class LocalizationUtils {
      * @return a boolean indicating if the given localisation key has localisations
      */
     public static boolean exist(String localisationKey) {
-        if (LDLib2.isClient()) {
-            return invokeClientExists(localisationKey);
-        } else {
-            return false;
-        }
-    }
-
-    private static String invokeClientFormat(String localisationKey, Object... substitutions) {
-        try {
-            var i18n = Class.forName(CLIENT_I18N_CLASS);
-            var method = i18n.getMethod("get", String.class, Object[].class);
-            return (String) method.invoke(null, localisationKey, substitutions);
-        } catch (ReflectiveOperationException e) {
-            return String.format(localisationKey, substitutions);
-        }
-    }
-
-    private static boolean invokeClientExists(String localisationKey) {
-        try {
-            var i18n = Class.forName(CLIENT_I18N_CLASS);
-            var method = i18n.getMethod("exists", String.class);
-            return (boolean) method.invoke(null, localisationKey);
-        } catch (ReflectiveOperationException e) {
-            return false;
-        }
+        return LDLib2.isClient() && Language.getInstance().has(localisationKey);
     }
 }

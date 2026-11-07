@@ -113,6 +113,9 @@ public final class UITestRunner {
     private Throwable takeFailure;
     /** Read by the watchdog thread, hence volatile. */
     private volatile boolean shuttingDown;
+    /** When the finished run began to wind down, 0 before that (and for keepOpen); read by the watchdog. */
+    private volatile long stopRequestedNanos;
+    private volatile int exitCode;
 
     private record ScenarioEntry(String name, String group, UIScenario scenario, ScenarioOptions options,
                                  Class<?> scenarioClass) {
@@ -897,6 +900,11 @@ public final class UITestRunner {
         report.finishedAt = System.currentTimeMillis();
         report.durationMs = elapsedMsSince(runStartedNanos);
         ReportWriter.finalise(report);
+        exitCode = RunReport.Status.PASS.equals(report.status) ? 0 : 1;
+        if (!config.keepOpen()) {
+            // timed from here, not from the stop below: writing the report and telling the orchestrator can hang too
+            stopRequestedNanos = System.nanoTime();
+        }
         ReportWriter.write(report, config.outDir());
         ReportWriter.logSummary(report);
 
@@ -911,10 +919,9 @@ public final class UITestRunner {
             return;
         }
 
-        boolean failed = !RunReport.Status.PASS.equals(report.status);
-        LDLib2.LOGGER.info("[uitest] shutting down with exit code {}", failed ? 1 : 0);
+        LDLib2.LOGGER.info("[uitest] shutting down with exit code {}", exitCode);
         phase = Phase.EXITING;
-        armExitCode(failed ? 1 : 0);
+        armExitCode(exitCode);
         minecraft.gui.setScreen(null);
 
         // Minecraft#stop only flips the main loop's running flag. Everything else - unloading the
@@ -991,6 +998,14 @@ public final class UITestRunner {
     /** Whether the watchdog should stand down — shutdown legitimately stops producing frames. */
     boolean isShuttingDown() {
         return shuttingDown;
+    }
+
+    long stopRequestedNanos() {
+        return stopRequestedNanos;
+    }
+
+    int exitCode() {
+        return exitCode;
     }
 
     /** Called by the watchdog when no frame has arrived for too long. */

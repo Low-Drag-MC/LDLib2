@@ -14,6 +14,7 @@
   "ldlib.gui.tips.cancel": "取消",
   "ldlib.fluid.empty": "空",
   "ldlib.fluid.amount": "§9数量：%d/%d",
+  "ldlib.item.amount": "§9数量：%d",
   "ldlib.fluid.temperature": "§c温度：%d K",
   "ldlib.fluid.state_gas": "§a状态：气态",
   "ldlib.fluid.state_liquid": "§a状态：液态",

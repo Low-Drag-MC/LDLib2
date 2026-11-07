@@ -24,12 +24,14 @@ public class LDLibShaders {
 
 	/**
 	 * Vertex format elements for analytic rounded-rect rendering.
+	 * UV0: the vertex's position relative to the shape's centre, as FLOAT×2
 	 * RectParams: (halfW*8, halfH*8, border*8, 0) as SHORT×4
 	 * Radius: (rTL*8, rTR*8, rBR*8, rBL*8) as SHORT×4
 	 */
 	public static final VertexFormat ROUNDED_RECT_FORMAT = VertexFormat.builder(0)
 			.addAttribute("Position", GpuFormat.RGB32_FLOAT)
 			.addAttribute("Color", GpuFormat.RGBA8_UNORM)
+			.addAttribute(DefaultVertexFormat.UV0_SEMANTIC_NAME, GpuFormat.RG32_FLOAT)
 			.addAttribute("RectParams", GpuFormat.RGBA16_SINT)
 			.addAttribute("Radius", GpuFormat.RGBA16_SINT)
 			.build();

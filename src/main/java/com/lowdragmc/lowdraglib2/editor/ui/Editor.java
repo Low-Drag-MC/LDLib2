@@ -724,11 +724,11 @@ public abstract class Editor extends UIElement implements EditorHost {
 
         // Rebuild rootWindow's subtree to match the saved shape, rebinding anchor references.
         var anchorRegistry = new HashMap<String, SplittableWindow>();
-        anchorRegistry.put(ANCHOR_ROOT, rootWindow);
-        anchorRegistry.put(ANCHOR_LEFT, leftWindow);
-        anchorRegistry.put(ANCHOR_RIGHT, rightWindow);
-        anchorRegistry.put(ANCHOR_CENTER, centerWindow);
-        anchorRegistry.put(ANCHOR_BOTTOM, bottomWindow);
+        registerAnchor(anchorRegistry, ANCHOR_ROOT, rootWindow);
+        registerAnchor(anchorRegistry, ANCHOR_LEFT, leftWindow);
+        registerAnchor(anchorRegistry, ANCHOR_RIGHT, rightWindow);
+        registerAnchor(anchorRegistry, ANCHOR_CENTER, centerWindow);
+        registerAnchor(anchorRegistry, ANCHOR_BOTTOM, bottomWindow);
 
         rootWindow.rebuildFromLayoutConfig(layout.layoutConfig(), anchorRegistry);
 
@@ -781,6 +781,17 @@ public abstract class Editor extends UIElement implements EditorHost {
         }
         rootWindow.trimEmptySplits();
         refreshAnchorReferences();
+    }
+
+    /**
+     * Only a window that carries {@code anchorId} may be rebound under it. An anchor missing from the last
+     * layout leaves its field on a fallback such as the root window, and handing that out would let the
+     * rebuild nest it inside itself.
+     */
+    private static void registerAnchor(Map<String, SplittableWindow> anchorRegistry, String anchorId, @Nullable SplittableWindow window) {
+        if (window != null && anchorId.equals(window.getAnchorId())) {
+            anchorRegistry.put(anchorId, window);
+        }
     }
 
     private SplittableWindow resolveVisibleAnchor(Map<String, SplittableWindow> anchorRegistry, String anchorId) {

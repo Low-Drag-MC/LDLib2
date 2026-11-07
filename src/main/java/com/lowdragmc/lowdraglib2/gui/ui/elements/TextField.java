@@ -96,6 +96,7 @@ public class TextField extends BindableUIElement<String> {
         public static void init() {
             PropertyRegistry.FONT_SIZE.addListener(TextFieldStyle::onPropertyChanged);
             PropertyRegistry.FONT.addListener(TextFieldStyle::onPropertyChanged);
+            PropertyRegistry.PLACEHOLDER.addListener(TextFieldStyle::onPropertyChanged);
         }
 
         private static <T> void onPropertyChanged(UIElement element, Property<T> property, @Nullable T oldValue, @Nullable T newValue) {
@@ -292,6 +293,7 @@ public class TextField extends BindableUIElement<String> {
     }
 
     protected void onTextFieldStyleChanged() {
+        formattedLineCache = null;
         updateDisplayOffset();
     }
 

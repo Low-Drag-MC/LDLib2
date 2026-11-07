@@ -754,6 +754,8 @@ public class GUIContext implements IGUIContext {
     }
 
     public void fillRoundedRect(float x, float y, float w, float h, Vector4f radius, int color) {
+        // the quad reaches past the shape for its anti-aliased edge, so an empty shape would still leave a faint line
+        if (w <= 0 || h <= 0) return;
         this.addGuiElement(
                 new FloatRoundedRectRenderState(
                         LDLibRenderPipelines.ROUNDED_RECT,
@@ -769,6 +771,7 @@ public class GUIContext implements IGUIContext {
     }
 
     public void borderRoundedRect(float x, float y, float w, float h, Vector4f radius, float border, int borderColor) {
+        if (w <= 0 || h <= 0) return;
         this.addGuiElement(
                 new FloatRoundedRectRenderState(
                         LDLibRenderPipelines.ROUNDED_RECT,

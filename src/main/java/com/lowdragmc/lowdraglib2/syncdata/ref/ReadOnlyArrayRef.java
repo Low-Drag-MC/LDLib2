@@ -59,6 +59,9 @@ public final class ReadOnlyArrayRef<TYPE> extends ReadOnlyManagedRef<TYPE[]> imp
         for (ReadOnlyRef<TYPE> ref : refs) {
             ref.update();
             if (ref.isSyncDirty() || ref.isPersistedDirty()) {
+                // the whole array is sent and saved, so the element's marks are only a signal for this one
+                ref.clearSyncDirty();
+                ref.clearPersistedDirty();
                 markAsDirty();
             }
         }
