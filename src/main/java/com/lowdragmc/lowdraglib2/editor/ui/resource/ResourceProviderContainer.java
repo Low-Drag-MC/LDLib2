@@ -65,6 +65,10 @@ public class ResourceProviderContainer<T> extends UIElement {
     /** The smallest and largest preview size the bottom bar's slider offers. */
     public static final int MIN_UI_WIDTH = 10;
     public static final int MAX_UI_WIDTH = 100;
+    /** Ticks between scans of the provider for changes made outside the editor. */
+    private static final int POLL_INTERVAL = 20;
+    // staggered, so the containers of one folder (one per resource type) do not all list it on the same tick
+    private static int nextPollPhase;
 
     public final UIElement toolbar = new UIElement();
     public final TextField searchField = new TextField();
@@ -72,6 +76,7 @@ public class ResourceProviderContainer<T> extends UIElement {
     public final ResourceBottomBar bottomBar = new ResourceBottomBar(MIN_UI_WIDTH, MAX_UI_WIDTH);
     public final IResourceProvider<T> resourceProvider;
     private final Map<IResourcePath, UIElement> resourceUIs = new HashMap<>();
+    private int pollCountdown = Math.floorMod(nextPollPhase++, POLL_INTERVAL);
     /** Lower-cased; empty shows everything. */
     private String searchFilter = "";
     @Setter @Getter
@@ -680,9 +685,12 @@ public class ResourceProviderContainer<T> extends UIElement {
     @Override
     public void screenTick() {
         super.screenTick();
-        if (resourceProvider.checkAndUpdateResourceProvider()) {
-            reloadResourceContainer();
-            dirtyResources.clear();
+        if (--pollCountdown < 0) {
+            pollCountdown = POLL_INTERVAL - 1;
+            if (resourceProvider.checkAndUpdateResourceProvider()) {
+                reloadResourceContainer();
+                dirtyResources.clear();
+            }
         }
         // check for dirty resources and reload them
         for (var dirtyResource : dirtyResources) {

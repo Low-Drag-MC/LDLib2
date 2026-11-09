@@ -370,10 +370,12 @@ public abstract class WorldSceneRenderer {
         // render TrackedDummyWorld
         drawWorld();
         // check lookingAt
+        var mouseInView = mouseX > viewport.position.x && mouseX < viewport.position.x + viewport.size.width
+                && mouseY > viewport.position.y && mouseY < viewport.position.y + viewport.size.height;
         this.lastTraceResult = null;
-        this.lastHit = unProject(mouseX, mouseY);
-        if (onLookingAt != null && mouseX > viewport.position.x && mouseX < viewport.position.x + viewport.size.width
-                && mouseY > viewport.position.y && mouseY < viewport.position.y + viewport.size.height) {
+        // reading the depth stalls until the GPU has caught up, so only when the mouse can be looking at something
+        this.lastHit = unProject(mouseX, mouseY, mouseInView);
+        if (onLookingAt != null && mouseInView) {
             BlockHitResult result = rayTrace(lastHit);
             if (result != null) {
                 this.lastTraceResult = null;
