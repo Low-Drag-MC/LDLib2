@@ -354,6 +354,24 @@ ResourceView .__tab-view_tab_header_container__ .__scroller_view_view-container_
   gap-all: 0;
 }
 
+/* A group's panel is a menu, so its rows of white text highlight the way a menu's do rather than
+   with the strip's light tab, which the text would vanish into. */
+.__resource-view_group-flyout__ {
+  background: sdf(#2c2c34,  3, 1, #7f8084);
+}
+
+.__resource-view_group-flyout__ tab:host,
+.__resource-view_group-flyout__ tab:host:selected {
+  base-background: empty;
+  hover-background: sdf(#22ffffff, 3);
+  pressed-background: sdf(#44ffffff, 3);
+  height: 16;
+  padding-all: 2;
+  padding-top: 2;
+  padding-bottom: 2;
+  padding-right: 4;
+}
+
 ResourceView tab:host {
   base-background: empty;
   hover-background: sdf(#ddd, 3) scale(0.9);

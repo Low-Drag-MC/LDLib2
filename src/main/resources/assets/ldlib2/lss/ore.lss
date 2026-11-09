@@ -386,6 +386,31 @@ menu {
   width: 16;
 }
 
+/* A group's panel is a menu, dark with white text, so its rows cannot borrow the strip tabs' stone
+   hover: white text on it would vanish. */
+.__resource-view_group-flyout__ {
+  background: built-in(ui-ore:RECT);
+  padding-bottom: 3;
+}
+
+/* Selected too: the general selected tab hangs two pixels lower, which a row must not. */
+.__resource-view_group-flyout__ tab:host,
+.__resource-view_group-flyout__ tab:host:selected {
+  base-background: empty;
+  hover-background: rect(#33ffffff);
+  pressed-background: rect(#55ffffff);
+  height: 16;
+  padding-all: 2;
+  padding-top: 2;
+  padding-bottom: 2;
+  padding-right: 4;
+  margin-all: 0;
+}
+
+.__resource-view_group-flyout__ tab:host:not(tab:selected) label {
+  text-color: #ffffff;
+}
+
 ResourceView tab:host {
   base-background: empty;
   hover-background: built-in(ui-ore:BTN_DEFAULT);

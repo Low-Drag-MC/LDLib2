@@ -452,13 +452,29 @@ ResourceView .__tab-view_tab_header_container__ .__scroller_view_view-container_
   gap-all: 2;
 }
 
-ResourceView tab:host {
+.__resource-view_group-flyout__ {
+  background: sdf(#f7181818, 6, 1, #2effffff);
+}
+
+/* Rows keep one height and padding selected or not, so the icon and name sit on the same line in each. */
+.__resource-view_group-flyout__ tab:host,
+.__resource-view_group-flyout__ tab:host:selected {
+  height: 16;
+  padding-all: 2;
+  padding-top: 2;
+  padding-bottom: 2;
+  padding-right: 4;
+}
+
+ResourceView tab:host,
+.__resource-view_group-flyout__ tab:host {
   base-background: empty;
   hover-background: sdf(#16ffffff, 5) scale(0.92);
   pressed-background: sdf(#3df0a04b, 5) scale(0.92);
 }
 
-ResourceView tab:host:selected {
+ResourceView tab:host:selected,
+.__resource-view_group-flyout__ tab:host:selected {
   base-background: sdf(#181818, 5) scale(0.92);
   hover-background: sdf(#232323, 5) scale(0.92);
   pressed-background: sdf(#232323, 5) scale(0.92);
