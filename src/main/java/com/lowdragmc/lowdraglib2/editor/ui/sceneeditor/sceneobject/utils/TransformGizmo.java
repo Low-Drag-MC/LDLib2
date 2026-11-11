@@ -1209,6 +1209,8 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         var denom = dir.dot(planeNormal);
         if (Math.abs(denom) < 1.0e-6f) return null;
         var t = new Vector3f(planePoint).sub(origin).dot(planeNormal) / denom;
+        // behind the eye: the cursor is past the plane's horizon and meets nothing in front of it
+        if (t < 0) return null;
         return new Vector3f(origin).add(new Vector3f(dir).mul(t));
     }
 
