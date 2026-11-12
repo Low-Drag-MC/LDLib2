@@ -124,6 +124,8 @@ public class RunReport {
         public long durationMs;
         public List<StepReport> steps = new ArrayList<>();
         public ErrorInfo error;
+        /** Why a {@code SKIPPED} scenario did not run. */
+        public String skipReason;
     }
 
     public static class StepReport {

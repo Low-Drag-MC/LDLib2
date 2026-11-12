@@ -117,6 +117,9 @@ public final class UITestRunner {
 
     private record ScenarioEntry(String name, String group, UIScenario scenario, ScenarioOptions options,
                                  Class<?> scenarioClass) {
+        boolean needsWorld() {
+            return options.requiresWorld() && options.skipReason() == null;
+        }
     }
 
     private UITestRunner(RunConfig config, String runId, @Nullable MPClientSession mpSession) {
@@ -197,7 +200,7 @@ public final class UITestRunner {
         // An interactive run reuses whatever world is loaded rather than creating one, so say so up
         // front instead of letting the scenario fail somewhere in the middle on a null player.
         if (Minecraft.getInstance().level == null
-                && runner.queue.stream().anyMatch(entry -> entry.options().requiresWorld())) {
+                && runner.queue.stream().anyMatch(ScenarioEntry::needsWorld)) {
             return "Selection '" + selection + "' needs a loaded world; join one first";
         }
         runner.inputDriver.install();
@@ -345,7 +348,7 @@ public final class UITestRunner {
                     }
                     phase = Phase.FINISH;
                 } else {
-                    phase = queue.stream().anyMatch(entry -> entry.options().requiresWorld())
+                    phase = queue.stream().anyMatch(ScenarioEntry::needsWorld)
                             ? Phase.CREATE_WORLD
                             : Phase.NEXT_SCENARIO;
                 }
@@ -443,6 +446,22 @@ public final class UITestRunner {
             return;
         }
 
+        var scenarioReport = new RunReport.ScenarioReport();
+        scenarioReport.name = entry.name();
+        scenarioReport.group = entry.group();
+        scenarioReport.className = entry.scenarioClass().getName();
+        scenarioReport.tags.addAll(entry.options().tags());
+        report.scenarios.add(scenarioReport);
+        if (entry.options().skipReason() != null) {
+            scenarioReport.status = RunReport.Status.SKIPPED;
+            scenarioReport.skipReason = entry.options().skipReason();
+            LDLib2.LOGGER.warn("[uitest] --- scenario '{}' skipped: {}", entry.name(), scenarioReport.skipReason);
+            if (mpSession != null) {
+                mpSession.onScenarioFinished(entry.name(), scenarioReport.status);
+            }
+            return;
+        }
+
         // Applied per scenario: the right GUI scale depends on the UI being tested, and a run may
         // cover both a small panel and a full-screen editor.
         int scale = entry.options().guiScaleOverride() >= 0
@@ -454,12 +473,6 @@ public final class UITestRunner {
             settle(50);
         }
 
-        var scenarioReport = new RunReport.ScenarioReport();
-        scenarioReport.name = entry.name();
-        scenarioReport.group = entry.group();
-        scenarioReport.className = entry.scenarioClass().getName();
-        scenarioReport.tags.addAll(entry.options().tags());
-        report.scenarios.add(scenarioReport);
         if (config.recordings()) {
             // A take that is renamed or removed must not leave its old video behind to be mistaken for current.
             deleteRecursively(config.outDir().resolve(sanitize(entry.name())));

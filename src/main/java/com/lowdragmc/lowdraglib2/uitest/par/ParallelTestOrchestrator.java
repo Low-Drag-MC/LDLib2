@@ -373,11 +373,12 @@ public final class ParallelTestOrchestrator {
      *
      * <p>Synthetic entries ({@code <selection>}, {@code <shard0>}) are skipped: they are this
      * orchestrator's own bookkeeping, not scenarios, and would be balanced around as if they were.
+     * Skipped scenarios are left out too, so they keep the duration of their last real run.
      */
     private static void writeWeights(Path weightsFile, RunReport merged) {
         var durations = new TreeMap<String, Long>();
         for (var scenario : merged.scenarios) {
-            if (!scenario.name.startsWith("<")) {
+            if (!scenario.name.startsWith("<") && !RunReport.Status.SKIPPED.equals(scenario.status)) {
                 durations.put(scenario.name, scenario.durationMs);
             }
         }
@@ -399,6 +400,9 @@ public final class ParallelTestOrchestrator {
                 .forEach(scenario -> {
                     out.append("  ").append(scenario.status).append("  ").append(scenario.name).append('\n');
                     if (RunReport.Status.PASS.equals(scenario.status)) return;
+                    if (scenario.skipReason != null) {
+                        out.append("      ").append(scenario.skipReason).append('\n');
+                    }
                     if (scenario.error != null) {
                         out.append("      ").append(scenario.error.type).append(": ")
                                 .append(scenario.error.message).append('\n');

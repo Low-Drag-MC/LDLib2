@@ -157,6 +157,10 @@ final class MPClientSession {
                 LDLib2.LOGGER.info("[mptest] '{}' does not involve role '{}'", name, role());
                 continue;
             }
+            if (mpOptions.skipReason() != null) {
+                // the server reports the skip
+                continue;
+            }
             var builder = new MPScenarioBuilder();
             try {
                 scenario.define(builder);

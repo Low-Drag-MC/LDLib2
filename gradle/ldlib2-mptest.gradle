@@ -98,7 +98,10 @@ tasks.register('verifyMpTest') {
         def report = new groovy.json.JsonSlurper().parse(reportFile)
         logger.lifecycle("LDLib2 MP test: ${report.totals.passed}/${report.totals.scenarios} scenarios passed, " +
                 "${report.totals.checks - report.totals.checksFailed}/${report.totals.checks} checks passed")
-        report.scenarios.findAll { it.status != 'PASS' }.each { scenario ->
+        report.scenarios.findAll { it.status == 'SKIPPED' }.each { scenario ->
+            logger.warn("SKIPPED scenario '${scenario.name}': ${scenario.skipReason}")
+        }
+        report.scenarios.findAll { it.status != 'PASS' && it.status != 'SKIPPED' }.each { scenario ->
             logger.error("FAILED scenario '${scenario.name}'")
             if (scenario.error) logger.error("  ${scenario.error.type}: ${scenario.error.message}")
             scenario.steps.findAll { it.status != 'PASS' }.each { step ->
