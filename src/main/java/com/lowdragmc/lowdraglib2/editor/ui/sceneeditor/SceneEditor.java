@@ -233,8 +233,15 @@ public class SceneEditor extends UIElement implements IScene {
                     layout.setAspectRatio(1f);
                 }).addEventListener(UIEvents.TICK, event -> {
                     if (event.currentElement instanceof Toggle toggle) {
-                        if (toggle.getValue() != (transformGizmo.getMode() == mode)) {
-                            toggle.setValue(transformGizmo.getMode() == mode, false);
+                        var on = transformGizmo.getMode() == mode;
+                        if (toggle.getValue() != on) {
+                            // the one the group has on goes off quietly first: turned on over it, the group turns it off
+                            // out loud, and its listener would leave the gizmo with no mode at all
+                            var current = toggleGroup.getCurrentToggle();
+                            if (on && current != null && current != toggle) {
+                                current.setValue(false, false);
+                            }
+                            toggle.setValue(on, false);
                         }
                     }
                 }).addClass("__editor-gizmo-bar-toggle__");
