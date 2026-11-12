@@ -54,7 +54,7 @@ public class ItemStackAccessor extends TypesAccessor<ItemStack> {
         Consumer<ItemStack> updater = itemStack -> {
             var safe = itemStack == null ? ItemStack.EMPTY : itemStack;
             slot.setItem(safe);
-            consumer.accept(safe);
+            group.write(() -> consumer.accept(safe));
         };
         var inventoryButton = new Button();
         inventoryButton.style(style -> style.tooltips("ldlib.gui.editor.configurator.select_item.tooltip"));

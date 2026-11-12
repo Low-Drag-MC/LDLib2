@@ -42,7 +42,7 @@ public class FluidStackAccessor extends TypesAccessor<FluidStack> {
         slot.bindDataSource(SupplierDataSource.of(supplier));
         Consumer<FluidStack> updater = fluidStack -> {
             slot.setFluid(fluidStack);
-            consumer.accept(fluidStack);
+            group.write(() -> consumer.accept(fluidStack));
         };
         group.inlineContainer.addChild(slot);
         var defaultValue = defaultValue(field);

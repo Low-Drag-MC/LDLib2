@@ -50,7 +50,7 @@ public class BlockStateAccessor extends TypesAccessor<BlockState> {
         Consumer<BlockState> updater = state -> {
             var safeState = state == null ? Blocks.AIR.defaultBlockState() : state;
             updateSlot(slot, safeState);
-            consumer.accept(safeState);
+            group.write(() -> consumer.accept(safeState));
         };
         var lastBlock = new Block[]{safeState(supplier).getBlock()};
         var propertiesGroup = new ConfiguratorGroup("properties") {

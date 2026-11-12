@@ -67,7 +67,7 @@ public class PivotAccessor extends TypesAccessor<Pivot> {
             var current = supplier.get();
             return () -> current;
         });
-        configurator.setPastable(Pivot.class, consumer);
+        configurator.setPastableWrite(Pivot.class, consumer);
         return configurator;
     }
 

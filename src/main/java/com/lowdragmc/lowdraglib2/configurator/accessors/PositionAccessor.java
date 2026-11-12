@@ -64,7 +64,7 @@ public class PositionAccessor extends TypesAccessor<Position> {
             var current = supplier.get();
             return () -> current;
         });
-        configurator.setPastable(Position.class, consumer);
+        configurator.setPastableWrite(Position.class, consumer);
         return configurator;
     }
 

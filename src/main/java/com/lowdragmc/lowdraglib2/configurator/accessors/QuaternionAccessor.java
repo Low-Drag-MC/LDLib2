@@ -87,7 +87,7 @@ public class QuaternionAccessor extends TypesAccessor<Quaternionf> {
             var current = new Quaternionf(supplier.get());
             return () -> new Quaternionf(current);
         });
-        configurator.setPastable(Quaternionf.class, consumer);
+        configurator.setPastableWrite(Quaternionf.class, consumer);
         return configurator;
     }
 
