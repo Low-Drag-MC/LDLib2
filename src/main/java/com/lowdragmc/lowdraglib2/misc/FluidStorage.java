@@ -53,8 +53,9 @@ public class FluidStorage extends FluidTank implements INBTSerializable<Compound
     @Override
     public CompoundTag serializeNBT(@NotNull HolderLookup.Provider provider) {
         var tag = new CompoundTag();
-        if (!fluid.isEmpty()) {
-            tag.put("fluid", fluid.save(provider));
+        var snapshot = fluid.copy();
+        if (!snapshot.isEmpty()) {
+            tag.put("fluid", snapshot.save(provider));
         }
         tag.putInt("capacity", capacity);
         return tag;
