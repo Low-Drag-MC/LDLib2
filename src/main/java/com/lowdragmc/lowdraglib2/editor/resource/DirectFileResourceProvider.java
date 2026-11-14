@@ -12,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * The last-resort file tier of {@link ResourceInstance#getResource(IResourcePath)}: reads a resource
@@ -39,6 +40,7 @@ public final class DirectFileResourceProvider<T> {
     @Getter
     public final ResourceInstance<T> resourceInstance;
     private final Map<IResourcePath, Entry<T>> cache = new ConcurrentHashMap<>();
+    private final AtomicInteger clears = new AtomicInteger();
 
     public DirectFileResourceProvider(ResourceInstance<T> resourceInstance) {
         this.resourceInstance = resourceInstance;
@@ -63,6 +65,7 @@ public final class DirectFileResourceProvider<T> {
         if (!supportResourcePath(path)) return null;
         var file = ((FilePath) path).file;
         var now = System.currentTimeMillis();
+        var cleared = clears.get();
         var entry = cache.get(path);
         if (entry != null && now - entry.checkedAt() < REVALIDATE_MS) {
             return entry.value();
@@ -76,11 +79,16 @@ public final class DirectFileResourceProvider<T> {
         var value = lastModified == 0 ? null : readResourceFromFile(file);
         var read = new Entry<>(value, lastModified, now);
         // another thread that read the same version first keeps its value, so both are handed the same one
-        return cache.compute(path, (key, was) -> was != null && was.lastModified() == lastModified ? was : read)
-                .value();
+        var kept = cache.compute(path, (key, was) -> was != null && was.lastModified() == lastModified ? was : read);
+        // cleared while it was being read: what was read may be what was just dropped
+        if (kept == read && clears.get() != cleared) {
+            cache.remove(path, read);
+        }
+        return kept.value();
     }
 
     public void clearCache() {
+        clears.incrementAndGet();
         cache.clear();
     }
 

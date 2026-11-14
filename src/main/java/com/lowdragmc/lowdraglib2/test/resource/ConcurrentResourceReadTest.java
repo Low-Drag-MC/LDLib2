@@ -126,6 +126,57 @@ public class ConcurrentResourceReadTest {
         }
     }
 
+    /** A read that raced a save must not leave the old value cached once the save has cleared the cache. */
+    @GameTest(template = "empty")
+    @PrefixGameTestTemplate(false)
+    public static void aReadRacingASaveDoesNotKeepTheOldValue(GameTestHelper helper) {
+        var directory = makeDirectory("concurrent_save");
+        var pool = Executors.newFixedThreadPool(THREADS);
+        try {
+            var file = new File(directory, "sample.color.nbt");
+            writeResource(file, VALUE);
+            var instance = ColorsResource.INSTANCE.getResourceInstance();
+            instance.clearCache();
+            IResourcePath path = new FilePath(file);
+            var stop = new java.util.concurrent.atomic.AtomicBoolean();
+            var readers = new ArrayList<Future<?>>();
+            for (int t = 0; t < THREADS; t++) {
+                readers.add(pool.submit(() -> {
+                    while (!stop.get()) {
+                        try {
+                            instance.getResource(path);
+                        } catch (ReportedNbtException torn) {
+                            // read while it was being written
+                        }
+                    }
+                }));
+            }
+            int last = VALUE;
+            for (int round = 1; round <= 50; round++) {
+                last = VALUE + round;
+                writeResource(file, last);
+                file.setLastModified(System.currentTimeMillis() + round * 1000L);
+                instance.clearCache();
+            }
+            Thread.sleep(50);
+            stop.set(true);
+            for (var reader : readers) {
+                reader.get();
+            }
+            var value = instance.getResource(path);
+            if (value == null || (Integer) value != last) {
+                helper.fail("Expected the last save, " + last + ", got " + value);
+                return;
+            }
+            helper.succeed();
+        } catch (Exception e) {
+            helper.fail("Failed: " + e);
+        } finally {
+            pool.shutdownNow();
+            deleteRecursively(directory);
+        }
+    }
+
     private static List<Object> race(Supplier<Object> read) throws Exception {
         ExecutorService pool = Executors.newFixedThreadPool(THREADS);
         try {

@@ -21,6 +21,7 @@ public final class PackFileResourceProvider<T>  {
     public final ResourceInstance<T> resourceInstance;
     @Getter
     public final Map<IResourcePath, T> contents = new LinkedHashMap<>();
+    private int clears;
 
     public PackFileResourceProvider(ResourceInstance<T> resourceInstance) {
         this.resourceInstance = resourceInstance;
@@ -66,10 +67,12 @@ public final class PackFileResourceProvider<T>  {
 
     public T getResource(IResourcePath path) {
         if (supportResourcePath(path)) {
+            int cleared;
             synchronized (contents) {
                 if (contents.containsKey(path)) {
                     return contents.get(path);
                 }
+                cleared = clears;
             }
             // read outside the lock, so one slow read holds up nobody else
             var read = getResourceByLocation(((FilePath)path).location);
@@ -77,10 +80,20 @@ public final class PackFileResourceProvider<T>  {
                 if (contents.containsKey(path)) {
                     return contents.get(path);
                 }
-                contents.put(path, read);
+                // a reload between the two may have changed the packs: what was read is not kept
+                if (clears == cleared) {
+                    contents.put(path, read);
+                }
                 return read;
             }
         }
         return null;
+    }
+
+    void clear() {
+        synchronized (contents) {
+            clears++;
+            contents.clear();
+        }
     }
 }

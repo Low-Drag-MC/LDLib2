@@ -27,6 +27,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
@@ -39,6 +40,7 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
     private final Map<ResourceProviderType, List<IResourceProvider<T>>> customProviders = new LinkedHashMap<>();
     // runtime
     private final Map<IResourcePath, T> cache = new ConcurrentHashMap<>();
+    private final AtomicInteger clears = new AtomicInteger();
     private final PackFileResourceProvider<T> packFileProvider = new PackFileResourceProvider<>(this);
     private final DirectFileResourceProvider<T> directFileProvider = new DirectFileResourceProvider<>(this);
     // providers shown without being registered, e.g. the asset browser's own over a folder no provider covers
@@ -96,6 +98,7 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
     }
 
     public void clearCache() {
+        clears.incrementAndGet();
         cache.clear();
         directFileProvider.clearCache();
     }
@@ -109,25 +112,39 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
         if (cached != null) {
             return cached;
         }
+        var cleared = clears.get();
+        var found = find(path);
+        if (found == null) return null;
+        var won = cache.putIfAbsent(path, found);
+        if (won != null) return won;
+        // cleared while it was being read (a save, a rescan): what was read may be what was just dropped
+        if (clears.get() != cleared) {
+            cache.remove(path, found);
+        }
+        return found;
+    }
+
+    @Nullable
+    private T find(IResourcePath path) {
         var type = path.getType();
         var result = builtinProviders.getOrDefault(type, Collections.emptyList()).stream()
                 .map(provider -> provider.getResource(path))
                 .filter(Objects::nonNull).findFirst();
         if (result.isPresent()) {
-            return remember(path, result.get());
+            return result.get();
         }
         result = customProviders.getOrDefault(type, Collections.emptyList()).stream()
                 .map(provider -> provider.getResource(path))
                 .filter(Objects::nonNull).findFirst();
         if (result.isPresent()) {
-            return remember(path, result.get());
+            return result.get();
         }
         // a folder the asset browser has open: one copy, the one it edits and saves, rather than a second read
         for (var provider : unlistedProviders) {
             if (!provider.hasResource(path)) continue;
             var unlisted = provider.getResource(path);
             if (unlisted != null) {
-                return remember(path, unlisted);
+                return unlisted;
             }
         }
         // a resource file inside the game dir that no provider owns, e.g. one stored in a folder the
@@ -136,17 +153,9 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
         // reload, which would hide edits to the very same file on disk.
         var direct = directFileProvider.getResource(path);
         if (direct != null) {
-            return remember(path, direct);
+            return direct;
         }
-        var resource = packFileProvider.getResource(path);
-        if (resource == null) return null;
-        return remember(path, resource);
-    }
-
-    // the first one cached wins, so two threads asking at once are handed the same value
-    private T remember(IResourcePath path, T value) {
-        var won = cache.putIfAbsent(path, value);
-        return won != null ? won : value;
+        return packFileProvider.getResource(path);
     }
 
     public List<Map.Entry<IResourcePath, T>> listAllResources() {
