@@ -189,6 +189,8 @@ public abstract class Scroller extends BindableUIElement<Float> {
     public Scroller setRange(float minValue, float maxValue) {
         this.minValue = minValue;
         this.maxValue = maxValue;
+        // an unchanged value still sits elsewhere on a new range
+        updateScrollBarPosition();
         return setValue(value);
     }
 
