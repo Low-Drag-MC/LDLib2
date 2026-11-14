@@ -483,6 +483,10 @@ public class EditorWindow extends UIElement {
         var button = editors.remove(editor);
         if (button != null) {
             editorButtonContainer.removeChild(button);
+            // out of the window, not left in it hidden: nothing shows it again, and anything that finds it by its
+            // window would bring back an editor that has been closed
+            editorContainer.removeChild(editor);
+            editor._setEditorWindowInternal(null);
         }
         if (editors.isEmpty()) {
             currentEditor = null;

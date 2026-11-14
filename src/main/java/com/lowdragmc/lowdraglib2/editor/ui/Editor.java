@@ -978,12 +978,14 @@ public abstract class Editor extends UIElement implements EditorHost {
     /**
      * Exit the current editor and run the given runnable after the editor is closed.
      * It doesn't mean the window is closed.
+     * <p>
+     * The project goes with it and is closed the way {@link #closeCurrentProject(boolean, Runnable)} closes it,
+     * {@link IProject#onClosed} included: a project that put views or listeners into the editor takes them back.
      */
     public void exit(@Nullable Runnable onFinish) {
         askToSaveProject(() -> {
-            if (currentProject != null) {
-                saveAssetBrowserPath();
-            }
+            closeCurrentProject();
+            // with no project open there was no layout to save, but the floating views still go
             saveLayoutAndCloseFloating();
             if (window != null) {
                 window.removeEditor(this);
