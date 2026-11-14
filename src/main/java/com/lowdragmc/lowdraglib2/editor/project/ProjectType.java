@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import com.lowdragmc.lowdraglib2.utils.FileUtility;
 import net.minecraft.nbt.NbtIo;
 
 import org.jetbrains.annotations.Nullable;
@@ -148,7 +149,7 @@ public class ProjectType {
      * @throws Exception If any error occurs during file reading, data deserialization, or object creation.
      */
     public IProject loadProjectFromFile(File file) throws Exception {
-        var data = NbtIo.read(file.toPath());
+        var data = FileUtility.readNbt(file.toPath());
         var project = getProjectCreator().get();
         project.deserializeNBT(Platform.getFrozenRegistry(), Objects.requireNonNull(data));
         return project;
@@ -206,7 +207,7 @@ public class ProjectType {
      */
     public boolean isProjectDirty(IProject project, File file) throws Exception {
         var data = project.serializeNBT(Platform.getFrozenRegistry());
-        var fileData = NbtIo.read(file.toPath());
+        var fileData = FileUtility.readNbt(file.toPath());
         return !data.equals(fileData);
     }
 

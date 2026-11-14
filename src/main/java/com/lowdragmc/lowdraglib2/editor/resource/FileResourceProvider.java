@@ -19,6 +19,7 @@ import lombok.Setter;
 import net.minecraft.Util;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import com.lowdragmc.lowdraglib2.utils.FileUtility;
 import net.minecraft.nbt.NbtIo;
 
 import javax.annotation.Nonnull;
@@ -382,7 +383,7 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
     @Nullable
     private T readResourceFromFile(File file) {
         try {
-            var fileData = NbtIo.read(file.toPath());
+            var fileData = FileUtility.readNbt(file.toPath());
             if (fileData != null) {
                 var data = deserializeNBT(fileData, Platform.getFrozenRegistry());
                 if (data != null) return data;

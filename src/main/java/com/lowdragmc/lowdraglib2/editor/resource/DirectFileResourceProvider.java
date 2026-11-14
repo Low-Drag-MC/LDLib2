@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.Platform;
 import lombok.Getter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import com.lowdragmc.lowdraglib2.utils.FileUtility;
 import net.minecraft.nbt.NbtIo;
 
 import org.jetbrains.annotations.Nullable;
@@ -114,7 +115,7 @@ public final class DirectFileResourceProvider<T> {
     private T readResourceFromFile(File file) {
         if (!file.isFile()) return null;
         try {
-            var fileData = NbtIo.read(file.toPath());
+            var fileData = FileUtility.readNbt(file.toPath());
             if (fileData != null) {
                 var data = deserializeNBT(fileData, Platform.getFrozenRegistry());
                 if (data != null) return data;

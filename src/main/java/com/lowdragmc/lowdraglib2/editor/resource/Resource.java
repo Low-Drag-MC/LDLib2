@@ -7,7 +7,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.NbtIo;
+import com.lowdragmc.lowdraglib2.utils.FileUtility;
 import net.minecraft.nbt.Tag;
 
 import net.neoforged.fml.ModLoader;
@@ -132,7 +132,7 @@ public abstract class Resource<T> {
         }
         // one of our own resource files: read the value out of it and let the provider write its own copy
         try {
-            var tag = NbtIo.read(file.toPath());
+            var tag = FileUtility.readNbt(file.toPath());
             if (tag != null && tag.getString("type").equals(getName())) {
                 var value = deserializeResource(tag.get("data"), Platform.getFrozenRegistry());
                 if (value != null) {
