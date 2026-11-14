@@ -27,7 +27,9 @@ public final class PackResourceManager implements ResourceManagerReloadListener 
     @ParametersAreNonnullByDefault
     public void onResourceManagerReload(ResourceManager resourceManager) {
         for (var provider : providers) {
-            provider.contents.clear();
+            synchronized (provider.contents) {
+                provider.contents.clear();
+            }
             provider.resourceInstance.clearCache();
         }
     }

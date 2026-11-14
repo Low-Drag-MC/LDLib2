@@ -66,10 +66,20 @@ public final class PackFileResourceProvider<T>  {
 
     public T getResource(IResourcePath path) {
         if (supportResourcePath(path)) {
-            if (!contents.containsKey(path)) {
-                contents.put(path, getResourceByLocation(((FilePath)path).location));
+            synchronized (contents) {
+                if (contents.containsKey(path)) {
+                    return contents.get(path);
+                }
             }
-            return contents.get(path);
+            // read outside the lock, so one slow read holds up nobody else
+            var read = getResourceByLocation(((FilePath)path).location);
+            synchronized (contents) {
+                if (contents.containsKey(path)) {
+                    return contents.get(path);
+                }
+                contents.put(path, read);
+                return read;
+            }
         }
         return null;
     }

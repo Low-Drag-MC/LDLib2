@@ -105,45 +105,48 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
         if (path == null) {
             return null;
         }
-        if (!cache.containsKey(path)) {
-            var type = path.getType();
-            var result = builtinProviders.getOrDefault(type, Collections.emptyList()).stream()
-                    .map(provider -> provider.getResource(path))
-                    .filter(Objects::nonNull).findFirst();
-            if (result.isPresent()) {
-                cache.put(path, result.get());
-                return result.get();
-            }
-            result = customProviders.getOrDefault(type, Collections.emptyList()).stream()
-                    .map(provider -> provider.getResource(path))
-                    .filter(Objects::nonNull).findFirst();
-            if (result.isPresent()) {
-                cache.put(path, result.get());
-                return result.get();
-            }
-            // a folder the asset browser has open: one copy, the one it edits and saves, rather than a second read
-            for (var provider : unlistedProviders) {
-                if (!provider.hasResource(path)) continue;
-                var unlisted = provider.getResource(path);
-                if (unlisted != null) {
-                    cache.put(path, unlisted);
-                    return unlisted;
-                }
-            }
-            // a resource file inside the game dir that no provider owns, e.g. one stored in a folder the
-            // user created through the asset browser. Checked before the pack tier because
-            // PackFileResourceProvider caches for the whole session and only invalidates on a resource
-            // reload, which would hide edits to the very same file on disk.
-            var direct = directFileProvider.getResource(path);
-            if (direct != null) {
-                cache.put(path, direct);
-                return direct;
-            }
-            var resource = packFileProvider.getResource(path);
-            if (resource == null) return null;
-            cache.put(path, resource);
+        var cached = cache.get(path);
+        if (cached != null) {
+            return cached;
         }
-        return cache.get(path);
+        var type = path.getType();
+        var result = builtinProviders.getOrDefault(type, Collections.emptyList()).stream()
+                .map(provider -> provider.getResource(path))
+                .filter(Objects::nonNull).findFirst();
+        if (result.isPresent()) {
+            return remember(path, result.get());
+        }
+        result = customProviders.getOrDefault(type, Collections.emptyList()).stream()
+                .map(provider -> provider.getResource(path))
+                .filter(Objects::nonNull).findFirst();
+        if (result.isPresent()) {
+            return remember(path, result.get());
+        }
+        // a folder the asset browser has open: one copy, the one it edits and saves, rather than a second read
+        for (var provider : unlistedProviders) {
+            if (!provider.hasResource(path)) continue;
+            var unlisted = provider.getResource(path);
+            if (unlisted != null) {
+                return remember(path, unlisted);
+            }
+        }
+        // a resource file inside the game dir that no provider owns, e.g. one stored in a folder the
+        // user created through the asset browser. Checked before the pack tier because
+        // PackFileResourceProvider caches for the whole session and only invalidates on a resource
+        // reload, which would hide edits to the very same file on disk.
+        var direct = directFileProvider.getResource(path);
+        if (direct != null) {
+            return remember(path, direct);
+        }
+        var resource = packFileProvider.getResource(path);
+        if (resource == null) return null;
+        return remember(path, resource);
+    }
+
+    // the first one cached wins, so two threads asking at once are handed the same value
+    private T remember(IResourcePath path, T value) {
+        var won = cache.putIfAbsent(path, value);
+        return won != null ? won : value;
     }
 
     public List<Map.Entry<IResourcePath, T>> listAllResources() {

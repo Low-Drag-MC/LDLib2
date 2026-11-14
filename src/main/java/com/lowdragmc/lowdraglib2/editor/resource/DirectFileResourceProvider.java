@@ -73,8 +73,10 @@ public final class DirectFileResourceProvider<T> {
             return entry.value();
         }
         var value = lastModified == 0 ? null : readResourceFromFile(file);
-        cache.put(path, new Entry<>(value, lastModified, now));
-        return value;
+        var read = new Entry<>(value, lastModified, now);
+        // another thread that read the same version first keeps its value, so both are handed the same one
+        return cache.compute(path, (key, was) -> was != null && was.lastModified() == lastModified ? was : read)
+                .value();
     }
 
     public void clearCache() {
