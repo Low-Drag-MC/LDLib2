@@ -26,6 +26,7 @@ import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -83,6 +84,8 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
     private volatile Map<IResourcePath, File> known = Map.of();
     /** {@link #known}'s order, which an immutable map does not promise. */
     private volatile List<IResourcePath> order = List.of();
+    /** What was read and then {@linkplain #release released}: no longer in {@link #contents}. */
+    private final Map<IResourcePath, WeakReference<T>> released = new ConcurrentHashMap<>();
     @Getter @Setter
     private String name;
 
@@ -165,6 +168,14 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
         if (loaded != null) {
             return loaded;
         }
+        var let = released.get(path);
+        if (let != null) {
+            var held = let.get();
+            if (held != null) {
+                return held;
+            }
+            released.remove(path, let);
+        }
         var file = known.get(path);
         if (file == null) {
             return null;
@@ -230,6 +241,40 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
         order = java.util.List.copyOf(ordered);
         resourcesLastModified.remove(file);
         contents.remove(path);
+        released.remove(path);
+    }
+
+    @Override
+    public void release(IResourcePath path) {
+        var value = contents.remove(path);
+        if (value != null) {
+            released.put(path, new WeakReference<>(value));
+        }
+    }
+
+    @Override
+    public void keep(IResourcePath path) {
+        var let = released.remove(path);
+        var value = let == null ? null : let.get();
+        if (value != null) {
+            contents.putIfAbsent(path, value);
+        }
+    }
+
+    @Override
+    public boolean isReleased(IResourcePath path) {
+        var let = released.get(path);
+        return let != null && let.get() != null;
+    }
+
+    @Override
+    public T getLoadedResource(IResourcePath path) {
+        var loaded = contents.get(path);
+        if (loaded != null) {
+            return loaded;
+        }
+        var let = released.get(path);
+        return let == null ? null : let.get();
     }
 
     @Override
@@ -250,7 +295,13 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
                     resourcesLastModified.put(file, file.lastModified());
                     // it exists from now on, without waiting for the next scan to notice the file
                     remember(path, file);
-                    return super.addResource(path, content);
+                    // a released value is in no lookup cache the base class clears: the instance still hands it out
+                    var wasReleased = released.remove(path) != null;
+                    var added = super.addResource(path, content);
+                    if (wasReleased) {
+                        resourceInstance.clearCache();
+                    }
+                    return added;
                 } else {
                     LDLib2.LOGGER.error("Failed to serialize resource {} to file {}", content, file);
                 }
@@ -268,11 +319,15 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
             // provider nothing may have read it yet — a caller relying on the removed value (an
             // undo entry) would otherwise get null for a resource that was perfectly good
             var removed = getResource(path);
+            var wasReleased = released.containsKey(path);
             if (filePath.file.delete()) {
                 // before forget(), which drops the entry the base class clears the lookup cache on —
                 // or a resource made again under this path is still read as the removed one
                 super.removeResource(path);
                 forget(path, filePath.file);
+                if (wasReleased) {
+                    resourceInstance.clearCache();
+                }
                 return removed;
             }
         }
@@ -356,6 +411,7 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
                     // The stamp first: a read in flight on another thread checks it after publishing.
                     resourcesLastModified.put(file, stamp);
                     contents.remove(path);
+                    released.remove(path);
                     changed = true;
                 }
             }
@@ -365,6 +421,7 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
                 removed.forEach(file -> {
                     resourcesLastModified.remove(file);
                     contents.remove(new FilePath(file));
+                    released.remove(new FilePath(file));
                 });
                 changed = true;
             }

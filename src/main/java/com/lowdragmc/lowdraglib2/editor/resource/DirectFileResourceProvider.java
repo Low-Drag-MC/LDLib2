@@ -10,6 +10,7 @@ import net.minecraft.nbt.NbtIo;
 
 import org.jetbrains.annotations.Nullable;
 import java.io.File;
+import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -34,12 +35,16 @@ public final class DirectFileResourceProvider<T> {
      */
     private record Entry<T>(@Nullable T value, long lastModified, long checkedAt) {}
 
+    /** A value read at {@code lastModified} and then {@linkplain #release released}. */
+    private record Released<T>(WeakReference<T> value, long lastModified, long checkedAt) {}
+
     /** How long a cache entry is trusted before the file mtime is checked again. */
     private static final long REVALIDATE_MS = 500L;
 
     @Getter
     public final ResourceInstance<T> resourceInstance;
     private final Map<IResourcePath, Entry<T>> cache = new ConcurrentHashMap<>();
+    private final Map<IResourcePath, Released<T>> released = new ConcurrentHashMap<>();
     private final AtomicInteger clears = new AtomicInteger();
 
     public DirectFileResourceProvider(ResourceInstance<T> resourceInstance) {
@@ -70,11 +75,23 @@ public final class DirectFileResourceProvider<T> {
         if (entry != null && now - entry.checkedAt() < REVALIDATE_MS) {
             return entry.value();
         }
+        var let = entry == null ? released.get(path) : null;
+        var held = let == null ? null : let.value().get();
+        if (held != null && now - let.checkedAt() < REVALIDATE_MS) {
+            return held;
+        }
         // 0 when the file does not exist, so creation and deletion both show up as an mtime change.
         var lastModified = file.lastModified();
         if (entry != null && entry.lastModified() == lastModified) {
             cache.put(path, new Entry<>(entry.value(), lastModified, now));
             return entry.value();
+        }
+        if (held != null && let.lastModified() == lastModified) {
+            released.replace(path, let, new Released<>(let.value(), lastModified, now));
+            return held;
+        }
+        if (let != null) {
+            released.remove(path, let);
         }
         var value = lastModified == 0 ? null : readResourceFromFile(file);
         var read = new Entry<>(value, lastModified, now);
@@ -90,6 +107,30 @@ public final class DirectFileResourceProvider<T> {
     public void clearCache() {
         clears.incrementAndGet();
         cache.clear();
+    }
+
+    /** @see IResourceProvider#release */
+    public void release(IResourcePath path) {
+        var entry = cache.remove(path);
+        if (entry != null && entry.value() != null) {
+            released.put(
+                    path, new Released<>(new WeakReference<>(entry.value()), entry.lastModified(), entry.checkedAt()));
+        }
+    }
+
+    /** @see IResourceProvider#keep */
+    public void keep(IResourcePath path) {
+        var let = released.remove(path);
+        var value = let == null ? null : let.value().get();
+        if (value != null) {
+            cache.putIfAbsent(path, new Entry<>(value, let.lastModified(), 0L));
+        }
+    }
+
+    /** @see IResourceProvider#isReleased */
+    public boolean isReleased(IResourcePath path) {
+        var let = released.get(path);
+        return let != null && let.value().get() != null;
     }
 
     /**
@@ -115,6 +156,7 @@ public final class DirectFileResourceProvider<T> {
             LDLib2.LOGGER.error("Failed to write resource file {} as {}: ", file, resourceInstance.resource.getName(), e);
             return false;
         }
+        released.remove(path);
         cache.put(path, new Entry<>(value, file.lastModified(), System.currentTimeMillis()));
         return true;
     }

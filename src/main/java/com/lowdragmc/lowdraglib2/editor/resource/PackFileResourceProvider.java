@@ -13,6 +13,8 @@ import net.minecraft.server.packs.PackType;
 
 import org.jetbrains.annotations.Nullable;
 import java.io.DataInputStream;
+import java.lang.ref.WeakReference;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -21,6 +23,8 @@ public final class PackFileResourceProvider<T>  {
     public final ResourceInstance<T> resourceInstance;
     @Getter
     public final Map<IResourcePath, T> contents = new LinkedHashMap<>();
+    /** What was read and then {@linkplain #release released}; guarded by {@link #contents}. */
+    private final Map<IResourcePath, WeakReference<T>> released = new HashMap<>();
     private int clears;
 
     public PackFileResourceProvider(ResourceInstance<T> resourceInstance) {
@@ -72,6 +76,12 @@ public final class PackFileResourceProvider<T>  {
                 if (contents.containsKey(path)) {
                     return contents.get(path);
                 }
+                var let = released.get(path);
+                var held = let == null ? null : let.get();
+                if (held != null) {
+                    return held;
+                }
+                released.remove(path);
                 cleared = clears;
             }
             // read outside the lock, so one slow read holds up nobody else
@@ -94,6 +104,36 @@ public final class PackFileResourceProvider<T>  {
         synchronized (contents) {
             clears++;
             contents.clear();
+            released.clear();
+        }
+    }
+
+    /** @see IResourceProvider#release */
+    public void release(IResourcePath path) {
+        synchronized (contents) {
+            var value = contents.remove(path);
+            if (value != null) {
+                released.put(path, new WeakReference<>(value));
+            }
+        }
+    }
+
+    /** @see IResourceProvider#keep */
+    public void keep(IResourcePath path) {
+        synchronized (contents) {
+            var let = released.remove(path);
+            var value = let == null ? null : let.get();
+            if (value != null) {
+                contents.putIfAbsent(path, value);
+            }
+        }
+    }
+
+    /** @see IResourceProvider#isReleased */
+    public boolean isReleased(IResourcePath path) {
+        synchronized (contents) {
+            var let = released.get(path);
+            return let != null && let.get() != null;
         }
     }
 }

@@ -25,6 +25,7 @@ import net.neoforged.neoforge.common.util.INBTSerializable;
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;
 import java.io.File;
+import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -40,6 +41,8 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
     private final Map<ResourceProviderType, List<IResourceProvider<T>>> customProviders = new LinkedHashMap<>();
     // runtime
     private final Map<IResourcePath, T> cache = new ConcurrentHashMap<>();
+    // what the providers were asked to release, looked up without asking them again
+    private final Map<IResourcePath, WeakReference<T>> releasedCache = new ConcurrentHashMap<>();
     private final AtomicInteger clears = new AtomicInteger();
     private final PackFileResourceProvider<T> packFileProvider = new PackFileResourceProvider<>(this);
     private final DirectFileResourceProvider<T> directFileProvider = new DirectFileResourceProvider<>(this);
@@ -100,6 +103,7 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
     public void clearCache() {
         clears.incrementAndGet();
         cache.clear();
+        releasedCache.clear();
         directFileProvider.clearCache();
     }
 
@@ -112,9 +116,19 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
         if (cached != null) {
             return cached;
         }
+        var let = releasedCache.get(path);
+        var held = let == null ? null : let.get();
+        if (held != null) {
+            return held;
+        }
         var cleared = clears.get();
         var found = find(path);
         if (found == null) return null;
+        // let go of: held by nothing here either, or releasing it would hold it all the same
+        if (isReleased(path)) {
+            releasedCache.put(path, new WeakReference<>(found));
+            return found;
+        }
         var won = cache.putIfAbsent(path, found);
         if (won != null) return won;
         // cleared while it was being read (a save, a rescan): what was read may be what was just dropped
@@ -156,6 +170,39 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
             return direct;
         }
         return packFileProvider.getResource(path);
+    }
+
+    /**
+     * Stops holding what was read at {@code path}, here and in every provider: while anything else holds it, it is
+     * still what {@link #getResource} hands out; once nothing does it can be collected, and is read again when next
+     * asked for. A game unloading what a level used, say.
+     */
+    public void release(IResourcePath path) {
+        forEachProvider(provider -> provider.release(path));
+        directFileProvider.release(path);
+        packFileProvider.release(path);
+        cache.remove(path);
+    }
+
+    /** Holds what was read at {@code path} again, if it was {@linkplain #release released} and is still around. */
+    public void keep(IResourcePath path) {
+        forEachProvider(provider -> provider.keep(path));
+        directFileProvider.keep(path);
+        packFileProvider.keep(path);
+        releasedCache.remove(path);
+    }
+
+    /** @return whether what was read at {@code path} is {@linkplain #release released} and still around. */
+    public boolean isReleased(IResourcePath path) {
+        var released = new boolean[1];
+        forEachProvider(provider -> released[0] |= provider.isReleased(path));
+        return released[0] || directFileProvider.isReleased(path) || packFileProvider.isReleased(path);
+    }
+
+    private void forEachProvider(Consumer<IResourceProvider<T>> action) {
+        builtinProviders.values().forEach(providers -> providers.forEach(action));
+        customProviders.values().forEach(providers -> providers.forEach(action));
+        unlistedProviders.forEach(action);
     }
 
     public List<Map.Entry<IResourcePath, T>> listAllResources() {
@@ -367,6 +414,7 @@ public class ResourceInstance<T> implements INBTSerializable<CompoundTag> {
             }
         }
         if (!directFileProvider.writeResource(path, value)) return false;
+        releasedCache.remove(path);
         cache.put(path, value);
         return true;
     }
