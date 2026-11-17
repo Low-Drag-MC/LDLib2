@@ -175,6 +175,7 @@
   "ldlib.gui.editor.menu.recent_projects.clear": "Clear Recent Projects",
   "ldlib.gui.editor.menu.save": "Save",
   "ldlib.gui.editor.menu.save_success": "Save Success!",
+  "ldlib.gui.editor.menu.save_failed": "Save Failed",
   "ldlib.gui.editor.menu.import": "Import",
   "ldlib.gui.editor.menu.export": "Export",
   "ldlib.gui.editor.menu.resource": "Resource",

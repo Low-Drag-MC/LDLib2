@@ -1113,17 +1113,18 @@ public abstract class Editor extends UIElement implements EditorHost {
 
     /**
      * Save the current project to its file if it exists, or prompt to save as if it does not.
-     * @param onFinish Runnable to run after the save operation is complete, regardless of whether it was successful or not.
+     * @param onFinish Runnable to run after the save operation is complete. Not run when the save failed, so that
+     *                 what waits on it, such as closing the project, does not go on and lose it.
      */
     public void saveProject(@Nullable Runnable onFinish, boolean showNotification) {
         if (currentProject != null) {
             if (currentProjectFile == null) {
                 saveAsProject(onFinish);
             } else {
-                try {
-                    currentProject.getProjectType().saveProjectToFile(currentProject, currentProjectFile);
-                    recordRecentProject();
-                } catch (Exception ignored) {}
+                if (!writeProject(currentProjectFile)) {
+                    return;
+                }
+                recordRecentProject();
                 if (showNotification) {
                     if (onFinish != null) {
                         Dialog.showNotification("ldlib.gui.editor.menu.save", "ldlib.gui.compass.save_success", onFinish)
@@ -1139,7 +1140,7 @@ public abstract class Editor extends UIElement implements EditorHost {
 
     /**
      * Save the current project as a new file.
-     * @param onFinish Runnable to run after the save operation is complete, regardless of whether it was successful or not.
+     * @param onFinish Runnable to run after the save operation is complete. Not run when the save failed.
      */
     public void saveAsProject(@Nullable Runnable onFinish) {
         if (currentProject == null) return;
@@ -1152,7 +1153,7 @@ public abstract class Editor extends UIElement implements EditorHost {
     /**
      * Save the current project as a new file.
      * @param defaultSaveFile default file to prefill in the save dialog, can be null
-     * @param onFinish Runnable to run after the save operation is complete, regardless of whether it was successful or not.
+     * @param onFinish Runnable to run after the save operation is complete. Not run when the save failed.
      */
     public void saveAsProject(@Nullable File defaultSaveFile, @Nullable Runnable onFinish) {
         if (currentProject != null) {
@@ -1168,16 +1169,34 @@ public abstract class Editor extends UIElement implements EditorHost {
                             if (!file.getName().endsWith(suffix)) {
                                 file = new File(file.getParentFile(), file.getName() + suffix);
                             }
-                            try {
-                                projectType.saveProjectToFile(currentProject, file);
-                                currentProjectFile = file;
-                                recordRecentProject();
-                            } catch (Exception ignored) {}
+                            if (!writeProject(file)) {
+                                return;
+                            }
+                            currentProjectFile = file;
+                            recordRecentProject();
                         }
                         if (onFinish != null) {
                             onFinish.run();
                         }
                     }).show(this.getModularUI());
+        }
+    }
+
+    /**
+     * Write the current project to the file with its project type. A failure is logged and shown to the user,
+     * never taken for a save.
+     * @return whether the project was written
+     */
+    protected boolean writeProject(File file) {
+        if (currentProject == null) return false;
+        try {
+            currentProject.getProjectType().saveProjectToFile(currentProject, file);
+            return true;
+        } catch (Exception e) {
+            LDLib2.LOGGER.error("Failed to save the project to {}", file, e);
+            Dialog.showNotification("ldlib.gui.editor.menu.save_failed", String.valueOf(e.getMessage()), null)
+                    .show(this.getModularUI());
+            return false;
         }
     }
 

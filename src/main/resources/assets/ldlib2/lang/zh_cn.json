@@ -172,6 +172,7 @@
   "ldlib.gui.editor.menu.open": "打开",
   "ldlib.gui.editor.menu.save": "保存",
   "ldlib.gui.editor.menu.save_success": "保存成功！",
+  "ldlib.gui.editor.menu.save_failed": "保存失败",
   "ldlib.gui.editor.menu.import": "导入",
   "ldlib.gui.editor.menu.export": "导出",
   "ldlib.gui.editor.menu.resource": "资源",
