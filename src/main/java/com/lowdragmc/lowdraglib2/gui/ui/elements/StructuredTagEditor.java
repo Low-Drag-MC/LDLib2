@@ -76,11 +76,22 @@ public class StructuredTagEditor extends BindableUIElement<Tag> {
         void remove();
     }
 
+    /** The path of the top row: see {@link #isExpanded}. */
+    public static final String ROOT_PATH = "$";
+
     public final ScrollerView scrollerView = new ScrollerView();
     private final UIElement rows = new UIElement();
     private final Set<String> expandedPaths = new LinkedHashSet<>();
     private final Set<String> selectedPaths = new LinkedHashSet<>();
     private final Map<String, TagRemover> visibleRemovers = new HashMap<>();
+    private final Map<String, Runnable> visibleRenamers = new HashMap<>();
+    private final Map<String, UIElement> visibleRows = new HashMap<>();
+    /** The row whose key is typed anew once the rows are built again: an entry just added, its name a placeholder. */
+    @Nullable
+    private String renameOnReload;
+    /** The row scrolled into view once the rows are built again: an entry just added. */
+    @Nullable
+    private String revealOnReload;
     private final LinkedHashSet<String> visiblePaths = new LinkedHashSet<>();
     @Nullable
     private String hoveredPath;
@@ -93,6 +104,9 @@ public class StructuredTagEditor extends BindableUIElement<Tag> {
     private Predicate<Tag> tagValidator = Predicates.alwaysTrue();
     @Setter
     private Predicate<TagKind> rootTypeFilter = kind -> true;
+    /** How wide the column of keys is: wider, a compound's longer keys read whole without being hovered. */
+    @Setter
+    private int keyWidth = 50;
 
     public StructuredTagEditor() {
         getLayout().widthPercent(100);
@@ -140,6 +154,22 @@ public class StructuredTagEditor extends BindableUIElement<Tag> {
         return this;
     }
 
+    /**
+     * Whether the row at {@code path} is unfolded. The top row's path is {@link #ROOT_PATH}; a compound's entry is its
+     * compound's path then {@code .key}, a list's or an array's element its path then {@code [index]}.
+     */
+    public boolean isExpanded(String path) {
+        return expandedPaths.contains(path);
+    }
+
+    /** Unfolds or folds the row at {@code path}; one not there yet is unfolded once it is. */
+    public StructuredTagEditor setExpanded(String path, boolean expanded) {
+        if (expanded ? expandedPaths.add(path) : expandedPaths.remove(path)) {
+            reloadRows();
+        }
+        return this;
+    }
+
     public StructuredTagEditor setCompoundTagOnly() {
         setRootTypeFilter(kind -> kind == TagKind.COMPOUND);
         return setTagValidator(tag -> tag instanceof CompoundTag);
@@ -183,9 +213,21 @@ public class StructuredTagEditor extends BindableUIElement<Tag> {
     private void reloadRows() {
         rows.clearAllChildren();
         visibleRemovers.clear();
+        visibleRenamers.clear();
+        visibleRows.clear();
         visiblePaths.clear();
-        addRows(value, null, null, 0, "$", this::replaceRoot, null, true);
+        addRows(value, null, null, 0, ROOT_PATH, this::replaceRoot, null, true);
         selectedPaths.retainAll(visiblePaths);
+        var reveal = revealOnReload == null ? null : visibleRows.get(revealOnReload);
+        revealOnReload = null;
+        if (reveal != null) {
+            scrollerView.scrollToChildDelayed(reveal);
+        }
+        var rename = renameOnReload == null ? null : visibleRenamers.get(renameOnReload);
+        renameOnReload = null;
+        if (rename != null) {
+            rename.run();
+        }
     }
 
     private void addRows(Tag tag, @Nullable String key, @Nullable CompoundTag keyParent, int depth, String path, TagSetter setter, @Nullable TagRemover remover, boolean root) {
@@ -193,7 +235,9 @@ public class StructuredTagEditor extends BindableUIElement<Tag> {
         if (remover != null) {
             visibleRemovers.put(path, remover);
         }
-        rows.addChild(createRow(tag, key, keyParent, depth, path, setter, remover, root));
+        var row = createRow(tag, key, keyParent, depth, path, setter, remover, root);
+        visibleRows.put(path, row);
+        rows.addChild(row);
         if (!expandedPaths.contains(path)) return;
         if (tag instanceof CompoundTag compoundTag) {
             for (var childKey : compoundTag.getAllKeys()) {
@@ -283,7 +327,7 @@ public class StructuredTagEditor extends BindableUIElement<Tag> {
     private UIElement createRow(Tag tag, @Nullable String key, @Nullable CompoundTag keyParent, int depth, String path, TagSetter setter, @Nullable TagRemover remover, boolean root) {
         var row = new UIElement().layout(layout -> {
             layout.widthAuto();
-            layout.minWidth(Math.max(320, 180 + depth * 18) - 120);
+            layout.minWidth(Math.max(320, 180 + depth * 18) - 120 + keyWidth - 50);
             layout.height(16);
             layout.flexDirection(FlexDirection.ROW);
             layout.alignItems(AlignItems.CENTER);
@@ -335,10 +379,13 @@ public class StructuredTagEditor extends BindableUIElement<Tag> {
 
         if (key != null) {
             var keyContainer = new UIElement().layout(layout -> {
-                layout.width(50);
+                layout.width(keyWidth);
                 layout.height(14);
             });
-            keyContainer.addChild(createKeyLabel(key, keyParent, keyContainer, root));
+            keyContainer.addChild(createKeyLabel(key, keyParent, keyContainer, root, path));
+            if (!root && keyParent != null) {
+                visibleRenamers.put(path, () -> startRename(key, keyParent, keyContainer, path));
+            }
             row.addChild(keyContainer);
         }
 
@@ -384,7 +431,8 @@ public class StructuredTagEditor extends BindableUIElement<Tag> {
         }
     }
 
-    private UIElement createKeyLabel(String key, @Nullable CompoundTag keyParent, UIElement keyContainer, boolean root) {
+    private UIElement createKeyLabel(String key, @Nullable CompoundTag keyParent, UIElement keyContainer, boolean root,
+                                     String path) {
         var label = new Label().setText(key, false).textStyle(style -> style
                 .textAlignVertical(Vertical.CENTER)
                 .textAlignHorizontal(Horizontal.LEFT)
@@ -395,30 +443,66 @@ public class StructuredTagEditor extends BindableUIElement<Tag> {
         }).setOverflowVisible(false);
         label.addEventListener(UIEvents.DOUBLE_CLICK, e -> {
             if (root || keyParent == null) return;
-            keyContainer.clearAllChildren();
-            var field = new TextField().setText(key, false);
-            field.setTextValidator(text -> isRenameValid(keyParent, key, text));
-            field.addEventListener(UIEvents.KEY_DOWN, event -> {
-                if (event.keyCode == GLFW.GLFW_KEY_ENTER || event.keyCode == GLFW.GLFW_KEY_KP_ENTER) {
-                    if (renameCompoundKey(keyParent, key, field.getRawText())) {
-                        changed();
-                    } else {
-                        reloadRows();
-                    }
-                    event.stopPropagation();
-                } else if (event.keyCode == GLFW.GLFW_KEY_ESCAPE) {
-                    reloadRows();
-                    event.stopPropagation();
-                }
-            });
-            field.addEventListener(UIEvents.BLUR, event -> reloadRows());
-            keyContainer.addChild(field.layout(layout -> {
-                layout.widthPercent(100);
-                layout.heightPercent(100);
-            }));
-            field.focus();
+            startRename(key, keyParent, keyContainer, path);
         });
         return label;
+    }
+
+    /**
+     * The key's label swapped for a field typing its new name: Enter renames it — the entry, ordered by its new name,
+     * kept picked out and in view — Escape or leaving the field doesn't.
+     */
+    private void startRename(String key, CompoundTag keyParent, UIElement keyContainer, String path) {
+        keyContainer.clearAllChildren();
+        var field = new TextField().setText(key, false);
+        field.setTextValidator(text -> isRenameValid(keyParent, key, text));
+        var done = new boolean[1];
+        // the label back in place, not the rows built again: built again under a click that took the focus away, the
+        // element clicked would be gone before the click reached it
+        Runnable putBack = () -> {
+            keyContainer.clearAllChildren();
+            keyContainer.addChild(createKeyLabel(key, keyParent, keyContainer, false, path));
+        };
+        field.addEventListener(UIEvents.KEY_DOWN, event -> {
+            if (event.keyCode == GLFW.GLFW_KEY_ENTER || event.keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+                done[0] = true;
+                var name = field.getRawText();
+                // the editor's focus before the field goes with the rows: left on a field no longer shown, the
+                // focus would hand it the next key, and the next click would blur it first
+                focus();
+                if (renameCompoundKey(keyParent, key, name)) {
+                    var renamed = path.substring(0, path.length() - key.length()) + name;
+                    selectOnly(renamed);
+                    revealOnReload = renamed;
+                    changed();
+                } else {
+                    putBack.run();
+                }
+                event.stopPropagation();
+            } else if (event.keyCode == GLFW.GLFW_KEY_ESCAPE) {
+                done[0] = true;
+                focus();
+                putBack.run();
+                event.stopPropagation();
+            }
+        });
+        field.addEventListener(UIEvents.BLUR, event -> {
+            if (!done[0]) {
+                done[0] = true;
+                putBack.run();
+            }
+        });
+        keyContainer.addChild(field.layout(layout -> {
+            layout.widthPercent(100);
+            layout.heightPercent(100);
+        }));
+        field.focus();
+    }
+
+    private void selectOnly(String path) {
+        selectedPaths.clear();
+        selectedPaths.add(path);
+        lastSelectedPath = path;
     }
 
     private void selectPath(String path, UIEvent event) {
@@ -479,7 +563,7 @@ public class StructuredTagEditor extends BindableUIElement<Tag> {
     }
 
     private void removePath(String path) {
-        if ("$".equals(path)) return;
+        if (ROOT_PATH.equals(path)) return;
         var bracket = path.lastIndexOf('[');
         if (bracket >= 0 && path.endsWith("]")) {
             var parent = findPath(path.substring(0, bracket));
@@ -506,7 +590,7 @@ public class StructuredTagEditor extends BindableUIElement<Tag> {
 
     @Nullable
     private Tag findPath(String path) {
-        if ("$".equals(path)) return value;
+        if (ROOT_PATH.equals(path)) return value;
         Tag current = value;
         var index = 1;
         while (index < path.length()) {
@@ -534,7 +618,7 @@ public class StructuredTagEditor extends BindableUIElement<Tag> {
     }
 
     private void replacePath(String path, Tag replacement) {
-        if ("$".equals(path)) {
+        if (ROOT_PATH.equals(path)) {
             value = replacement;
             return;
         }
@@ -610,7 +694,7 @@ public class StructuredTagEditor extends BindableUIElement<Tag> {
         if (tag instanceof CompoundTag compoundTag) {
             menu.branch(Component.literal("Add"), add -> {
                 for (var kind : TagKind.values()) {
-                    add.leaf(Component.literal(kind.displayName), () -> addCompoundChild(compoundTag, kind));
+                    add.leaf(Component.literal(kind.displayName), () -> addCompoundChild(compoundTag, kind, path));
                 }
             });
         } else if (tag instanceof ListTag listTag) {
@@ -618,17 +702,12 @@ public class StructuredTagEditor extends BindableUIElement<Tag> {
                 menu.branch(Component.literal("Add"), add -> {
                     for (var kind : TagKind.values()) {
                         if (kind == TagKind.END) continue;
-                        add.leaf(Component.literal(kind.displayName), () -> {
-                            listTag.add(defaultTag(kind));
-                            changed();
-                        });
+                        add.leaf(Component.literal(kind.displayName), () -> addListElement(listTag, defaultTag(kind), path));
                     }
                 });
             } else {
-                menu.leaf(Component.literal("Add " + listElementKind(listTag).displayName), () -> {
-                    listTag.add(defaultTag(listElementKind(listTag)));
-                    changed();
-                });
+                menu.leaf(Component.literal("Add " + listElementKind(listTag).displayName),
+                        () -> addListElement(listTag, defaultTag(listElementKind(listTag)), path));
             }
             menu.branch(Component.literal("Convert Elements"), branch -> {
                 for (var kind : TagKind.values()) {
@@ -637,11 +716,20 @@ public class StructuredTagEditor extends BindableUIElement<Tag> {
                 }
             });
         } else if (tag instanceof ByteArrayTag arrayTag) {
-            menu.leaf(Component.literal("Add Byte"), () -> setter.set(insertByteArrayElement(arrayTag, arrayTag.size(), (byte) 0), true));
+            menu.leaf(Component.literal("Add Byte"), () -> {
+                expandedPaths.add(path);
+                setter.set(insertByteArrayElement(arrayTag, arrayTag.size(), (byte) 0), true);
+            });
         } else if (tag instanceof IntArrayTag arrayTag) {
-            menu.leaf(Component.literal("Add Int"), () -> setter.set(insertIntArrayElement(arrayTag, arrayTag.size(), 0), true));
+            menu.leaf(Component.literal("Add Int"), () -> {
+                expandedPaths.add(path);
+                setter.set(insertIntArrayElement(arrayTag, arrayTag.size(), 0), true);
+            });
         } else if (tag instanceof LongArrayTag arrayTag) {
-            menu.leaf(Component.literal("Add Long"), () -> setter.set(insertLongArrayElement(arrayTag, arrayTag.size(), 0L), true));
+            menu.leaf(Component.literal("Add Long"), () -> {
+                expandedPaths.add(path);
+                setter.set(insertLongArrayElement(arrayTag, arrayTag.size(), 0L), true);
+            });
         }
         if (remover != null) {
             menu.crossLine();
@@ -702,7 +790,11 @@ public class StructuredTagEditor extends BindableUIElement<Tag> {
                 }));
     }
 
-    private void addCompoundChild(CompoundTag compoundTag, TagKind kind) {
+    /**
+     * A new entry in the compound at {@code path}, shown — the compound unfolded, the entry picked out and scrolled to —
+     * and its name typed at once: the one it is given is only a placeholder.
+     */
+    private void addCompoundChild(CompoundTag compoundTag, TagKind kind, String path) {
         var base = "new_" + kind.name().toLowerCase();
         var key = base;
         var index = 1;
@@ -710,6 +802,24 @@ public class StructuredTagEditor extends BindableUIElement<Tag> {
             key = base + "_" + index++;
         }
         compoundTag.put(key, defaultTag(kind));
+        var childPath = path + "." + key;
+        expandedPaths.add(path);
+        selectOnly(childPath);
+        revealOnReload = childPath;
+        renameOnReload = childPath;
+        changed();
+    }
+
+    /**
+     * A new element at the end of the list at {@code path}, shown: the list unfolded, the element picked out and
+     * scrolled to.
+     */
+    private void addListElement(ListTag listTag, Tag element, String path) {
+        listTag.add(element);
+        var elementPath = path + "[" + (listTag.size() - 1) + "]";
+        expandedPaths.add(path);
+        selectOnly(elementPath);
+        revealOnReload = elementPath;
         changed();
     }
 
