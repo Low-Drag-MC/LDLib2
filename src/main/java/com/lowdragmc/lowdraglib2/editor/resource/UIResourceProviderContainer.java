@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.UITemplate;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
+import dev.vfyjxf.taffy.style.TaffyDisplay;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Tuple;
 
@@ -31,7 +32,11 @@ public class UIResourceProviderContainer extends ResourceProviderContainer<UITem
             layout.width(150);
             layout.height(150);
         }).addClass("panel_bg"), StylesheetManager.GDP)
-        ).setUiSupplier(path -> new UIElement().layout(layout -> {
+        ).setOnCreateMenu((container, menu) -> {
+            if (container.getSupportAdd().getAsBoolean()) {
+                menu.leaf(Icons.SCREEN, "ldlib.gui.editor.menu.add_hud", () -> container.addNewResource(createHud(), "new_hud"));
+            }
+        }).setUiSupplier(path -> new UIElement().layout(layout -> {
             layout.widthPercent(100);
             layout.heightPercent(100);
         }).style(style -> style.backgroundTexture(Icons.WIDGET_BASIC)))
@@ -79,6 +84,40 @@ public class UIResourceProviderContainer extends ResourceProviderContainer<UITem
             editor.placeView(newView, () -> editor.centerWindow.getLeftTop());
             bringToFront(newView);
         });
+    }
+
+    /**
+     * A new HUD: its root fills the screen and shows nothing, and is a three by three grid of regions, one for each
+     * corner, each edge and the middle, a third of the screen each way.
+     */
+    public static UITemplate createHud() {
+        var root = new UIElement().layout(layout -> {
+            layout.widthPercent(100);
+            layout.heightPercent(100);
+            layout.display(TaffyDisplay.GRID);
+            // thirds whatever is in them, or a long text on the left pushes the middle ones off the middle of the
+            // screen: fr tracks grow with what they hold here, minmax(0, 1fr) too
+            layout.gridTemplateColumns("repeat(3, 33.3333%)");
+            layout.gridTemplateRows("repeat(3, 33.3333%)");
+        });
+        String[] rows = {"top", "middle", "bottom"};
+        String[] columns = {"left", "center", "right"};
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                var row = String.valueOf(i + 1);
+                var column = String.valueOf(j + 1);
+                var region = new UIElement().layout(layout -> {
+                    // by line, not by order: moving it in the hierarchy does not move it on the screen
+                    layout.gridRow(row);
+                    layout.gridColumn(column);
+                });
+                region.setId(rows[i] + "_" + columns[j]);
+                root.addChild(region);
+            }
+        }
+        var template = UITemplate.of(root, StylesheetManager.GDP);
+        template.setHud(true);
+        return template;
     }
 
     @Override

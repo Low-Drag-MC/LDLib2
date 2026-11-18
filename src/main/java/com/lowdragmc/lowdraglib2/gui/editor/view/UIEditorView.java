@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.UITemplate;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
@@ -20,6 +21,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.language.Languages;
 import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
@@ -31,6 +33,7 @@ import com.lowdragmc.lowdraglib2.gui.util.TreeNode;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.FlexDirection;
+import dev.vfyjxf.taffy.style.TaffyDimension;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.Setter;
@@ -73,6 +76,8 @@ public class UIEditorView extends View {
     @Setter
     @Getter
     private boolean focusHierarchyFromPreview = true;
+    // fit the view once it is laid out
+    private boolean fitPending;
 
     public UIEditorView() {
         super("editor.view.ui_editor");
@@ -118,20 +123,33 @@ public class UIEditorView extends View {
                     layout.heightPercent(100);
                     layout.flex(1);
                 }).addChildren(
+                        // HUD preview toggle
+                        new Toggle()
+                                .setText("")
+                                .setOn(isHudMode(), false)
+                                .toggleButton(button -> button.layout(layout -> {
+                                    layout.widthPercent(100);
+                                    layout.heightPercent(100);
+                                }))
+                                .setOnToggleChanged(this::setHudMode)
+                                .toggleStyle(style -> {
+                                    style.setPipelineState(StyleOrigin.DEFAULT);
+                                    style.baseTexture(Sprites.BORDER1_RT1_DARK);
+                                    style.hoverTexture(Sprites.BORDER1_RT1);
+                                    style.setPipelineState(StyleOrigin.INLINE);
+                                    style.unmarkTexture(Icons.SCREEN.copy().setColor(ColorPattern.GRAY.color).scale(0.8f));
+                                    style.markTexture(Icons.SCREEN.copy().scale(0.8f));
+                                })
+                                .bindDataSource(SupplierDataSource.of(this::isHudMode), false)
+                                .layout(layout -> {
+                                    layout.paddingAll(0);
+                                    layout.heightPercent(100);
+                                    layout.setAspectRatio(1f);
+                                })
+                                .style(style -> style.tooltips("UIEditor.hud", "UIEditor.hud.tips"))
+                                .addClass("__ui-editor-view_hud-toggle__"),
                         // page fit button
-                        new Button().noText().setOnClick(event -> {
-                            if (currentUI != null && modularUIPreview.getPreviewModularUI() != null) {
-                                var modularUI = modularUIPreview.getPreviewModularUI();
-                                var padding = 5;
-                                var x = modularUIPreview.getPositionX() - graphView.getContentX() + modularUI.getLeftPos();
-                                var y = modularUIPreview.getPositionY() - graphView.getContentY() + modularUI.getTopPos();
-                                var width = modularUI.ui.rootElement.getSizeWidth();
-                                var height = modularUI.ui.rootElement.getSizeHeight();
-                                graphView.fit(x - padding, y - padding,
-                                        x + width + 2 * padding, y + height + 2 * padding,
-                                        0.1f);
-                            }
-                        }).layout(layout -> {
+                        new Button().noText().setOnClick(event -> fitPreview()).layout(layout -> {
                             layout.width(14);
                         }).style(style -> style.tooltips("GraphView.fit")).addChild(
                                 new UIElement().layout(layout -> {
@@ -223,7 +241,11 @@ public class UIEditorView extends View {
         });
         graphView.addContentChild(modularUIPreview);
         graphView.addEventListener(UIEvents.LAYOUT_CHANGED, event -> {
-            modularUIPreview.initPreviewSize((int) graphView.getContentWidth(), (int) graphView.getContentHeight());
+            refreshPreviewSize();
+            if (fitPending && graphView.getContentWidth() > 0 && graphView.getContentHeight() > 0) {
+                fitPending = false;
+                fitPreview();
+            }
         });
         graphView.addEventListener(UIEvents.MOUSE_DOWN, event -> {
             if (!event.isShiftDown() || event.button != 0 || !this.isFocusHierarchyFromPreview() || this.modularUIPreview.getPreviewModularUI() == null) {
@@ -456,6 +478,8 @@ public class UIEditorView extends View {
         this.currentUI = null;
         this.onTemplateSaved = null;
         this.isEditingBuiltinStyles = false;
+        this.fitPending = false;
+        this.modularUIPreview.setHud(false);
         this.stylesheetEditor.setActive(true);
         this.stylesheetEditor.setValue(new String[0]);
         clearDirty();
@@ -466,11 +490,22 @@ public class UIEditorView extends View {
         clear();
         this.template = template.copy();
         this.currentUI = this.template.createUI();
+        if (this.template.isHud()) {
+            fillScreen(currentUI.rootElement);
+        }
         this.modularUIPreview.loadUI(currentUI);
+        this.modularUIPreview.setHud(this.template.isHud());
         this.hierarchy.loadUI(currentUI);
         // baseline, so the first edit can be undone
         this.historyStack.pushHistory(Component.translatable("editor.open"), EditAction.of(() -> {}, () -> {}), false);
-        this.modularUIPreview.initPreviewSize((int) graphView.getContentWidth(), (int) graphView.getContentHeight());
+        refreshPreviewSize();
+        if (this.template.isHud()) {
+            // the whole screen in view, it is larger than the view
+            this.fitPending = graphView.getContentWidth() <= 0 || graphView.getContentHeight() <= 0;
+            if (!fitPending) {
+                fitPreview();
+            }
+        }
         this.onTemplateSaved = onTemplateSaved;
         editBuiltinStyles();
         return this;
@@ -478,6 +513,87 @@ public class UIEditorView extends View {
 
     public boolean isSimulationRunning() {
         return canvas.isDisplayed() && canvas.isSimulating();
+    }
+
+    public boolean isHudMode() {
+        return template != null && template.isHud();
+    }
+
+    /**
+     * Turns the HUD preview on or off, an edit of the template: previewed at the game screen's size over the game,
+     * and the root fills the screen for as long as it is on. Off leaves the root as it is, undo gives its size back.
+     */
+    public void setHudMode(boolean hud) {
+        // the simulation was started from the UI as it was, and edits wait for it to stop
+        if (template == null || currentUI == null || template.isHud() == hud || isSimulationRunning()) return;
+        var root = currentUI.rootElement;
+        var before = root.snapshotOwnState();
+        applyHudMode(hud);
+        var after = root.snapshotOwnState();
+        historyStack.pushHistory(Component.translatable("UIEditor.hud"), EditAction.of(() -> {
+            root.restoreOwnState(after);
+            applyHudMode(hud);
+        }, () -> {
+            root.restoreOwnState(before);
+            applyHudMode(!hud);
+        }), false);
+    }
+
+    private void applyHudMode(boolean hud) {
+        if (template == null || currentUI == null) return;
+        template.setHud(hud);
+        if (hud) {
+            fillScreen(currentUI.rootElement);
+        }
+        modularUIPreview.setHud(hud);
+        refreshPreviewSize();
+        // the preview changed size, the view fitted to the old one shows it far too small or cut off
+        fitPreview();
+        markAsDirty();
+    }
+
+    /** A HUD is previewed at the game screen's size, anything else at the view's. */
+    private void refreshPreviewSize() {
+        if (!isHudMode()) {
+            modularUIPreview.initPreviewSize((int) graphView.getContentWidth(), (int) graphView.getContentHeight());
+            return;
+        }
+        var window = Minecraft.getInstance().getWindow();
+        var width = window.getGuiScaledWidth();
+        var height = window.getGuiScaledHeight();
+        // a minimized game window has no size, keep the last one
+        if (width <= 0 || height <= 0) return;
+        var modularUI = modularUIPreview.getPreviewModularUI();
+        if (modularUI == null || modularUI.getScreenWidth() != width || modularUI.getScreenHeight() != height) {
+            modularUIPreview.initPreviewSize(width, height);
+        }
+    }
+
+    private static boolean fillsScreen(UIElement root) {
+        var layout = root.getLayoutStyle();
+        return isFull(layout.getInline(LayoutProperties.WIDTH)) && isFull(layout.getInline(LayoutProperties.HEIGHT));
+    }
+
+    private static boolean isFull(@Nullable TaffyDimension dimension) {
+        return dimension != null && dimension.isPercent() && dimension.getValue() == 1f;
+    }
+
+    private static void fillScreen(UIElement root) {
+        Style.inlinePipeline(root.getLayoutStyle(), layout -> layout.widthPercent(100).heightPercent(100));
+    }
+
+    /** Fits the view to the previewed UI, the whole screen for a HUD. */
+    public void fitPreview() {
+        var modularUI = modularUIPreview.getPreviewModularUI();
+        if (currentUI == null || modularUI == null) return;
+        var padding = 5;
+        var x = modularUIPreview.getPositionX() - graphView.getContentX() + modularUI.getLeftPos();
+        var y = modularUIPreview.getPositionY() - graphView.getContentY() + modularUI.getTopPos();
+        var width = modularUI.ui.rootElement.getSizeWidth();
+        var height = modularUI.ui.rootElement.getSizeHeight();
+        graphView.fit(x - padding, y - padding,
+                x + width + 2 * padding, y + height + 2 * padding,
+                0.1f);
     }
 
     public void editBuiltinStyles() {
@@ -530,6 +646,7 @@ public class UIEditorView extends View {
         var newTemplate = currentUI.toTemplate();
         newTemplate.copyStylesFrom(this.template);
 
+        canvas.setHud(this.template.isHud());
         canvas.startSimulation(newTemplate.createUI());
     }
 
@@ -598,6 +715,14 @@ public class UIEditorView extends View {
     @Override
     public void screenTick() {
         super.screenTick();
+        if (isHudMode() && currentUI != null && !isSimulationRunning()) {
+            // a HUD's root is the screen, whatever was done to it
+            if (!fillsScreen(currentUI.rootElement)) {
+                fillScreen(currentUI.rootElement);
+            }
+            // the window or the GUI scale may have changed
+            refreshPreviewSize();
+        }
         var mui = getModularUI();
         if (!isDirty && mui != null && !isSimulationRunning() && (mui.getTickCounter() & 20) == 0) {
             if (isTemplateDirty()) {
