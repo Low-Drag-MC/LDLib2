@@ -130,25 +130,37 @@ public class ItemLibrary extends ItemLibraryPanel<ItemLibraryItem> {
         var name = annotation == null ? nodeType.getSimpleName() : annotation.name();
         var item = new NodeModelLibraryItem(name,
                 data -> CustomGraphModelImpl.createNodeFromData(data, nodeType));
-        if (annotation == null || annotation.group().isBlank()) {
+        var group = annotation == null ? "" : normalizeGroup(annotation.group());
+        if (group.isEmpty()) {
             builder.leaf(item, null);
             return;
         }
-
-        var groupPath = getNodeGroupPath(annotation.group(), groupItems);
-        if (groupPath.isEmpty()) {
-            builder.leaf(item, null);
-        } else {
-            builder.diveBranch(groupPath, b -> b.leaf(item, null));
-        }
+        item.setGroup(group);
+        builder.diveBranch(getNodeGroupPath(group, groupItems), b -> b.leaf(item, null));
     }
 
+    /** A group as the tree files it: segments trimmed, empty ones dropped. */
+    private static String normalizeGroup(String group) {
+        var parts = new ArrayList<String>();
+        for (var part : group.split("/")) {
+            var name = part.trim();
+            if (!name.isEmpty()) parts.add(name);
+        }
+        return String.join("/", parts);
+    }
+
+    /** The group of the node behind {@code nodeModel}, or empty for one with none, or no node class. */
+    private static String nodeGroupOf(@Nullable Object nodeModel) {
+        if (!(nodeModel instanceof ICustomNodeModel custom) || custom.getNode() == null) return "";
+        var annotation = custom.getNode().getClass().getAnnotation(NodeAttribute.class);
+        return annotation == null ? "" : normalizeGroup(annotation.group());
+    }
+
+    /** The folders down to a {@linkplain #normalizeGroup normalized} group, made the first time they are needed. */
     private static List<ItemLibraryItem> getNodeGroupPath(String group, Map<String, ItemLibraryItem> groupItems) {
         var groupPath = new ArrayList<ItemLibraryItem>();
         var fullPath = new StringBuilder();
-        for (var part : group.split("/")) {
-            var groupName = part.trim();
-            if (groupName.isEmpty()) continue;
+        for (var groupName : group.split("/")) {
             if (!fullPath.isEmpty()) {
                 fullPath.append('/');
             }
@@ -441,31 +453,34 @@ public class ItemLibrary extends ItemLibraryPanel<ItemLibraryItem> {
     }
 
     /**
-     * Recommends every node the dragged wire can land on, the ones carrying the wire's own type first
-     * and the merely compatible ones after.
+     * Recommends every node the dragged wire can land on: first the ones carrying the wire's own type,
+     * then the merely compatible ones; within each, the ones filed in the same group as the node the
+     * wire comes from before the rest.
      *
      * <p>Compatibility is assignability ({@link PortModel#canConnectPort}), so a wire dragged off a
      * {@code Float} port is offered every node with a port that accepts a float — which is most of
-     * them, and buries the handful the user actually meant under the rest. Sorting the exact type
-     * matches to the top puts those back on the first screen. Both groups keep the order
-     * {@link #getAllItems()} walks the trees in, so entries only ever move up, never shuffle.
+     * them, and buries the handful the user actually meant under the rest. The exact type is the best
+     * guess at that handful, the node's own group the next best. Every tier keeps the order
+     * {@link #getAllItems()} walks the trees in, so entries only ever move up, never shuffle. A node
+     * with no group, a constant say, has no group to prefer.
      */
     public void setPortRecommendation(PortModel sourcePort) {
         if (this.graphModel == null) return;
         var sourceType = sourcePort.getDataTypeHandle();
-        var sameType = new ArrayList<NodeModelLibraryItem>();
-        var otherTypes = new ArrayList<NodeModelLibraryItem>();
+        var sourceGroup = nodeGroupOf(sourcePort.getNodeModel());
+        // same type and group, same type, same group, the rest
+        var tiers = List.<List<NodeModelLibraryItem>>of(
+                new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
         getAllItems().forEach(item -> {
             if (!(item instanceof NodeModelLibraryItem nodeItem)) return;
             // same lookup the port sub-items use, so it hits the shared test model cache
             var ports = getCompatiblePorts(nodeItem, sourcePort);
             if (ports.isEmpty()) return;
-            (hasPortOfType(ports, sourceType) ? sameType : otherTypes).add(nodeItem);
+            var sameGroup = !sourceGroup.isEmpty() && sourceGroup.equals(nodeItem.getGroup());
+            var sameType = hasPortOfType(ports, sourceType);
+            tiers.get((sameType ? 0 : 2) + (sameGroup ? 0 : 1)).add(nodeItem);
         });
-        setRecommendation(builder -> {
-            sameType.forEach(item -> builder.leaf(item, null));
-            otherTypes.forEach(item -> builder.leaf(item, null));
-        });
+        setRecommendation(builder -> tiers.forEach(tier -> tier.forEach(item -> builder.leaf(item, null))));
     }
 
     /** Whether any of the ports carries exactly {@code type}, rather than one merely assignable to it. */
