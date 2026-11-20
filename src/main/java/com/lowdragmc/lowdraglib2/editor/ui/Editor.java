@@ -1127,7 +1127,7 @@ public abstract class Editor extends UIElement implements EditorHost {
                 recordRecentProject();
                 if (showNotification) {
                     if (onFinish != null) {
-                        Dialog.showNotification("ldlib.gui.editor.menu.save", "ldlib.gui.compass.save_success", onFinish)
+                        Dialog.showNotification("ldlib.gui.editor.menu.save", "ldlib.gui.editor.menu.save_success", onFinish)
                                 .show(this.getModularUI());
                     } else {
                         Dialog.showNotification("ldlib.gui.editor.menu.save_success", 2)

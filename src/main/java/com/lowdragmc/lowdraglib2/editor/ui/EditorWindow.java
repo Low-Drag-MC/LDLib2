@@ -221,6 +221,12 @@ public class EditorWindow extends UIElement {
     protected void onRemoved() {
         if (rehosting) return;
         if (windowID != null && MINIMIZED_WINDOWS.containsKey(windowID)) return;
+        // Taken off screen without going through hideHost: Esc in a ModularUI left to close on it, the
+        // server closing the menu, another screen opened over this one.
+        var mui = getModularUI();
+        if (mui != null && mui.getScreen() != null) {
+            restoreGameGuiScale(true);
+        }
         super.onRemoved();
     }
 
@@ -551,12 +557,22 @@ public class EditorWindow extends UIElement {
 
     /** Puts the game's gui scale back to what it was before a screen-hosted editor changed it. */
     private void restoreGameGuiScale() {
+        restoreGameGuiScale(false);
+    }
+
+    private void restoreGameGuiScale(boolean screenClosing) {
         if (!LDLib2.isClient()) return;
         var minecraft = Minecraft.getInstance();
         var guiScale = minecraft.options.guiScale();
         if (guiScale.get() != initialScreenScale) {
             guiScale.set(initialScreenScale);
-            minecraft.resizeDisplay();
+            if (screenClosing) {
+                // Inside Screen#removed the closing screen is still the current one, so resizing now
+                // would init it again.
+                minecraft.tell(minecraft::resizeDisplay);
+            } else {
+                minecraft.resizeDisplay();
+            }
         }
     }
 
