@@ -304,7 +304,8 @@ public class TextField extends BindableUIElement<String> {
     /// events
     protected void onDragSource(UIEvent event) {
         if (isNumberField()) {
-            if (event.dragHandler.draggingObject instanceof NumberStart(double numberStart)) {
+            // a drag sets the number: not on a field that is not active, as typing and the wheel are not (isEditable)
+            if (event.dragHandler.draggingObject instanceof NumberStart(double numberStart) && isActiveInHierarchy()) {
                 var localMouse = getLocalMouse(event.x, event.y);
                 var localStart = getLocalMouse(event.dragStartX, event.dragStartY);
                 if (Mth.abs(localMouse.x - localStart.x) < 4) {
