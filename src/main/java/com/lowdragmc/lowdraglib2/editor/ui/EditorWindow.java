@@ -563,16 +563,18 @@ public class EditorWindow extends UIElement {
     private void restoreGameGuiScale(boolean screenClosing) {
         if (!LDLib2.isClient()) return;
         var minecraft = Minecraft.getInstance();
+        if (screenClosing) {
+            // Inside Screen#removed the closing screen is still the current one, so resizing now would
+            // init it again, and its ModularUI with it: no longer removed, so still taken for one on
+            // screen. Setting the scale is a resize too (the option's own update resizes the display),
+            // so all of it waits.
+            minecraft.tell(() -> restoreGameGuiScale(false));
+            return;
+        }
         var guiScale = minecraft.options.guiScale();
         if (guiScale.get() != initialScreenScale) {
             guiScale.set(initialScreenScale);
-            if (screenClosing) {
-                // Inside Screen#removed the closing screen is still the current one, so resizing now
-                // would init it again.
-                minecraft.tell(minecraft::resizeDisplay);
-            } else {
-                minecraft.resizeDisplay();
-            }
+            minecraft.resizeDisplay();
         }
     }
 

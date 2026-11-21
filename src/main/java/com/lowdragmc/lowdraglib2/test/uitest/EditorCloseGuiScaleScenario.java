@@ -79,7 +79,8 @@ public class EditorCloseGuiScaleScenario implements UIScenario {
                         .settleMs(150)
                         .check("the screen closed", ctx -> ctx.screen() == null)
                         .check("the game's scale is back", ctx -> gameScale(ctx) == GAME_SCALE)
-                        .check("and the game window is laid out at it", ctx -> ctx.mc().getWindow().getGuiScale() == GAME_SCALE))
+                        .check("and the game window is laid out at it", ctx -> ctx.mc().getWindow().getGuiScale() == GAME_SCALE)
+                        .check("its UI is taken down, not laid out again at the game's scale", EditorCloseGuiScaleScenario::uiRemoved))
 
                 // a server closing the menu, another mod opening its own screen
                 .group("the screen replaced from outside", g -> g
@@ -96,7 +97,8 @@ public class EditorCloseGuiScaleScenario implements UIScenario {
                         .step("close the screen", ctx -> ctx.mc().setScreen(null))
                         .settleMs(150)
                         .check("the game's scale is back", ctx -> gameScale(ctx) == GAME_SCALE)
-                        .check("and the game window is laid out at it", ctx -> ctx.mc().getWindow().getGuiScale() == GAME_SCALE))
+                        .check("and the game window is laid out at it", ctx -> ctx.mc().getWindow().getGuiScale() == GAME_SCALE)
+                        .check("its UI is taken down, not laid out again at the game's scale", EditorCloseGuiScaleScenario::uiRemoved))
 
                 .group("minimizing gives the scale back, and so does closing it once shown again", g -> g
                         .step("start from the game's own scale", ctx -> setGameScale(ctx, GAME_SCALE))
@@ -167,6 +169,12 @@ public class EditorCloseGuiScaleScenario implements UIScenario {
 
     private static int gameScale(TestContext ctx) {
         return ctx.mc().options.guiScale().get();
+    }
+
+    /** What anything asking whether the editor is still shown reads ({@link ModularUI#isRemoved}). */
+    private static boolean uiRemoved(TestContext ctx) {
+        var mui = window(ctx).getModularUI();
+        return mui == null || mui.isRemoved();
     }
 
     private static EditorWindow window(TestContext ctx) {
