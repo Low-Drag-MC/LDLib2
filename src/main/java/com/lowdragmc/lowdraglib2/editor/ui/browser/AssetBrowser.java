@@ -41,7 +41,6 @@ import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.Util;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 import java.io.File;
@@ -1293,7 +1292,7 @@ public class AssetBrowser extends UIElement {
         if (behavior != null && behavior.isLoaded(path) && behavior.container().getCanRename().test(path)) {
             var container = behavior.container();
             ResourceProviderContainer.startInlineRename(cell, displayNameOf(file, behavior),
-                    ResourceLocation::isAllowedInResourceLocation,
+                    ResourceProviderContainer::isValidNameChar,
                     name -> {
                         container.renameResourceTo(path, name);
                         requestGridRebuild();

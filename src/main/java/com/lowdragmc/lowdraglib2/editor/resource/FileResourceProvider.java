@@ -27,6 +27,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.nio.file.InvalidPathException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -305,7 +306,7 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
                 } else {
                     LDLib2.LOGGER.error("Failed to serialize resource {} to file {}", content, file);
                 }
-            } catch (IOException e) {
+            } catch (IOException | InvalidPathException e) {
                 LDLib2.LOGGER.error("Failed to write resource {} to file {}", content, file, e);
             }
         }

@@ -144,6 +144,7 @@
   "editor.copy.target": "Copy to",
   "editor.copy.name": "Name",
   "editor.copy.no_target": "There is nowhere to copy this to — add a writable resource provider first.",
+  "editor.copy.failed": "The copy could not be written. See the log for why.",
   "editor.remove_resource": "Remove Resource",
   "editor.rename_resource": "Rename Resource",
   "editor.drag_drop_resource": "Drag and Drop Resource",

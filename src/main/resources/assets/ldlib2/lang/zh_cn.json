@@ -143,6 +143,7 @@
   "editor.copy.target": "复制到",
   "editor.copy.name": "名称",
   "editor.copy.no_target": "没有可以复制到的位置——请先添加一个可写的资源提供者。",
+  "editor.copy.failed": "副本没能写入，原因见日志。",
   "editor.remove_resource": "移除资源",
   "editor.rename_resource": "重命名资源",
   "editor.drag_drop_resource": "拖放资源",
