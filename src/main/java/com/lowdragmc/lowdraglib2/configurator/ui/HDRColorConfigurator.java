@@ -105,10 +105,7 @@ public class HDRColorConfigurator extends ValueConfigurator<HDRColor> {
         });
         this.dialog.setFocusable(true);
         this.dialog.setEnforceFocus(e -> hide());
-        this.dialog.addEventListener(UIEvents.LAYOUT_CHANGED, e -> {
-            this.updateDialogPosition();
-            e.currentElement.adaptPositionToScreen();
-        });
+        this.dialog.addEventListener(UIEvents.LAYOUT_CHANGED, e -> this.updateDialogPosition());
         this.dialog.addClass("panel_bg").addChildren(this.colorSelector, this.intensityConfigurator);
     }
 
@@ -136,12 +133,16 @@ public class HDRColorConfigurator extends ValueConfigurator<HDRColor> {
         var mui = getModularUI();
         if (mui != null) {
             var root = mui.ui.rootElement;
-            var worldPos = this.localToWorld(new Vector2f(getPositionX(), getPositionY() + getSizeHeight()));
-            var pos = root.worldToLocalLayoutOffset(worldPos);
+            var bottom = getPositionY() + getSizeHeight();
+            var pos = root.worldToLocalLayoutOffset(this.localToWorld(new Vector2f(getPositionX(), bottom)));
+            var end = root.worldToLocalLayoutOffset(this.localToWorld(new Vector2f(getPositionX() + getSizeWidth(), bottom)));
+            // not adaptPositionToScreen: re-anchoring then shifting flips the dialog on every layout pass
+            var left = Math.max(-root.getPositionX(), Math.min(pos.x, mui.getScreenWidth() - dialog.getSizeWidth() - root.getPositionX()));
+            var top = Math.max(-root.getPositionY(), Math.min(pos.y, mui.getScreenHeight() - dialog.getSizeHeight() - root.getPositionY()));
             this.dialog.layout(layout -> {
-                layout.left(pos.x);
-                layout.top(pos.y);
-                layout.width(Math.max(this.getSizeWidth(), 50));
+                layout.left(left);
+                layout.top(top);
+                layout.width(Math.max(Math.min(end.x - pos.x, mui.getScreenWidth()), 50));
             });
         }
     }
