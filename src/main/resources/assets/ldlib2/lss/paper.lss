@@ -42,7 +42,7 @@
 
 .configurator_preview_bg {
   background: sdf(#dfe3ea, 6, 1, #1f000000);
-  padding-all: 4;
+  padding-all: 3;
 }
 
 // ── type ─────────────────────────────────────────────────────────────────────
