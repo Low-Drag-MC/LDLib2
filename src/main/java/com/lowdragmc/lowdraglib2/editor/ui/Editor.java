@@ -1133,6 +1133,8 @@ public abstract class Editor extends UIElement implements EditorHost {
                         Dialog.showNotification("ldlib.gui.editor.menu.save_success", 2)
                                 .show(this.getModularUI());
                     }
+                } else if (onFinish != null) {
+                    onFinish.run();
                 }
             }
         }
@@ -1165,16 +1167,16 @@ public abstract class Editor extends UIElement implements EditorHost {
                     false,
                     defaultSaveFile,
                     Dialog.suffixFilter(suffix), file -> {
-                        if (file != null && !file.isDirectory()) {
-                            if (!file.getName().endsWith(suffix)) {
-                                file = new File(file.getParentFile(), file.getName() + suffix);
-                            }
-                            if (!writeProject(file)) {
-                                return;
-                            }
-                            currentProjectFile = file;
-                            recordRecentProject();
+                        // a folder picked with no name: nothing was saved
+                        if (file == null || file.isDirectory()) return;
+                        if (!file.getName().endsWith(suffix)) {
+                            file = new File(file.getParentFile(), file.getName() + suffix);
                         }
+                        if (!writeProject(file)) {
+                            return;
+                        }
+                        currentProjectFile = file;
+                        recordRecentProject();
                         if (onFinish != null) {
                             onFinish.run();
                         }
