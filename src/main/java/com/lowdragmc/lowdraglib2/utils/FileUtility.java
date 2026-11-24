@@ -3,7 +3,11 @@ package com.lowdragmc.lowdraglib2.utils;
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
 import lombok.experimental.UtilityClass;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtAccounter;
+import net.minecraft.nbt.NbtIo;
 import org.apache.commons.io.IOUtils;
+import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
 import java.io.*;
@@ -22,6 +26,22 @@ import java.util.List;
 @UtilityClass
 public final class FileUtility {
     public static final Gson GSON_PRETTY = new GsonBuilder().setPrettyPrinting().create();
+
+    /**
+     * {@link NbtIo#read(Path)}, buffered. Vanilla's reads the file stream directly, so each int of an int array is
+     * four one-byte reads into the OS; a large resource of int arrays spent nearly all its load time there.
+     *
+     * @return the file's compound, or null when there is no such file
+     */
+    @Nullable
+    public static CompoundTag readNbt(Path path) throws IOException {
+        if (!Files.exists(path)) {
+            return null;
+        }
+        try (var in = new DataInputStream(new BufferedInputStream(Files.newInputStream(path)))) {
+            return NbtIo.read(in, NbtAccounter.unlimitedHeap());
+        }
+    }
 
     /**
      * A directory entry together with the attributes the enumeration already resolved for it.

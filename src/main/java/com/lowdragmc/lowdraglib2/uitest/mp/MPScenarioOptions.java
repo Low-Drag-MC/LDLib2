@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.uitest.mp;
 
 import com.lowdragmc.lowdraglib2.uitest.ScenarioOptions;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -24,6 +25,8 @@ public final class MPScenarioOptions {
     private final Set<String> tags = new LinkedHashSet<>();
     private Consumer<ScenarioOptions> clientOptions = options -> {
     };
+    @Nullable
+    private String skipReason;
 
     /**
      * The client roles this scenario needs, e.g. {@code clients("A", "B")}. A run launched with
@@ -53,6 +56,22 @@ public final class MPScenarioOptions {
     public MPScenarioOptions clientOptions(Consumer<ScenarioOptions> configure) {
         this.clientOptions = this.clientOptions.andThen(configure);
         return this;
+    }
+
+    /**
+     * Reports the scenario as {@code SKIPPED} with {@code reason} instead of running it when
+     * {@code available} is false. Every process must reach the same answer.
+     */
+    public MPScenarioOptions skipUnless(boolean available, String reason) {
+        if (!available) {
+            this.skipReason = reason;
+        }
+        return this;
+    }
+
+    @Nullable
+    public String skipReason() {
+        return skipReason;
     }
 
     public List<String> clients() {

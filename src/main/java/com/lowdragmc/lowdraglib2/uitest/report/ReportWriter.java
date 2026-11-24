@@ -99,6 +99,7 @@ public final class ReportWriter {
                 .append(report.totals.scenarios).append(" passed");
         if (report.totals.failed > 0) out.append(", ").append(report.totals.failed).append(" failed");
         if (report.totals.errored > 0) out.append(", ").append(report.totals.errored).append(" errored");
+        if (report.totals.skipped > 0) out.append(", ").append(report.totals.skipped).append(" skipped");
         out.append('\n');
         out.append("checks    : ").append(report.totals.checks - report.totals.checksFailed).append('/')
                 .append(report.totals.checks).append(" passed\n");
@@ -108,6 +109,9 @@ public final class ReportWriter {
         for (var scenario : report.scenarios) {
             out.append('\n').append(statusMark(scenario.status)).append(' ').append(scenario.name)
                     .append(" (").append(scenario.durationMs).append(" ms)\n");
+            if (scenario.skipReason != null) {
+                out.append("    skipped: ").append(scenario.skipReason).append('\n');
+            }
             if (scenario.error != null) {
                 out.append("    ERROR ").append(scenario.error.type).append(": ")
                         .append(scenario.error.message).append('\n');

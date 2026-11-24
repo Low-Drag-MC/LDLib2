@@ -52,7 +52,8 @@ public class DataComponentConfigurator extends ConfiguratorGroup {
             if (value == null) builder.remove(type);
             else builder.set(type, value);
         }
-        consumer.accept(builder.build());
+        var patch = builder.build();
+        write(() -> consumer.accept(patch));
         notifyChanges();
     }
 
@@ -87,7 +88,8 @@ public class DataComponentConfigurator extends ConfiguratorGroup {
                 }
                 if (value == null) builder.remove(type);
                 else builder.set(type, value);
-                consumer.accept(builder.build());
+                var updated = builder.build();
+                write(() -> consumer.accept(updated));
             }, EndTag.INSTANCE, forceUpdate);
             tagConfigurator.tagField.setTagValidator(tag -> type.codec().parse(opWithRegistry, tag).isSuccess());
             addConfigurator(tagConfigurator);
@@ -130,7 +132,8 @@ public class DataComponentConfigurator extends ConfiguratorGroup {
                     else builder.set(component.type(), component.value());
                 }
             });
-            consumer.accept(builder.build());
+            var updated = builder.build();
+            write(() -> consumer.accept(updated));
         });
 //        arrayGroup.addEventListener(UIEvents.TICK, event -> {
 //            var count = 0;

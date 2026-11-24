@@ -32,6 +32,8 @@ public final class ResourceGameTests {
         initialized = true;
         DirectFileResolutionGameTest.registerFunctions();
         ResourcePathMigrationGameTest.registerFunctions();
+        ConcurrentResourceReadGameTest.registerFunctions();
+        ReleasedResourceGameTest.registerFunctions();
         TEST_FUNCTIONS.register(eventBus);
         eventBus.addListener(ResourceGameTests::registerGameTests);
     }
@@ -55,6 +57,8 @@ public final class ResourceGameTests {
         );
         DirectFileResolutionGameTest.register(event, environment);
         ResourcePathMigrationGameTest.register(event, environment);
+        ConcurrentResourceReadGameTest.register(event, environment);
+        ReleasedResourceGameTest.register(event, environment);
     }
 
     static void registerFunctionTest(

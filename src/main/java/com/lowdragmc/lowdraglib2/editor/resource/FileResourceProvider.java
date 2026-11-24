@@ -19,13 +19,17 @@ import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import com.lowdragmc.lowdraglib2.utils.FileUtility;
 import net.minecraft.nbt.NbtIo;
 
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
+import java.nio.file.InvalidPathException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class FileResourceProvider<T> extends ResourceProvider<T>  {
     public static final ResourceProviderType TYPE = new ResourceProviderType() {
@@ -69,7 +73,8 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
 
     public final File resourceLocation;
     public final String resourceSuffix;
-    private final Map<File, Long> resourcesLastModified = new LinkedHashMap<>();
+    // concurrent, as is contents: a resource may be read on a worker thread while the game thread scans
+    private final Map<File, Long> resourcesLastModified = new ConcurrentHashMap<>();
     /**
      * Every file in the folder, in scan order — <b>what exists</b>, as opposed to
      * {@link #contents}, which is what has been read.
@@ -80,11 +85,13 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
     private volatile Map<IResourcePath, File> known = Map.of();
     /** {@link #known}'s order, which an immutable map does not promise. */
     private volatile List<IResourcePath> order = List.of();
+    /** What was read and then {@linkplain #release released}: no longer in {@link #contents}. */
+    private final Map<IResourcePath, WeakReference<T>> released = new ConcurrentHashMap<>();
     @Getter @Setter
     private String name;
 
     public FileResourceProvider(ResourceInstance<T> resourceInstance, File resourceLocation) {
-        super(resourceInstance);
+        super(resourceInstance, new ConcurrentHashMap<>());
         // Resolved the way FilePath resolves the paths under it, and saved game-relative (serializeNBT). Kept as
         // given, a relative folder - one built on Minecraft#gameDirectory, which is "." under ModDev - never equals
         // the absolute parent of its own FilePaths, and every resource added to it was refused.
@@ -153,6 +160,8 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
      * <p>A file that will not decode is dropped from the listing rather than re-read on every call —
      * which is what the eager scan did by only recording a file whose read succeeded. The next scan
      * picks it up again if it changes on disk.
+     *
+     * <p>Safe to call from any thread. Two threads reading the same file at once get the same value.
      */
     @Override
     public T getResource(IResourcePath path) {
@@ -163,16 +172,32 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
         if (loaded != null) {
             return loaded;
         }
+        var let = released.get(path);
+        if (let != null) {
+            var held = let.get();
+            if (held != null) {
+                return held;
+            }
+            released.remove(path, let);
+        }
         var file = known.get(path);
         if (file == null) {
             return null;
         }
+        var stamp = resourcesLastModified.get(file);
         var read = readResourceFromFile(file);
         if (read == null) {
             forget(path, file);
             return null;
         }
-        contents.put(path, read);
+        var won = contents.putIfAbsent(path, read);
+        if (won != null) {
+            return won;
+        }
+        // the scan saw the file change while it was being read: what was read may be the old bytes
+        if (!Objects.equals(stamp, resourcesLastModified.get(file))) {
+            contents.remove(path, read);
+        }
         return read;
     }
 
@@ -209,7 +234,7 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
         };
     }
 
-    private void forget(IResourcePath path, File file) {
+    private synchronized void forget(IResourcePath path, File file) {
         var paths = new LinkedHashMap<>(known);
         if (paths.remove(path) == null) {
             return;
@@ -220,6 +245,43 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
         order = java.util.List.copyOf(ordered);
         resourcesLastModified.remove(file);
         contents.remove(path);
+        released.remove(path);
+    }
+
+    @Override
+    public void release(IResourcePath path) {
+        // published before it leaves contents, so a read in between finds it rather than reading the file again
+        var value = contents.get(path);
+        if (value != null) {
+            released.put(path, new WeakReference<>(value));
+            contents.remove(path, value);
+        }
+    }
+
+    @Override
+    public void keep(IResourcePath path) {
+        var let = released.get(path);
+        var value = let == null ? null : let.get();
+        if (value != null) {
+            contents.putIfAbsent(path, value);
+        }
+        released.remove(path);
+    }
+
+    @Override
+    public boolean isReleased(IResourcePath path) {
+        var let = released.get(path);
+        return let != null && let.get() != null;
+    }
+
+    @Override
+    public T getLoadedResource(IResourcePath path) {
+        var loaded = contents.get(path);
+        if (loaded != null) {
+            return loaded;
+        }
+        var let = released.get(path);
+        return let == null ? null : let.get();
     }
 
     @Override
@@ -240,11 +302,17 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
                     resourcesLastModified.put(file, file.lastModified());
                     // it exists from now on, without waiting for the next scan to notice the file
                     remember(path, file);
-                    return super.addResource(path, content);
+                    // a released value is in no lookup cache the base class clears: the instance still hands it out
+                    var wasReleased = released.remove(path) != null;
+                    var added = super.addResource(path, content);
+                    if (wasReleased) {
+                        resourceInstance.clearCache();
+                    }
+                    return added;
                 } else {
                     LDLib2.LOGGER.error("Failed to serialize resource {} to file {}", content, file);
                 }
-            } catch (IOException e) {
+            } catch (IOException | InvalidPathException e) {
                 LDLib2.LOGGER.error("Failed to write resource {} to file {}", content, file, e);
             }
         }
@@ -258,18 +326,22 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
             // provider nothing may have read it yet — a caller relying on the removed value (an
             // undo entry) would otherwise get null for a resource that was perfectly good
             var removed = getResource(path);
+            var wasReleased = released.containsKey(path);
             if (filePath.file.delete()) {
                 // before forget(), which drops the entry the base class clears the lookup cache on —
                 // or a resource made again under this path is still read as the removed one
                 super.removeResource(path);
                 forget(path, filePath.file);
+                if (wasReleased) {
+                    resourceInstance.clearCache();
+                }
                 return removed;
             }
         }
         return null;
     }
 
-    private void remember(IResourcePath path, File file) {
+    private synchronized void remember(IResourcePath path, File file) {
         if (known.containsKey(path)) {
             return;
         }
@@ -319,7 +391,7 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
      * Load and update resource
      * @return true resource changes.
      */
-    public boolean checkAndUpdateResourceProvider() {
+    public synchronized boolean checkAndUpdateResourceProvider() {
         if (resourceLocation == null) {
             return false;
         }
@@ -343,8 +415,10 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
                     }
                     // new, or rewritten on disk. ⚠️ NOTHING is read here: whatever was decoded from
                     // the old bytes is dropped, and the next getResource pays for the new ones.
-                    contents.remove(path);
+                    // The stamp first: a read in flight on another thread checks it after publishing.
                     resourcesLastModified.put(file, stamp);
+                    contents.remove(path);
+                    released.remove(path);
                     changed = true;
                 }
             }
@@ -354,6 +428,7 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
                 removed.forEach(file -> {
                     resourcesLastModified.remove(file);
                     contents.remove(new FilePath(file));
+                    released.remove(new FilePath(file));
                 });
                 changed = true;
             }
@@ -372,7 +447,7 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
     @Nullable
     private T readResourceFromFile(File file) {
         try {
-            var fileData = NbtIo.read(file.toPath());
+            var fileData = FileUtility.readNbt(file.toPath());
             if (fileData != null) {
                 var data = deserializeNBT(fileData, Platform.getFrozenRegistry());
                 if (data != null) return data;

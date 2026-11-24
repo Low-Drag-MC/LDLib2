@@ -524,6 +524,7 @@ public class TextArea extends BindableUIElement<String[]> {
             valueBuilder.add("");
         }
         this.value = valueBuilder.toArray(new String[0]);
+        this.isError = false;
         // Reset cursor and selection at end
         cursorLine = 0;
         cursorCol = 0;

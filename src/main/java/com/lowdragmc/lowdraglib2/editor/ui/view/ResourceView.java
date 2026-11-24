@@ -3,6 +3,7 @@ package com.lowdragmc.lowdraglib2.editor.ui.view;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.lowdragmc.lowdraglib2.editor.resource.Resource;
+import com.lowdragmc.lowdraglib2.editor.resource.ResourceGroup;
 import com.lowdragmc.lowdraglib2.editor.resource.ResourceInstance;
 import com.lowdragmc.lowdraglib2.editor.resource.Resources;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
@@ -15,29 +16,40 @@ import com.lowdragmc.lowdraglib2.gui.texture.GuiTextureGroup;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.rendering.RegisteredGuiTextureRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Tab;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TabView;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.layout.LayoutProperties;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelperClient;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
+import com.lowdragmc.lowdraglib2.gui.util.UISoundUtils;
+import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.FlexWrap;
+import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 
 import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -45,6 +57,65 @@ public class ResourceView extends View {
     /** Marks the view itself, so a theme can reach the whole thing without naming its type. */
     public static final String CLASS_ROOT = "__resource-view__";
     public static final String CLASS_DROP_PLACEHOLDER = "__resource-view_tab-placeholder__";
+    /** The strip tab standing for a {@link ResourceGroup}. */
+    public static final String CLASS_GROUP_TAB = "__resource-view_group-tab__";
+    /** The panel a group's tab opens, listing its resources. */
+    public static final String CLASS_GROUP_FLYOUT = "__resource-view_group-flyout__";
+    /** A resource's row in a group's panel. */
+    public static final String CLASS_GROUP_MEMBER = "__resource-view_group-member__";
+    /** How a group's place is written in the saved tab order, apart from any resource's name. */
+    public static final String GROUP_ORDER_PREFIX = "group:";
+
+    /** The corner mark on a group's tab saying there is more behind it. An overlay, so it sits over the icon. */
+    public static final IGuiTexture GROUP_MARKER = new GroupMarkerTexture();
+
+    /** {@link #GROUP_MARKER}'s type: drawn by its own renderer, there is nothing in it to configure or save. */
+    public static final class GroupMarkerTexture implements IGuiTexture {
+        private GroupMarkerTexture() {
+        }
+
+        @Override
+        public IGuiTexture copy() {
+            return this;
+        }
+
+        @LDLRegisterClient(name = "resource_view_group_marker", registry = "ldlib2:gui_texture_renderer")
+        public static final class GroupMarkerTextureRenderer
+                implements RegisteredGuiTextureRenderer<GroupMarkerTexture, GroupMarkerTextureRenderer> {
+            @Override
+            public Class<GroupMarkerTexture> type() {
+                return GroupMarkerTexture.class;
+            }
+
+            @Override
+            public void draw(GroupMarkerTexture texture, GUIContext context, float x, float y, float width, float height) {
+                var right = x + width - 1;
+                var bottom = y + height - 1;
+                // a dark edge under a light triangle, so it shows on light icons and dark ones alike
+                for (int i = 0; i < 4; i++) {
+                    DrawerHelperClient.drawSolidRect(context, right - i - 1, bottom - (4 - i), 1, 4 - i, 0xCC000000);
+                }
+                for (int i = 0; i < 3; i++) {
+                    DrawerHelperClient.drawSolidRect(context, right - i - 1, bottom - (3 - i), 1, 3 - i, 0xFFFFFFFF);
+                }
+            }
+        }
+    }
+
+    private static final class GroupEntry {
+        private final ResourceGroup group;
+        /** A plain tab, so a theme reaches it as it reaches every other tab in the strip. */
+        private final Tab tab = new Tab();
+        /** In the order of the group's panel, which the user can rearrange. */
+        private final List<Resource<?>> members = new ArrayList<>();
+        /** The one last picked: the tab wears its icon. */
+        @Nullable
+        private Resource<?> current;
+
+        private GroupEntry(ResourceGroup group) {
+            this.group = group;
+        }
+    }
 
     /**
      * How far into the strip a press still counts as a grab of the resize handle, and how far into the
@@ -108,6 +179,16 @@ public class ResourceView extends View {
     private UIElement tabDropPlaceholder;
     /** True while {@link #loadResources} is adding a project's resources one at a time. */
     private boolean loadingResources;
+    /** The resources last loaded: what they group is what the strip groups. */
+    private Resources grouping = Resources.EMPTY;
+    /** The groups in the strip, by id, each with its tab and its resources in the order they were added. */
+    private final Map<String, GroupEntry> groups = new LinkedHashMap<>();
+    /** The open group panel, if any. */
+    @Nullable
+    private GroupFlyout groupFlyout;
+    /** The group whose tab the pointer went down on, while it is still a click rather than a drag. */
+    @Nullable
+    private GroupEntry pressedGroup;
 
     public ResourceView(Editor editor) {
         super("editor.view.resources");
@@ -530,10 +611,23 @@ public class ResourceView extends View {
         // the asset browser is not tied to a single resource type
         var resource = tab == assetBrowserTab ? null : resourceTabs.inverse().get(tab);
         selectedResourceInstance = resource == null ? null : getResourceInstance(resource);
+        for (var entry : groups.values()) {
+            var member = resource != null && entry.members.contains(resource);
+            if (member) {
+                entry.current = resource;
+            }
+            entry.tab.setSelected(member);
+        }
     }
 
     private Tab createTab(IGuiTexture icon, Component tooltip) {
-        var tab = new Tab().tabStyle(style -> {
+        var tab = styleStripTab(new Tab(), icon);
+        tab.style(style -> style.tooltips(tooltip)).moveInlineAsDefault();
+        return tab;
+    }
+
+    private <T extends Tab> T styleStripTab(T tab, IGuiTexture icon) {
+        tab.tabStyle(style -> {
             style.baseTexture(IGuiTexture.EMPTY);
             style.hoverTexture(Sprites.RECT_RD_T);
             style.selectedTexture(Sprites.RECT_RD_T);
@@ -543,11 +637,69 @@ public class ResourceView extends View {
             layout.height(14);
             layout.paddingAll(1);
             layout.marginAll(1);
-        }).style(style -> style.tooltips(tooltip)).addChild(new UIElement().layout(layout -> {
+        }).addChild(new UIElement().layout(layout -> {
             layout.widthPercent(100);
             layout.heightPercent(100);
         }).style(style -> style.backgroundTexture(icon)));
         tab.moveInlineAsDefault();
+        return tab;
+    }
+
+    private void styleGroupTab(GroupEntry entry) {
+        var tab = styleStripTab(entry.tab, DynamicTexture.of(() -> {
+            var shown = shownMember(entry);
+            return shown == null ? IGuiTexture.EMPTY : shown.getIcon();
+        }));
+        tab.addClass(CLASS_GROUP_TAB);
+        tab.style(style -> style.overlayTexture(GROUP_MARKER)).moveInlineAsDefault();
+        // not while its panel is open: the mouse is still on the tab, and the tooltip would cover the rows
+        tab.addEventListener(UIEvents.HOVER_TOOLTIPS, event -> {
+            if (entry.group.equals(getOpenGroup())) return;
+            var shown = shownMember(entry);
+            event.hoverTooltips = shown == null ? HoverTooltips.create(entry.group.getDisplayName())
+                    : HoverTooltips.create(entry.group.getDisplayName(), shown.getDisplayName().copy().withStyle(ChatFormatting.GRAY));
+        });
+    }
+
+    /** What a group's tab shows: the resource last picked in it, else the first one showing. */
+    @Nullable
+    private Resource<?> shownMember(GroupEntry entry) {
+        if (entry.current != null && entry.members.contains(entry.current) && !isResourceHidden(entry.current)) {
+            return entry.current;
+        }
+        for (var member : entry.members) {
+            if (!isResourceHidden(member)) return member;
+        }
+        return entry.members.isEmpty() ? null : entry.members.getFirst();
+    }
+
+    /** A grouped resource's tab: a row of icon and name, shown in its group's panel rather than in the strip. */
+    private Tab createMemberTab(Resource<?> resource) {
+        var tab = new Tab().tabStyle(style -> {
+            style.baseTexture(IGuiTexture.EMPTY);
+            style.hoverTexture(Sprites.RECT_RD_T);
+            style.selectedTexture(Sprites.RECT_RD_T);
+        });
+        tab.setText(resource.getDisplayName());
+        tab.textStyle(style -> style.textAlignHorizontal(Horizontal.LEFT));
+        tab.layout(layout -> {
+            layout.height(16);
+            layout.paddingAll(2);
+            layout.paddingRight(4);
+            layout.gapAll(3);
+            // the icon and the name share one middle, whatever height and padding the theme gives the row
+            layout.alignItems(AlignItems.CENTER);
+        });
+        tab.addChildAt(new UIElement().layout(layout -> {
+            layout.width(12);
+            layout.height(12);
+            layout.flexShrink(0);
+        }).style(style -> style.backgroundTexture(resource.getIcon())), 0);
+        tab.addClass(CLASS_GROUP_MEMBER);
+        tab.moveInlineAsDefault();
+        // inline over the theme: a theme sizes the strip's tabs as squares, and a row spans the panel
+        tab.layout(layout -> layout.widthPercent(100));
+        makeMemberDraggable(tab);
         return tab;
     }
 
@@ -574,9 +726,42 @@ public class ResourceView extends View {
         tab.addEventListener(UIEvents.DRAG_END, event -> endTabDrag());
     }
 
+    /**
+     * Makes a row of a group's panel draggable within the panel, by the strip's rule: the drag starts on
+     * leaving the row with the button still down. A press and a release on the row is a pick, and puts the
+     * panel away; a release that ends a drag is not.
+     */
+    private void makeMemberDraggable(Tab tab) {
+        tab.addEventListener(UIEvents.MOUSE_DOWN, event -> {
+            if (event.button == 0) {
+                pressedTab = tab;
+            }
+        });
+        tab.addEventListener(UIEvents.MOUSE_UP, event -> {
+            // picked on the press, which TabView answers by selecting it
+            if (event.button == 0 && pressedTab == tab) {
+                closeGroupFlyout();
+            }
+            pressedTab = null;
+        });
+        tab.addEventListener(UIEvents.MOUSE_LEAVE, event -> {
+            if (pressedTab == tab && isMouseDown(0)) {
+                startTabDrag(tab);
+            }
+            pressedTab = null;
+        }, true);
+        tab.addEventListener(UIEvents.DRAG_END, event -> endTabDrag());
+    }
+
     private void startTabDrag(Tab tab) {
-        var resource = resourceTabs.inverse().get(tab);
-        if (resource == null) return;
+        var entry = groupEntryOf(tab);
+        var resource = entry == null ? resourceTabs.inverse().get(tab) : shownMember(entry);
+        var icon = resource == null ? null : resource.getIcon();
+        if (icon == null) return;
+        // a panel stands beside its tab, and the strip is about to move under it
+        if (groupFlyout != null && !groupFlyout.hasChild(tab)) {
+            closeGroupFlyout();
+        }
         draggingTab = tab;
         // Square, and deliberately not the tab's own box: a theme is free to make tabs taller than they
         // are wide — the vanilla-styled ones do, so the selected tab can stand proud — and a resource
@@ -584,7 +769,7 @@ public class ResourceView extends View {
         // gesture. The shorter side keeps it inside the footprint it came from.
         var side = Math.min(tab.getSizeWidth(), tab.getSizeHeight());
         tab.startDrag(new TabDrag(this, tab),
-                        new GuiTextureGroup(ColorPattern.T_WHITE.rectTexture(), resource.getIcon()))
+                        new GuiTextureGroup(ColorPattern.T_WHITE.rectTexture(), icon))
                 .setDragTexture(-side / 2f, -side / 2f, side, side);
         // Out of the flow for the length of the drag, so the strip lays out as it would once the tab has
         // moved and the placeholder shows the real result rather than the result plus a gap.
@@ -602,9 +787,16 @@ public class ResourceView extends View {
         }
     }
 
-    /** The tab drag this strip owns, or null for anything else being dragged over it. */
+    /** The tab drag this strip owns, or null for anything else being dragged over it — a row of a group's panel included. */
     @Nullable
     private Tab ownTabDrag(UIEvent event) {
+        var tab = ownDrag(event);
+        return tab != null && tabContainer().hasChild(tab) ? tab : null;
+    }
+
+    /** A tab of this view being dragged, from the strip or from a group's panel. */
+    @Nullable
+    private Tab ownDrag(UIEvent event) {
         if (event.dragHandler == null) return null;
         return event.dragHandler.getDraggingObject() instanceof TabDrag(ResourceView view, Tab tab) && view == this
                 ? tab : null;
@@ -651,7 +843,8 @@ public class ResourceView extends View {
 
     protected void onStripDragLeave(UIEvent event) {
         if (tabView.tabHeaderContainer.isMouseOverElement(event.x, event.y)) return;
-        if (tabDropPlaceholder != null) {
+        // a group's panel keeps its own marker
+        if (tabDropPlaceholder != null && tabDropPlaceholder.getParent() == tabContainer()) {
             tabDropPlaceholder.removeSelf();
             tabDropPlaceholder = null;
         }
@@ -726,8 +919,23 @@ public class ResourceView extends View {
     }
 
     private boolean isTabHidden(Tab tab) {
+        var entry = groupEntryOf(tab);
+        if (entry != null) {
+            return entry.members.stream().allMatch(this::isResourceHidden);
+        }
         var resource = resourceTabs.inverse().get(tab);
         return resource != null && isResourceHidden(resource);
+    }
+
+    /** A group's tab shows while any of its resources does. */
+    private void refreshGroupDisplay(GroupEntry entry) {
+        var hidden = isTabHidden(entry.tab);
+        if (draggingTab != entry.tab) {
+            entry.tab.setDisplay(!hidden);
+        }
+        if (hidden && groupFlyout != null && groupFlyout.entry == entry) {
+            closeGroupFlyout();
+        }
     }
 
     /**
@@ -743,6 +951,10 @@ public class ResourceView extends View {
                 selectFallbackTab();
             }
         }
+        var entry = entryOf(resource);
+        if (entry != null) {
+            refreshGroupDisplay(entry);
+        }
         saveTabLayout();
     }
 
@@ -750,10 +962,11 @@ public class ResourceView extends View {
         setResourceHidden(resource, !isResourceHidden(resource));
     }
 
-    /** Moves the selection off a tab that has just been hidden, onto the first one still showing. */
+    /** Moves the selection off a tab that has just been hidden, onto the first resource still showing. */
     private void selectFallbackTab() {
-        for (var child : tabContainer().getChildren()) {
-            if (child instanceof Tab tab && tab.isDisplayed()) {
+        for (var resource : orderedResources()) {
+            var tab = resourceTabs.get(resource);
+            if (tab != null && !isResourceHidden(resource)) {
                 tabView.selectTab(tab);
                 return;
             }
@@ -774,8 +987,7 @@ public class ResourceView extends View {
         if (!order.isEmpty()) {
             var sorted = new ArrayList<UIElement>();
             for (var name : order) {
-                var resource = findResource(name);
-                var tab = resource == null ? null : resourceTabs.get(resource);
+                var tab = stripTabOf(name);
                 if (tab != null && container.hasChild(tab) && !sorted.contains(tab)) {
                     sorted.add(tab);
                 }
@@ -793,12 +1005,26 @@ public class ResourceView extends View {
                     container.addChild(child);
                 }
             }
+            // a group's resources by where the saved order names them; ones it never named keep their turn after
+            for (var entry : groups.values()) {
+                var before = List.copyOf(entry.members);
+                entry.members.sort(Comparator.comparingInt(member -> {
+                    var index = order.indexOf(member.getName());
+                    return index < 0 ? Integer.MAX_VALUE : index;
+                }));
+                if (!before.equals(entry.members) && groupFlyout != null && groupFlyout.entry == entry) {
+                    groupFlyout.syncRows();
+                }
+            }
         }
         var selectedHidden = false;
         for (var entry : resourceTabs.entrySet()) {
             var hidden = isResourceHidden(entry.getKey());
             entry.getValue().setDisplay(!hidden);
             selectedHidden |= hidden && tabView.getSelectedTab() == entry.getValue();
+        }
+        for (var entry : groups.values()) {
+            refreshGroupDisplay(entry);
         }
         if (selectedHidden) {
             selectFallbackTab();
@@ -813,19 +1039,50 @@ public class ResourceView extends View {
         return null;
     }
 
-    /** Reads the order back off the strip and remembers it. */
+    /** The strip tab an entry of the saved order names: a group's, or an ungrouped resource's. */
+    @Nullable
+    private Tab stripTabOf(String name) {
+        if (name.startsWith(GROUP_ORDER_PREFIX)) {
+            var entry = groups.get(name.substring(GROUP_ORDER_PREFIX.length()));
+            return entry == null ? null : entry.tab;
+        }
+        var resource = findResource(name);
+        return resource == null ? null : resourceTabs.get(resource);
+    }
+
+    /** What the saved order calls a strip tab, or null for anything else in the strip. */
+    @Nullable
+    private String orderNameOf(UIElement child) {
+        var entry = groupEntryOf(child);
+        if (entry != null) {
+            return GROUP_ORDER_PREFIX + entry.group.getId();
+        }
+        var resource = resourceTabs.inverse().get(child);
+        return resource == null ? null : resource.getName();
+    }
+
+    /**
+     * Reads the order back off the strip and remembers it. A group's resources follow its entry, in the order
+     * of its panel: names that are not in the strip, so they place nothing there.
+     */
     protected void captureTabOrder() {
         var order = new ArrayList<String>();
         for (var child : tabContainer().getChildren()) {
-            var resource = resourceTabs.inverse().get(child);
-            if (resource != null) {
-                order.add(resource.getName());
+            var name = orderNameOf(child);
+            if (name != null) {
+                order.add(name);
+            }
+            var entry = groupEntryOf(child);
+            if (entry != null) {
+                for (var member : entry.members) {
+                    order.add(member.getName());
+                }
             }
         }
         // Resources that are not in the strip right now — another project's types — would be dropped by
         // a straight overwrite, so their remembered places are kept behind the ones that are.
         for (var name : tabLayout.getOrder()) {
-            if (!order.contains(name) && findResource(name) == null) {
+            if (!order.contains(name) && stripTabOf(name) == null && findResource(name) == null) {
                 order.add(name);
             }
         }
@@ -888,16 +1145,370 @@ public class ResourceView extends View {
         return menu;
     }
 
-    /** The resources in the order their tabs are in, so the menu reads like the strip does. */
+    /**
+     * The resources in the order their tabs are in, so the menu reads like the strip does — a group's
+     * resources where its tab is, in the order they were added.
+     */
     public List<Resource<?>> orderedResources() {
         var ordered = new ArrayList<Resource<?>>();
         for (var child : tabContainer().getChildren()) {
+            var entry = groupEntryOf(child);
+            if (entry != null) {
+                ordered.addAll(entry.members);
+                continue;
+            }
             var resource = resourceTabs.inverse().get(child);
             if (resource != null) {
                 ordered.add(resource);
             }
         }
         return ordered;
+    }
+
+    /// groups
+
+    /** The groups in the strip, in strip order. */
+    public List<ResourceGroup> getResourceGroups() {
+        var ordered = new ArrayList<ResourceGroup>();
+        for (var child : tabContainer().getChildren()) {
+            var entry = groupEntryOf(child);
+            if (entry != null) {
+                ordered.add(entry.group);
+            }
+        }
+        return ordered;
+    }
+
+    @Nullable
+    private GroupEntry groupEntryOf(UIElement tab) {
+        for (var entry : groups.values()) {
+            if (entry.tab == tab) return entry;
+        }
+        return null;
+    }
+
+    /** The group a resource is in here, or {@code null} when it has a tab of its own or is not in the view. */
+    @Nullable
+    public ResourceGroup getGroupOf(Resource<?> resource) {
+        var entry = entryOf(resource);
+        return entry == null ? null : entry.group;
+    }
+
+    /**
+     * A group's resources in the order of its panel — the order they were added in, until the user drags them
+     * into another; empty for a group not in the strip.
+     */
+    public List<Resource<?>> getGroupMembers(ResourceGroup group) {
+        var entry = groups.get(group.getId());
+        return entry == null ? List.of() : List.copyOf(entry.members);
+    }
+
+    /** The group's tab in the strip, marked with {@link #CLASS_GROUP_TAB}; {@code null} for a group not in the strip. */
+    @Nullable
+    public Tab getGroupTab(ResourceGroup group) {
+        var entry = groups.get(group.getId());
+        return entry == null ? null : entry.tab;
+    }
+
+    /** The group whose tab this is, or {@code null} for any other element. */
+    @Nullable
+    public ResourceGroup getGroupOfTab(UIElement tab) {
+        var entry = groupEntryOf(tab);
+        return entry == null ? null : entry.group;
+    }
+
+    /**
+     * The resource a group's tab stands for, and wears the icon of: the one last picked in it, or the first one
+     * showing until one is. {@code null} for a group not in the strip.
+     */
+    @Nullable
+    public Resource<?> getShownGroupMember(ResourceGroup group) {
+        var entry = groups.get(group.getId());
+        return entry == null ? null : shownMember(entry);
+    }
+
+    /** The group whose panel is open, if any. */
+    @Nullable
+    public ResourceGroup getOpenGroup() {
+        return groupFlyout == null ? null : groupFlyout.entry.group;
+    }
+
+    /** The open group panel, if any. */
+    @Nullable
+    public UIElement getGroupFlyout() {
+        return groupFlyout;
+    }
+
+    /** Opens a group's panel beside its tab, closing any other. Does nothing for a group that is not showing. */
+    public void openGroup(ResourceGroup group) {
+        var entry = groups.get(group.getId());
+        var mui = getModularUI();
+        if (entry == null || mui == null || isTabHidden(entry.tab)) return;
+        closeGroupFlyout();
+        groupFlyout = new GroupFlyout(entry);
+        mui.ui.rootElement.addChild(groupFlyout);
+        groupFlyout.focus();
+    }
+
+    public void closeGroupFlyout() {
+        var flyout = groupFlyout;
+        if (flyout == null) return;
+        groupFlyout = null;
+        // the rows are the resources' own tabs, which outlive the panel
+        for (var child : List.copyOf(flyout.getChildren())) {
+            flyout.removeChild(child);
+        }
+        flyout.removeSelf();
+    }
+
+    public void toggleGroup(ResourceGroup group) {
+        if (group.equals(getOpenGroup())) {
+            closeGroupFlyout();
+        } else {
+            openGroup(group);
+        }
+    }
+
+    @Nullable
+    private GroupEntry entryOf(Resource<?> resource) {
+        for (var entry : groups.values()) {
+            if (entry.members.contains(resource)) return entry;
+        }
+        return null;
+    }
+
+    private void joinGroup(ResourceGroup group, Resource<?> resource) {
+        var entry = groups.get(group.getId());
+        if (entry == null) {
+            entry = new GroupEntry(group);
+            styleGroupTab(entry);
+            groups.put(group.getId(), entry);
+            tabContainer().addChild(entry.tab);
+            makeTabDraggable(entry.tab);
+            var joined = entry;
+            // a press and a release on the tab opens the panel; a press that leaves it is a drag
+            entry.tab.addEventListener(UIEvents.MOUSE_DOWN, event -> {
+                if (event.button == 0) {
+                    pressedGroup = joined;
+                }
+            });
+            entry.tab.addEventListener(UIEvents.MOUSE_UP, event -> {
+                if (event.button == 0 && pressedGroup == joined) {
+                    UISoundUtils.playButtonClickSound();
+                    toggleGroup(joined.group);
+                }
+                pressedGroup = null;
+            });
+            entry.tab.addEventListener(UIEvents.MOUSE_LEAVE, event -> pressedGroup = null);
+        }
+        entry.members.add(resource);
+        refreshGroupDisplay(entry);
+        if (groupFlyout != null && groupFlyout.entry == entry) {
+            groupFlyout.addChild(resourceTabs.get(resource));
+        }
+    }
+
+    private void leaveGroup(Resource<?> resource) {
+        var entry = entryOf(resource);
+        if (entry == null) return;
+        entry.members.remove(resource);
+        if (!entry.members.isEmpty()) {
+            refreshGroupDisplay(entry);
+            return;
+        }
+        if (groupFlyout != null && groupFlyout.entry == entry) {
+            closeGroupFlyout();
+        }
+        entry.tab.removeSelf();
+        groups.remove(entry.group.getId());
+    }
+
+    /**
+     * A group's panel: its resources' own tabs as rows, beside the group's tab, on the side away from the
+     * content's edge the strip sits on. Closes when it loses the focus, as a menu does — except to its own
+     * group's tab, whose click is what closes it then.
+     */
+    private final class GroupFlyout extends UIElement {
+        private final GroupEntry entry;
+
+        private GroupFlyout(GroupEntry entry) {
+            this.entry = entry;
+            addClass(CLASS_GROUP_FLYOUT);
+            layout(layout -> {
+                layout.flexDirection(FlexDirection.COLUMN);
+                layout.paddingAll(2);
+                layout.gapAll(1);
+                layout.minWidth(80);
+            });
+            style(style -> style.backgroundTexture(Sprites.RECT_SOLID));
+            moveInlineAsDefault();
+            layout(layout -> layout.positionType(TaffyPosition.ABSOLUTE));
+            style(style -> style.zIndex(100));
+            setFocusable(true);
+            addEventListener(UIEvents.BLUR, this::onBlur, true);
+            addEventListener(UIEvents.TICK, event -> place());
+            // capture on the three that never bubble, as the strip does
+            addEventListener(UIEvents.DRAG_ENTER, this::showDropPlaceholder, true);
+            addEventListener(UIEvents.DRAG_UPDATE, this::showDropPlaceholder, true);
+            addEventListener(UIEvents.DRAG_LEAVE, this::onDragLeave, true);
+            addEventListener(UIEvents.DRAG_PERFORM, this::onDragPerform);
+            syncRows();
+        }
+
+        /** The rows in the order of the group's resources. */
+        private void syncRows() {
+            for (var resource : entry.members) {
+                var tab = resourceTabs.get(resource);
+                if (tab != null) {
+                    if (tab.getParent() == this) {
+                        removeChild(tab);
+                    }
+                    addChild(tab);
+                }
+            }
+        }
+
+        /** A row of this panel being dragged. */
+        @Nullable
+        private Tab ownRowDrag(UIEvent event) {
+            var tab = ownDrag(event);
+            return tab != null && hasChild(tab) ? tab : null;
+        }
+
+        private void showDropPlaceholder(UIEvent event) {
+            var dragged = ownRowDrag(event);
+            if (dragged == null) return;
+            if (tabDropPlaceholder == null) {
+                tabDropPlaceholder = new UIElement().style(style -> style.backgroundTexture(ColorPattern.GRAY.rectTexture()));
+                tabDropPlaceholder.addClass(CLASS_DROP_PLACEHOLDER).moveInlineAsDefault();
+                // inline over the theme, which sizes the strip's marker as a tab: here it stands in for a row
+                var height = dragged.getSizeHeight();
+                tabDropPlaceholder.layout(layout -> {
+                    layout.widthPercent(100);
+                    layout.height(height);
+                    layout.marginAll(0);
+                });
+                addChildAt(tabDropPlaceholder, Mth.clamp(dropIndex(event.y), 0, getChildren().size()));
+                return;
+            }
+            // as in the strip: a marker that moves itself shifts the rows the next index is measured against
+            if (tabDropPlaceholder.isMouseOver(event.x, event.y)) return;
+            var from = getChildren().indexOf(tabDropPlaceholder);
+            var index = dropIndex(event.y);
+            if (index > from) index--;
+            if (index == from) return;
+            tabDropPlaceholder.removeSelf();
+            addChildAt(tabDropPlaceholder, Mth.clamp(index, 0, getChildren().size()));
+        }
+
+        /** Where a row dropped at this height would go: before or after the nearest row showing. */
+        private int dropIndex(float mouseY) {
+            var children = getChildren();
+            var best = -1;
+            var bestDistance = Float.MAX_VALUE;
+            var after = false;
+            for (int i = 0; i < children.size(); i++) {
+                var child = children.get(i);
+                if (child == tabDropPlaceholder || !child.isDisplayed()) continue;
+                var dy = mouseY - (child.getPositionY() + child.getSizeHeight() / 2f);
+                if (Math.abs(dy) >= bestDistance) continue;
+                bestDistance = Math.abs(dy);
+                best = i;
+                after = dy > 0;
+            }
+            if (best < 0) return children.size();
+            return after ? best + 1 : best;
+        }
+
+        private void onDragLeave(UIEvent event) {
+            if (isMouseOverElement(event.x, event.y)) return;
+            if (tabDropPlaceholder != null && tabDropPlaceholder.getParent() == this) {
+                tabDropPlaceholder.removeSelf();
+                tabDropPlaceholder = null;
+            }
+        }
+
+        private void onDragPerform(UIEvent event) {
+            var tab = ownRowDrag(event);
+            if (tab == null || tabDropPlaceholder == null || tabDropPlaceholder.getParent() != this) return;
+            var index = getChildren().indexOf(tabDropPlaceholder);
+            tabDropPlaceholder.removeSelf();
+            tabDropPlaceholder = null;
+            var current = getChildren().indexOf(tab);
+            if (index < 0 || current < 0) return;
+            removeChild(tab);
+            addChildAt(tab, Mth.clamp(current < index ? index - 1 : index, 0, getChildren().size()));
+            tab.setDisplay(!isTabHidden(tab));
+            var reordered = new ArrayList<Resource<?>>();
+            for (var child : getChildren()) {
+                var resource = resourceTabs.inverse().get(child);
+                if (resource != null && entry.members.contains(resource)) {
+                    reordered.add(resource);
+                }
+            }
+            if (reordered.size() == entry.members.size()) {
+                entry.members.clear();
+                entry.members.addAll(reordered);
+                captureTabOrder();
+            }
+        }
+
+        private void onBlur(UIEvent event) {
+            if (groupFlyout != this) return;
+            if (event.relatedTarget != null && isAncestorOf(event.relatedTarget)) return;
+            if (isSelfOrChildHover()) {
+                focus();
+                return;
+            }
+            if (entry.tab.isSelfOrChildHover()) return;
+            closeGroupFlyout();
+        }
+
+        @Override
+        protected void onLayoutChanged(boolean hasGeometryChanged) {
+            super.onLayoutChanged(hasGeometryChanged);
+            place();
+        }
+
+        /** Beside the group's tab, kept on screen. Idempotent, so it can follow the tab every tick. */
+        private void place() {
+            var parent = getParent();
+            if (parent == null) return;
+            var tab = entry.tab;
+            var width = getSizeWidth();
+            var height = getSizeHeight();
+            float x;
+            float y;
+            switch (getPlacement()) {
+                case LEFT -> {
+                    x = tab.getPositionX() + tab.getSizeWidth();
+                    y = tab.getPositionY();
+                }
+                case RIGHT -> {
+                    x = tab.getPositionX() - width;
+                    y = tab.getPositionY();
+                }
+                case TOP -> {
+                    x = tab.getPositionX();
+                    y = tab.getPositionY() + tab.getSizeHeight();
+                }
+                default -> {
+                    x = tab.getPositionX();
+                    y = tab.getPositionY() - height;
+                }
+            }
+            x = Mth.clamp(x, parent.getPositionX(), Math.max(parent.getPositionX(), parent.getPositionX() + parent.getSizeWidth() - width));
+            y = Mth.clamp(y, parent.getPositionY(), Math.max(parent.getPositionY(), parent.getPositionY() + parent.getSizeHeight() - height));
+            var dx = x - getPositionX();
+            var dy = y - getPositionY();
+            if (Math.abs(dx) < 0.5f && Math.abs(dy) < 0.5f) return;
+            var left = getLayoutX() + dx;
+            var top = getLayoutY() + dy;
+            layout(layout -> {
+                layout.left(left);
+                layout.top(top);
+            });
+        }
     }
 
     /// resources
@@ -907,14 +1518,22 @@ public class ResourceView extends View {
         var previous = resourceTabs.remove(resource);
         if (previous != null) {
             tabView.removeTab(previous);
+            leaveGroup(resource);
         }
-        var tab = createTab(resource.getIcon(), resource.getDisplayName());
+        var group = grouping.getGroup(resource);
+        var tab = group == null ? createTab(resource.getIcon(), resource.getDisplayName()) : createMemberTab(resource);
         // registered before addTab: adding the first tab selects it right away, which calls back into
         // onResourceSelected and needs the tab to already be resolvable.
         resources.put(resource, resourceInstance);
         resourceTabs.put(resource, tab);
         tabView.addTab(tab, new ResourceContainer<>(resourceInstance, editor));
-        makeTabDraggable(tab);
+        if (group == null) {
+            makeTabDraggable(tab);
+        } else {
+            // the group's tab stands in the strip for it; its own header waits for the group's panel
+            tabView.tabScroller.removeScrollViewChild(tab);
+            joinGroup(group, resource);
+        }
         if (!loadingResources) {
             applyTabLayout();
         }
@@ -929,6 +1548,7 @@ public class ResourceView extends View {
     public void loadResources(Resources resources) {
         // the selected tab is deliberately left alone: loading a project keeps whatever was showing,
         // which for a fresh editor and after clear() is the pinned asset browser
+        grouping = resources;
         loadingResources = true;
         try {
             resources.resources.stream().map(Resource::getResourceInstance).forEach(this::addResourceInstance);
@@ -945,6 +1565,7 @@ public class ResourceView extends View {
         if (tab != null) {
             tabView.removeTab(tab);
         }
+        leaveGroup(resource);
         resources.remove(resource);
         // Removing the selected tab hands the selection to whichever tab comes first, which may be one
         // the user has hidden — leaving a resource on screen with no tab to switch away from it.
@@ -957,14 +1578,27 @@ public class ResourceView extends View {
     public void clear() {
         // the resource tabs are removed one by one instead of clearing the whole tab view, so the
         // pinned asset browser tab stays in place (and keeps its selection state consistent).
+        closeGroupFlyout();
         for (var tab : List.copyOf(resourceTabs.values())) {
             tabView.removeTab(tab);
         }
+        for (var entry : groups.values()) {
+            entry.tab.removeSelf();
+        }
+        groups.clear();
+        grouping = Resources.EMPTY;
         resourceTabs.clear();
         resources.clear();
         selectedResourceInstance = null;
         tabView.selectTab(assetBrowserTab);
         assetBrowser.reset();
+    }
+
+    @Override
+    protected void onRemoved() {
+        super.onRemoved();
+        // the panel hangs off the UI's root, not off this view: closed, docked elsewhere, it would stay behind
+        closeGroupFlyout();
     }
 
     @Override

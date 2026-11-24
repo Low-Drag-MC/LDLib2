@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.editor.view;
 
+import com.lowdragmc.lowdraglib2.client.GameFrameCapture;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
@@ -30,6 +31,9 @@ public class ModularUIPreview extends UIElement {
     public final SelectionBox selectionBox = new SelectionBox();
     @Getter @Setter
     private boolean showSelectionBox = true;
+    /** Previewed as a HUD: over the game's frame, the preview size being the screen's. */
+    @Getter @Setter
+    private boolean hud;
 
     // runtime;
     private OptionalInt previewWidth = OptionalInt.empty();
@@ -86,6 +90,9 @@ public class ModularUIPreview extends UIElement {
 
         context.pose.translate(posX, posY);
 
+        if (hud) {
+            GameFrameCapture.draw(context, 0, 0, previewModularUI.getScreenWidth(), previewModularUI.getScreenHeight());
+        }
         ModularUIClientAccess.getWidget(this.previewModularUI).extractRenderState(context.graphics, context.mouseX, context.mouseY, context.partialTick);
 
         if (isShiftDown()) {

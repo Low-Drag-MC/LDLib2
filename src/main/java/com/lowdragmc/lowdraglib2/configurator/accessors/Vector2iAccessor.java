@@ -67,7 +67,7 @@ public class Vector2iAccessor extends TypesAccessor<Vector2i> {
             var current = new Vector2i(supplier.get());
             return () -> new Vector2i(current);
         });
-        configurator.setPastable(Vector2i.class, consumer);
+        configurator.setPastableWrite(Vector2i.class, consumer);
         return configurator;
     }
 

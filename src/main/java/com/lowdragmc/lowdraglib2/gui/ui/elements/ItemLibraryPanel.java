@@ -284,12 +284,14 @@ public class ItemLibraryPanel<T extends ILibraryItem> extends UIElement {
 
     /**
      * Puts a root on {@link #recommendationTree} and shows it, or hides it again for {@code null}.
-     * Expanded on the way in, because a collapsed recommendation recommends nothing.
+     * Expanded on the way in, because a collapsed recommendation recommends nothing, and scrolled to
+     * the top, where it is: the popup keeps its scroll between shows, which would leave it off screen.
      */
     public void setRecommendationRoot(@Nullable TreeNode<T, Void> root) {
         recommendationTree.setRoot(root);
         if (root != null) {
             recommendationTree.expandNode(root);
+            resultContainer.verticalScroller.setNormalizedValue(0);
         }
         Style.importantPipeline(recommendationTree.getLayout(),
                 l -> l.display(root == null ? TaffyDisplay.NONE : TaffyDisplay.FLEX));

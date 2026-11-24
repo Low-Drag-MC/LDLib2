@@ -735,6 +735,24 @@ public class GUIContext implements IGUIContext {
         );
     }
 
+    /**
+     * Draws a texture that is not in the texture manager, such as a render target's colour texture.
+     * The view is drawn when the frame is, not now: it must stay open until then.
+     */
+    public void blit(
+            RenderPipeline renderPipeline, GpuTextureView textureView, GpuSampler sampler,
+            float x0, float y0, float x1, float y1, float u0, float u1, float v0, float v1, int color
+    ) {
+        addGuiElement(
+                new FloatBlitRenderState(
+                        renderPipeline,
+                        TextureSetup.singleTexture(textureView, sampler),
+                        pose.copyPose(),
+                        x0, y0, x1, y1, u0, u1, v0, v1, ColorUtils.mulColor(color, elementColor), graphics.peekScissorStack()
+                )
+        );
+    }
+
     public void innerBlit(
             RenderPipeline renderPipeline, Identifier location, float x0, float x1, float y0, float y1, float u0, float u1, float v0, float v1, int color
     ) {

@@ -264,6 +264,12 @@ public class TextField extends BindableUIElement<String> {
     @Getter
     private float displayOffset;
     /**
+     * Focus arrives before the press that caused it, so scrolling to the cursor right away would move the
+     * text under the pointer the press is about to be mapped against. Done on the next draw instead, unless
+     * placing the cursor did it first.
+     */
+    private boolean revealCursorPending;
+    /**
      * The formatted text to be displayed in the line and its width.
      */
     @Nullable
@@ -281,6 +287,7 @@ public class TextField extends BindableUIElement<String> {
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         addEventListener(UIEvents.DRAG_SOURCE_UPDATE, this::onDragSource);
         addEventListener(UIEvents.MOUSE_WHEEL, this::onMouseWheel);
+        addEventListener(UIEvents.FOCUS, e -> revealCursorPending = true);
         addEventListener(UIEvents.BLUR, this::onBlur);
         addEventListener(UIEvents.VALIDATE_COMMAND, this::onValidateCommand);
         addEventListener(UIEvents.EXECUTE_COMMAND, this::onExecuteCommand);
@@ -306,7 +313,8 @@ public class TextField extends BindableUIElement<String> {
     /// events
     protected void onDragSource(UIEvent event) {
         if (isNumberField()) {
-            if (event.dragHandler.draggingObject instanceof NumberStart(double numberStart)) {
+            // a drag sets the number: not on a field that is not active, as typing and the wheel are not (isEditable)
+            if (event.dragHandler.draggingObject instanceof NumberStart(double numberStart) && isActiveInHierarchy()) {
                 var localMouse = getLocalMouse(event.x, event.y);
                 var localStart = getLocalMouse(event.dragStartX, event.dragStartY);
                 if (Mth.abs(localMouse.x - localStart.x) < 4) {
@@ -399,6 +407,7 @@ public class TextField extends BindableUIElement<String> {
         if (selectionStart != selectionEnd) {
             setSelection(cursorPos, cursorPos);
         }
+        updateDisplayOffset();
     }
 
     protected void onValidateCommand(UIEvent event) {
@@ -586,6 +595,7 @@ public class TextField extends BindableUIElement<String> {
         if (value == null) value = "";
         var textValue = value;
         this.rawText = value;
+        this.isError = false;
         if (isNumberField() && numberInstance != null && !value.isEmpty()) {
             try {
                 switch (mode) {
@@ -955,6 +965,12 @@ public class TextField extends BindableUIElement<String> {
 
     private void updateDisplayOffset() {
         if (!LDLib2.isRemote()) return;
+        revealCursorPending = false;
+        // With no cursor to follow, the start is what matters: a number's leading digits, a name's first words.
+        if (!isFocused()) {
+            displayOffset = 0;
+            return;
+        }
         displayOffset = TextFieldClientSupport.computeDisplayOffset(this);
     }
 
@@ -1054,7 +1070,7 @@ public class TextField extends BindableUIElement<String> {
      * {@link TextUtilities#truncateStyled styled} prefix of this keeps caret/selection positions aligned with
      * what is actually drawn, including style-dependent advances such as bold.
      */
-    Component getStyledLine() {
+    public Component getStyledLine() {
         var formattedText = formatter == null ? Component.literal(rawText) : formatter.apply(rawText);
         return TextUtilities.withFont(formattedText, getTextFieldStyle().font());
     }
@@ -1188,15 +1204,20 @@ public class TextField extends BindableUIElement<String> {
         static float computeDisplayOffset(TextField field) {
             var font = LDFonts.font();
             var scale = field.getTextFieldStyle().fontSize() / font.lineHeight;
-            var cursorPosX = font.getSplitter().stringWidth(TextUtilities.truncateStyled(field.getStyledLine(), field.getCursorPos())) * scale;
+            var styledLine = field.getStyledLine();
+            var splitter = font.getSplitter();
+            var cursorPosX = splitter.stringWidth(TextUtilities.truncateStyled(styledLine, field.getCursorPos())) * scale;
+            var textWidth = splitter.stringWidth(styledLine) * scale;
             var width = field.getContentWidth();
             float rightPad = 1f;
             var displayOffset = field.getDisplayOffset();
             var rel = cursorPosX - displayOffset;
             if (rel > width - rightPad || rel < 0) {
-                return Math.max(cursorPosX - width + rightPad, 0);
+                // out of view: scroll so it sticks to the right edge
+                displayOffset = Math.max(cursorPosX - width + rightPad, 0);
             }
-            return displayOffset;
+            // never scrolled further than the text needs, so a field that has grown shows what now fits
+            return Mth.clamp(displayOffset, 0, Math.max(textWidth - width + rightPad, 0));
         }
 
         static int getCursorUnderMouseX(TextField field, double mouseX) {
@@ -1271,6 +1292,9 @@ public class TextField extends BindableUIElement<String> {
         }
 
         static void drawBackgroundAdditional(TextField field, GUIContext context) {
+            if (field.revealCursorPending) {
+                field.updateDisplayOffset();
+            }
             var x = field.getContentX();
             var y = field.getContentY();
             var height = field.getContentHeight();
