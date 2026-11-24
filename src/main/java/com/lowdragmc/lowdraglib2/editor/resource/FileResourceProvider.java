@@ -247,19 +247,22 @@ public final class FileResourceProvider<T> extends ResourceProvider<T>  {
 
     @Override
     public void release(IResourcePath path) {
-        var value = contents.remove(path);
+        // published before it leaves contents, so a read in between finds it rather than reading the file again
+        var value = contents.get(path);
         if (value != null) {
             released.put(path, new WeakReference<>(value));
+            contents.remove(path, value);
         }
     }
 
     @Override
     public void keep(IResourcePath path) {
-        var let = released.remove(path);
+        var let = released.get(path);
         var value = let == null ? null : let.get();
         if (value != null) {
             contents.putIfAbsent(path, value);
         }
+        released.remove(path);
     }
 
     @Override

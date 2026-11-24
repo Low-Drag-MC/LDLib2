@@ -111,20 +111,23 @@ public final class DirectFileResourceProvider<T> {
 
     /** @see IResourceProvider#release */
     public void release(IResourcePath path) {
-        var entry = cache.remove(path);
+        // published before it leaves the cache, so a read in between finds it rather than reading the file again
+        var entry = cache.get(path);
         if (entry != null && entry.value() != null) {
             released.put(
                     path, new Released<>(new WeakReference<>(entry.value()), entry.lastModified(), entry.checkedAt()));
         }
+        cache.remove(path);
     }
 
     /** @see IResourceProvider#keep */
     public void keep(IResourcePath path) {
-        var let = released.remove(path);
+        var let = released.get(path);
         var value = let == null ? null : let.value().get();
         if (value != null) {
             cache.putIfAbsent(path, new Entry<>(value, let.lastModified(), 0L));
         }
+        released.remove(path);
     }
 
     /** @see IResourceProvider#isReleased */
