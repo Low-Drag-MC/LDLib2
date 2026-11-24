@@ -85,7 +85,7 @@ public class BlockPosAccessor extends TypesAccessor<Vec3i> {
             var current = supplier.get();
             return () -> current;
         });
-        configurator.setPastable(Vec3i.class, consumer);
+        configurator.setPastableWrite(Vec3i.class, consumer);
         return configurator;
     }
 

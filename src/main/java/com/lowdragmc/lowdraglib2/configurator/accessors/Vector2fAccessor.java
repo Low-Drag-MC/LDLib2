@@ -67,7 +67,7 @@ public class Vector2fAccessor extends TypesAccessor<Vector2f> {
             var current = new Vector2f(supplier.get());
             return () -> new Vector2f(current);
         });
-        configurator.setPastable(Vector2f.class, consumer);
+        configurator.setPastableWrite(Vector2f.class, consumer);
         return configurator;
     }
 

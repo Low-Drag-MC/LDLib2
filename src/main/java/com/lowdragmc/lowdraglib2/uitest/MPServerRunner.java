@@ -174,6 +174,18 @@ final class MPServerRunner {
                             name, options.clients(), launched);
                     continue;
                 }
+                if (options.skipReason() != null) {
+                    var skipped = new RunReport.ScenarioReport();
+                    skipped.name = name;
+                    skipped.group = holder.annotation().group();
+                    skipped.className = scenario.getClass().getName();
+                    skipped.tags.addAll(options.tags());
+                    skipped.status = RunReport.Status.SKIPPED;
+                    skipped.skipReason = options.skipReason();
+                    report.scenarios.add(skipped);
+                    LDLib2.LOGGER.warn("[mptest] --- scenario '{}' skipped: {}", name, skipped.skipReason);
+                    continue;
+                }
                 var builder = new MPScenarioBuilder();
                 scenario.define(builder);
                 var compiled = new ServerCompiled(name, holder.annotation().group(), scenario.getClass(),

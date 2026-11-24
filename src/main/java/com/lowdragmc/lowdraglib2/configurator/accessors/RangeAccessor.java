@@ -74,7 +74,7 @@ public class RangeAccessor extends TypesAccessor<Range> {
             var current = supplier.get().copy();
             return current::copy;
         });
-        configurator.setPastable(Range.class, consumer);
+        configurator.setPastableWrite(Range.class, consumer);
         return configurator;
     }
 }

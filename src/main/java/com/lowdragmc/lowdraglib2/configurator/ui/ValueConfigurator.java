@@ -68,7 +68,9 @@ public class ValueConfigurator<T> extends Configurator {
      */
     protected void updateValue() {
         if (onUpdate != null) {
-            onUpdate.accept(value);
+            var update = onUpdate;
+            var updated = value;
+            write(() -> update.accept(updated));
         }
         notifyChanges();
     }

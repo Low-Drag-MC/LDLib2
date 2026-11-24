@@ -211,6 +211,12 @@ public class EditorWindow extends UIElement {
     protected void onRemoved() {
         if (rehosting) return;
         if (windowID != null && MINIMIZED_WINDOWS.containsKey(windowID)) return;
+        // Taken off screen without going through hideHost: Esc in a ModularUI left to close on it, the
+        // server closing the menu, another screen opened over this one.
+        var mui = getModularUI();
+        if (mui != null && ModularUIClientAccess.getScreen(mui) != null) {
+            restoreGameGuiScale(true);
+        }
         super.onRemoved();
     }
 
@@ -472,6 +478,10 @@ public class EditorWindow extends UIElement {
         var button = editors.remove(editor);
         if (button != null) {
             editorButtonContainer.removeChild(button);
+            // out of the window, not left in it hidden: nothing shows it again, and anything that finds it by its
+            // window would bring back an editor that has been closed
+            editorContainer.removeChild(editor);
+            editor._setEditorWindowInternal(null);
         }
         if (editors.isEmpty()) {
             currentEditor = null;
@@ -536,8 +546,21 @@ public class EditorWindow extends UIElement {
 
     /** Puts the game's gui scale back to what it was before a screen-hosted editor changed it. */
     private void restoreGameGuiScale() {
+        restoreGameGuiScale(false);
+    }
+
+    private void restoreGameGuiScale(boolean screenClosing) {
         if (!LDLib2.isClient()) return;
         var minecraft = Minecraft.getInstance();
+        if (screenClosing) {
+            // Inside Screen#removed the closing screen is still the current one, so resizing now would
+            // init it again, and its ModularUI with it: no longer removed, so still taken for one on
+            // screen. Setting the scale is a resize too (the option's own update resizes the display),
+            // so all of it waits.
+            // schedule, not execute: on the game thread execute runs it right here
+            minecraft.schedule(() -> restoreGameGuiScale(false));
+            return;
+        }
         var guiScale = minecraft.options.guiScale();
         if (guiScale.get() != initialScreenScale) {
             guiScale.set(initialScreenScale);

@@ -1,6 +1,7 @@
 package com.lowdragmc.lowdraglib2.client.shader;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.mojang.blaze3d.GpuFormat;
 import com.mojang.blaze3d.PrimitiveTopology;
 import com.mojang.blaze3d.pipeline.BlendFunction;
 import com.mojang.blaze3d.pipeline.ColorTargetState;
@@ -186,6 +187,19 @@ public class LDLibRenderPipelines {
             textPipeline("raster_text", "_polygon_offset", TEXT_POLYGON_OFFSET_DEPTH);
     public static final RenderPipeline RASTER_TEXT_SEE_THROUGH =
             textPipeline("raster_text", "_see_through", TEXT_SEE_THROUGH_DEPTH);
+
+    /**
+     * Copies a whole colour texture into the bound target, colour only: a target cleared to opaque first stays opaque,
+     * whatever alpha the source was left with. See {@code GameFrameCapture}.
+     */
+    public static final RenderPipeline OPAQUE_SCREEN_COPY = register(RenderPipeline.builder()
+            .withVertexShader("core/screenquad")
+            .withFragmentShader("core/blit_screen")
+            .withBindGroupLayout(BindGroupLayouts.IN_SAMPLER)
+            .withColorTargetState(new ColorTargetState(Optional.empty(), GpuFormat.RGBA8_UNORM, ColorTargetState.WRITE_COLOR))
+            .withPrimitiveTopology(PrimitiveTopology.TRIANGLES)
+            .withLocation(LDLib2.id("pipeline/opaque_screen_copy"))
+            .build());
 
     public static void register(RegisterRenderPipelinesEvent event) {
         PIPELINES.forEach(event::registerPipeline);

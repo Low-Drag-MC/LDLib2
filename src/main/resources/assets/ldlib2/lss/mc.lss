@@ -296,6 +296,25 @@ menu {
   top: 24;
 }
 
+/* A group's panel is a menu, so its rows of white text highlight the way a menu's do rather than
+   with the strip's light tab, which the text would vanish into. */
+.__resource-view_group-flyout__ {
+  background: built-in(ui-mc:RECT_BLACK);
+}
+
+.__resource-view_group-flyout__ tab:host,
+.__resource-view_group-flyout__ tab:host:selected {
+  base-background: empty;
+  hover-background: rect(#33ffffff);
+  pressed-background: rect(#55ffffff);
+  height: 16;
+  padding-all: 2;
+  padding-top: 2;
+  padding-bottom: 2;
+  padding-right: 4;
+  margin-all: 0;
+}
+
 ResourceView tab:host {
   base-background: empty;
   hover-background: built-in(ui-mc:RECT_THIN);

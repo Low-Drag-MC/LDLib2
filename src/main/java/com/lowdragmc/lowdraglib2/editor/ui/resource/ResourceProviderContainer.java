@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib2.editor.resource.IResourceProvider;
 import com.lowdragmc.lowdraglib2.editor.resource.Resource;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
 import com.lowdragmc.lowdraglib2.editor.ui.View;
+import com.lowdragmc.lowdraglib2.editor.ui.browser.FileOps;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.lowdraglib2.gui.LDLibFonts;
 import com.lowdragmc.lowdraglib2.editor.resource.ResourceImportContext;
@@ -65,6 +66,10 @@ public class ResourceProviderContainer<T> extends UIElement {
     /** The smallest and largest preview size the bottom bar's slider offers. */
     public static final int MIN_UI_WIDTH = 10;
     public static final int MAX_UI_WIDTH = 100;
+    /** Ticks between scans of the provider for changes made outside the editor. */
+    private static final int POLL_INTERVAL = 20;
+    // staggered, so the containers of one folder (one per resource type) do not all list it on the same tick
+    private static int nextPollPhase;
 
     public final UIElement toolbar = new UIElement();
     public final TextField searchField = new TextField();
@@ -72,6 +77,7 @@ public class ResourceProviderContainer<T> extends UIElement {
     public final ResourceBottomBar bottomBar = new ResourceBottomBar(MIN_UI_WIDTH, MAX_UI_WIDTH);
     public final IResourceProvider<T> resourceProvider;
     private final Map<IResourcePath, UIElement> resourceUIs = new HashMap<>();
+    private int pollCountdown = Math.floorMod(nextPollPhase++, POLL_INTERVAL);
     /** Lower-cased; empty shows everything. */
     private String searchFilter = "";
     @Setter @Getter
@@ -680,9 +686,12 @@ public class ResourceProviderContainer<T> extends UIElement {
     @Override
     public void screenTick() {
         super.screenTick();
-        if (resourceProvider.checkAndUpdateResourceProvider()) {
-            reloadResourceContainer();
-            dirtyResources.clear();
+        if (--pollCountdown < 0) {
+            pollCountdown = POLL_INTERVAL - 1;
+            if (resourceProvider.checkAndUpdateResourceProvider()) {
+                reloadResourceContainer();
+                dirtyResources.clear();
+            }
         }
         // check for dirty resources and reload them
         for (var dirtyResource : dirtyResources) {
@@ -799,7 +808,21 @@ public class ResourceProviderContainer<T> extends UIElement {
         if (key == null || !canCopy.test(key)) return;
         var copied = detachedCopy(key);
         if (copied == null) return;
-        copyResourceTo(copied, resourceProvider, resourceProvider.getResourceName(key) + "_copy");
+        copyResourceTo(copied, resourceProvider, copyNameOf(key));
+    }
+
+    /** The name a copy starts with: a builtin's name may hold a {@code :}, which no file name can. */
+    protected String copyNameOf(IResourcePath key) {
+        return toValidName(resourceProvider.getResourceName(key)) + "_copy";
+    }
+
+    /** Whether a character may be typed into a resource name: one a resource location and a file name both take. */
+    public static boolean isValidNameChar(char character) {
+        return Identifier.isAllowedInIdentifier(character) && FileOps.isValidNameChar(character);
+    }
+
+    private static String toValidName(String name) {
+        return FileOps.INVALID_NAME.matcher(name).replaceAll("_");
     }
 
     /**
@@ -820,7 +843,7 @@ public class ResourceProviderContainer<T> extends UIElement {
         }
         // The current provider when it can take the copy — the old behaviour, still the common case.
         var defaultTarget = targets.contains(resourceProvider) ? resourceProvider : targets.getFirst();
-        showCopyDialog(targets, defaultTarget, resourceProvider.getResourceName(key) + "_copy",
+        showCopyDialog(targets, defaultTarget, copyNameOf(key),
                 (target, name) -> copyResourceTo(copied, target, name));
     }
 
@@ -853,7 +876,7 @@ public class ResourceProviderContainer<T> extends UIElement {
                 .setSelected(defaultTarget, false);
         selector.getLayout().widthPercent(100);
         var nameField = new TextField().setText(defaultName, false)
-                .setCharValidator(Identifier::isAllowedInIdentifier);
+                .setCharValidator(ResourceProviderContainer::isValidNameChar);
         nameField.getLayout().widthPercent(100);
         // Named so a stylesheet or a UI test can reach it — an editor screen holds dozens of text
         // fields and "the one in the dialog" is not something a selector can otherwise express.
@@ -896,10 +919,11 @@ public class ResourceProviderContainer<T> extends UIElement {
      * appears.</p>
      */
     protected void copyResourceTo(T value, IResourceProvider<T> target, String name) {
-        var key = target.createSubPath(name);
+        var validName = toValidName(name);
+        var key = target.createSubPath(validName);
         var count = 1;
         while (target.hasResource(key)) {
-            key = target.createSubPath(name + "_" + count);
+            key = target.createSubPath(validName + "_" + count);
             count++;
         }
         var finalKey = key;
@@ -908,8 +932,8 @@ public class ResourceProviderContainer<T> extends UIElement {
                 () -> {
                     if (isHere) {
                         addResourceInternal(value, finalKey);
-                    } else {
-                        target.addResource(finalKey, value);
+                    } else if (!target.addResource(finalKey, value)) {
+                        Dialog.showNotification("ldlib.gui.editor.menu.copy", "editor.copy.failed", null).show(this);
                     }
                 },
                 () -> {
@@ -1013,7 +1037,7 @@ public class ResourceProviderContainer<T> extends UIElement {
     public void renameResource(IResourcePath key) {
         if (key == null || !canRename.test(key)) return;
         startInlineRename(resourceUIs.get(key), nameSupplier.apply(key),
-                Identifier::isAllowedInIdentifier,
+                ResourceProviderContainer::isValidNameChar,
                 newName -> renameResourceTo(key, newName));
     }
 

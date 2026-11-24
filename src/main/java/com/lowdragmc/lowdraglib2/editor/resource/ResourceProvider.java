@@ -13,10 +13,16 @@ public abstract class ResourceProvider<T> implements IResourceProvider<T> {
     @Getter
     public final ResourceInstance<T> resourceInstance;
     @Getter
-    protected final Map<IResourcePath, T> contents = new LinkedHashMap<>();
+    protected final Map<IResourcePath, T> contents;
 
     protected ResourceProvider(ResourceInstance<T> resourceHolder) {
+        this(resourceHolder, new LinkedHashMap<>());
+    }
+
+    /** For a provider whose {@link #contents} needs another map, e.g. one read from several threads. */
+    protected ResourceProvider(ResourceInstance<T> resourceHolder, Map<IResourcePath, T> contents) {
         this.resourceInstance = resourceHolder;
+        this.contents = contents;
     }
 
     public abstract boolean supportResourcePath(IResourcePath path);

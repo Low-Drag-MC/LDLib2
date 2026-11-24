@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import com.lowdragmc.lowdraglib2.utils.FileUtility;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.level.storage.TagValueInput;
@@ -151,7 +152,7 @@ public class ProjectType {
      * @throws Exception If any error occurs during file reading, data deserialization, or object creation.
      */
     public IProject loadProjectFromFile(File file) throws Exception {
-        var data = NbtIo.read(file.toPath());
+        var data = FileUtility.readNbt(file.toPath());
         var project = getProjectCreator().get();
         if (data != null) {
             try (var reporter = new ProblemReporter.ScopedCollector(LDLib2.LOGGER)) {
@@ -215,7 +216,7 @@ public class ProjectType {
      * @throws Exception If an error occurs while serializing the project or reading the file.
      */
     public boolean isProjectDirty(IProject project, File file) throws Exception {
-        var fileData = NbtIo.read(file.toPath());
+        var fileData = FileUtility.readNbt(file.toPath());
         if (fileData == null) return true;
         try (var reporter = new ProblemReporter.ScopedCollector(LDLib2.LOGGER)) {
             var output = TagValueOutput.createWithContext(reporter, Platform.getFrozenRegistry());

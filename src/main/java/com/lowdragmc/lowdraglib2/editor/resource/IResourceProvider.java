@@ -66,6 +66,26 @@ public interface IResourceProvider<T> extends Iterable<Map.Entry<IResourcePath, 
         return null;
     }
 
+    /**
+     * Stop holding what was read at {@code path}. While anything else still holds it, it is the value handed out;
+     * once nothing does it can be collected, and the next ask reads it again.
+     */
+    default void release(IResourcePath path) {
+    }
+
+    /**
+     * Hold what was read at {@code path} again, if it was {@linkplain #release released} and is still around.
+     */
+    default void keep(IResourcePath path) {
+    }
+
+    /**
+     * @return whether the value at {@code path} is {@linkplain #release released} and still around.
+     */
+    default boolean isReleased(IResourcePath path) {
+        return false;
+    }
+
     default @Nullable CompoundTag serializeNBT() {
         return null;
     }

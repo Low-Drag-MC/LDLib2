@@ -34,6 +34,9 @@ import org.joml.Vector3f;
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Optional;
+import java.util.function.Predicate;
+
 /**
  * A Unity-style transform gizmo (move / rotate / scale) rendered on top of the scene.
  * <p>
@@ -147,6 +150,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
 
     /** The axis handles by axis index, so a loop over X, Y, Z does not need a switch to name its answer. */
     private static final Handle[] AXIS_HANDLES = {Handle.AXIS_X, Handle.AXIS_Y, Handle.AXIS_Z};
+    private static final Handle[] PLANE_HANDLES = {Handle.PLANE_X, Handle.PLANE_Y, Handle.PLANE_Z};
 
     // gizmo geometry, authored in gizmo-units (a constant screen scale is applied on top)
     private static final float BASE_SCALE = 0.23f;
@@ -270,6 +274,19 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     private Space space = Space.LOCAL;
     @Getter
     private boolean enabled = true;
+    /** The camera it is seen through when it is not in a scene editor; null to use the editor's. */
+    @Nullable
+    @Getter
+    @Setter
+    private GizmoView view;
+    /**
+     * The handles it offers, all by default. A target that cannot take some of what the gizmo does — no roll, say —
+     * offers the rest: the others are neither drawn nor grabbed.
+     */
+    @Getter
+    @Setter
+    @Nonnull
+    private Predicate<Handle> handleFilter = handle -> true;
 
     // runtime
     @Nullable
@@ -377,11 +394,10 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
      * the target, so a gizmo scaled that way came out a few thousandths of a block across.
      */
     public float getGizmoScale() {
-        if (targetTransform == null || !(getScene() instanceof SceneEditor editor)) return 1f;
-        var renderer = editor.scene.<WorldSceneRenderer>getRenderer();
-        if (renderer == null) return 1f;
-        var distance = renderer.getEyePos().distance(targetTransform.position());
-        var scale = renderer.getViewHalfHeight(distance) * BASE_SCALE;
+        var view = currentView();
+        if (targetTransform == null || view == null) return 1f;
+        var distance = view.eyePos().distance(targetTransform.position());
+        var scale = view.viewHalfHeight(distance) * BASE_SCALE;
         // A camera can honestly answer zero — an orthographic one whose box was never sized does — and
         // {@link #gizmoMatrix()} would then be singular, leaving both drawing and picking working on
         // non-finite numbers instead of on a very small gizmo.
@@ -393,18 +409,56 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
      * to the gizmo, so the outer ring reads as a true circle wherever the gizmo sits in the frame.
      */
     public Vector3f getScreenAxis() {
-        if (targetTransform != null && getScene() instanceof SceneEditor editor) {
-            var renderer = editor.scene.<WorldSceneRenderer>getRenderer();
-            if (renderer != null) {
-                // Under an orthographic camera every ray is parallel to the view direction, so aiming the
-                // ring at the eye would tilt it away from the screen plane wherever the gizmo is off centre.
-                var axis = renderer.isOrtho()
-                        ? new Vector3f(renderer.getLookAt()).sub(renderer.getEyePos())
-                        : new Vector3f(targetTransform.position()).sub(renderer.getEyePos());
-                if (axis.lengthSquared() > 1.0e-9f) return axis.normalize();
-            }
+        var view = currentView();
+        if (targetTransform != null && view != null) {
+            // Under an orthographic camera every ray is parallel to the view direction, so aiming the
+            // ring at the eye would tilt it away from the screen plane wherever the gizmo is off centre.
+            var axis = view.isOrtho()
+                    ? new Vector3f(view.lookAt()).sub(view.eyePos())
+                    : new Vector3f(targetTransform.position()).sub(view.eyePos());
+            if (axis.lengthSquared() > 1.0e-9f) return axis.normalize();
         }
         return new Vector3f(0, 0, 1);
+    }
+
+    /** What it is seen through: the one it was given, else its scene editor's camera. */
+    @Nullable
+    private GizmoView currentView() {
+        if (view != null) return view;
+        if (!(getScene() instanceof SceneEditor editor)) return null;
+        var renderer = editor.scene.<WorldSceneRenderer>getRenderer();
+        if (renderer == null) return null;
+        return new GizmoView() {
+            @Override
+            public Vector3f eyePos() {
+                return renderer.getEyePos();
+            }
+
+            @Override
+            public Vector3f lookAt() {
+                return renderer.getLookAt();
+            }
+
+            @Override
+            public Vector3f worldUp() {
+                return renderer.getWorldUp();
+            }
+
+            @Override
+            public boolean isOrtho() {
+                return renderer.isOrtho();
+            }
+
+            @Override
+            public float viewHalfHeight(float distance) {
+                return renderer.getViewHalfHeight(distance);
+            }
+
+            @Override
+            public Optional<Ray> mouseRay() {
+                return editor.getMouseRay();
+            }
+        };
     }
 
     /** translate(targetPos) * rotate(orientation) * scale(screenConstant); shared by render and picking. */
@@ -470,16 +524,14 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     public Vector3f getScreenDiagonal() {
         var forward = new Vector3f(0, 0, 1);
         var up = new Vector3f(0, 1, 0);
-        if (getScene() instanceof SceneEditor editor) {
-            var renderer = editor.scene.<WorldSceneRenderer>getRenderer();
-            if (renderer != null) {
-                // the camera's own view direction, not the eye-to-gizmo one: this is a screen-space
-                // direction, and off-centre it must still lie in the plane of the screen
-                var look = new Vector3f(renderer.getLookAt()).sub(renderer.getEyePos());
-                if (look.lengthSquared() > 1.0e-9f) {
-                    forward = look.normalize();
-                    up = new Vector3f(renderer.getWorldUp());
-                }
+        var view = currentView();
+        if (view != null) {
+            // the camera's own view direction, not the eye-to-gizmo one: this is a screen-space
+            // direction, and off-centre it must still lie in the plane of the screen
+            var look = new Vector3f(view.lookAt()).sub(view.eyePos());
+            if (look.lengthSquared() > 1.0e-9f) {
+                forward = look.normalize();
+                up = new Vector3f(view.worldUp());
             }
         }
         var right = new Vector3f(forward).cross(up);
@@ -513,9 +565,8 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     }
 
     private void updateHover() {
-        hoverHandle = isActive() && getScene() instanceof SceneEditor editor
-                ? editor.getMouseRay().map(this::pickHandle).orElse(null)
-                : null;
+        var view = currentView();
+        hoverHandle = isActive() && view != null ? view.mouseRay().map(this::pickHandle).orElse(null) : null;
     }
 
     /** The handle a world-space ray would grab, or {@code null} for none. */
@@ -527,13 +578,13 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         // The centre first: every axis collider reaches back to the origin, so the box drawn there only
         // exists at all if it is asked about before them.
         var centre = centreHandle();
-        if (centre != null && ray.clip(centreCollider) != null) return centre;
-        if (ray.clip(xPlaneCollider) != null) return Handle.PLANE_X;
-        if (ray.clip(yPlaneCollider) != null) return Handle.PLANE_Y;
-        if (ray.clip(zPlaneCollider) != null) return Handle.PLANE_Z;
-        if (ray.clip(xAxisCollider) != null) return Handle.AXIS_X;
-        if (ray.clip(yAxisCollider) != null) return Handle.AXIS_Y;
-        if (ray.clip(zAxisCollider) != null) return Handle.AXIS_Z;
+        if (centre != null && offers(centre) && ray.clip(centreCollider) != null) return centre;
+        if (offers(Handle.PLANE_X) && ray.clip(xPlaneCollider) != null) return Handle.PLANE_X;
+        if (offers(Handle.PLANE_Y) && ray.clip(yPlaneCollider) != null) return Handle.PLANE_Y;
+        if (offers(Handle.PLANE_Z) && ray.clip(zPlaneCollider) != null) return Handle.PLANE_Z;
+        if (offers(Handle.AXIS_X) && ray.clip(xAxisCollider) != null) return Handle.AXIS_X;
+        if (offers(Handle.AXIS_Y) && ray.clip(yAxisCollider) != null) return Handle.AXIS_Y;
+        if (offers(Handle.AXIS_Z) && ray.clip(zAxisCollider) != null) return Handle.AXIS_Z;
         return null;
     }
 
@@ -564,6 +615,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         Handle best = null;
         var bestDistance = Float.MAX_VALUE;
         for (int idx = 0; idx < 3; idx++) {
+            if (!offers(AXIS_HANDLES[idx])) continue;
             var distance = ringHitDistance(origin, dir, center, worldAxis(idx), RING_RADIUS * scale, tolerance);
             if (distance == null || distance >= bestDistance) continue;
             // Only the arc that is drawn can be grabbed. Without this the far half of a ring is still
@@ -576,13 +628,14 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         }
         // The screen ring is exempt: it faces the camera, so every point of it is exactly on the
         // silhouette and the near-half question does not apply.
-        var screenDistance = ringHitDistance(origin, dir, center, viewAxis,
-                SCREEN_RING_RADIUS * scale, tolerance);
+        var screenDistance = offers(Handle.SCREEN) ? ringHitDistance(origin, dir, center, viewAxis,
+                SCREEN_RING_RADIUS * scale, tolerance) : null;
         if (screenDistance != null && screenDistance < bestDistance) {
             best = Handle.SCREEN;
         }
         if (best != null) return best;
-        return rayReachesSphere(origin, dir, center, TRACKBALL_RADIUS * scale) ? Handle.TRACKBALL : null;
+        return offers(Handle.TRACKBALL) && rayReachesSphere(origin, dir, center, TRACKBALL_RADIUS * scale)
+                ? Handle.TRACKBALL : null;
     }
 
     /**
@@ -743,12 +796,13 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     @Override
     public void updateFrame(float partialTicks) {
         super.updateFrame(partialTicks);
-        if (targetTransform == null || !(getScene() instanceof SceneEditor editor)) {
+        var view = currentView();
+        if (targetTransform == null || view == null) {
             endDrag();
             return;
         }
         if (dragHandle != null) {
-            editor.getMouseRay().ifPresent(this::applyDrag);
+            view.mouseRay().ifPresent(this::applyDrag);
         } else {
             updateHover();
         }
@@ -929,7 +983,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
      */
     private void drawCentreBox(PoseStack poseStack, VertexConsumer buffer) {
         var centre = centreHandle();
-        if (centre == null || (dragHandle != null && dragHandle != centre)) return;
+        if (centre == null || !offers(centre) || (dragHandle != null && dragHandle != centre)) return;
         var c = neutralColor(activeHandle() == centre);
         RenderBufferUtils.drawCubeFace(poseStack, buffer,
                 -CENTRE_BOX_HALF, -CENTRE_BOX_HALF, -CENTRE_BOX_HALF,
@@ -1150,22 +1204,29 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
      * has got to, and under a uniform or planar scale, where the axes <em>are</em> what is being dragged.
      */
     private boolean isAxisVisible(int idx) {
+        if (!offers(AXIS_HANDLES[idx])) return false;
         if (dragHandle == null || dragHandle == Handle.TRACKBALL || dragHandle == Handle.UNIFORM) return true;
         if (dragHandle.plane) return mode == Mode.SCALE && dragHandle.axis != idx;
         return dragHandle.axis == idx;
     }
 
     private boolean isPlaneVisible(int idx) {
+        if (!offers(PLANE_HANDLES[idx])) return false;
         return dragHandle == null || (dragHandle.plane && dragHandle.axis == idx);
     }
 
     private boolean isScreenRingVisible() {
-        return mode == Mode.ROTATE
+        return mode == Mode.ROTATE && offers(Handle.SCREEN)
                 && (dragHandle == null || dragHandle == Handle.SCREEN || dragHandle == Handle.TRACKBALL);
     }
 
     private boolean isTrackballVisible() {
-        return mode == Mode.ROTATE && (dragHandle == null || dragHandle == Handle.TRACKBALL);
+        return mode == Mode.ROTATE && offers(Handle.TRACKBALL)
+                && (dragHandle == null || dragHandle == Handle.TRACKBALL);
+    }
+
+    private boolean offers(Handle handle) {
+        return handleFilter.test(handle);
     }
 
     /**
@@ -1193,6 +1254,8 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         var denom = dir.dot(planeNormal);
         if (Math.abs(denom) < 1.0e-6f) return null;
         var t = new Vector3f(planePoint).sub(origin).dot(planeNormal) / denom;
+        // behind the eye: the cursor is past the plane's horizon and meets nothing in front of it
+        if (t < 0) return null;
         return new Vector3f(origin).add(new Vector3f(dir).mul(t));
     }
 

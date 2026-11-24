@@ -21,6 +21,7 @@
     "ui.AbstractContainerScreenMixin",
     "ui.ContainerEventHandlerMixin",
     "ui.GuiGraphicsMixin",
+    "ui.GuiRenderStateMixin",
     "ui.GuiRendererMixin",
     "ui.KeyboardHandlerMixin",
     "ui.MouseHandlerMixin",
