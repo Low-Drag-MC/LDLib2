@@ -69,7 +69,7 @@ public class SizeAccessor extends TypesAccessor<Size> {
             var current = supplier.get();
             return () -> current;
         });
-        configurator.setPastable(Size.class, consumer);
+        configurator.setPastableWrite(Size.class, consumer);
         return configurator;
     }
 

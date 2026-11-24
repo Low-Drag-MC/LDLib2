@@ -1,9 +1,14 @@
 package com.lowdragmc.lowdraglib2.core.mixins.ui;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.lowdragmc.lowdraglib2.client.GameFrameCapture;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGuiRenderStateExt;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGuiRendererExt;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.IPreciseScissor;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.PreciseScissor;
+import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import net.minecraft.client.Minecraft;
@@ -12,6 +17,7 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
 import com.mojang.blaze3d.systems.RenderPass;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.renderer.state.gui.GuiElementRenderState;
 import net.minecraft.client.renderer.state.gui.GuiRenderState;
@@ -20,12 +26,15 @@ import net.neoforged.neoforge.client.gui.PictureInPictureRendererPool;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
@@ -44,6 +53,14 @@ public abstract class GuiRendererMixin implements IGuiRendererExt {
     @Shadow @Final private SubmitNodeCollector submitNodeCollector;
     @Shadow @Final private FeatureRenderDispatcher featureRenderDispatcher;
     @Shadow @Final @Mutable private Map<Class<? extends PictureInPictureRenderState>, PictureInPictureRendererPool<?>> pictureInPictureRendererPools;
+    @Shadow @Final private List<?> meshesToDraw;
+    @Shadow private int firstDrawIndexAfterBlur;
+
+    /// The draw the game's copy is taken before ({@link GameFrameCapture}), or -1 for none this frame.
+    @Unique
+    private int ldlib2$frameCaptureDrawIndex = -1;
+    @Unique
+    private boolean ldlib2$frameCaptured;
 
     @Override
     public void ldlib2$setRenderState(GuiRenderState state) {
@@ -188,6 +205,107 @@ public abstract class GuiRendererMixin implements IGuiRendererExt {
     )
     private Comparator<GuiElementRenderState> ldlib2$groupByPreciseScissor(Comparator<GuiElementRenderState> original) {
         return original.thenComparing(GuiElementRenderState::scissorArea, IPreciseScissor.COMPARATOR);
+    }
+
+    /// Mesh what comes before the {@link GameFrameCapture} boundary apart from what comes after it.
+    ///
+    /// Elements are batched into meshes across strata, so without this a mesh can hold the last of
+    /// the HUD and the first of the screen, and there is no point in the draw list between them. The
+    /// split vanilla already has is the blur one, so the boundary borrows it: with no blur this
+    /// frame the before-blur range is meshed in two at the boundary. A screen that does blur has its
+    /// blur where it begins anyway — the copy is taken there, before the blur is applied.
+    ///
+    /// A frame that marked no boundary (nobody wants a copy, or no screen is open) is meshed exactly
+    /// as vanilla meshes it.
+    @WrapOperation(
+            method = "prepare",
+            at = @At(value = "INVOKE",
+                    target = "Lnet/minecraft/client/gui/render/GuiRenderer;addElementsToMeshes(Lnet/minecraft/client/renderer/state/gui/GuiRenderState$TraverseRange;)V",
+                    ordinal = 0)
+    )
+    private void ldlib2$meshAroundFrameCapture(GuiRenderer self, GuiRenderState.TraverseRange range,
+                                               Operation<Void> original) {
+        ldlib2$frameCaptureDrawIndex = -1;
+        ldlib2$frameCaptured = false;
+        var state = (IGuiRenderStateExt) renderState;
+        var boundary = state.ldlib2$getFrameCaptureStratum();
+        if (boundary == Integer.MAX_VALUE) {
+            original.call(self, range);
+            return;
+        }
+        if (state.ldlib2$getFirstStratumAfterBlur() == Integer.MAX_VALUE) {
+            state.ldlib2$setFirstStratumAfterBlur(boundary);
+            try {
+                original.call(self, GuiRenderState.TraverseRange.BEFORE_BLUR);
+                ldlib2$frameCaptureDrawIndex = meshesToDraw.size();
+                original.call(self, GuiRenderState.TraverseRange.AFTER_BLUR);
+            } finally {
+                // vanilla's own after-blur pass then finds nothing left to mesh, and its draw runs as one range
+                state.ldlib2$setFirstStratumAfterBlur(Integer.MAX_VALUE);
+            }
+        } else {
+            original.call(self, range);
+            ldlib2$frameCaptureDrawIndex = meshesToDraw.size();
+        }
+    }
+
+    /// Take the game's copy between the draws {@link #ldlib2$meshAroundFrameCapture} put apart.
+    @WrapOperation(
+            method = "draw",
+            at = @At(value = "INVOKE",
+                    target = "Lnet/minecraft/client/gui/render/GuiRenderer;executeDrawRange(Ljava/util/function/Supplier;Lcom/mojang/blaze3d/pipeline/RenderTarget;Lcom/mojang/blaze3d/buffers/GpuBufferSlice;Lcom/mojang/blaze3d/buffers/GpuBufferSlice;Lcom/mojang/blaze3d/buffers/GpuBuffer;Lcom/mojang/blaze3d/vertex/VertexFormat$IndexType;II)V",
+                    ordinal = 0)
+    )
+    private void ldlib2$copyFrameBetweenDraws(GuiRenderer self, Supplier<String> label, RenderTarget target,
+                                              GpuBufferSlice fogBuffer, GpuBufferSlice dynamicTransforms,
+                                              GpuBuffer indexBuffer, VertexFormat.IndexType indexType,
+                                              int start, int end, Operation<Void> original) {
+        var at = ldlib2$frameCaptureDrawIndex;
+        if (ldlib2$frameCaptured || at < start || at >= end) {
+            original.call(self, label, target, fogBuffer, dynamicTransforms, indexBuffer, indexType, start, end);
+            return;
+        }
+        if (at > start) {
+            original.call(self, label, target, fogBuffer, dynamicTransforms, indexBuffer, indexType, start, at);
+        }
+        ldlib2$copyFrame(target);
+        original.call(self, label, target, fogBuffer, dynamicTransforms, indexBuffer, indexType, at, end);
+    }
+
+    /// A screen that blurs the game begins at its blur: copy what is under it before it is blurred.
+    @Inject(
+            method = "draw",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/GameRenderer;processBlurEffect()V")
+    )
+    private void ldlib2$copyFrameBeforeBlur(GpuBufferSlice fogBuffer, CallbackInfo ci) {
+        if (!ldlib2$frameCaptured && ldlib2$frameCaptureDrawIndex >= 0
+                && ldlib2$frameCaptureDrawIndex <= firstDrawIndexAfterBlur) {
+            ldlib2$copyFrame(Minecraft.getInstance().getMainRenderTarget());
+        }
+    }
+
+    /// Nothing marked where the screen begins — there is none — or nothing drawn after it: the
+    /// whole frame is the game.
+    @Inject(method = "draw", at = @At("TAIL"))
+    private void ldlib2$copyFrameAtEnd(GpuBufferSlice fogBuffer, CallbackInfo ci) {
+        if (!ldlib2$frameCaptured && ldlib2$isGameGuiPass()) {
+            ldlib2$frameCaptured = true;
+            GameFrameCapture.copyAtEnd(Minecraft.getInstance().getMainRenderTarget());
+        }
+    }
+
+    @Unique
+    private void ldlib2$copyFrame(RenderTarget target) {
+        if (!ldlib2$isGameGuiPass()) return;
+        ldlib2$frameCaptured = true;
+        GameFrameCapture.copyFrom(target);
+    }
+
+    /// Only the game's own pass is the game: not a visual layer, not a UI in a window of its own.
+    @Unique
+    private boolean ldlib2$isGameGuiPass() {
+        return renderState == Minecraft.getInstance().gameRenderer.getGameRenderState().guiRenderState
+                && IGuiRendererExt.ldlib2$peekTargetOverride() == null;
     }
 
     /// Cache the latest fog buffer passed to {@code render()} so sub-renderers

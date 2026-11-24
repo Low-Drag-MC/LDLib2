@@ -12,6 +12,8 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.neoforged.neoforge.client.event.RegisterRenderPipelinesEvent;
 
+import java.util.Optional;
+
 import static net.minecraft.client.renderer.RenderPipelines.*;
 
 public class LDLibRenderPipelines {
@@ -195,7 +197,21 @@ public class LDLibRenderPipelines {
             .withLocation(LDLib2.id("pipeline/raster_text_see_through"))
             .build();
 
+    /**
+     * Copies a whole colour texture into the bound target, colour only: a target cleared to opaque first stays opaque,
+     * whatever alpha the source was left with. See {@code GameFrameCapture}.
+     */
+    public static final RenderPipeline OPAQUE_SCREEN_COPY = RenderPipeline.builder()
+            .withVertexShader("core/screenquad")
+            .withFragmentShader("core/blit_screen")
+            .withSampler("InSampler")
+            .withColorTargetState(new ColorTargetState(Optional.empty(), ColorTargetState.WRITE_COLOR))
+            .withVertexFormat(DefaultVertexFormat.EMPTY, VertexFormat.Mode.TRIANGLES)
+            .withLocation(LDLib2.id("pipeline/opaque_screen_copy"))
+            .build();
+
     public static void register(RegisterRenderPipelinesEvent event) {
+        event.registerPipeline(OPAQUE_SCREEN_COPY);
         event.registerPipeline(GUI_TRIANGLE);
         event.registerPipeline(POSITION_COLOR_NO_DEPTH);
         event.registerPipeline(BLOCK_OVERLAY);

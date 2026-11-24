@@ -65,7 +65,7 @@ public class Translate2DAccessor extends TypesAccessor<Translate2D> {
             var current = supplier.get();
             return () -> current;
         });
-        configurator.setPastable(Translate2D.class, consumer);
+        configurator.setPastableWrite(Translate2D.class, consumer);
         return configurator;
     }
 }

@@ -144,7 +144,9 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
     protected void onRemove(UIEvent event) {
         if (selected != null && canRemove.test(selected.object)) {
             if (onRemove != null) {
-                onRemove.accept(selected.object);
+                var remove = onRemove;
+                var removed = selected.object;
+                write(() -> remove.accept(removed));
             }
             removeConfigurator(selected);
             setSelected(null);
@@ -156,7 +158,8 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
         if (addDefault != null && canAdd) {
             T object = addDefault.get();
             if (onAdd != null) {
-                onAdd.accept(object);
+                var add = onAdd;
+                write(() -> add.accept(object));
             }
             ItemConfigurator configurator = new ItemConfigurator(object, configuratorProvider);
             if (selected != null) {
@@ -208,13 +211,22 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
         return this;
     }
 
+    private void reorder(int index, T object) {
+        if (onReorder != null) {
+            var reorder = onReorder;
+            write(() -> reorder.accept(index, object));
+        }
+    }
+
     public void notifyListUpdate() {
         if (onUpdate != null) {
-            onUpdate.accept(configurators.stream()
+            var update = onUpdate;
+            List<T> list = configurators.stream()
                     .filter(ItemConfigurator.class::isInstance)
                     .map(ItemConfigurator.class::cast)
                     .map(c -> (T) c.object)
-                    .toList());
+                    .toList();
+            write(() -> update.accept(list));
         }
         notifyChanges();
     }
@@ -280,24 +292,18 @@ public class ArrayConfiguratorGroup<T> extends ConfiguratorGroup {
                     removeConfigurator(this);
                     if (index < selfIndex) {
                         addConfiguratorAt(this, index + 1);
-                        if (onReorder != null) {
-                            onReorder.accept(index + 1, object);
-                        }
+                        reorder(index + 1, object);
                         notifyListUpdate();
                     } else {
                         addConfiguratorAt(this, index);
-                        if (onReorder != null) {
-                            onReorder.accept(index, object);
-                        }
+                        reorder(index, object);
                         notifyListUpdate();
                     }
                 }
             } else if (selfIndex != 0) {
                 removeConfigurator(this);
                 addConfiguratorAt(this, 0);
-                if (onReorder != null) {
-                    onReorder.accept(0, object);
-                }
+                reorder(0, object);
                 notifyListUpdate();
             }
         }

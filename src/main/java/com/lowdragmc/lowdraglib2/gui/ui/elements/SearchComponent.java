@@ -177,7 +177,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
             layout.heightPercent(100);
             layout.flex(1);
             layout.paddingAll(2);
-        });
+        }).setOverflowVisible(false);
 
         this.textField.addClass("__search-component_text-field__");
         this.dialog.addClass("__search-component_dialog__");
@@ -205,10 +205,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
                 })
                 .addChildren(listView = new UIElement().layout(layout -> layout.paddingAll(2)), scrollerView = new VirtualScrollerView<>())
                 .style(style -> style.zIndex(1).backgroundTexture(Sprites.RECT_DARK))
-                .addEventListener(UIEvents.LAYOUT_CHANGED, e -> {
-                    this.updateDialogPosition();
-                    e.currentElement.adaptPositionToScreen();
-                })
+                .addEventListener(UIEvents.LAYOUT_CHANGED, e -> this.updateDialogPosition())
                 .stopInteractionEventsPropagation();
 
         listView.addClass("__search-component_list-view__");
@@ -384,6 +381,7 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         this.preview.clearAllChildren();
         if (value != null) {
             var candidateUI = candidateUIProvider.apply(value);
+            Style.defaultPipeline(candidateUI.getLayout(), layout -> layout.maxWidthPercent(100));
             this.preview.addChild(candidateUI);
         }
         // ⚠️ Only notifies when the CALLER is notifying. The text field's value listener is what
@@ -455,12 +453,16 @@ public class SearchComponent<T> extends BindableUIElement<T> {
         var mui = getModularUI();
         if (mui != null) {
             var root = mui.ui.rootElement;
-            var worldPos = this.localToWorld(new Vector2f(getPositionX(), getPositionY() + getSizeHeight()));
-            var pos = root.worldToLocalLayoutOffset(worldPos);
+            var bottom = getPositionY() + getSizeHeight();
+            var pos = root.worldToLocalLayoutOffset(this.localToWorld(new Vector2f(getPositionX(), bottom)));
+            var end = root.worldToLocalLayoutOffset(this.localToWorld(new Vector2f(getPositionX() + getSizeWidth(), bottom)));
+            // not adaptPositionToScreen: re-anchoring then shifting flips the dialog on every layout pass
+            var left = Math.max(-root.getPositionX(), Math.min(pos.x, mui.getScreenWidth() - dialog.getSizeWidth() - root.getPositionX()));
+            var top = Math.max(-root.getPositionY(), Math.min(pos.y, mui.getScreenHeight() - dialog.getSizeHeight() - root.getPositionY()));
             this.dialog.layout(layout -> {
-                layout.left(pos.x);
-                layout.top(pos.y);
-                layout.width(Math.max(this.getSizeWidth(), 50));
+                layout.left(left);
+                layout.top(top);
+                layout.width(Math.max(Math.min(end.x - pos.x, mui.getScreenWidth()), 50));
             });
             this.dialogAnchorX = getPositionX();
             this.dialogAnchorY = getPositionY();

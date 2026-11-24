@@ -975,12 +975,14 @@ public abstract class Editor extends UIElement implements EditorHost {
     /**
      * Exit the current editor and run the given runnable after the editor is closed.
      * It doesn't mean the window is closed.
+     * <p>
+     * The project goes with it and is closed the way {@link #closeCurrentProject(boolean, Runnable)} closes it,
+     * {@link IProject#onClosed} included: a project that put views or listeners into the editor takes them back.
      */
     public void exit(@Nullable Runnable onFinish) {
         askToSaveProject(() -> {
-            if (currentProject != null) {
-                saveAssetBrowserPath();
-            }
+            closeCurrentProject();
+            // with no project open there was no layout to save, but the floating views still go
             saveLayoutAndCloseFloating();
             if (window != null) {
                 window.removeEditor(this);
@@ -1108,25 +1110,28 @@ public abstract class Editor extends UIElement implements EditorHost {
 
     /**
      * Save the current project to its file if it exists, or prompt to save as if it does not.
-     * @param onFinish Runnable to run after the save operation is complete, regardless of whether it was successful or not.
+     * @param onFinish Runnable to run after the save operation is complete. Not run when the save failed, so that
+     *                 what waits on it, such as closing the project, does not go on and lose it.
      */
     public void saveProject(@Nullable Runnable onFinish, boolean showNotification) {
         if (currentProject != null) {
             if (currentProjectFile == null) {
                 saveAsProject(onFinish);
             } else {
-                try {
-                    currentProject.getProjectType().saveProjectToFile(currentProject, currentProjectFile);
-                    recordRecentProject();
-                } catch (Exception ignored) {}
+                if (!writeProject(currentProjectFile)) {
+                    return;
+                }
+                recordRecentProject();
                 if (showNotification) {
                     if (onFinish != null) {
-                        Dialog.showNotification("ldlib.gui.editor.menu.save", "ldlib.gui.compass.save_success", onFinish)
+                        Dialog.showNotification("ldlib.gui.editor.menu.save", "ldlib.gui.editor.menu.save_success", onFinish)
                                 .show(this.getModularUI());
                     } else {
                         Dialog.showNotification("ldlib.gui.editor.menu.save_success", 2)
                                 .show(this.getModularUI());
                     }
+                } else if (onFinish != null) {
+                    onFinish.run();
                 }
             }
         }
@@ -1134,7 +1139,7 @@ public abstract class Editor extends UIElement implements EditorHost {
 
     /**
      * Save the current project as a new file.
-     * @param onFinish Runnable to run after the save operation is complete, regardless of whether it was successful or not.
+     * @param onFinish Runnable to run after the save operation is complete. Not run when the save failed.
      */
     public void saveAsProject(@Nullable Runnable onFinish) {
         if (currentProject == null) return;
@@ -1147,7 +1152,7 @@ public abstract class Editor extends UIElement implements EditorHost {
     /**
      * Save the current project as a new file.
      * @param defaultSaveFile default file to prefill in the save dialog, can be null
-     * @param onFinish Runnable to run after the save operation is complete, regardless of whether it was successful or not.
+     * @param onFinish Runnable to run after the save operation is complete. Not run when the save failed.
      */
     public void saveAsProject(@Nullable File defaultSaveFile, @Nullable Runnable onFinish) {
         if (currentProject != null) {
@@ -1159,20 +1164,38 @@ public abstract class Editor extends UIElement implements EditorHost {
                     false,
                     defaultSaveFile,
                     Dialog.suffixFilter(suffix), file -> {
-                        if (file != null && !file.isDirectory()) {
-                            if (!file.getName().endsWith(suffix)) {
-                                file = new File(file.getParentFile(), file.getName() + suffix);
-                            }
-                            try {
-                                projectType.saveProjectToFile(currentProject, file);
-                                currentProjectFile = file;
-                                recordRecentProject();
-                            } catch (Exception ignored) {}
+                        // a folder picked with no name: nothing was saved
+                        if (file == null || file.isDirectory()) return;
+                        if (!file.getName().endsWith(suffix)) {
+                            file = new File(file.getParentFile(), file.getName() + suffix);
                         }
+                        if (!writeProject(file)) {
+                            return;
+                        }
+                        currentProjectFile = file;
+                        recordRecentProject();
                         if (onFinish != null) {
                             onFinish.run();
                         }
                     }).show(this.getModularUI());
+        }
+    }
+
+    /**
+     * Write the current project to the file with its project type. A failure is logged and shown to the user,
+     * never taken for a save.
+     * @return whether the project was written
+     */
+    protected boolean writeProject(File file) {
+        if (currentProject == null) return false;
+        try {
+            currentProject.getProjectType().saveProjectToFile(currentProject, file);
+            return true;
+        } catch (Exception e) {
+            LDLib2.LOGGER.error("Failed to save the project to {}", file, e);
+            Dialog.showNotification("ldlib.gui.editor.menu.save_failed", String.valueOf(e.getMessage()), null)
+                    .show(this.getModularUI());
+            return false;
         }
     }
 

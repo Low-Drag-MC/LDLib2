@@ -388,6 +388,9 @@ public final class MPTestOrchestrator {
                     mergedScenario.group = partScenario.group;
                     mergedScenario.className = partScenario.className;
                     mergedScenario.tags.addAll(partScenario.tags);
+                    // starting from PASS would turn a skip into a pass: SKIPPED ranks below PASS
+                    mergedScenario.status = partScenario.status;
+                    mergedScenario.skipReason = partScenario.skipReason;
                     merged.scenarios.add(mergedScenario);
                 }
                 mergedScenario.status = RunReport.Status.worst(mergedScenario.status, partScenario.status);
@@ -430,6 +433,9 @@ public final class MPTestOrchestrator {
                 .forEach(scenario -> {
                     out.append("  ").append(scenario.status).append("  ").append(scenario.name).append('\n');
                     if (RunReport.Status.PASS.equals(scenario.status)) return;
+                    if (scenario.skipReason != null) {
+                        out.append("      ").append(scenario.skipReason).append('\n');
+                    }
                     if (scenario.error != null) {
                         out.append("      ").append(scenario.error.type).append(": ")
                                 .append(scenario.error.message).append('\n');

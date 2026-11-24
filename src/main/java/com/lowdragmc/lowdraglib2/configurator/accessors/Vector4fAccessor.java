@@ -108,7 +108,7 @@ public class Vector4fAccessor extends TypesAccessor<Vector4f> {
             var current = new Vector4f(supplier.get());
             return () -> new Vector4f(current);
         });
-        configurator.setPastable(Vector4f.class, consumer);
+        configurator.setPastableWrite(Vector4f.class, consumer);
         return configurator;
     }
 

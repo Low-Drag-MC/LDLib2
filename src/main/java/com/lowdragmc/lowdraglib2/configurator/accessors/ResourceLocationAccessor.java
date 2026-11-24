@@ -86,7 +86,8 @@ public class ResourceLocationAccessor extends TypesAccessor<Identifier> {
                 forceUpdate).setResourceLocation(true);
         configurator.setPastable(String.class, pasted -> {
             if (pasted != null && LDLib2.isValidResourceLocation(pasted)) {
-                consumer.accept(Identifier.parse(pasted));
+                var location = Identifier.parse(pasted);
+                configurator.write(() -> consumer.accept(location));
                 configurator.notifyChanges();
             }
         });

@@ -104,10 +104,10 @@ test {
     }
 }
 
-/** Numeric comparison of dotted versions; a missing component counts as 0. */
+/** Numeric comparison of dotted versions; a missing or non-numeric component (the "a" of 2.2.46.a) counts as 0. */
 static int compareVersions(String a, String b) {
-    def left = a.tokenize('.').collect { it.replaceAll('[^0-9].*', '') as int }
-    def right = b.tokenize('.').collect { it.replaceAll('[^0-9].*', '') as int }
+    def left = a.tokenize('.').collect { def n = it.replaceAll('[^0-9].*', ''); n ? n as int : 0 }
+    def right = b.tokenize('.').collect { def n = it.replaceAll('[^0-9].*', ''); n ? n as int : 0 }
     for (int i = 0; i < Math.max(left.size(), right.size()); i++) {
         int diff = (i < left.size() ? left[i] : 0) <=> (i < right.size() ? right[i] : 0)
         if (diff != 0) return diff

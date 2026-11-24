@@ -365,24 +365,39 @@ public class ScrollerView extends UIElement {
     }
 
     /**
-     * Scrolls the view to make the given scroll view child visible.
-     * It scrolls as little as possible, so nothing happens if the child is already fully visible.
+     * Scrolls the view to make the given element visible: a scroll view child, or an element anywhere inside one — a
+     * row of a list a scroll view child lays out, say.
+     * It scrolls as little as possible, so nothing happens if the element is already fully visible.
      *
-     * @param child the child added by {@link #addScrollViewChild(UIElement)}
-     * @return false if the given element is not a scroll view child, or if the layout has not been computed yet.
+     * @param child the child added by {@link #addScrollViewChild(UIElement)}, or an element inside one
+     * @return false if the given element is not in a scroll view child, or if the layout has not been computed yet.
      *         In the latter case, you may want to retry after the layout is updated.
      */
     public boolean scrollToChild(@Nullable UIElement child) {
-        if (child == null || !hasScrollViewChild(child)) return false;
-        // the layout is not available yet, e.g. the scroller view has not been displayed for a frame.
+        if (child == null) return false;
+        // the layout is not available yet, e.g. the scroller view has not been displayed for a frame, or the child
+        // was just made and has not been laid out: where it is would read as the top.
         if (viewPort.getContentWidth() <= 0 || viewPort.getContentHeight() <= 0) return false;
-        var location = child.getTaffyLayout().location();
+        if (child.getSizeWidth() <= 0 && child.getSizeHeight() <= 0) return false;
+        // where it is in the view container: each element's location is within its parent's
+        float x = 0, y = 0;
+        var at = child;
+        while (at != null && !hasScrollViewChild(at)) {
+            var location = at.getTaffyLayout().location();
+            x += location.x;
+            y += location.y;
+            at = at.getParent();
+        }
+        if (at == null) return false;
+        var location = at.getTaffyLayout().location();
+        x += location.x;
+        y += location.y;
         var mode = scrollerViewStyle.mode();
         if (mode == ScrollerMode.VERTICAL || mode == ScrollerMode.BOTH) {
-            scrollAxisToChild(verticalScroller, location.y, child.getSizeHeight(), viewPort.getContentHeight(), getContainerHeight());
+            scrollAxisToChild(verticalScroller, y, child.getSizeHeight(), viewPort.getContentHeight(), getContainerHeight());
         }
         if (mode == ScrollerMode.HORIZONTAL || mode == ScrollerMode.BOTH) {
-            scrollAxisToChild(horizontalScroller, location.x, child.getSizeWidth(), viewPort.getContentWidth(), getContainerWidth());
+            scrollAxisToChild(horizontalScroller, x, child.getSizeWidth(), viewPort.getContentWidth(), getContainerWidth());
         }
         return true;
     }
@@ -393,7 +408,8 @@ public class ScrollerView extends UIElement {
      */
     public void scrollToChildDelayed(@Nullable UIElement child) {
         if (child == null || scrollToChild(child)) return;
-        viewContainer.addEventListener(UIEvents.LAYOUT_CHANGED, event -> {
+        // the child's own: one inside a scroll view child is laid out with no change to the view container
+        child.addEventListener(UIEvents.LAYOUT_CHANGED, event -> {
             event.currentElement.removeEventListener(UIEvents.LAYOUT_CHANGED, event.currentListener);
             scrollToChild(child);
         });
@@ -405,7 +421,8 @@ public class ScrollerView extends UIElement {
         var scrolled = scroller.getNormalizedValue() * range;
         if (Float.isNaN(scrolled)) scrolled = 0;
         var target = scrolled;
-        if (childOffset < scrolled) { // the child is before the view port
+        // before the view port, or bigger than it — a row as wide as a list wider than its view: its start shown
+        if (childOffset < scrolled || childSize > portSize) {
             target = childOffset;
         } else if (childOffset + childSize > scrolled + portSize) { // the child is after the view port
             target = childOffset + childSize - portSize;

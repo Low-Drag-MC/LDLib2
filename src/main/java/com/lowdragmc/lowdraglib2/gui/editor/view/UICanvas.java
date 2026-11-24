@@ -1,5 +1,6 @@
 package com.lowdragmc.lowdraglib2.gui.editor.view;
 
+import com.lowdragmc.lowdraglib2.client.GameFrameCapture;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUIClientAccess;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
@@ -10,7 +11,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.IGUIContext;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import lombok.Getter;
+import lombok.Setter;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
+import net.minecraft.client.Minecraft;
 
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
@@ -22,6 +25,9 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class UICanvas extends UIElement {
+    /** Simulated as a HUD: at the game screen's size, scaled down to fit, over the game's frame. */
+    @Getter @Setter
+    private boolean hud;
     // runtime
     @Getter @Nullable
     private ModularUI canvasModularUI;
@@ -132,15 +138,32 @@ public class UICanvas extends UIElement {
 
         var contentWidth = (int) getContentWidth();
         var contentHeight = (int) getContentHeight();
-        if (this.canvasModularUI.getScreenWidth() != contentWidth || this.canvasModularUI.getScreenHeight() != contentHeight) {
-            this.canvasModularUI.init(contentWidth, contentHeight);
+        var width = contentWidth;
+        var height = contentHeight;
+        if (hud) {
+            var window = Minecraft.getInstance().getWindow();
+            // a minimized game window has no size, keep the last one
+            width = window.getGuiScaledWidth() > 0 ? window.getGuiScaledWidth() : this.canvasModularUI.getScreenWidth();
+            height = window.getGuiScaledHeight() > 0 ? window.getGuiScaledHeight() : this.canvasModularUI.getScreenHeight();
+            if (width <= 0 || height <= 0 || contentWidth <= 0 || contentHeight <= 0) return;
+        }
+        if (this.canvasModularUI.getScreenWidth() != width || this.canvasModularUI.getScreenHeight() != height) {
+            this.canvasModularUI.init(width, height);
         }
 
         context.pose.pushPose();
         var posX = getContentX();
         var posY = getContentY();
 
-        context.pose.translate(posX, posY);
+        if (hud) {
+            // the canvas is smaller than the screen, it is in the window with the editor round it
+            var scale = Math.min(1f, Math.min(contentWidth / (float) width, contentHeight / (float) height));
+            context.pose.translate(posX + (contentWidth - width * scale) / 2, posY + (contentHeight - height * scale) / 2);
+            context.pose.scale(scale, scale);
+            GameFrameCapture.draw(context, 0, 0, width, height);
+        } else {
+            context.pose.translate(posX, posY);
+        }
 
         ModularUIClientAccess.getWidget(this.canvasModularUI).extractRenderState(context.graphics, context.mouseX, context.mouseY, context.partialTick);
 

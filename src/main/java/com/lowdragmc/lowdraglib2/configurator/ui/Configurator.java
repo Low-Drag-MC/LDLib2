@@ -56,6 +56,12 @@ public class Configurator extends UIElement {
      */
     @Setter @Nullable
     private java.lang.reflect.Field sourceField;
+    /**
+     * Where this row and the rows under it apply their writes: another thread, say, when what they edit lives
+     * there. Null takes the nearest ancestor's; with none anywhere a write runs at once. See {@link #write}.
+     */
+    @Setter @Nullable
+    private java.util.concurrent.Executor writeExecutor;
     private final java.util.List<java.util.function.BiConsumer<Configurator, TreeBuilder.Menu>> menuContributors =
             new java.util.ArrayList<>();
     // runtime
@@ -236,6 +242,37 @@ public class Configurator extends UIElement {
         return (Configurator) super.addChildren(children);
     }
 
+    /**
+     * Applies a write to what this row edits, through the nearest {@link #setWriteExecutor write executor}. A row
+     * built by hand that changes its object from its own buttons or menus goes through here as well.
+     */
+    public void write(Runnable write) {
+        var executor = findWriteExecutor();
+        if (executor != null) {
+            executor.execute(write);
+        } else {
+            write.run();
+        }
+    }
+
+    /**
+     * Whether what this row edits lives elsewhere — its writes go to a {@link #setWriteExecutor write executor}. A row's
+     * reads are then only reads: anything that would refresh or rebuild the object belongs to the side that owns it.
+     */
+    public boolean writesElsewhere() {
+        return findWriteExecutor() != null;
+    }
+
+    @Nullable
+    private java.util.concurrent.Executor findWriteExecutor() {
+        for (UIElement at = this; at != null; at = at.getParent()) {
+            if (at instanceof Configurator configurator && configurator.writeExecutor != null) {
+                return configurator.writeExecutor;
+            }
+        }
+        return null;
+    }
+
     public void notifyChanges() {
         notifyChanges(this);
     }
@@ -264,6 +301,11 @@ public class Configurator extends UIElement {
 
     public <T> Configurator setPastable(Class<T> canPaste, Consumer<T> onPaste) {
         return setPastable(canPaste::isAssignableFrom, onPaste);
+    }
+
+    /** A paste that sets what this row edits: applied through {@link #write}, as the row's own edits are. */
+    public <T> Configurator setPastableWrite(Class<T> canPaste, Consumer<T> setter) {
+        return setPastable(canPaste, pasted -> write(() -> setter.accept(pasted)));
     }
 
     /// Menu

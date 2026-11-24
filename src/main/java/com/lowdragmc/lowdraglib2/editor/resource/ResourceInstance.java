@@ -29,24 +29,30 @@ import net.neoforged.neoforge.common.util.ValueIOSerializable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import java.io.File;
+import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 public class ResourceInstance<T> implements ValueIOSerializable {
     public final Resource<T> resource;
 
+    // the provider collections are read-only snapshots, replaced on change, so a read on another thread can walk them
     @Getter
-    private final Map<ResourceProviderType, List<IResourceProvider<T>>> builtinProviders = new LinkedHashMap<>();
+    private volatile Map<ResourceProviderType, List<IResourceProvider<T>>> builtinProviders = Map.of();
     @Getter
-    private final Map<ResourceProviderType, List<IResourceProvider<T>>> customProviders = new LinkedHashMap<>();
+    private volatile Map<ResourceProviderType, List<IResourceProvider<T>>> customProviders = Map.of();
     // runtime
     private final Map<IResourcePath, T> cache = new ConcurrentHashMap<>();
+    // what the providers were asked to release, looked up without asking them again
+    private final Map<IResourcePath, WeakReference<T>> releasedCache = new ConcurrentHashMap<>();
+    private final AtomicInteger clears = new AtomicInteger();
     private final PackFileResourceProvider<T> packFileProvider = new PackFileResourceProvider<>(this);
     private final DirectFileResourceProvider<T> directFileProvider = new DirectFileResourceProvider<>(this);
     // providers shown without being registered, e.g. the asset browser's own over a folder no provider covers
-    private final Set<IResourceProvider<T>> unlistedProviders = Collections.newSetFromMap(new IdentityHashMap<>());
+    private volatile Set<IResourceProvider<T>> unlistedProviders = Set.of();
     // bumped whenever a provider is added or removed (unlisted ones aside), so what was built over them can tell
     // it is stale
     @Getter
@@ -106,7 +112,9 @@ public class ResourceInstance<T> implements ValueIOSerializable {
     }
 
     public void clearCache() {
+        clears.incrementAndGet();
         cache.clear();
+        releasedCache.clear();
         directFileProvider.clearCache();
     }
 
@@ -115,45 +123,99 @@ public class ResourceInstance<T> implements ValueIOSerializable {
         if (path == null) {
             return null;
         }
-        if (!cache.containsKey(path)) {
-            var type = path.getType();
-            var result = builtinProviders.getOrDefault(type, Collections.emptyList()).stream()
-                    .map(provider -> provider.getResource(path))
-                    .filter(Objects::nonNull).findFirst();
-            if (result.isPresent()) {
-                cache.put(path, result.get());
-                return result.get();
-            }
-            result = customProviders.getOrDefault(type, Collections.emptyList()).stream()
-                    .map(provider -> provider.getResource(path))
-                    .filter(Objects::nonNull).findFirst();
-            if (result.isPresent()) {
-                cache.put(path, result.get());
-                return result.get();
-            }
-            // a folder the asset browser has open: one copy, the one it edits and saves, rather than a second read
-            for (var provider : unlistedProviders) {
-                if (!provider.hasResource(path)) continue;
-                var unlisted = provider.getResource(path);
-                if (unlisted != null) {
-                    cache.put(path, unlisted);
-                    return unlisted;
-                }
-            }
-            // a resource file inside the game dir that no provider owns, e.g. one stored in a folder the
-            // user created through the asset browser. Checked before the pack tier because
-            // PackFileResourceProvider caches for the whole session and only invalidates on a resource
-            // reload, which would hide edits to the very same file on disk.
-            var direct = directFileProvider.getResource(path);
-            if (direct != null) {
-                cache.put(path, direct);
-                return direct;
-            }
-            var resource = packFileProvider.getResource(path);
-            if (resource == null) return null;
-            cache.put(path, resource);
+        var cached = cache.get(path);
+        if (cached != null) {
+            return cached;
         }
-        return cache.get(path);
+        var let = releasedCache.get(path);
+        var held = let == null ? null : let.get();
+        if (held != null) {
+            return held;
+        }
+        var cleared = clears.get();
+        var found = find(path);
+        if (found == null) return null;
+        // let go of: held by nothing here either, or releasing it would hold it all the same
+        if (isReleased(path)) {
+            releasedCache.put(path, new WeakReference<>(found));
+            return found;
+        }
+        var won = cache.putIfAbsent(path, found);
+        if (won != null) return won;
+        // cleared while it was being read (a save, a rescan): what was read may be what was just dropped
+        if (clears.get() != cleared) {
+            cache.remove(path, found);
+        }
+        return found;
+    }
+
+    @Nullable
+    private T find(IResourcePath path) {
+        var type = path.getType();
+        var result = builtinProviders.getOrDefault(type, Collections.emptyList()).stream()
+                .map(provider -> provider.getResource(path))
+                .filter(Objects::nonNull).findFirst();
+        if (result.isPresent()) {
+            return result.get();
+        }
+        result = customProviders.getOrDefault(type, Collections.emptyList()).stream()
+                .map(provider -> provider.getResource(path))
+                .filter(Objects::nonNull).findFirst();
+        if (result.isPresent()) {
+            return result.get();
+        }
+        // a folder the asset browser has open: one copy, the one it edits and saves, rather than a second read
+        for (var provider : unlistedProviders) {
+            if (!provider.hasResource(path)) continue;
+            var unlisted = provider.getResource(path);
+            if (unlisted != null) {
+                return unlisted;
+            }
+        }
+        // a resource file inside the game dir that no provider owns, e.g. one stored in a folder the
+        // user created through the asset browser. Checked before the pack tier because
+        // PackFileResourceProvider caches for the whole session and only invalidates on a resource
+        // reload, which would hide edits to the very same file on disk.
+        var direct = directFileProvider.getResource(path);
+        if (direct != null) {
+            return direct;
+        }
+        return packFileProvider.getResource(path);
+    }
+
+    /**
+     * Stops holding what was read at {@code path}, here and in every provider: while anything else holds it, it is
+     * still what {@link #getResource} hands out; once nothing does it can be collected, and is read again when next
+     * asked for. A game unloading what a level used, say.
+     */
+    public void release(IResourcePath path) {
+        forEachProvider(provider -> provider.release(path));
+        directFileProvider.release(path);
+        packFileProvider.release(path);
+        // a read in flight past its isReleased check would cache it again, unless it sees this
+        clears.incrementAndGet();
+        cache.remove(path);
+    }
+
+    /** Holds what was read at {@code path} again, if it was {@linkplain #release released} and is still around. */
+    public void keep(IResourcePath path) {
+        forEachProvider(provider -> provider.keep(path));
+        directFileProvider.keep(path);
+        packFileProvider.keep(path);
+        releasedCache.remove(path);
+    }
+
+    /** @return whether what was read at {@code path} is {@linkplain #release released} and still around. */
+    public boolean isReleased(IResourcePath path) {
+        var released = new boolean[1];
+        forEachProvider(provider -> released[0] |= provider.isReleased(path));
+        return released[0] || directFileProvider.isReleased(path) || packFileProvider.isReleased(path);
+    }
+
+    private void forEachProvider(Consumer<IResourceProvider<T>> action) {
+        builtinProviders.values().forEach(providers -> providers.forEach(action));
+        customProviders.values().forEach(providers -> providers.forEach(action));
+        unlistedProviders.forEach(action);
     }
 
     public List<Map.Entry<IResourcePath, T>> listAllResources() {
@@ -319,21 +381,29 @@ public class ResourceInstance<T> implements ValueIOSerializable {
     }
 
     public void addBuiltinProvider(IResourceProvider<T> provider) {
-        addResourceProvider(builtinProviders, provider);
+        synchronized (this) {
+            builtinProviders = withProvider(builtinProviders, provider);
+        }
     }
 
     public void addCustomProvider(IResourceProvider<T> provider) {
-        addResourceProvider(customProviders, provider);
+        synchronized (this) {
+            customProviders = withProvider(customProviders, provider);
+        }
         saveResource();
     }
 
     public void removeBuiltinProvider(IResourceProvider<T> provider) {
-        removeResourceProvider(builtinProviders, provider);
+        synchronized (this) {
+            builtinProviders = withoutProvider(builtinProviders, provider);
+        }
         clearCache();
     }
 
     public void removeCustomProvider(IResourceProvider<T> provider) {
-        removeResourceProvider(customProviders, provider);
+        synchronized (this) {
+            customProviders = withoutProvider(customProviders, provider);
+        }
         saveResource();
         clearCache();
     }
@@ -344,12 +414,24 @@ public class ResourceInstance<T> implements ValueIOSerializable {
      * shows and edits is the one everything else draws with; and {@link #findResourceEntry} maps it back to its path.
      */
     public void addUnlistedProvider(IResourceProvider<T> provider) {
+        synchronized (this) {
+            var providers = Collections.newSetFromMap(new IdentityHashMap<IResourceProvider<T>, Boolean>());
+            providers.addAll(unlistedProviders);
+            if (!providers.add(provider)) return;
+            unlistedProviders = providers;
+        }
         // what was resolved before has to be resolved again, through it
-        if (unlistedProviders.add(provider)) clearCache();
+        clearCache();
     }
 
     public void removeUnlistedProvider(IResourceProvider<T> provider) {
-        if (unlistedProviders.remove(provider)) clearCache();
+        synchronized (this) {
+            var providers = Collections.newSetFromMap(new IdentityHashMap<IResourceProvider<T>, Boolean>());
+            providers.addAll(unlistedProviders);
+            if (!providers.remove(provider)) return;
+            unlistedProviders = providers;
+        }
+        clearCache();
     }
 
     /**
@@ -365,37 +447,39 @@ public class ResourceInstance<T> implements ValueIOSerializable {
             }
         }
         if (!directFileProvider.writeResource(path, value)) return false;
+        releasedCache.remove(path);
         cache.put(path, value);
         return true;
     }
 
-    private void addResourceProvider(Map<ResourceProviderType, List<IResourceProvider<T>>> resourceProviders, IResourceProvider<T> provider) {
+    private Map<ResourceProviderType, List<IResourceProvider<T>>> withProvider(
+            Map<ResourceProviderType, List<IResourceProvider<T>>> resourceProviders, IResourceProvider<T> provider) {
         var type = provider.getType();
-        if (resourceProviders.containsKey(type)) {
-            var providers = resourceProviders.get(type);
-            if (!providers.contains(provider)) {
-                providers.add(provider);
-                providersVersion++;
-            }
-        } else {
-            var list = new ArrayList<IResourceProvider<T>>();
-            list.add(provider);
-            resourceProviders.put(type, list);
-            providersVersion++;
-        }
+        var providers = resourceProviders.getOrDefault(type, List.of());
+        if (providers.contains(provider)) return resourceProviders;
+        var list = new ArrayList<>(providers);
+        list.add(provider);
+        var copy = new LinkedHashMap<>(resourceProviders);
+        copy.put(type, List.copyOf(list));
+        providersVersion++;
+        return Collections.unmodifiableMap(copy);
     }
 
-    private void removeResourceProvider(Map<ResourceProviderType, List<IResourceProvider<T>>> resourceProviders, IResourceProvider<T> provider) {
+    private Map<ResourceProviderType, List<IResourceProvider<T>>> withoutProvider(
+            Map<ResourceProviderType, List<IResourceProvider<T>>> resourceProviders, IResourceProvider<T> provider) {
         var type = provider.getType();
-        if (resourceProviders.containsKey(type)) {
-            var providers = resourceProviders.get(type);
-            if (providers.remove(provider)) {
-                providersVersion++;
-            }
-            if (providers.isEmpty()) {
-                resourceProviders.remove(type);
-            }
+        var providers = resourceProviders.get(type);
+        if (providers == null || !providers.contains(provider)) return resourceProviders;
+        var list = new ArrayList<>(providers);
+        list.remove(provider);
+        var copy = new LinkedHashMap<>(resourceProviders);
+        if (list.isEmpty()) {
+            copy.remove(type);
+        } else {
+            copy.put(type, List.copyOf(list));
         }
+        providersVersion++;
+        return Collections.unmodifiableMap(copy);
     }
 
     /**
@@ -551,8 +635,10 @@ public class ResourceInstance<T> implements ValueIOSerializable {
     @Override
     public void deserialize(@NotNull ValueInput input) {
         clearCache();
-        customProviders.clear();
-        providersVersion++;
+        synchronized (this) {
+            customProviders = Map.of();
+            providersVersion++;
+        }
 
         try {
             input.getString("displayMode").ifPresent(mode -> displayMode = Resource.DisplayMode.valueOf(mode));
@@ -573,7 +659,9 @@ public class ResourceInstance<T> implements ValueIOSerializable {
                     for (var tag : list) {
                         var rp = type.fromNbt(this, (CompoundTag) tag);
                         if (rp != null) {
-                            addResourceProvider(this.customProviders, rp);
+                            synchronized (this) {
+                                this.customProviders = withProvider(this.customProviders, rp);
+                            }
                         }
                     }
                 }

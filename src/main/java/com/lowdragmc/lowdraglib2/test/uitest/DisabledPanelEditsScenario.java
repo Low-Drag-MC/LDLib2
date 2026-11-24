@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.ArrayConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.ui.ColorConfigurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.IGuiTextureConfigurator;
+import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.editor.ClipboardManager;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
@@ -27,6 +28,7 @@ import com.lowdragmc.lowdraglib2.uitest.ScenarioOptions;
 import com.lowdragmc.lowdraglib2.uitest.TestContext;
 import com.lowdragmc.lowdraglib2.uitest.UIScenario;
 import com.lowdragmc.lowdraglib2.uitest.input.Keys;
+import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +44,7 @@ public class DisabledPanelEditsScenario implements UIScenario {
     private static final String SEARCH = "search";
     private static final String PRESSES = "presses";
     private static final String ORDER = "order";
+    private static final String NUMBER = "number";
 
     @Override
     public void configure(ScenarioOptions options) {
@@ -87,8 +90,11 @@ public class DisabledPanelEditsScenario implements UIScenario {
 
                 .step("right-click the texture row", ctx -> press(ctx, texture(ctx).label, Keys.MOUSE_RIGHT))
                 .settleMs(150)
-                .check("the menu offers paste: " + enabled, ctx -> menuShows(ctx, "Paste (") == enabled)
-                .check("and remove: " + enabled, ctx -> menuShows(ctx, "Remove") == enabled)
+                // in the game's language: the entries are read as the menu shows them
+                .check("the menu offers paste: " + enabled, ctx -> menuShows(ctx,
+                        Component.translatable("ldlib.gui.editor.menu.paste.type", "ColorRectTexture").getString()) == enabled)
+                .check("and remove: " + enabled, ctx -> menuShows(ctx,
+                        Component.translatable("ldlib.gui.editor.menu.remove").getString()) == enabled)
                 .step("close it", ctx -> {
                     for (var menu : ctx.query().type(Menu.class).list()) {
                         var element = menu.as(Menu.class);
@@ -118,7 +124,22 @@ public class DisabledPanelEditsScenario implements UIScenario {
                     ctx.requireUI().clearFocus();
                     search(ctx).hide();
                 })
-                .settleMs(100);
+                .settleMs(100)
+
+                .step("press the number field", ctx -> {
+                    ctx.put(NUMBER, fields(ctx).number);
+                    var field = ElementBounds.of(number(ctx).textField);
+                    drag[0] = field.centerX();
+                    drag[1] = field.centerY();
+                    ctx.input().mouseDown(drag[0], drag[1], Keys.MOUSE_LEFT);
+                })
+                .step("pull it", ctx -> ctx.input().dragTo(drag[0] + 3, drag[1], Keys.MOUSE_LEFT))
+                .step("well to the right", ctx -> ctx.input().dragTo(drag[0] + 40, drag[1], Keys.MOUSE_LEFT))
+                .step("let go", ctx -> ctx.input().mouseUp(drag[0] + 40, drag[1], Keys.MOUSE_LEFT))
+                .settleMs(100)
+                .check("the number is dragged: " + enabled,
+                        ctx -> (fields(ctx).number != ctx.<Float>get(NUMBER)) == enabled)
+                .step("let go of the field", ctx -> ctx.requireUI().clearFocus());
     }
 
     public static class Fields implements IConfigurable {
@@ -129,6 +150,8 @@ public class DisabledPanelEditsScenario implements UIScenario {
         public IGuiTexture texture = new ColorRectTexture(0xFF00FF00);
         @Configurable
         public List<Integer> list = new ArrayList<>(List.of(1, 2, 3));
+        @Configurable
+        public float number = 1;
     }
 
     private static ModularUI buildUI(TestContext ctx) {
@@ -184,6 +207,14 @@ public class DisabledPanelEditsScenario implements UIScenario {
 
     private static ColorConfigurator color(TestContext ctx) {
         return ctx.query().type(ColorConfigurator.class).one().as(ColorConfigurator.class);
+    }
+
+    /** The field's own row, not a list item's — those are number rows too. */
+    private static NumberConfigurator number(TestContext ctx) {
+        return ctx.query().type(NumberConfigurator.class).list().stream()
+                .map(ref -> ref.as(NumberConfigurator.class))
+                .filter(row -> row.getSourceField() != null && row.getSourceField().getName().equals("number"))
+                .findFirst().orElseThrow();
     }
 
     private static IGuiTextureConfigurator texture(TestContext ctx) {

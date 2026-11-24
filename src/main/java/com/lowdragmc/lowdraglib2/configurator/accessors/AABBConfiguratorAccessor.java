@@ -121,7 +121,7 @@ public class AABBConfiguratorAccessor extends TypesAccessor<AABB> {
             var current = supplier.get();
             return () -> current;
         });
-        configurator.setPastable(AABB.class, consumer);
+        configurator.setPastableWrite(AABB.class, consumer);
         return configurator;
     }
 }

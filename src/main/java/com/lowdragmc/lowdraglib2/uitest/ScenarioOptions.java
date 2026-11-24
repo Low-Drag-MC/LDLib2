@@ -1,5 +1,7 @@
 package com.lowdragmc.lowdraglib2.uitest;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -29,6 +31,8 @@ public final class ScenarioOptions {
     private boolean settleAfterAssertions = true;
     private int guiScale = -1;
     private final Set<String> tags = new LinkedHashSet<>();
+    @Nullable
+    private String skipReason;
 
     public ScenarioOptions defaultSettleMs(long ms) {
         this.defaultSettleMs = Math.max(0, ms);
@@ -117,6 +121,22 @@ public final class ScenarioOptions {
     public ScenarioOptions tags(String... tags) {
         this.tags.addAll(java.util.Arrays.asList(tags));
         return this;
+    }
+
+    /**
+     * Reports the scenario as {@code SKIPPED} with {@code reason} instead of running it when
+     * {@code available} is false — for a scenario that needs something only some machines have.
+     */
+    public ScenarioOptions skipUnless(boolean available, String reason) {
+        if (!available) {
+            this.skipReason = reason;
+        }
+        return this;
+    }
+
+    @Nullable
+    public String skipReason() {
+        return skipReason;
     }
 
     public long defaultSettleMs() {

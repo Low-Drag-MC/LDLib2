@@ -13,6 +13,8 @@ import net.minecraft.server.packs.PackType;
 
 import org.jetbrains.annotations.Nullable;
 import java.io.DataInputStream;
+import java.lang.ref.WeakReference;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -21,6 +23,9 @@ public final class PackFileResourceProvider<T>  {
     public final ResourceInstance<T> resourceInstance;
     @Getter
     public final Map<IResourcePath, T> contents = new LinkedHashMap<>();
+    /** What was read and then {@linkplain #release released}; guarded by {@link #contents}. */
+    private final Map<IResourcePath, WeakReference<T>> released = new HashMap<>();
+    private int clears;
 
     public PackFileResourceProvider(ResourceInstance<T> resourceInstance) {
         this.resourceInstance = resourceInstance;
@@ -66,11 +71,69 @@ public final class PackFileResourceProvider<T>  {
 
     public T getResource(IResourcePath path) {
         if (supportResourcePath(path)) {
-            if (!contents.containsKey(path)) {
-                contents.put(path, getResourceByLocation(((FilePath)path).location));
+            int cleared;
+            synchronized (contents) {
+                if (contents.containsKey(path)) {
+                    return contents.get(path);
+                }
+                var let = released.get(path);
+                var held = let == null ? null : let.get();
+                if (held != null) {
+                    return held;
+                }
+                released.remove(path);
+                cleared = clears;
             }
-            return contents.get(path);
+            // read outside the lock, so one slow read holds up nobody else
+            var read = getResourceByLocation(((FilePath)path).location);
+            synchronized (contents) {
+                if (contents.containsKey(path)) {
+                    return contents.get(path);
+                }
+                // a reload between the two may have changed the packs: what was read is not kept
+                if (clears == cleared) {
+                    contents.put(path, read);
+                }
+                return read;
+            }
         }
         return null;
+    }
+
+    void clear() {
+        synchronized (contents) {
+            clears++;
+            contents.clear();
+            released.clear();
+        }
+    }
+
+    /** @see IResourceProvider#release */
+    public void release(IResourcePath path) {
+        synchronized (contents) {
+            var value = contents.remove(path);
+            if (value != null) {
+                released.put(path, new WeakReference<>(value));
+            }
+        }
+    }
+
+    /** @see IResourceProvider#keep */
+    public void keep(IResourcePath path) {
+        synchronized (contents) {
+            var let = released.remove(path);
+            var value = let == null ? null : let.get();
+            if (value != null) {
+                contents.putIfAbsent(path, value);
+            }
+        }
+    }
+
+    /** @see IResourceProvider#isReleased */
+    public boolean isReleased(IResourcePath path) {
+        synchronized (contents) {
+            var let = released.get(path);
+            return let != null && let.get() != null;
+        }
     }
 }
