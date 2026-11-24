@@ -587,6 +587,7 @@ public class TextField extends BindableUIElement<String> {
         if (value == null) value = "";
         var textValue = value;
         this.rawText = value;
+        this.isError = false;
         if (isNumberField() && numberInstance != null && !value.isEmpty()) {
             try {
                 switch (mode) {
