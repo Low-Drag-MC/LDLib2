@@ -648,12 +648,12 @@ public class Scene extends UIElement {
 
     public void setCameraYawAndPitchAnima(float rotationYaw, float rotationPitch, int dur) {
         if (interpolator != null || getModularUI() == null) return ;
-        final float oRotationYaw = this.rotationPitch;
-        final float oRotationPitch = this.rotationYaw;
+        final float oRotationYaw = this.rotationYaw;
+        final float oRotationPitch = this.rotationPitch;
         startTick = getModularUI().getTickCounter();
         interpolator = new Interpolator(0, 1, dur, Eases.QUAD_OUT, value -> {
-            this.rotationPitch = (rotationYaw - oRotationYaw) * value.floatValue() + oRotationYaw;
-            this.rotationYaw = (rotationPitch - oRotationPitch) * value.floatValue() + oRotationPitch;
+            this.rotationYaw = (rotationYaw - oRotationYaw) * value.floatValue() + oRotationYaw;
+            this.rotationPitch = (rotationPitch - oRotationPitch) * value.floatValue() + oRotationPitch;
             if (renderer != null) {
                 renderer.setCameraLookAt(this.center, camZoom(), Math.toRadians(this.rotationYaw), Math.toRadians(this.rotationPitch));
             }
