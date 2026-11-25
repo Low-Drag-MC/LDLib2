@@ -200,11 +200,6 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     private static final int ARC_SEGMENTS = 48;
     private static final int SHAFT_SEGMENTS = 12;
 
-    // snapping increments (Ctrl held)
-    private static final float SNAP_TRANSLATE = 0.25f;
-    private static final float SNAP_SCALE = 0.25f;
-    private static final float SNAP_ROTATE = (float) Math.toRadians(15);
-
     private static final VoxelShape xAxisCollider = Shapes.box(0, -0.1, -0.1, 1.2, 0.1, 0.1);
     private static final VoxelShape yAxisCollider = Shapes.box(-0.1, 0, -0.1, 0.1, 1.2, 0.1);
     private static final VoxelShape zAxisCollider = Shapes.box(-0.1, -0.1, 0, 0.1, 0.1, 1.2);
@@ -247,6 +242,17 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
     private Space space = Space.LOCAL;
     @Getter
     private boolean enabled = true;
+    // snapping increments (Ctrl held)
+    @Getter
+    @Setter
+    private float snapTranslate = 0.25f;
+    @Getter
+    @Setter
+    private float snapScale = 0.25f;
+    /** In radians. */
+    @Getter
+    @Setter
+    private float snapRotate = (float) Math.toRadians(15);
     /** The camera it is seen through when it is not in a scene editor; null to use the editor's. */
     @Nullable
     @Getter
@@ -793,7 +799,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
             var hit = rayPlaneIntersect(origin, dir, dragStartPosition, dragAxis);
             if (hit != null) {
                 var newPos = new Vector3f(hit).sub(dragGrabOffset);
-                if (snap) snapVector(newPos, SNAP_TRANSLATE);
+                if (snap) snapVector(newPos, snapTranslate);
                 targetTransform.position(newPos);
                 readoutText = fmt(new Vector3f(newPos).sub(dragStartPosition));
                 changed = true;
@@ -806,7 +812,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
                 // Absolute, not accumulated per frame: the rotation is always "from where you grabbed to
                 // where you are", so dragging back to the start puts the object back exactly.
                 var delta = new Quaternionf().rotationTo(dragBallStart, current);
-                if (snap) delta = snapRotation(delta, SNAP_ROTATE);
+                if (snap) delta = snapRotation(delta, snapRotate);
                 targetTransform.rotation(delta.mul(dragStartRotation, new Quaternionf()));
                 readoutText = "%.1f°".formatted(Math.toDegrees(angleOf(delta)));
                 changed = true;
@@ -824,7 +830,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
                     else if (d < -Math.PI) d += 2 * Math.PI;
                     dragPrevRaw = raw;
                     dragRotateAccum += (float) d;
-                    var angle = snap ? Math.round(dragRotateAccum / SNAP_ROTATE) * SNAP_ROTATE : dragRotateAccum;
+                    var angle = snap ? Math.round(dragRotateAccum / snapRotate) * snapRotate : dragRotateAccum;
                     dragRotateAngle = angle;
                     var delta = new Quaternionf().fromAxisAngleRad(dragAxis.x, dragAxis.y, dragAxis.z, angle);
                     targetTransform.rotation(delta.mul(dragStartRotation, new Quaternionf()));
@@ -835,7 +841,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
         } else if (mode == Mode.TRANSLATE) {
             var closest = Vector3fHelper.closestPointOnLine(origin, dir, dragStartPosition, dragAxis);
             var delta = new Vector3f(closest).sub(dragStartPosition).dot(dragAxis) - dragStartParam;
-            if (snap) delta = Math.round(delta / SNAP_TRANSLATE) * SNAP_TRANSLATE;
+            if (snap) delta = Math.round(delta / snapTranslate) * snapTranslate;
             var newPos = new Vector3f(dragStartPosition).add(new Vector3f(dragAxis).mul(delta));
             targetTransform.position(newPos);
             readoutText = fmt(new Vector3f(dragAxis).mul(delta));
@@ -851,7 +857,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
                 // keep their proportions, which is the whole reason to grab a square or the centre rather
                 // than an axis. The planar handles leave their own axis alone; the centre takes all three.
                 var factor = 1 + delta;
-                if (snap) factor = Math.round(factor / SNAP_SCALE) * SNAP_SCALE;
+                if (snap) factor = Math.round(factor / snapScale) * snapScale;
                 factor = Math.max(factor, MIN_SCALE_FACTOR);
                 newScale = new Vector3f(dragStartScale);
                 for (int i = 0; i < 3; i++) {
@@ -861,7 +867,7 @@ public class TransformGizmo extends SceneObject implements ISceneRendering, ISce
             } else {
                 var idx = handle.axis;
                 var newComp = dragStartScale.get(idx) + delta;
-                if (snap) newComp = Math.round(newComp / SNAP_SCALE) * SNAP_SCALE;
+                if (snap) newComp = Math.round(newComp / snapScale) * snapScale;
                 newScale = new Vector3f(dragStartScale).setComponent(idx, newComp);
                 readoutText = fmt(newScale);
             }
