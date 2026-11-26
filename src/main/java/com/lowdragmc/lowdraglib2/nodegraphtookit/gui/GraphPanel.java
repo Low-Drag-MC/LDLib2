@@ -532,6 +532,7 @@ public class GraphPanel extends UIElement {
         }
 
         this.isCollapsed = collapsed;
+        collapseToggle.setOn(collapsed, false);
         applySlotLayout();
     }
 
