@@ -20,13 +20,16 @@ import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
@@ -43,6 +46,7 @@ import net.minecraft.Util;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Tuple;
+import org.joml.Vector2f;
 import org.lwjgl.glfw.GLFW;
 
 import org.jetbrains.annotations.Nullable;
@@ -56,16 +60,21 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.*;
+import java.util.stream.Collectors;
 
 @Accessors(chain = true)
 public class ResourceProviderContainer<T> extends UIElement {
     /** The smallest and largest preview size the bottom bar's slider offers. */
     public static final int MIN_UI_WIDTH = 10;
     public static final int MAX_UI_WIDTH = 100;
+    public static final int INLINE_RENAME_MIN_WIDTH = 90;
+    public static final String CLASS_RENAME_FIELD = "__resource-rename-field__";
     /** Ticks between scans of the provider for changes made outside the editor. */
     private static final int POLL_INTERVAL = 20;
     // staggered, so the containers of one folder (one per resource type) do not all list it on the same tick
@@ -157,6 +166,12 @@ public class ResourceProviderContainer<T> extends UIElement {
     protected HashSet<IResourcePath> dirtyResources = new HashSet<>();
     @Getter @Nullable
     protected IResourcePath selected = null;
+    protected final LinkedHashSet<IResourcePath> selectedResources = new LinkedHashSet<>();
+    @Nullable
+    protected IResourcePath selectionAnchor = null;
+    @Nullable
+    private IResourcePath pendingCollapsePath = null;
+    private final GridMarqueeSelection<IResourcePath> marqueeSelection;
     @Getter @Setter
     protected Editor editor;
     @Nullable
@@ -198,18 +213,62 @@ public class ResourceProviderContainer<T> extends UIElement {
         addChildren(toolbar, scrollerView, bottomBar);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         addEventListener(UIEvents.FILE_DROP, this::onFilesDropped);
-        // clicking the empty space around the cells clears the selection. Listening on the scroller
-        // rather than the whole container keeps the bottom bar's own controls out of it.
-        scrollerView.addEventListener(UIEvents.MOUSE_DOWN, event -> {
-            if (event.button == 0 && hoveredPath == null) {
-                selectResource(null);
+
+        var viewPort = scrollerView.viewPort;
+        viewPort.setFocusable(true);
+        viewPort.addEventListener(UIEvents.MOUSE_DOWN, event -> {
+            if (event.button == 0 || event.button == 1) {
+                viewPort.focus();
             }
-        });
+        }, true);
+        viewPort.addEventListener(UIEvents.KEY_DOWN, this::onGridKeyDown);
+        viewPort.addEventListener(UIEvents.VALIDATE_COMMAND, this::onValidateCommand);
+        viewPort.addEventListener(UIEvents.EXECUTE_COMMAND, this::onExecuteCommand);
+        this.marqueeSelection = GridMarqueeSelection.attach(
+                scrollerView,
+                () -> resourceUIs,
+                this::getSelectedResources,
+                paths -> setSelectedResources(paths, false));
     }
 
     protected void onMouseDown(UIEvent event) {
         if (event.button == 1 && editor != null) {
+            // Right-clicking empty space inside the grid clears any stale selection before opening the menu.
+            if (event.target != null && event.target.getStructurePath().contains(scrollerView.viewPort)
+                    && marqueeSelection.keyAt(event.target) == null) {
+                selectResource(null, false);
+            }
             editor.openMenu(this, event.x, event.y, getMenu());
+        }
+    }
+
+    protected void onGridKeyDown(UIEvent event) {
+        if (event.keyCode == GLFW.GLFW_KEY_DELETE && !selectedResources.isEmpty()) {
+            var removable = selectedResources.stream().filter(canRemove).toList();
+            if (!removable.isEmpty()) {
+                event.stopPropagation();
+                removeResources(removable, true);
+            }
+        } else if (event.keyCode == GLFW.GLFW_KEY_F2 && selectedResources.size() == 1
+                && selected != null && canRename.test(selected)) {
+            event.stopPropagation();
+            renameResource(selected);
+        } else if (event.keyCode == GLFW.GLFW_KEY_ESCAPE && !selectedResources.isEmpty()) {
+            event.stopPropagation();
+            selectResource(null, false);
+        }
+    }
+
+    protected void onValidateCommand(UIEvent event) {
+        if (CommandEvents.SELECT_ALL.equals(event.command)) {
+            event.stopPropagation();
+        }
+    }
+
+    protected void onExecuteCommand(UIEvent event) {
+        if (CommandEvents.SELECT_ALL.equals(event.command)) {
+            event.stopPropagation();
+            selectAll();
         }
     }
 
@@ -310,8 +369,9 @@ public class ResourceProviderContainer<T> extends UIElement {
             entry.getValue().setDisplay(matchesSearch(entry.getKey()));
         }
         // the menu would otherwise act on a selection nobody can see
-        if (selected != null && !matchesSearch(selected)) {
-            selectResource(null, false);
+        var remaining = selectedResources.stream().filter(this::matchesSearch).toList();
+        if (remaining.size() != selectedResources.size()) {
+            setSelectedResources(remaining, false);
         }
     }
 
@@ -505,16 +565,40 @@ public class ResourceProviderContainer<T> extends UIElement {
                 .addEventListener(UIEvents.MOUSE_LEAVE, e -> {
                     if (hoveredPath == key) hoveredPath = null;
                 }, true)
-                .addEventListener(UIEvents.MOUSE_DOWN, e -> selectResource(key))
-                .addEventListener(UIEvents.DOUBLE_CLICK, e-> editResource(key))
                 .addEventListener(UIEvents.MOUSE_DOWN, e -> {
                     if (e.button == 0) {
                         lastClickPath = key;
+                        pendingCollapsePath = null;
+                        if (e.isShiftDown()) {
+                            selectRangeTo(key, e.isCtrlDown(), true);
+                        } else if (e.isCtrlDown()) {
+                            toggleSelectResource(key, true);
+                        } else if (selectedResources.size() > 1 && selectedResources.contains(key)) {
+                            // Defer collapsing a multi-selection until mouse-up so dragging stays possible.
+                            pendingCollapsePath = key;
+                        } else {
+                            selectResource(key);
+                        }
+                    } else if (e.button == 1) {
+                        if (!selectedResources.contains(key)) {
+                            selectResource(key);
+                        }
                     }
-                }).addEventListener(UIEvents.MOUSE_UP, e -> {
-                    lastClickPath = null; // Reset click time
+                })
+                .addEventListener(UIEvents.DOUBLE_CLICK, e -> {
+                    if (!e.isCtrlDown() && !e.isShiftDown()) {
+                        editResource(key);
+                    }
+                })
+                .addEventListener(UIEvents.MOUSE_UP, e -> {
+                    if (e.button == 0 && pendingCollapsePath != null && pendingCollapsePath.equals(key)) {
+                        selectResource(key);
+                    }
+                    pendingCollapsePath = null;
+                    lastClickPath = null;
                 }).addEventListener(UIEvents.MOUSE_LEAVE, e -> {
                     if (lastClickPath == key && isMouseDown(0)) {
+                        pendingCollapsePath = null;
                         e.currentElement.startDrag(onDragProvider.apply(key), TextTexture.raw(nameSupplier.apply(key)));
                     }
                     lastClickPath = null;
@@ -527,6 +611,7 @@ public class ResourceProviderContainer<T> extends UIElement {
     public void reloadResourceContainer() {
         resourceUIs.clear();
         hoveredPath = null;
+        pendingCollapsePath = null;
         if (headless) {
             notifyInvalidated(null);
             return;
@@ -538,11 +623,12 @@ public class ResourceProviderContainer<T> extends UIElement {
         for (var path : paths) {
             addResourceUI(path, scrollerView.viewContainer.getChildren().size());
         }
-        // the cells are new, so the highlight has to be put back on the one that is still selected,
-        // and dropped if that resource is no longer here
-        var previous = selected;
+        // the cells are new, so the highlight has to be put back on the ones still selected,
+        // and dropped for any resource that is no longer here
+        var previous = new ArrayList<>(selectedResources);
+        selectedResources.clear();
         selected = null;
-        selectResource(previous, false);
+        setSelectedResources(previous, false);
     }
 
     protected void notifyInvalidated(@Nullable IResourcePath path) {
@@ -569,8 +655,8 @@ public class ResourceProviderContainer<T> extends UIElement {
         scrollerView.removeScrollViewChild(resourceUIs.get(path));
         scrollerView.addScrollViewChildAt(ui, index);
         resourceUIs.put(path, ui);
-        if (selected != null && selected.equals(path)) {
-            selectResource(path);
+        if (selectedResources.contains(path)) {
+            applySelectionHighlight(ui, true);
         }
     }
 
@@ -591,51 +677,154 @@ public class ResourceProviderContainer<T> extends UIElement {
         scrollerView.addScrollViewChildAt(ui, index);
     }
 
-    public void selectResource(IResourcePath resourcePath) {
+    public Set<IResourcePath> getSelectedResources() {
+        return Collections.unmodifiableSet(selectedResources);
+    }
+
+    public boolean isSelected(@Nullable IResourcePath path) {
+        return path != null && selectedResources.contains(path);
+    }
+
+    public void selectResource(@Nullable IResourcePath resourcePath) {
         selectResource(resourcePath, true);
     }
 
     /**
-     * Selects the given resource.
+     * Selects the given resource (replacing any previous multi-selection).
      *
-     * @param resourcePath the resource path to select.
+     * @param resourcePath the resource path to select, or null to clear selection.
      * @param notify whether the {@link #onResourceSelect} callback should be notified.
      */
     public void selectResource(@Nullable IResourcePath resourcePath, boolean notify) {
-        // null clears the selection, and third party providers are not expected to take a null path
-        var res = resourcePath == null ? null : resourceProvider.getResource(resourcePath);
-        if (notify && onResourceSelect != null && res != null) {
-            onResourceSelect.accept(res);
-        }
+        selectionAnchor = resourcePath;
+        setSelectedResources(resourcePath == null ? List.of() : List.of(resourcePath), notify);
+    }
+
+    /**
+     * Replaces the current selection with {@code paths}.
+     *
+     * @param paths  the resource paths to select.
+     * @param notify whether {@link #onResourceSelect} should be notified for the primary selected resource.
+     */
+    public void setSelectedResources(Collection<IResourcePath> paths, boolean notify) {
         if (headless) {
-            // no UI to highlight, but keep track of the selection so contextual menu entries
-            // (e.g. the ones authored through onMenu) still see it.
-            selected = resourcePath;
+            selectedResources.clear();
+            IResourcePath primary = null;
+            for (var path : paths) {
+                if (path != null) {
+                    selectedResources.add(path);
+                    primary = path;
+                }
+            }
+            selected = primary;
+            if (notify && onResourceSelect != null && primary != null) {
+                var res = resourceProvider.getResource(primary);
+                if (res != null) {
+                    onResourceSelect.accept(res);
+                }
+            }
             return;
         }
-        if (!resourceUIs.containsKey(resourcePath)) {
-            resourcePath = null;
-        }
-        if (selected != null) {
-            var previousUI = resourceUIs.get(selected);
-            if (previousUI != null) {
-                previousUI.style(style -> style.overlayTexture(IGuiTexture.EMPTY));
-                previousUI.removeClass("__selected__");
+        var next = new LinkedHashSet<IResourcePath>();
+        IResourcePath primary = null;
+        for (var path : paths) {
+            if (path != null && resourceUIs.containsKey(path)) {
+                next.add(path);
+                primary = path;
             }
         }
-        selected = resourcePath;
-        if (selected != null) {
-            var selectedUI = resourceUIs.get(selected);
-            if (selectedUI != null) {
-                selectedUI.style(style -> style.overlayTexture(selectedTexture));
-                selectedUI.addClass("__selected__");
+        for (var oldPath : selectedResources) {
+            if (!next.contains(oldPath)) {
+                applySelectionHighlight(resourceUIs.get(oldPath), false);
+            }
+        }
+        for (var newPath : next) {
+            applySelectionHighlight(resourceUIs.get(newPath), true);
+        }
+        selectedResources.clear();
+        selectedResources.addAll(next);
+        selected = primary;
+        if (selected == null) {
+            selectionAnchor = null;
+        } else if (selectionAnchor == null || !selectedResources.contains(selectionAnchor)) {
+            selectionAnchor = selected;
+        }
+        if (notify && onResourceSelect != null && primary != null) {
+            var res = resourceProvider.getResource(primary);
+            if (res != null) {
+                onResourceSelect.accept(res);
             }
         }
         updateBottomBar();
     }
 
+    public void toggleSelectResource(IResourcePath path, boolean notify) {
+        if (path == null) return;
+        var next = new LinkedHashSet<>(selectedResources);
+        boolean added;
+        if (next.contains(path)) {
+            next.remove(path);
+            added = false;
+        } else {
+            next.add(path);
+            added = true;
+            selectionAnchor = path;
+        }
+        setSelectedResources(next, notify && added);
+    }
+
+    public void selectRangeTo(IResourcePath target, boolean additive, boolean notify) {
+        if (target == null) return;
+        var ordered = visiblePathsInOrder();
+        int toIdx = ordered.indexOf(target);
+        if (toIdx < 0) return;
+        var anchor = selectionAnchor != null && ordered.contains(selectionAnchor)
+                ? selectionAnchor
+                : (selected != null && ordered.contains(selected) ? selected : target);
+        int fromIdx = ordered.indexOf(anchor);
+        int start = Math.min(fromIdx, toIdx);
+        int end = Math.max(fromIdx, toIdx);
+        var next = additive ? new LinkedHashSet<>(selectedResources) : new LinkedHashSet<IResourcePath>();
+        for (int i = start; i <= end; i++) {
+            next.add(ordered.get(i));
+        }
+        selectionAnchor = anchor;
+        setSelectedResources(next, notify);
+    }
+
+    public void selectAll() {
+        setSelectedResources(visiblePathsInOrder(), false);
+    }
+
+    private List<IResourcePath> visiblePathsInOrder() {
+        var cellToKey = new IdentityHashMap<UIElement, IResourcePath>(resourceUIs.size());
+        resourceUIs.forEach((key, ui) -> cellToKey.put(ui, key));
+        var ordered = new ArrayList<IResourcePath>(resourceUIs.size());
+        for (var child : scrollerView.viewContainer.getChildren()) {
+            if (!child.isDisplayed()) continue;
+            var key = cellToKey.get(child);
+            if (key != null) ordered.add(key);
+        }
+        return ordered;
+    }
+
+    private void applySelectionHighlight(@Nullable UIElement ui, boolean isSelected) {
+        if (ui == null) return;
+        if (isSelected) {
+            ui.style(style -> style.overlayTexture(selectedTexture));
+            ui.addClass("__selected__");
+        } else {
+            ui.style(style -> style.overlayTexture(IGuiTexture.EMPTY));
+            ui.removeClass("__selected__");
+        }
+    }
+
     protected void updateBottomBar() {
-        bottomBar.setText(selected == null ? "" : selected.getPathWithType());
+        if (selectedResources.size() > 1) {
+            bottomBar.setText(Component.translatable("editor.resource.selected_count", selectedResources.size()).getString());
+        } else {
+            bottomBar.setText(selected == null ? "" : selected.getPathWithType());
+        }
         bottomBar.setValue(resourceProvider.getResourceInstance().getUiWidth());
     }
 
@@ -723,32 +912,57 @@ public class ResourceProviderContainer<T> extends UIElement {
             m.leaf(uiWidth == 100 ? Icons.CHECK_SPRITE : IGuiTexture.EMPTY, "editor.extra_large", () -> setUiWidth(100));
         });
         menu.crossLine();
-        if (selected != null) {
+        boolean multi = selectedResources.size() > 1;
+        if (multi) {
+            var selectionSnapshot = List.copyOf(selectedResources);
             menu.leaf("ldlib.gui.editor.menu.copy_path", () ->
-                    ClipboardManager.INSTANCE.copyDirect(selected.getPathWithType())
+                    ClipboardManager.INSTANCE.copyDirect(selectionSnapshot.stream()
+                            .map(IResourcePath::getPathWithType)
+                            .collect(Collectors.joining("\n")))
             );
-        }
-        if (selected != null && canOpen.test(selected) && onEdit != null) {
-            // Same action, honest label: a read-only resource opens, it does not become editable.
-            menu.leaf(Icons.EDIT_FILE, canEdit.test(selected)
-                            ? "ldlib.gui.editor.menu.edit" : "ldlib.gui.editor.menu.view",
-                    () -> editResource(selected));
-        }
-        if (selected != null && canRename.test(selected)) {
-            menu.leaf("ldlib.gui.editor.menu.rename", () -> renameResource(selected));
-        }
-        menu.crossLine();
-        if (selected != null && canCopy.test(selected)) {
-            menu.leaf(Icons.COPY, "ldlib.gui.editor.menu.copy", () -> copyResource(selected));
-        }
-        if (supportAdd.getAsBoolean() && addDefault != null) {
-            menu.leaf(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", this::addNewResource);
-        }
-        if (onCreateMenu != null) {
-            onCreateMenu.accept(this, menu);
-        }
-        if (selected != null && canRemove.test(selected)) {
-            menu.leaf(Icons.REMOVE_FILE, "ldlib.gui.editor.menu.remove", () -> removeResource(selected, true));
+            menu.crossLine();
+            var copyable = selectionSnapshot.stream().filter(canCopy).toList();
+            if (!copyable.isEmpty()) {
+                menu.leaf(Icons.COPY, "ldlib.gui.editor.menu.copy", () -> copyResources(copyable));
+            }
+            if (supportAdd.getAsBoolean() && addDefault != null) {
+                menu.leaf(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", this::addNewResource);
+            }
+            if (onCreateMenu != null) {
+                onCreateMenu.accept(this, menu);
+            }
+            var removable = selectionSnapshot.stream().filter(canRemove).toList();
+            if (!removable.isEmpty()) {
+                menu.leaf(Icons.REMOVE_FILE, "ldlib.gui.editor.menu.remove", () -> removeResources(removable, true));
+            }
+        } else {
+            if (selected != null) {
+                menu.leaf("ldlib.gui.editor.menu.copy_path", () ->
+                        ClipboardManager.INSTANCE.copyDirect(selected.getPathWithType())
+                );
+            }
+            if (selected != null && canOpen.test(selected) && onEdit != null) {
+                // Same action, honest label: a read-only resource opens, it does not become editable.
+                menu.leaf(Icons.EDIT_FILE, canEdit.test(selected)
+                                ? "ldlib.gui.editor.menu.edit" : "ldlib.gui.editor.menu.view",
+                        () -> editResource(selected));
+            }
+            if (selected != null && canRename.test(selected)) {
+                menu.leaf("ldlib.gui.editor.menu.rename", () -> renameResource(selected));
+            }
+            menu.crossLine();
+            if (selected != null && canCopy.test(selected)) {
+                menu.leaf(Icons.COPY, "ldlib.gui.editor.menu.copy", () -> copyResource(selected));
+            }
+            if (supportAdd.getAsBoolean() && addDefault != null) {
+                menu.leaf(Icons.ADD_FILE, "ldlib.gui.editor.menu.add_resource", this::addNewResource);
+            }
+            if (onCreateMenu != null) {
+                onCreateMenu.accept(this, menu);
+            }
+            if (selected != null && canRemove.test(selected)) {
+                menu.leaf(Icons.REMOVE_FILE, "ldlib.gui.editor.menu.remove", () -> removeResource(selected, true));
+            }
         }
         resourceProvider.onMenu(menu);
         if (onMenu != null) {
@@ -945,6 +1159,117 @@ public class ResourceProviderContainer<T> extends UIElement {
                 }));
     }
 
+    /**
+     * Asks where copies of multiple resources should go, then writes them all in one undoable action.
+     */
+    public void copyResources(Collection<IResourcePath> keys) {
+        var validKeys = keys.stream().filter(k -> k != null && canCopy.test(k)).distinct().toList();
+        if (validKeys.isEmpty()) return;
+        if (validKeys.size() == 1) {
+            copyResource(validKeys.getFirst());
+            return;
+        }
+        var instance = resourceProvider.getResourceInstance();
+        var targets = instance.listWritableProviders();
+        if (targets.isEmpty()) {
+            Dialog.showNotification("ldlib.gui.editor.menu.copy", "editor.copy.no_target", null).show(this);
+            return;
+        }
+        var copiedEntries = new ArrayList<Tuple<IResourcePath, T>>();
+        for (var key : validKeys) {
+            var copied = detachedCopy(key);
+            if (copied != null) {
+                copiedEntries.add(new Tuple<>(key, copied));
+            }
+        }
+        if (copiedEntries.isEmpty()) return;
+        var defaultTarget = targets.contains(resourceProvider) ? resourceProvider : targets.getFirst();
+        showBatchCopyDialog(targets, defaultTarget, copiedEntries.size(),
+                target -> copyResourcesTo(copiedEntries, target));
+    }
+
+    protected void showBatchCopyDialog(List<IResourceProvider<T>> targets, IResourceProvider<T> defaultTarget,
+                                       int count, Consumer<IResourceProvider<T>> onConfirm) {
+        var selector = new Selector<IResourceProvider<T>>()
+                .setCandidateUIProvider(UIElementProvider.iconText(
+                        provider -> provider == null ? IGuiTexture.EMPTY : provider.getType().getIcon(),
+                        provider -> Component.literal(provider == null ? "" : provider.getName())))
+                .setCandidates(targets)
+                .setSelected(defaultTarget, false);
+        selector.getLayout().widthPercent(100);
+        selector.addClass("__copy-target-selector__");
+
+        var dialog = new Dialog().setTitle("ldlib.gui.editor.menu.copy_to");
+        dialog.addContent(new UIElement().layout(layout -> {
+            layout.widthPercent(100);
+            layout.heightAuto();
+            layout.flexDirection(FlexDirection.COLUMN);
+            layout.gapAll(2);
+        }).addChildren(
+                new Label().setText(Component.translatable("editor.copy.target_multiple", count)),
+                selector));
+        dialog.addExternalElement(selector.dialog);
+        dialog.addButton(new Button().setOnClick(e -> {
+            var target = selector.getValue();
+            dialog.close();
+            if (target != null) {
+                onConfirm.accept(target);
+            }
+        }).setText("ldlib.gui.tips.confirm").addClass("__confirm-button__"));
+        dialog.addButton(new Button().setOnClick(e -> dialog.close())
+                .setText("ldlib.gui.tips.cancel").addClass("__cancel-button__"));
+        dialog.show(this);
+    }
+
+    protected void copyResourcesTo(List<Tuple<IResourcePath, T>> entries, IResourceProvider<T> target) {
+        var isHere = target == resourceProvider;
+        var reserved = new HashSet<IResourcePath>();
+        var planned = new ArrayList<Tuple<IResourcePath, T>>(entries.size());
+        for (var entry : entries) {
+            var baseName = isHere
+                    ? copyNameOf(entry.getA())
+                    : toValidName(resourceProvider.getResourceName(entry.getA()));
+            var key = target.createSubPath(baseName);
+            var count = 1;
+            while (target.hasResource(key) || reserved.contains(key)) {
+                key = target.createSubPath(baseName + "_" + count);
+                count++;
+            }
+            reserved.add(key);
+            planned.add(new Tuple<>(key, entry.getB()));
+        }
+        editor.historyView.pushHistory(Component.translatable("editor.copy_resource"), EditAction.of(
+                () -> {
+                    var addedHere = new ArrayList<IResourcePath>();
+                    boolean anyFailed = false;
+                    for (var item : planned) {
+                        if (isHere) {
+                            resourceProvider.addResource(item.getA(), item.getB());
+                            appendResourceUI(item.getA());
+                            revealIfFiltered(item.getA());
+                            addedHere.add(item.getA());
+                        } else if (!target.addResource(item.getA(), item.getB())) {
+                            anyFailed = true;
+                        }
+                    }
+                    if (isHere && !addedHere.isEmpty()) {
+                        setSelectedResources(addedHere, false);
+                    }
+                    if (anyFailed) {
+                        Dialog.showNotification("ldlib.gui.editor.menu.copy", "editor.copy.failed", null).show(this);
+                    }
+                },
+                () -> {
+                    for (var item : planned) {
+                        if (isHere) {
+                            removeResourceInternal(item.getA());
+                        } else {
+                            target.removeResource(item.getA());
+                        }
+                    }
+                }));
+    }
+
     public void removeResource(IResourcePath key, boolean confirm) {
         if (key != null && canRemove.test(key)) {
             var value = resourceProvider.getResource(key);
@@ -965,6 +1290,51 @@ public class ResourceProviderContainer<T> extends UIElement {
         }
     }
 
+    public void removeResources(Collection<IResourcePath> keys, boolean confirm) {
+        var toRemove = new ArrayList<Tuple<IResourcePath, T>>();
+        for (var key : new LinkedHashSet<>(keys)) {
+            if (key == null || !canRemove.test(key)) continue;
+            var value = resourceProvider.getResource(key);
+            if (value != null) {
+                toRemove.add(new Tuple<>(key, value));
+            }
+        }
+        if (toRemove.isEmpty()) return;
+        if (toRemove.size() == 1) {
+            removeResource(toRemove.getFirst().getA(), confirm);
+            return;
+        }
+        Runnable perform = () -> editor.historyView.pushHistory(
+                Component.translatable("editor.remove_resource"),
+                EditAction.of(
+                        () -> {
+                            for (var item : toRemove) {
+                                removeResourceInternal(item.getA());
+                            }
+                        },
+                        () -> {
+                            var restored = new ArrayList<IResourcePath>(toRemove.size());
+                            for (var item : toRemove) {
+                                resourceProvider.addResource(item.getA(), item.getB());
+                                appendResourceUI(item.getA());
+                                revealIfFiltered(item.getA());
+                                restored.add(item.getA());
+                            }
+                            setSelectedResources(restored, false);
+                        }));
+        if (confirm) {
+            Dialog.showCheckBox("ldlib.gui.editor.menu.remove",
+                    Component.translatable("editor.remove.confirm_multiple", toRemove.size()),
+                    result -> {
+                        if (result) {
+                            perform.run();
+                        }
+                    }).show(editor);
+        } else {
+            perform.run();
+        }
+    }
+
     private void addResourceInternal(T value, IResourcePath finalKey) {
         resourceProvider.addResource(finalKey, value);
         appendResourceUI(finalKey);
@@ -978,8 +1348,17 @@ public class ResourceProviderContainer<T> extends UIElement {
         if (ui != null) {
             scrollerView.removeScrollViewChild(ui);
         }
-        if (key != null && key.equals(selected)) {
+        if (key != null && selectedResources.remove(key)) {
+            if (key.equals(selected)) {
+                selected = selectedResources.isEmpty() ? null : selectedResources.getLast();
+            }
+            if (key.equals(selectionAnchor)) {
+                selectionAnchor = selected;
+            }
+            updateBottomBar();
+        } else if (key != null && key.equals(selected)) {
             selected = null;
+            updateBottomBar();
         }
         notifyInvalidated(key);
     }
@@ -999,6 +1378,10 @@ public class ResourceProviderContainer<T> extends UIElement {
      * Turns the name label of a cell built by {@link #createResourceCell} into a text field, the way
      * renaming works everywhere in the resource panel. Enter or losing focus commits, Escape cancels.
      *
+     * <p>The text field is mounted as an overlay on the UI root at least {@link #INLINE_RENAME_MIN_WIDTH}
+     * wide, so narrow grid cells (e.g. small icon sizes) do not squeeze the input into an unusable sliver.
+     * Once editing ends, the overlay is removed and the label returns to its normal cell-bounded width.</p>
+     *
      * @param cell          the cell whose LAST child is the name label.
      * @param initial       the name to start editing from.
      * @param charValidator which characters may be typed.
@@ -1009,29 +1392,74 @@ public class ResourceProviderContainer<T> extends UIElement {
                                          Predicate<Character> charValidator, Consumer<String> onCommit) {
         if (cell == null || cell.getChildren().isEmpty()) return;
         if (!(cell.getChildren().getLast() instanceof Label label)) return;
-        var textField = new TextField().setText(initial).setCharValidator(charValidator);
+        var initialText = initial == null ? "" : initial;
+        var textField = new TextField().setText(initialText).setCharValidator(charValidator);
+        textField.addClass(CLASS_RENAME_FIELD);
         var cancelled = new boolean[1];
-        textField.addEventListener(UIEvents.BLUR, e -> {
+        var finished = new boolean[1];
+        var removeListener = new UIEventListener[1];
+        var mui = cell.getModularUI();
+        Runnable cleanup = () -> {
+            if (finished[0]) return;
+            finished[0] = true;
+            if (removeListener[0] != null) {
+                cell.removeEventListener(UIEvents.REMOVED, removeListener[0]);
+            }
             var newName = textField.getText().trim();
             // Verbatim, like the label this replaced: restoring it through a translation lookup would
             // leave a folder named after a key showing that key's translation until the next refresh.
-            label.setText(initial, false);
-            label.removeChild(textField);
+            label.setText(initialText, false);
+            textField.removeSelf();
             if (!cancelled[0]) {
                 onCommit.accept(newName);
             }
-        });
+        };
+        removeListener[0] = e -> {
+            if (!finished[0]) {
+                cancelled[0] = true;
+                cleanup.run();
+            }
+        };
+        cell.addEventListener(UIEvents.REMOVED, removeListener[0]);
+        textField.addEventListener(UIEvents.BLUR, e -> cleanup.run());
         textField.addEventListener(UIEvents.KEY_DOWN, e -> {
-            if (e.keyCode == GLFW.GLFW_KEY_ENTER) {
+            if (e.keyCode == GLFW.GLFW_KEY_ENTER || e.keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+                e.stopPropagation();
                 textField.blur();
             } else if (e.keyCode == GLFW.GLFW_KEY_ESCAPE) {
+                e.stopPropagation();
                 cancelled[0] = true;
                 textField.blur();
             }
         });
-        label.setText("");
-        label.addChild(textField);
+
+        label.setText("", false);
+        if (mui != null) {
+            var root = mui.ui.rootElement;
+            float labelW = label.getSizeWidth();
+            float labelH = label.getSizeHeight();
+            float rawW = Math.max(labelW, INLINE_RENAME_MIN_WIDTH);
+            float targetW = root.getSizeWidth() > 0 ? Math.min(rawW, root.getSizeWidth()) : rawW;
+            float targetH = Math.max(14f, Math.min(labelH, 16f));
+            boolean isList = cell.hasClass("__resource-cell_list__");
+            float desiredX = isList ? label.getPositionX() : label.getPositionX() + (labelW - targetW) / 2f;
+            float desiredY = label.getPositionY() + (labelH - targetH) / 2f;
+            var localOffset = root.worldToLocalLayoutOffset(new Vector2f(desiredX, desiredY));
+            float clampedLeft = Math.max(0f, Math.min(localOffset.x, Math.max(0f, root.getSizeWidth() - targetW)));
+            float clampedTop = Math.max(0f, Math.min(localOffset.y, Math.max(0f, root.getSizeHeight() - targetH)));
+            Style.importantPipeline(textField.getLayout(), l -> l
+                    .positionType(TaffyPosition.ABSOLUTE)
+                    .left(clampedLeft)
+                    .top(clampedTop)
+                    .width(targetW)
+                    .height(targetH));
+            root.addChild(textField);
+        } else {
+            label.addChild(textField);
+        }
         textField.focus();
+        textField.setCursor(initialText.length());
+        textField.setSelection(0, initialText.length());
     }
 
     public void renameResource(IResourcePath key) {

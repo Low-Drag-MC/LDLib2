@@ -721,6 +721,10 @@
   "editor.resource.sort_name": "Name",
   "editor.resource.sort_modified": "Date Modified",
   "editor.resource.sort_size": "Size",
+  "editor.resource.selected_count": "%s items selected",
+  "editor.copy.target_multiple": "Copy %s items to",
+  "editor.remove.confirm_multiple": "Are you sure you want to remove %s items?",
+  "ldlib.gui.file_dialog.delete.confirm_multiple": "Delete %s items? Folders are deleted with everything inside them, and this cannot be undone.",
 
   "ldlib2.configuration.title": "%s Settings",
   "ldlib2.configuration.font": "Text Rendering",

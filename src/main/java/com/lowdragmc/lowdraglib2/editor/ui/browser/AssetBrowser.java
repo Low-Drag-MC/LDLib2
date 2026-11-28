@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib2.editor.project.ProjectType;
 import com.lowdragmc.lowdraglib2.editor.resource.Resource;
 import com.lowdragmc.lowdraglib2.editor.resource.ResourceInstance;
 import com.lowdragmc.lowdraglib2.editor.ui.Editor;
+import com.lowdragmc.lowdraglib2.editor.ui.resource.GridMarqueeSelection;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceBottomBar;
 import com.lowdragmc.lowdraglib2.editor.ui.resource.ResourceProviderContainer;
 import com.lowdragmc.lowdraglib2.gui.ColorPattern;
@@ -29,6 +30,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.SplitView;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TreeList;
+import com.lowdragmc.lowdraglib2.gui.ui.event.CommandEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.util.FileNode;
@@ -41,10 +43,12 @@ import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.Util;
 import net.minecraft.network.chat.Component;
+import org.lwjgl.glfw.GLFW;
 
 import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.IdentityHashMap;
@@ -57,6 +61,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * A file system browser over the {@code ldlib2} folder, in the spirit of Unity's Project window: a
@@ -147,6 +152,12 @@ public class AssetBrowser extends UIElement {
     private final Map<File, UIElement> entryUIs = new LinkedHashMap<>();
     @Nullable
     private File selected;
+    private final LinkedHashSet<File> selectedFiles = new LinkedHashSet<>();
+    @Nullable
+    private File selectionAnchor;
+    @Nullable
+    private File pendingCollapseFile;
+    private GridMarqueeSelection<File> marqueeSelection;
     @Nullable
     private File hovered;
     @Nullable
@@ -316,21 +327,105 @@ public class AssetBrowser extends UIElement {
             layout.flexDirection(FlexDirection.ROW);
             layout.wrap(FlexWrap.WRAP);
         });
+        var viewPort = gridScroller.viewPort;
+        viewPort.setFocusable(true);
+        viewPort.addEventListener(UIEvents.MOUSE_DOWN, event -> {
+            if (event.button == 0 || event.button == 1) {
+                viewPort.focus();
+            }
+        }, true);
+        viewPort.addEventListener(UIEvents.KEY_DOWN, this::onGridKeyDown);
+        viewPort.addEventListener(UIEvents.VALIDATE_COMMAND, this::onValidateCommand);
+        viewPort.addEventListener(UIEvents.EXECUTE_COMMAND, this::onExecuteCommand);
+        marqueeSelection = GridMarqueeSelection.attach(
+                gridScroller,
+                () -> entryUIs,
+                this::getSelectedFiles,
+                this::setSelectedEntries);
         gridScroller.addEventListener(UIEvents.MOUSE_DOWN, event -> {
             if (event.button == 1) {
+                var hit = marqueeSelection.keyAt(event.target);
                 if (isGlobalSearchActive()) {
+                    if (hit == null) {
+                        clearSelection();
+                    }
                     if (editor != null) {
-                        editor.openMenu(this, event.x, event.y, createSearchResultMenu(hovered));
+                        editor.openMenu(this, event.x, event.y, createSearchResultMenu(hit));
                     }
                 } else {
-                    openMenu(event, hovered, hovered == null || hovered.isDirectory());
+                    if (hit == null) {
+                        clearSelection();
+                        openMenu(event, null, true);
+                    } else if (selectedFiles.size() > 1 && selectedFiles.contains(hit)) {
+                        if (editor != null) {
+                            editor.openMenu(this, event.x, event.y,
+                                    createMultiSelectionMenu(List.copyOf(selectedFiles)));
+                        }
+                    } else {
+                        openMenu(event, hit, hit.isDirectory());
+                    }
                 }
-            } else if (event.button == 0 && hovered == null) {
-                selectEntry(null);
             }
         });
         // the empty part of the grid is the folder on show
         attachDropTarget(gridScroller, () -> isGlobalSearchActive() ? null : currentDirectory);
+    }
+
+    protected void onGridKeyDown(UIEvent event) {
+        if (event.keyCode == GLFW.GLFW_KEY_ESCAPE && !selectedFiles.isEmpty()) {
+            event.stopPropagation();
+            clearSelection();
+            return;
+        }
+        if (isGlobalSearchActive()) return;
+        if (event.keyCode == GLFW.GLFW_KEY_DELETE && !selectedFiles.isEmpty()) {
+            event.stopPropagation();
+            deleteEntries(List.copyOf(selectedFiles));
+        } else if (event.keyCode == GLFW.GLFW_KEY_F2 && selectedFiles.size() == 1 && selected != null) {
+            event.stopPropagation();
+            renameEntry(selected);
+        }
+    }
+
+    protected void onValidateCommand(UIEvent event) {
+        if (CommandEvents.SELECT_ALL.equals(event.command)) {
+            event.stopPropagation();
+            return;
+        }
+        if (isGlobalSearchActive()) return;
+        if ((CommandEvents.COPY.equals(event.command)
+                || CommandEvents.CUT.equals(event.command)
+                || CommandEvents.DUPLICATE.equals(event.command)) && !selectedFiles.isEmpty()) {
+            event.stopPropagation();
+        } else if (CommandEvents.PASTE.equals(event.command)
+                && currentDirectory != null
+                && ClipboardManager.INSTANCE.getClipboardType() == ClipboardAssets.class) {
+            event.stopPropagation();
+        }
+    }
+
+    protected void onExecuteCommand(UIEvent event) {
+        if (CommandEvents.SELECT_ALL.equals(event.command)) {
+            event.stopPropagation();
+            selectAll();
+            return;
+        }
+        if (isGlobalSearchActive()) return;
+        if (CommandEvents.COPY.equals(event.command) && !selectedFiles.isEmpty()) {
+            event.stopPropagation();
+            copyToClipboard(List.copyOf(selectedFiles), false);
+        } else if (CommandEvents.CUT.equals(event.command) && !selectedFiles.isEmpty()) {
+            event.stopPropagation();
+            copyToClipboard(List.copyOf(selectedFiles), true);
+        } else if (CommandEvents.PASTE.equals(event.command)
+                && currentDirectory != null
+                && ClipboardManager.INSTANCE.getClipboardType() == ClipboardAssets.class) {
+            event.stopPropagation();
+            pasteInto(currentDirectory);
+        } else if (CommandEvents.DUPLICATE.equals(event.command) && !selectedFiles.isEmpty()) {
+            event.stopPropagation();
+            duplicateEntries(List.copyOf(selectedFiles));
+        }
     }
 
     /**
@@ -445,6 +540,9 @@ public class AssetBrowser extends UIElement {
         }
         this.currentDirectory = directory;
         this.selected = null;
+        this.selectedFiles.clear();
+        this.selectionAnchor = null;
+        this.pendingCollapseFile = null;
         this.hovered = null;
         this.pendingSelection = null;
         behaviors.setDirectory(directory);
@@ -656,14 +754,20 @@ public class AssetBrowser extends UIElement {
             entryUIs.put(entry.file(), ui);
             gridScroller.addScrollViewChild(ui);
         }
-        // re-applies the highlight on the new cell, and drops the selection if it is gone
+        // re-applies the highlight on the new cells, and drops any selection that is gone
         var revealed = pendingSelection;
-        var previous = revealed != null ? revealed : selected;
+        var previous = new ArrayList<>(selectedFiles);
         pendingSelection = null;
+        pendingCollapseFile = null;
+        selectedFiles.clear();
         selected = null;
-        selectEntry(previous);
-        if (revealed != null && selected != null) {
-            gridScroller.scrollToChildDelayed(entryUIs.get(selected));
+        if (revealed != null) {
+            selectEntry(revealed);
+            if (selected != null) {
+                gridScroller.scrollToChildDelayed(entryUIs.get(selected));
+            }
+        } else {
+            setSelectedEntries(previous);
         }
     }
 
@@ -746,8 +850,36 @@ public class AssetBrowser extends UIElement {
         entry.addEventListener(UIEvents.MOUSE_LEAVE, e -> {
             if (hovered == file) hovered = null;
         }, true);
-        entry.addEventListener(UIEvents.MOUSE_DOWN, e -> selectEntry(file));
-        entry.addEventListener(UIEvents.DOUBLE_CLICK, e -> activate(file));
+        entry.addEventListener(UIEvents.MOUSE_DOWN, e -> {
+            if (e.button == 0) {
+                pendingCollapseFile = null;
+                if (e.isShiftDown()) {
+                    selectRangeTo(file, e.isCtrlDown());
+                } else if (e.isCtrlDown()) {
+                    toggleSelectEntry(file);
+                } else if (selectedFiles.size() > 1 && selectedFiles.contains(file)) {
+                    // Defer collapsing until mouse-up so dragging the multi-selection stays possible.
+                    pendingCollapseFile = file;
+                } else {
+                    selectEntry(file);
+                }
+            } else if (e.button == 1) {
+                if (!selectedFiles.contains(file)) {
+                    selectEntry(file);
+                }
+            }
+        });
+        entry.addEventListener(UIEvents.MOUSE_UP, e -> {
+            if (e.button == 0 && pendingCollapseFile != null && pendingCollapseFile.equals(file)) {
+                selectEntry(file);
+            }
+            pendingCollapseFile = null;
+        });
+        entry.addEventListener(UIEvents.DOUBLE_CLICK, e -> {
+            if (!e.isCtrlDown() && !e.isShiftDown()) {
+                activate(file);
+            }
+        });
         attachDragSource(entry, file, behavior);
         if (isDirectory) {
             attachDropTarget(entry, () -> file);
@@ -823,27 +955,115 @@ public class AssetBrowser extends UIElement {
         return new DraggedAssets(List.of(file));
     }
 
+    public Set<File> getSelectedFiles() {
+        return Collections.unmodifiableSet(selectedFiles);
+    }
+
+    public boolean isSelected(@Nullable File file) {
+        return file != null && selectedFiles.contains(file);
+    }
+
+    public void clearSelection() {
+        selectEntry(null);
+    }
+
     public void selectEntry(@Nullable File file) {
-        if (selected != null) {
-            var previous = entryUIs.get(selected);
-            if (previous != null) {
-                previous.style(style -> style.overlayTexture(IGuiTexture.EMPTY));
-                previous.removeClass("__selected__");
+        selectionAnchor = file;
+        setSelectedEntries(file == null ? List.of() : List.of(file));
+    }
+
+    public void setSelectedEntries(Collection<File> files) {
+        var next = new LinkedHashSet<File>();
+        File primary = null;
+        for (var file : files) {
+            if (file != null && entryUIs.containsKey(file)) {
+                next.add(file);
+                primary = file;
             }
         }
-        selected = file != null && entryUIs.containsKey(file) ? file : null;
-        if (selected != null) {
-            var ui = entryUIs.get(selected);
-            if (ui != null) {
-                ui.style(style -> style.overlayTexture(selectedTexture));
-                ui.addClass("__selected__");
+        for (var oldFile : selectedFiles) {
+            if (!next.contains(oldFile)) {
+                applySelectionHighlight(entryUIs.get(oldFile), false);
             }
+        }
+        for (var newFile : next) {
+            applySelectionHighlight(entryUIs.get(newFile), true);
+        }
+        selectedFiles.clear();
+        selectedFiles.addAll(next);
+        selected = primary;
+        if (selected == null) {
+            selectionAnchor = null;
+        } else if (selectionAnchor == null || !selectedFiles.contains(selectionAnchor)) {
+            selectionAnchor = selected;
         }
         updateBottomBar();
     }
 
+    public void toggleSelectEntry(File file) {
+        if (file == null) return;
+        var next = new LinkedHashSet<>(selectedFiles);
+        if (next.contains(file)) {
+            next.remove(file);
+        } else {
+            next.add(file);
+            selectionAnchor = file;
+        }
+        setSelectedEntries(next);
+    }
+
+    public void selectRangeTo(File target, boolean additive) {
+        if (target == null) return;
+        var ordered = visibleFilesInOrder();
+        int toIdx = ordered.indexOf(target);
+        if (toIdx < 0) return;
+        var anchor = selectionAnchor != null && ordered.contains(selectionAnchor)
+                ? selectionAnchor
+                : (selected != null && ordered.contains(selected) ? selected : target);
+        int fromIdx = ordered.indexOf(anchor);
+        int start = Math.min(fromIdx, toIdx);
+        int end = Math.max(fromIdx, toIdx);
+        var next = additive ? new LinkedHashSet<>(selectedFiles) : new LinkedHashSet<File>();
+        for (int i = start; i <= end; i++) {
+            next.add(ordered.get(i));
+        }
+        selectionAnchor = anchor;
+        setSelectedEntries(next);
+    }
+
+    public void selectAll() {
+        setSelectedEntries(visibleFilesInOrder());
+    }
+
+    private List<File> visibleFilesInOrder() {
+        var cellToFile = new IdentityHashMap<UIElement, File>(entryUIs.size());
+        entryUIs.forEach((f, ui) -> cellToFile.put(ui, f));
+        var ordered = new ArrayList<File>(entryUIs.size());
+        for (var child : gridScroller.viewContainer.getChildren()) {
+            if (!child.isDisplayed()) continue;
+            var f = cellToFile.get(child);
+            if (f != null) ordered.add(f);
+        }
+        return ordered;
+    }
+
+    private void applySelectionHighlight(@Nullable UIElement ui, boolean isSelected) {
+        if (ui == null) return;
+        if (isSelected) {
+            ui.style(style -> style.overlayTexture(selectedTexture));
+            ui.addClass("__selected__");
+        } else {
+            ui.style(style -> style.overlayTexture(IGuiTexture.EMPTY));
+            ui.removeClass("__selected__");
+        }
+    }
+
     protected void updateBottomBar() {
         bottomBar.setValue(uiWidth);
+        if (selectedFiles.size() > 1) {
+            bottomBar.setText(Component.translatable("editor.resource.selected_count", selectedFiles.size()).getString());
+            return;
+        }
         if (selected == null) {
             bottomBar.setText("");
             return;
@@ -892,8 +1112,15 @@ public class AssetBrowser extends UIElement {
         ui.addEventListener(UIEvents.MOUSE_UP, e -> lastClickFile = null);
         ui.addEventListener(UIEvents.MOUSE_LEAVE, e -> {
             if (lastClickFile == file && isMouseDown(0)) {
-                e.currentElement.startDrag(dragPayloadOf(file, behavior),
-                        TextTexture.raw(displayNameOf(file, behavior)));
+                pendingCollapseFile = null;
+                if (selectedFiles.size() > 1 && selectedFiles.contains(file) && entryUIs.get(file) == ui) {
+                    e.currentElement.startDrag(new DraggedAssets(List.copyOf(selectedFiles)),
+                            TextTexture.raw(Component.translatable("editor.resource.selected_count",
+                                    selectedFiles.size()).getString()));
+                } else {
+                    e.currentElement.startDrag(dragPayloadOf(file, behavior),
+                            TextTexture.raw(displayNameOf(file, behavior)));
+                }
             }
             lastClickFile = null;
         }, true);
@@ -929,7 +1156,7 @@ public class AssetBrowser extends UIElement {
 
     /** Drops the drop highlight without losing the selection highlight of the same element. */
     private void clearDropHighlight(UIElement ui, @Nullable File file) {
-        var overlay = file != null && file.equals(selected) ? selectedTexture : IGuiTexture.EMPTY;
+        var overlay = file != null && selectedFiles.contains(file) ? selectedTexture : IGuiTexture.EMPTY;
         ui.style(style -> style.overlayTexture(overlay));
     }
 
@@ -1169,25 +1396,54 @@ public class AssetBrowser extends UIElement {
         return menu;
     }
 
+    /** Batch menu when multiple entries are selected in the current directory. */
+    protected TreeBuilder.Menu createMultiSelectionMenu(List<File> targets) {
+        var menu = TreeBuilder.Menu.start();
+        menu.leaf("ldlib.gui.editor.menu.copy_path", () -> ClipboardManager.INSTANCE.copyDirect(
+                targets.stream().map(this::copyablePathOf).collect(Collectors.joining("\n"))));
+        menu.crossLine();
+        menu.leaf(Icons.COPY, "ldlib.gui.editor.menu.copy", () -> copyToClipboard(targets, false));
+        menu.leaf(Icons.CUT, "editor.assets.cut", () -> copyToClipboard(targets, true));
+        menu.leaf("editor.assets.duplicate", () -> duplicateEntries(targets));
+        menu.leaf(Icons.REMOVE_FILE, "ldlib.gui.editor.menu.remove", () -> deleteEntries(targets));
+        appendViewOptions(menu);
+        return menu;
+    }
+
+    private String copyablePathOf(File file) {
+        var behavior = file.isDirectory() ? null : behaviors.forFile(file);
+        return behavior == null ? file.getAbsolutePath() : behaviors.pathOf(file).getPathWithType();
+    }
+
     /** Leads to a result rather than editing it: that goes through the behaviors of its own folder. */
     protected TreeBuilder.Menu createSearchResultMenu(@Nullable File target) {
         var menu = TreeBuilder.Menu.start();
         if (target != null) {
-            if (target.isDirectory()) {
-                menu.leaf(Icons.OPEN_FILE, "editor.assets.open", () -> openDirectory(target));
+            if (selectedFiles.size() > 1 && selectedFiles.contains(target)) {
+                var targets = List.copyOf(selectedFiles);
+                menu.leaf("ldlib.gui.editor.menu.copy_path", () -> ClipboardManager.INSTANCE.copyDirect(
+                        targets.stream().map(file -> {
+                            var res = behaviors.resourceOf(file);
+                            return res == null ? file.getAbsolutePath() : behaviors.pathOf(file).getPathWithType();
+                        }).collect(Collectors.joining("\n"))));
+                menu.crossLine();
+            } else {
+                if (target.isDirectory()) {
+                    menu.leaf(Icons.OPEN_FILE, "editor.assets.open", () -> openDirectory(target));
+                }
+                menu.leaf(Icons.FOLDER, "editor.assets.show_in_folder", () -> revealFile(target));
+                var resource = behaviors.resourceOf(target);
+                menu.leaf("ldlib.gui.editor.menu.copy_path", () -> ClipboardManager.INSTANCE.copyDirect(
+                        resource == null ? target.getAbsolutePath() : behaviors.pathOf(target).getPathWithType()));
+                var parent = target.getParentFile();
+                if (parent != null) {
+                    menu.leaf(Icons.OPEN_FILE, "ldlib.gui.tips.open_folder", () -> Util.getPlatform().openFile(parent));
+                }
+                if (target.isDirectory()) {
+                    appendAddProviderMenu(menu, target);
+                }
+                menu.crossLine();
             }
-            menu.leaf(Icons.FOLDER, "editor.assets.show_in_folder", () -> revealFile(target));
-            var resource = behaviors.resourceOf(target);
-            menu.leaf("ldlib.gui.editor.menu.copy_path", () -> ClipboardManager.INSTANCE.copyDirect(
-                    resource == null ? target.getAbsolutePath() : behaviors.pathOf(target).getPathWithType()));
-            var parent = target.getParentFile();
-            if (parent != null) {
-                menu.leaf(Icons.OPEN_FILE, "ldlib.gui.tips.open_folder", () -> Util.getPlatform().openFile(parent));
-            }
-            if (target.isDirectory()) {
-                appendAddProviderMenu(menu, target);
-            }
-            menu.crossLine();
         }
         menu.leaf("editor.assets.refresh", this::requestGridRebuild);
         appendViewOptions(menu);
@@ -1254,7 +1510,58 @@ public class AssetBrowser extends UIElement {
     // ------------------------------------------------------------------------------- operations
 
     protected void copyToClipboard(File file, boolean cut) {
-        ClipboardManager.INSTANCE.copy(() -> new ClipboardAssets(List.of(file), cut), ClipboardAssets.class);
+        copyToClipboard(List.of(file), cut);
+    }
+
+    protected void copyToClipboard(List<File> files, boolean cut) {
+        var snapshot = List.copyOf(files);
+        if (snapshot.isEmpty()) return;
+        ClipboardManager.INSTANCE.copy(() -> new ClipboardAssets(snapshot, cut), ClipboardAssets.class);
+    }
+
+    protected void duplicateEntries(List<File> files) {
+        boolean anyChanged = false;
+        for (var file : files) {
+            if (file == null || !file.exists()) continue;
+            var behavior = file.isDirectory() ? null : behaviors.forFile(file);
+            var path = behavior == null ? null : behaviors.pathOf(file);
+            if (behavior != null && behavior.isLoaded(path) && behavior.container().getCanCopy().test(path)) {
+                behavior.container().duplicateResource(path);
+                anyChanged = true;
+            } else {
+                var parent = file.getParentFile();
+                if (parent != null && FileOps.copyInto(file, parent) != null) {
+                    anyChanged = true;
+                }
+            }
+        }
+        if (anyChanged) {
+            afterStructureChange();
+        }
+    }
+
+    protected void deleteEntries(List<File> files) {
+        var deletable = files.stream()
+                .filter(f -> f != null && f.exists() && !f.equals(root))
+                .distinct()
+                .toList();
+        if (deletable.isEmpty()) return;
+        if (deletable.size() == 1) {
+            var target = deletable.getFirst();
+            if (!target.isDirectory()) {
+                var behavior = behaviors.forFile(target);
+                var path = behavior == null ? null : behaviors.pathOf(target);
+                var container = behavior != null && behavior.isLoaded(path) ? behavior.container() : null;
+                if (container != null && container.getCanRemove().test(path)) {
+                    container.removeResource(path, true);
+                    requestGridRebuild();
+                    return;
+                }
+            }
+            FileOps.confirmDelete(this, target, this::afterStructureChange);
+            return;
+        }
+        FileOps.confirmDelete(this, deletable, this::afterStructureChange);
     }
 
     protected void pasteInto(File directory) {
@@ -1438,10 +1745,13 @@ public class AssetBrowser extends UIElement {
         gridScroller.clearAllScrollViewChildren();
         entryUIs.clear();
         hovered = null;
+        pendingCollapseFile = null;
         searchEntries.clear();
         searchComparator = entryComparator();
-        if (selected != null) {
+        if (!selectedFiles.isEmpty() || selected != null) {
+            selectedFiles.clear();
             selected = null;
+            selectionAnchor = null;
             updateBottomBar();
         }
     }

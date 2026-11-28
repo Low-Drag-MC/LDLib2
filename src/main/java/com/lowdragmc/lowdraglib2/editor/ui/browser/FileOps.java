@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
@@ -176,6 +177,35 @@ public final class FileOps {
                     if (deleteRecursively(file)) {
                         onDone.run();
                     } else {
+                        showError(owner, "ldlib.gui.file_dialog.failed");
+                    }
+                }).show(owner);
+    }
+
+    public static void confirmDelete(UIElement owner, List<File> files, Runnable onDone) {
+        if (files.isEmpty()) return;
+        if (files.size() == 1) {
+            confirmDelete(owner, files.getFirst(), onDone);
+            return;
+        }
+        Dialog.showCheckBox("ldlib.gui.file_dialog.delete",
+                Component.translatable("ldlib.gui.file_dialog.delete.confirm_multiple", files.size()),
+                confirmed -> {
+                    if (!confirmed) return;
+                    boolean anyFailed = false;
+                    boolean anyDeleted = false;
+                    for (var file : files) {
+                        if (!file.exists()) continue;
+                        if (deleteRecursively(file)) {
+                            anyDeleted = true;
+                        } else {
+                            anyFailed = true;
+                        }
+                    }
+                    if (anyDeleted) {
+                        onDone.run();
+                    }
+                    if (anyFailed) {
                         showError(owner, "ldlib.gui.file_dialog.failed");
                     }
                 }).show(owner);
