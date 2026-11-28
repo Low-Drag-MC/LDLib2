@@ -120,7 +120,7 @@ public class UIVisualLayer {
 
         var overflowClip = element.getStyle().overflowClip();
         // render mask first
-        var hasClip = overflowClip != IGuiTexture.EMPTY;
+        var hasClip = !element.getStyle().overflowVisible() && overflowClip != IGuiTexture.EMPTY;
         if (hasClip) {
             drawMask(guiContext, overflowClip);
         }
@@ -167,13 +167,10 @@ public class UIVisualLayer {
     public void draw(GUIContext guiContext) {
         if (target == null) return;
 
-        var opacity = element.getStyle().opacity();
-        var hasClip = element.getStyle().overflowClip() != IGuiTexture.EMPTY;
-
-        var x = element.getPositionX();
-        var y = element.getPositionY();
-        var width = element.getSizeWidth();
-        var height = element.getSizeHeight();
+        var style = element.getStyle();
+        var opacity = style.opacity();
+        var overflowVisible = style.overflowVisible();
+        var hasClip = !overflowVisible && style.overflowClip() != IGuiTexture.EMPTY;
 
         RenderSystem.setShader(LDLibShaders::getVisualLayerShader);
         RenderSystem.setShaderTexture(0, textureId());
@@ -200,11 +197,26 @@ public class UIVisualLayer {
 
         Tesselator tesselator = RenderSystem.renderThreadTesselator();
         BufferBuilder bufferbuilder = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION);
-        var pose = guiContext.pose.last().pose();
-        bufferbuilder.addVertex(pose, x, y + height, 0);
-        bufferbuilder.addVertex(pose, x + width, y + height, 0);
-        bufferbuilder.addVertex(pose, x + width, y, 0);
-        bufferbuilder.addVertex(pose, x, y, 0);
+
+        if (overflowVisible) {
+            var width = guiContext.surface.guiScaledWidth();
+            var height = guiContext.surface.guiScaledHeight();
+            bufferbuilder.addVertex(0, height, 0);
+            bufferbuilder.addVertex(width, height, 0);
+            bufferbuilder.addVertex(width, 0, 0);
+            bufferbuilder.addVertex(0, 0, 0);
+        } else {
+            var x = element.getPositionX();
+            var y = element.getPositionY();
+            var width = element.getSizeWidth();
+            var height = element.getSizeHeight();
+            var pose = guiContext.pose.last().pose();
+            bufferbuilder.addVertex(pose, x, y + height, 0);
+            bufferbuilder.addVertex(pose, x + width, y + height, 0);
+            bufferbuilder.addVertex(pose, x + width, y, 0);
+            bufferbuilder.addVertex(pose, x, y, 0);
+        }
+
         BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
     }
 }
